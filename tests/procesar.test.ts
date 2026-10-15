@@ -3,101 +3,9 @@ import type { Cerebro } from "../lib/asistente/cerebro";
 import { RechazoModelo } from "../lib/asistente/cerebro";
 import { SIN_CONSUMO } from "../lib/asistente/costo";
 import { procesarMensaje, type Dependencias } from "../lib/asistente/procesar";
-import type { Repositorio } from "../lib/datos/repositorio";
-import type { Contacto, Conversacion, Corredor, NuevoMensaje } from "../lib/datos/tipos";
+import type { Corredor } from "../lib/datos/tipos";
 import type { EnviadorWhatsApp } from "../lib/whatsapp/enviar";
-import type { MensajeEntrante } from "../lib/whatsapp/parsear";
-
-const PATRICIA = "+50670000000";
-
-function corredorBase(): Corredor {
-  return {
-    id: "c1",
-    nombre: "Deluxe Properties",
-    nombre_contacto: "Patricia",
-    whatsapp_phone_number_id: "PNID",
-    whatsapp_corredor: PATRICIA,
-    zona_horaria: "America/Costa_Rica",
-    tono: "",
-    reglas_escalamiento: ["negociación de precio", "comisiones"],
-    tope_mensajes_mes: 1000,
-    aviso_mensajes_mes: 900,
-    respuesta_automatica: true,
-  };
-}
-
-// Repositorio en memoria que imita las reglas de la base que importan aquí.
-function repoEnMemoria(corredor: Corredor) {
-  const mensajes: (NuevoMensaje & { id: string })[] = [];
-  const conversaciones: Conversacion[] = [];
-  const contactos: Contacto[] = [];
-  const uso = { mes: "2026-10-01", mensajes_total: 0, aviso_tope_enviado_at: null as string | null };
-  let n = 0;
-  const repo: Repositorio = {
-    corredorPorPhoneNumberId: async (id) => (id === corredor.whatsapp_phone_number_id ? corredor : null),
-    contacto: async (corredorId, telefono, nombre) => {
-      let c = contactos.find((x) => x.corredor_id === corredorId && x.telefono === telefono);
-      if (!c) contactos.push((c = { id: `ct${++n}`, corredor_id: corredorId, telefono, nombre }));
-      return c;
-    },
-    conversacionActiva: async (corredorId, contactoId) => {
-      let c = conversaciones.find((x) => x.contacto_id === contactoId && x.estado !== "cerrada");
-      if (!c)
-        conversaciones.push(
-          (c = { id: `cv${++n}`, corredor_id: corredorId, contacto_id: contactoId, estado: "abierta", control: "asistente" }),
-        );
-      return c;
-    },
-    guardarMensaje: async (m) => {
-      if (m.wa_message_id && mensajes.some((x) => x.wa_message_id === m.wa_message_id)) return null;
-      const id = `m${++n}`;
-      mensajes.push({ ...m, id });
-      return id;
-    },
-    actualizarMensaje: async (_c, id, cambios) => {
-      Object.assign(mensajes.find((m) => m.id === id)!, cambios);
-    },
-    actualizarConversacion: async (_c, id, cambios) => {
-      Object.assign(conversaciones.find((c) => c.id === id)!, cambios);
-    },
-    historial: async (_c, conversacionId) =>
-      mensajes
-        .filter((m) => m.conversacion_id === conversacionId)
-        .map((m) => ({
-          id: m.id,
-          direccion: m.direccion,
-          autor: m.autor,
-          contenido: m.contenido,
-          estado_borrador: m.estado_borrador ?? null,
-          created_at: "",
-        })),
-    propiedadesActivas: async () => [],
-    registrarUso: async (_c, d) => {
-      uso.mensajes_total += (d.mensajesEntrantes ?? 0) + (d.mensajesSalientes ?? 0);
-      return { ...uso };
-    },
-    marcarAvisoTope: async () => {
-      if (uso.aviso_tope_enviado_at) return false;
-      uso.aviso_tope_enviado_at = "ahora";
-      return true;
-    },
-    actualizarEstadoEntrega: async () => {},
-  };
-  return { repo, mensajes, conversaciones, uso };
-}
-
-function entrante(texto: string | null, extra: Partial<MensajeEntrante> = {}): MensajeEntrante {
-  return {
-    phoneNumberId: "PNID",
-    waMessageId: `wamid.${Math.random()}`,
-    telefono: "+50688880001",
-    nombrePerfil: "Ana",
-    tipo: texto === null ? "audio" : "texto",
-    texto,
-    timestamp: new Date("2026-10-20T15:00:00Z"),
-    ...extra,
-  };
-}
+import { PATRICIA, corredorBase, entrante, repoEnMemoria } from "./dobles";
 
 describe("procesarMensaje", () => {
   let corredor: Corredor;
@@ -119,6 +27,7 @@ describe("procesarMensaje", () => {
       cerebro: cerebro as unknown as Cerebro,
       whatsapp: whatsapp as unknown as EnviadorWhatsApp,
       plantillaAviso: "aviso_corredor",
+      plantillaRecordatorio: "recordatorio_visita",
       registrar: () => {},
     };
   });

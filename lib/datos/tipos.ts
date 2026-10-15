@@ -12,6 +12,10 @@ export interface Corredor {
   tope_mensajes_mes: number;
   aviso_mensajes_mes: number;
   respuesta_automatica: boolean;
+  duracion_visita_min: number;
+  margen_visitas_min: number;
+  anticipacion_min_horas: number;
+  horizonte_agenda_dias: number;
 }
 
 export interface Contacto {
@@ -51,9 +55,17 @@ export interface NuevoMensaje {
   intencion?: Intencion | null;
   estado_borrador?: Mensaje["estado_borrador"];
   estado_entrega?: "enviado" | "entregado" | "leido" | "fallido" | null;
+  /** Acción pendiente de un borrador del piloto en sombra; se ejecuta al aprobarlo. */
+  accion?: AccionPendiente | null;
 }
 
+export type AccionPendiente =
+  | { tipo: "crear_cita"; inicio: string; fin: string; propiedad_id: string | null; reemplaza_cita_id: string | null }
+  | { tipo: "cancelar_cita"; cita_id: string }
+  | { tipo: "confirmar_asistencia"; cita_id: string };
+
 export interface Propiedad {
+  id: string;
   codigo: string;
   titulo: string;
   tipo: string;
@@ -87,4 +99,58 @@ export interface UsoMensual {
   mes: string;
   mensajes_total: number;
   aviso_tope_enviado_at: string | null;
+}
+
+export type EstadoCita = "agendada" | "confirmada" | "cancelada" | "realizada" | "no_asistio";
+
+export interface Cita {
+  id: string;
+  inicio: Date;
+  fin: Date;
+  estado: EstadoCita;
+  propiedad_titulo: string | null;
+}
+
+export interface DatosAgenda {
+  horarios: { dia_semana: number; hora_inicio: string; hora_fin: string }[];
+  bloqueos: { inicio: Date; fin: Date }[];
+  /** Citas activas del corredor (agendadas o confirmadas) en el rango pedido. */
+  citas: { inicio: Date; fin: Date }[];
+}
+
+export interface NuevaCita {
+  corredor_id: string;
+  contacto_id: string;
+  conversacion_id: string | null;
+  propiedad_id: string | null;
+  inicio: Date;
+  fin: Date;
+}
+
+/** Cita a recordar al cliente, con lo necesario para mandarle la plantilla. */
+export interface CitaParaRecordar {
+  id: string;
+  corredor_id: string;
+  contacto_id: string;
+  conversacion_id: string | null;
+  inicio: Date;
+  creada: Date;
+  telefono: string;
+  propiedad_titulo: string | null;
+  phone_number_id: string;
+  zona_horaria: string;
+  nombre_contacto: string;
+}
+
+export interface CitaCalendario {
+  id: string;
+  inicio: Date;
+  fin: Date;
+  estado: EstadoCita;
+  cliente_nombre: string | null;
+  cliente_telefono: string;
+  propiedad_titulo: string | null;
+  propiedad_codigo: string | null;
+  notas: string | null;
+  updated_at: Date;
 }

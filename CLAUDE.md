@@ -12,6 +12,9 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
 - WhatsApp Cloud API (Meta): el webhook entra a la app de Next.js.
 - API de Claude: Haiku (`claude-haiku-5-5`) para clasificar mensajes y anuncios; Sonnet (`claude-sonnet-5-5`)
   para redactar respuestas, analizar propiedades y ofertas y escribir anuncios.
+- Agenda propia en Supabase (no se integra Google Calendar): horarios, bloqueos y citas en la base;
+  el corredor ve sus citas en el teléfono suscribiéndose al enlace ICS `/api/calendario/<token>.ics`.
+- Vercel Cron cada hora para recordatorios (`vercel.json`, protegido con `CRON_SECRET`).
 - Worker de búsqueda en Encuentra24 con Playwright en GitHub Actions (semana 2).
 
 ## Reglas
@@ -20,6 +23,7 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
 - El backend usa `service_role` (salta RLS) desde `lib/supabase/admin.ts`: **cada consulta del backend
   filtra por `corredor_id`** explícitamente. Nunca usar ese cliente en código que corre en el navegador.
 - **Ningún secreto en el repositorio.** Variables en `.env.local` y en Vercel; la lista está en `.env.example`.
+- Las fechas y horas que ve el cliente las arma el código desde la agenda, nunca el modelo.
 - **La asistente nunca inventa datos de una propiedad.** Si no está en `propiedades`, dice que lo confirma
   y le avisa al corredor.
 - Lo que está en `corredores.reglas_escalamiento` (negociación de precio, comisiones, ofertas formales,
@@ -36,7 +40,9 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
 `app/api/whatsapp/webhook/route.ts` verifica la firma de Meta, responde 200 y sigue en `after()` con
 `lib/asistente/procesar.ts`: guarda el mensaje (idempotente por `wa_message_id`), suma uso, y si la
 conversación no está escalada ni tomada por el corredor, Haiku clasifica y Sonnet responde con las
-propiedades activas. Escalamientos, audios/imágenes, fallas de Claude y datos por confirmar se avisan al
+propiedades activas; si la intención es agendar, `lib/asistente/agenda.ts` calcula horarios libres
+(`lib/agenda/disponibilidad.ts`), Sonnet elige la acción con ids cortos y el código arma las fechas y
+crea la cita. El modelo nunca escribe una fecha que llegue al cliente. Escalamientos, audios/imágenes, fallas de Claude y datos por confirmar se avisan al
 corredor con la plantilla `WHATSAPP_PLANTILLA_AVISO`. El acceso a datos va por `lib/datos/repositorio.ts`
 y Claude por `lib/asistente/cerebro.ts`; ambos son interfaces para poder probar con dobles.
 
@@ -52,7 +58,9 @@ dueño o corredor. Un cambio de tono o de instrucciones se prueba con el set de 
 | propiedades | Propiedades activas: ficha, precio, zona, fotos, enlace de Encuentra24 |
 | contactos | Clientes y prospectos, con origen y anuncio que los trajo |
 | conversaciones / mensajes | Historial de WhatsApp, quién respondió, intención, borradores |
-| citas | Visitas agendadas, enlazadas al evento del calendario |
+| citas | Visitas agendadas; una restricción de exclusión impide citas encimadas |
+| horarios_visitas | Franjas semanales en que el corredor acepta visitas |
+| bloqueos_agenda | Excepciones a la agenda (vacaciones, compromisos) |
 | anuncios_e24 | Anuncios, vencimiento y referencia para atribuir contactos |
 | leads_duenos | Búsqueda semanal: puntaje, señales, estado de contacto |
 | corredores_bloqueados | Corredores conocidos que no se captan como dueños |
@@ -62,7 +70,7 @@ dueño o corredor. Un cambio de tono o de instrucciones se prueba con el set de 
 - `npm run dev` — app local.
 - `npm run typecheck` y `npm run build` — antes de cada push.
 - `npm test` — pruebas unitarias (vitest) de `tests/`: firma de Meta, parseo del webhook y el flujo
-  de la asistente con dobles en memoria (escalamiento, piloto en sombra, duplicados, aviso de 900).
+  de la asistente y la agenda con dobles en memoria (`tests/dobles.ts`), disponibilidad, ICS y recordatorios.
 - `npm run test:db` — crea una base desechable en un Postgres local (usa `PGHOST`, `PGPORT`, `PGUSER`),
   aplica `supabase/tests/shim_supabase.sql`, las migraciones y la semilla, y corre las pruebas SQL de
   `supabase/tests/`. Incluye la prueba de que un corredor no ve datos de otro.

@@ -16,6 +16,7 @@ export function dependencias(): Dependencias {
       cerebro: crearCerebroClaude(),
       whatsapp: crearEnviadorWhatsApp(token),
       plantillaAviso: process.env.WHATSAPP_PLANTILLA_AVISO ?? "aviso_corredor",
+      plantillaRecordatorio: process.env.WHATSAPP_PLANTILLA_RECORDATORIO ?? "recordatorio_visita",
     };
   }
   return deps;

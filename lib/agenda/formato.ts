@@ -14,5 +14,14 @@ export function etiquetaHorario(fecha: Date, zona: string): string {
     });
     formatos.set(zona, f);
   }
-  return f.format(fecha).replace(/^(\p{L}+),/u, "$1");
+  // Intl usa espacios especiales (U+00A0, U+202F) en "a. m."; se normalizan para WhatsApp y plantillas.
+  return f
+    .format(fecha)
+    .replace(/[\u00a0\u202f]/g, " ")
+    .replace(/^(\p{L}+),/u, "$1");
+}
+
+/** Cierra una oración sin duplicar el punto de "a. m." / "p. m.". */
+export function conPunto(texto: string): string {
+  return texto.endsWith(".") ? texto : `${texto}.`;
 }
