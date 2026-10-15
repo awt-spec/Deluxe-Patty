@@ -1,0 +1,19 @@
+"use server";
+
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { clienteConSesion } from "@/lib/supabase/servidor";
+
+export async function pedirEnlace(formulario: FormData) {
+  const correo = String(formulario.get("correo") ?? "").trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) redirect("/entrar?aviso=correo");
+  const origen = (await headers()).get("origin") ?? process.env.NEXT_PUBLIC_URL_APP ?? "";
+  const supabase = await clienteConSesion();
+  // shouldCreateUser: false — solo entran usuarios creados por soporte y enlazados a un corredor.
+  await supabase.auth.signInWithOtp({
+    email: correo,
+    options: { shouldCreateUser: false, emailRedirectTo: `${origen}/auth/confirmar` },
+  });
+  // Misma respuesta exista o no la cuenta: no se revela qué correos están registrados.
+  redirect("/entrar?aviso=enviado");
+}
