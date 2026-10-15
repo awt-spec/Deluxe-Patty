@@ -1,6 +1,7 @@
 import { prepararAnuncio } from "../anuncios/preparar";
 import { DIAS_REPORTE, armarReporte } from "../anuncios/reporte";
 import type { Conversacion, Corredor } from "../datos/tipos";
+import { mejorarFotos } from "../fotos/mejorar";
 import type { MensajeEntrante } from "../whatsapp/parsear";
 import { RechazoModelo } from "./cerebro";
 import { Contexto, type Dependencias } from "./contexto";
@@ -12,7 +13,7 @@ export type ResultadoCorredor =
   | { tipo: "duplicado" }
   | {
       tipo: "corredor";
-      accion: "plan" | "plan_pendiente" | "analisis" | "anuncio" | "reporte" | "ayuda" | "error";
+      accion: "plan" | "plan_pendiente" | "analisis" | "anuncio" | "fotos" | "reporte" | "ayuda" | "error";
     };
 
 export async function conversacionDelCorredor(deps: Pick<Dependencias, "repo">, corredor: Corredor) {
@@ -62,10 +63,32 @@ export async function enviarAlCorredor(
   return abierta ? "texto" : "plantilla";
 }
 
+/** Imagen al corredor (solo dentro de la ventana de 24 horas, que abre su propio mensaje). */
+async function enviarImagenAlCorredor(
+  deps: Dependencias,
+  corredor: Corredor,
+  conversacion: Conversacion,
+  url: string,
+  leyenda: string,
+) {
+  const waId = await deps.whatsapp.imagen(corredor.whatsapp_phone_number_id!, corredor.whatsapp_corredor!, url, leyenda);
+  await deps.repo.guardarMensaje({
+    corredor_id: corredor.id,
+    conversacion_id: conversacion.id,
+    direccion: "saliente",
+    autor: "asistente",
+    tipo: "imagen",
+    contenido: url,
+    wa_message_id: waId,
+    estado_entrega: "enviado",
+  });
+  await deps.repo.registrarUso(corredor.id, { mensajesSalientes: 1 });
+}
+
 const AYUDA =
   "Puedo analizarte una propiedad o una oferta: mándame el enlace de Encuentra24 o los datos (precio, metros, zona). " +
   'Escribe "plan" para tu plan del día, "anuncio" y el código de una propiedad para prepararte el anuncio, ' +
-  'o "reporte" para ver qué anuncios te traen contactos.';
+  '"fotos" y el código para mejorarle las fotos, o "reporte" para ver qué anuncios te traen contactos.';
 
 /** Mensajes que el corredor le manda a su asistente desde su número personal. */
 export async function procesarMensajeCorredor(
@@ -140,6 +163,16 @@ export async function procesarMensajeCorredor(
       await responder("No pude preparar el anuncio ahora. Inténtalo de nuevo en un rato.");
       return { tipo: "corredor", accion: "error" };
     }
+  }
+
+  const pedidoFotos = /^fotos\s+(?:de\s+)?(\S+)/i.exec(texto);
+  if (pedidoFotos) {
+    const r = await mejorarFotos(deps, corredor, pedidoFotos[1], responder);
+    for (const foto of r.mejoradas) {
+      await enviarImagenAlCorredor(deps, corredor, conversacion, foto.url, `Foto ${foto.numero} mejorada`);
+    }
+    for (const m of r.mensajes) await responder(m);
+    return { tipo: "corredor", accion: "fotos" };
   }
 
   if (!texto) {

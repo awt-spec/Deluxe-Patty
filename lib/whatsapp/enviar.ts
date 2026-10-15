@@ -3,6 +3,8 @@
 export interface EnviadorWhatsApp {
   /** Texto libre: solo dentro de la ventana de 24 horas desde el último mensaje del destinatario. */
   texto(phoneNumberId: string, para: string, cuerpo: string): Promise<string>;
+  /** Imagen por enlace público, con leyenda. Solo dentro de la ventana de 24 horas. */
+  imagen(phoneNumberId: string, para: string, url: string, leyenda: string): Promise<string>;
   /** Plantilla aprobada por Meta: sirve fuera de la ventana de 24 horas. */
   plantilla(phoneNumberId: string, para: string, nombre: string, parametros: string[]): Promise<string>;
 }
@@ -46,6 +48,13 @@ export function crearEnviadorWhatsApp(accessToken: string): EnviadorWhatsApp {
         to: para.replace(/^\+/, ""),
         type: "text",
         text: { body: cuerpo, preview_url: true },
+      }),
+    imagen: (phoneNumberId, para, url, leyenda) =>
+      enviar(phoneNumberId, {
+        recipient_type: "individual",
+        to: para.replace(/^\+/, ""),
+        type: "image",
+        image: { link: url, caption: leyenda },
       }),
     plantilla: (phoneNumberId, para, nombre, parametros) =>
       enviar(phoneNumberId, {

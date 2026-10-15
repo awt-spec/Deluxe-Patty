@@ -1,5 +1,6 @@
 import type { Repositorio } from "../datos/repositorio";
 import type { AccionPendiente, Conversacion, Corredor, Intencion, UsoDelta } from "../datos/tipos";
+import type { EditorFotos } from "../fotos/editor";
 import type { EnviadorWhatsApp } from "../whatsapp/enviar";
 import type { Cerebro } from "./cerebro";
 import type { Consumo } from "./costo";
@@ -13,6 +14,8 @@ export interface Dependencias {
   /** Plantilla aprobada con {{1}} corredor, {{2}} fecha y hora, {{3}} propiedad: recordatorio de visita. */
   plantillaRecordatorio: string;
   registrar?: (evento: string, datos: Record<string, unknown>) => void;
+  /** Mejora de fotos con IA; sin configurar si falta OPENAI_API_KEY. */
+  fotos?: EditorFotos;
   /** Reloj inyectable para pruebas. */
   ahora?: () => Date;
 }

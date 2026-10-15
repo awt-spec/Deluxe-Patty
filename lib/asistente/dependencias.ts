@@ -1,6 +1,7 @@
 import "server-only";
 import { crearRepositorioSupabase } from "../datos/repositorio";
 import { createAdminClient } from "../supabase/admin";
+import { crearEditorOpenAI } from "../fotos/editor";
 import { crearEnviadorWhatsApp } from "../whatsapp/enviar";
 import { crearCerebroClaude } from "./cerebro";
 import type { Dependencias } from "./procesar";
@@ -17,6 +18,7 @@ export function dependencias(): Dependencias {
       whatsapp: crearEnviadorWhatsApp(token),
       plantillaAviso: process.env.WHATSAPP_PLANTILLA_AVISO ?? "aviso_corredor",
       plantillaRecordatorio: process.env.WHATSAPP_PLANTILLA_RECORDATORIO ?? "recordatorio_visita",
+      fotos: process.env.OPENAI_API_KEY ? crearEditorOpenAI() : undefined,
     };
   }
   return deps;

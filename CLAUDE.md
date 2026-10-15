@@ -12,6 +12,8 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
 - WhatsApp Cloud API (Meta): el webhook entra a la app de Next.js.
 - API de Claude: Haiku (`claude-haiku-5-5`) para clasificar mensajes y anuncios; Sonnet (`claude-sonnet-5-5`)
   para redactar respuestas, analizar propiedades y ofertas y escribir anuncios.
+- API de imágenes de OpenAI (`gpt-image-2`) solo para mejorar fotos de propiedades (`lib/fotos/`).
+  Las mejoradas van al bucket público `fotos` de Supabase Storage.
 - Agenda propia en Supabase (no se integra Google Calendar): horarios, bloqueos y citas en la base;
   el corredor ve sus citas en el teléfono suscribiéndose al enlace ICS `/api/calendario/<token>.ics`.
 - Vercel Cron cada hora para recordatorios, plan del día y vencimiento de anuncios (`vercel.json`,
@@ -35,6 +37,9 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
 - Datos personales de clientes y dueños (Ley 8968): nada de teléfonos, nombres ni contenido de mensajes
   en los registros de error.
 - El primer mensaje a un dueño directo lo manda el corredor a mano; la asistente nunca escribe en frío.
+- Las fotos mejoradas con IA se guardan aparte (`propiedades.fotos[i].mejorada_url`): la original nunca
+  se reemplaza y el corredor las revisa antes de publicarlas, porque el modelo regenera la imagen y
+  puede cambiar detalles. La instrucción (`prompts/foto.md`) prohíbe agregar, quitar o cambiar nada.
 - Cada mensaje entrante y saliente suma en `uso_mensual` vía `registrar_uso()`; tope de 1.000 al mes,
   aviso a los 900.
 
@@ -53,7 +58,8 @@ Sonnet y `web_fetch` (lee el enlace de Encuentra24). El plan del día lo arma el
 un resumen, y el plan completo sale cuando el corredor responde. Otros comandos del corredor:
 "anuncio <código>" prepara título y descripción en español e inglés y el orden de fotos
 (`lib/anuncios/preparar.ts`) y lo guarda como borrador con su referencia; "reporte" dice qué anuncios
-traen contactos (`lib/anuncios/reporte.ts`).
+traen contactos (`lib/anuncios/reporte.ts`); "fotos <código>" mejora hasta 12 fotos con OpenAI
+(`lib/fotos/mejorar.ts`) y se las manda para revisar.
 
 ## Anuncios de Encuentra24
 Encuentra24 no tiene API: la asistente prepara y vigila, el corredor publica. Cada anuncio tiene una

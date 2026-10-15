@@ -5,7 +5,8 @@ import { firmaValida } from "@/lib/whatsapp/firma";
 import { parsearWebhook } from "@/lib/whatsapp/parsear";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+// La mejora de fotos (varias imágenes con OpenAI) corre en after() y puede tardar unos minutos.
+export const maxDuration = 300;
 
 // Verificación del webhook al configurarlo en Meta for Developers.
 export function GET(req: NextRequest) {

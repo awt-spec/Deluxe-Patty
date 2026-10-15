@@ -170,6 +170,8 @@ export interface DatosPlan {
 export interface Foto {
   url: string;
   orden?: number;
+  /** Versión mejorada con IA (la original nunca se reemplaza). */
+  mejorada_url?: string;
 }
 
 export type PropiedadConFotos = Propiedad & { fotos: Foto[] };

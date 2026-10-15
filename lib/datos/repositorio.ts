@@ -15,6 +15,7 @@ import type {
   Mensaje,
   NuevoMensaje,
   Propiedad,
+  Foto,
   PropiedadConFotos,
   UsoDelta,
   UsoMensual,
@@ -98,6 +99,12 @@ export interface Repositorio {
   enviosPendientes(corredorId: string): Promise<{ id: string; contenido: string }[]>;
   /** true solo para la llamada que lo marcó (evita entregarlo dos veces). */
   marcarEnvioEntregado(corredorId: string, id: string): Promise<boolean>;
+
+  // Fotos
+  /** Sube una foto al bucket público "fotos" y devuelve su URL. */
+  subirFoto(corredorId: string, ruta: string, imagen: Buffer, tipo: string): Promise<string>;
+  guardarFotos(corredorId: string, propiedadId: string, fotos: Foto[]): Promise<void>;
+  registrarFotosMejoradas(corredorId: string, cantidad: number): Promise<void>;
 }
 
 const UNICA_VIOLADA = "23505";
@@ -690,6 +697,23 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
         .select("id");
       verificar(error, "marcarEnvioEntregado");
       return (data ?? []).length > 0;
+    },
+
+    async subirFoto(corredorId, ruta, imagen, tipo) {
+      const camino = `${corredorId}/${ruta}`;
+      const { error } = await db.storage.from("fotos").upload(camino, imagen, { contentType: tipo, upsert: true });
+      verificar(error ? { message: error.message } : null, "subirFoto");
+      return db.storage.from("fotos").getPublicUrl(camino).data.publicUrl;
+    },
+
+    async guardarFotos(corredorId, propiedadId, fotos) {
+      const { error } = await db.from("propiedades").update({ fotos }).eq("corredor_id", corredorId).eq("id", propiedadId);
+      verificar(error, "guardarFotos");
+    },
+
+    async registrarFotosMejoradas(corredorId, cantidad) {
+      const { error } = await db.rpc("registrar_fotos_mejoradas", { p_corredor_id: corredorId, p_cantidad: cantidad });
+      verificar(error, "registrarFotosMejoradas");
     },
   };
 }

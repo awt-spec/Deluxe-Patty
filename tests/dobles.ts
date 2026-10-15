@@ -48,6 +48,8 @@ export function repoEnMemoria(corredor: Corredor) {
   const anuncios: AnuncioFila[] = [];
   const propiedades: PropiedadConFotos[] = [];
   const envios: { id: string; contenido: string; entregado: boolean }[] = [];
+  const subidas: string[] = [];
+  let fotosMejoradas = 0;
   const planes = new Map<string, { contenido: string; enviado: boolean }>();
   const citas: (NuevaCita & { id: string; estado: EstadoCita; recordatorio: boolean; creada: Date })[] = [];
   const horarios = [1, 2, 3, 4, 5].map((d) => ({ dia_semana: d, hora_inicio: "08:00:00", hora_fin: "17:00:00" }));
@@ -236,8 +238,32 @@ export function repoEnMemoria(corredor: Corredor) {
       if (e) e.entregado = true;
       return !!e;
     },
+    subirFoto: async (corredorId, ruta) => {
+      subidas.push(ruta);
+      return `https://storage.example/${corredorId}/${ruta}`;
+    },
+    guardarFotos: async (_c, propiedadId, fotos) => {
+      const p = propiedades.find((x) => x.id === propiedadId);
+      if (p) p.fotos = fotos;
+    },
+    registrarFotosMejoradas: async (_c, cantidad) => {
+      fotosMejoradas += cantidad;
+    },
   };
-  return { repo, mensajes, conversaciones, uso, citas, contactos, planes, anuncios, propiedades, envios };
+  return {
+    repo,
+    mensajes,
+    conversaciones,
+    uso,
+    citas,
+    contactos,
+    planes,
+    anuncios,
+    propiedades,
+    envios,
+    subidas,
+    fotosMejoradas: () => fotosMejoradas,
+  };
 }
 
 export function entrante(texto: string | null, extra: Partial<MensajeEntrante> = {}): MensajeEntrante {
