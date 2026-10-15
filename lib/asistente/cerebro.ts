@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
-import type { Corredor, Intencion, Mensaje, Propiedad } from "../datos/tipos";
+import type { Corredor, Intencion, Mensaje, Propiedad, PropiedadConFotos } from "../datos/tipos";
 import { consumo, sumar as sumarConsumo, type Consumo } from "./costo";
 import { instruccion } from "./instrucciones";
 
@@ -39,9 +39,21 @@ export interface DecisionAgenda {
   consumo: Consumo;
 }
 
+export interface AnuncioPreparado {
+  tituloEs: string;
+  descripcionEs: string;
+  tituloEn: string;
+  descripcionEn: string;
+  /** Números de foto (1 = primera de la propiedad) en el orden sugerido, con lo que muestran. */
+  ordenFotos: { foto: number; muestra: string }[];
+  sugerencias: string[];
+  consumo: Consumo;
+}
+
 export interface Cerebro {
   clasificar(corredor: Corredor, historial: Mensaje[], mensaje: string): Promise<Clasificacion>;
   responder(corredor: Corredor, propiedades: Propiedad[], historial: Mensaje[], mensaje: string): Promise<Respuesta>;
+  prepararAnuncio(corredor: Corredor, propiedad: PropiedadConFotos): Promise<AnuncioPreparado>;
   /** Análisis a pedido del corredor: propiedad u oferta (enlace o datos). */
   analizar(corredor: Corredor, propiedades: Propiedad[], historial: Mensaje[], mensaje: string): Promise<Respuesta>;
   agendar(
@@ -70,6 +82,18 @@ const EsquemaRespuesta = z.object({
   avisar_corredor: z.boolean(),
   motivo_aviso: z.string().nullable(),
 });
+
+const EsquemaAnuncio = z.object({
+  titulo_es: z.string(),
+  descripcion_es: z.string(),
+  titulo_en: z.string(),
+  descripcion_en: z.string(),
+  orden_fotos: z.array(z.object({ foto: z.number().int(), muestra: z.string() })),
+  sugerencias: z.array(z.string()),
+});
+
+/** Máximo de fotos que se le muestran al modelo para sugerir el orden. */
+export const MAX_FOTOS_ANUNCIO = 20;
 
 const EsquemaAgenda = z.object({
   accion: z.enum(["proponer", "confirmar", "cancelar", "confirmar_asistencia", "responder"]),
@@ -181,6 +205,57 @@ export function crearCerebroClaude(client = new Anthropic()): Cerebro {
       return {
         texto: respuesta.trim(),
         avisarCorredor: avisar_corredor ? motivo_aviso?.trim() || "Revisar conversación" : null,
+        consumo: c,
+      };
+    },
+
+    async prepararAnuncio(corredor, propiedad) {
+      const fotos = [...propiedad.fotos]
+        .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
+        .slice(0, MAX_FOTOS_ANUNCIO);
+      const pedir = async (conFotos: boolean) => {
+        const contenido: Anthropic.Beta.BetaContentBlockParam[] = [];
+        if (conFotos) {
+          fotos.forEach((f, i) => {
+            contenido.push({ type: "text", text: `Foto ${i + 1}:` });
+            contenido.push({ type: "image", source: { type: "url", url: f.url } });
+          });
+        }
+        contenido.push({
+          type: "text",
+          text: `<propiedad>\n${fichaPropiedades([propiedad])}\n</propiedad>\n\n${
+            conFotos ? "" : "(No hay fotos disponibles: deja orden_fotos vacío.)"
+          }`,
+        });
+        return client.beta.messages.parse({
+          model: MODELO_REDACTAR,
+          max_tokens: 8000,
+          betas: ["server-side-fallback-2026-07-01"],
+          fallbacks: "default",
+          output_config: { effort: "medium", format: betaZodOutputFormat(EsquemaAnuncio) },
+          system: `${instruccion("anuncio")}\n\n<corredor>\n${corredor.nombre_contacto}, de ${corredor.nombre}.\n</corredor>`,
+          messages: [{ role: "user", content: contenido }],
+        });
+      };
+      let res;
+      try {
+        res = await pedir(fotos.length > 0);
+      } catch (error) {
+        // Una foto que la API no puede descargar hace fallar todo el pedido: se reintenta sin fotos.
+        if (fotos.length === 0 || !(error instanceof Anthropic.BadRequestError)) throw error;
+        res = await pedir(false);
+      }
+      const c = consumo(res.model, res.usage);
+      if (res.stop_reason === "refusal") throw new RechazoModelo(c);
+      if (!res.parsed_output) throw new Error(`Anuncio sin salida (stop_reason ${res.stop_reason})`);
+      const o = res.parsed_output;
+      return {
+        tituloEs: o.titulo_es.trim(),
+        descripcionEs: o.descripcion_es.trim(),
+        tituloEn: o.titulo_en.trim(),
+        descripcionEn: o.descripcion_en.trim(),
+        ordenFotos: o.orden_fotos.filter((f) => f.foto >= 1 && f.foto <= fotos.length),
+        sugerencias: o.sugerencias,
         consumo: c,
       };
     },

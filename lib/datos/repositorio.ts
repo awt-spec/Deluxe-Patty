@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
+  AnuncioPorVencer,
+  AnuncioResumen,
   Cita,
   CitaCalendario,
   CitaParaRecordar,
@@ -13,6 +15,7 @@ import type {
   Mensaje,
   NuevoMensaje,
   Propiedad,
+  PropiedadConFotos,
   UsoDelta,
   UsoMensual,
 } from "./tipos";
@@ -71,6 +74,24 @@ export interface Repositorio {
   /** Plan del día generado y todavía no entregado. */
   planPendiente(corredorId: string, fecha: string): Promise<string | null>;
   marcarPlanEnviado(corredorId: string, fecha: string): Promise<void>;
+
+  // Anuncios de Encuentra24
+  /** Enlaza un contacto sin origen al anuncio con esa referencia. true si lo enlazó. */
+  atribuirContacto(corredorId: string, contactoId: string, referencia: string): Promise<boolean>;
+  propiedadPorCodigo(corredorId: string, codigo: string): Promise<PropiedadConFotos | null>;
+  /** Crea o reescribe el borrador de anuncio de la propiedad; devuelve su referencia. */
+  guardarBorradorAnuncio(
+    corredorId: string,
+    propiedadId: string,
+    titulo: string,
+    texto: Record<string, unknown>,
+  ): Promise<string>;
+  /** Anuncios no eliminados, con contactos atribuidos desde `desde` y en total. */
+  reporteAnuncios(corredorId: string, desde: Date): Promise<AnuncioResumen[]>;
+  /** Anuncios activos que vencen entre las dos fechas (YYYY-MM-DD) y aún no tienen aviso. */
+  anunciosPorVencer(corredorId: string, desde: string, hasta: string): Promise<AnuncioPorVencer[]>;
+  /** Marca el aviso de vencimiento; devuelve los ids que esta llamada marcó. */
+  marcarAvisoVencimiento(corredorId: string, ids: string[]): Promise<string[]>;
 }
 
 const UNICA_VIOLADA = "23505";
@@ -88,7 +109,7 @@ function verificar(error: { message: string; code?: string } | null, que: string
 }
 
 const COLUMNAS_CORREDOR =
-  "id, nombre, nombre_contacto, whatsapp_phone_number_id, whatsapp_corredor, zona_horaria, tono, reglas_escalamiento, tope_mensajes_mes, aviso_mensajes_mes, respuesta_automatica, duracion_visita_min, margen_visitas_min, anticipacion_min_horas, horizonte_agenda_dias, hora_plan_dia";
+  "id, nombre, nombre_contacto, whatsapp_numero, whatsapp_phone_number_id, whatsapp_corredor, zona_horaria, tono, reglas_escalamiento, tope_mensajes_mes, aviso_mensajes_mes, respuesta_automatica, duracion_visita_min, margen_visitas_min, anticipacion_min_horas, horizonte_agenda_dias, hora_plan_dia";
 
 export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
   return {
@@ -509,6 +530,132 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
         .eq("corredor_id", corredorId)
         .eq("fecha", fecha);
       verificar(error, "marcarPlanEnviado");
+    },
+
+    async atribuirContacto(corredorId, contactoId, referencia) {
+      const { data: anuncio, error } = await db
+        .from("anuncios_e24")
+        .select("id")
+        .eq("corredor_id", corredorId)
+        .eq("referencia", referencia.toUpperCase())
+        .maybeSingle();
+      verificar(error, "atribuirContacto (anuncio)");
+      if (!anuncio) return false;
+      const { data, error: e2 } = await db
+        .from("contactos")
+        .update({ anuncio_id: anuncio.id, origen: "anuncio" })
+        .eq("corredor_id", corredorId)
+        .eq("id", contactoId)
+        .is("anuncio_id", null)
+        .select("id");
+      verificar(e2, "atribuirContacto (contacto)");
+      return (data ?? []).length > 0;
+    },
+
+    async propiedadPorCodigo(corredorId, codigo) {
+      const { data, error } = await db
+        .from("propiedades")
+        .select(
+          "id, codigo, titulo, tipo, operacion, precio, moneda, provincia, canton, distrito, zona, habitaciones, banos, m2_construccion, m2_terreno, descripcion, amenidades, url_e24, estado, fotos",
+        )
+        .eq("corredor_id", corredorId)
+        .ilike("codigo", codigo.replace(/[%_\\]/g, "\\$&"))
+        .maybeSingle();
+      verificar(error, "propiedadPorCodigo");
+      return data as PropiedadConFotos | null;
+    },
+
+    async guardarBorradorAnuncio(corredorId, propiedadId, titulo, texto) {
+      const buscar = async () => {
+        const { data, error } = await db
+          .from("anuncios_e24")
+          .select("id, referencia")
+          .eq("corredor_id", corredorId)
+          .eq("propiedad_id", propiedadId)
+          .eq("estado", "borrador")
+          .maybeSingle();
+        verificar(error, "guardarBorradorAnuncio (leer)");
+        return data as { id: string; referencia: string } | null;
+      };
+      const existente = await buscar();
+      if (existente) {
+        const { error } = await db
+          .from("anuncios_e24")
+          .update({ titulo, texto_preparado: texto })
+          .eq("corredor_id", corredorId)
+          .eq("id", existente.id);
+        verificar(error, "guardarBorradorAnuncio (actualizar)");
+        return existente.referencia;
+      }
+      const { data, error } = await db
+        .from("anuncios_e24")
+        .insert({ corredor_id: corredorId, propiedad_id: propiedadId, estado: "borrador", titulo, texto_preparado: texto })
+        .select("referencia")
+        .single();
+      if (error?.code === UNICA_VIOLADA) {
+        const otro = await buscar();
+        if (otro) return otro.referencia;
+      }
+      verificar(error, "guardarBorradorAnuncio (crear)");
+      return (data as { referencia: string }).referencia;
+    },
+
+    async reporteAnuncios(corredorId, desde) {
+      const [anuncios, contactos] = await Promise.all([
+        db
+          .from("anuncios_e24")
+          .select("id, titulo, referencia, url, estado, vence_en, propiedades(titulo)")
+          .eq("corredor_id", corredorId)
+          .neq("estado", "eliminado"),
+        db.from("contactos").select("anuncio_id, created_at").eq("corredor_id", corredorId).not("anuncio_id", "is", null),
+      ]);
+      verificar(anuncios.error, "reporteAnuncios (anuncios)");
+      verificar(contactos.error, "reporteAnuncios (contactos)");
+      const total = new Map<string, number>();
+      const periodo = new Map<string, number>();
+      for (const c of contactos.data ?? []) {
+        const id = c.anuncio_id as string;
+        total.set(id, (total.get(id) ?? 0) + 1);
+        if (new Date(c.created_at as string) >= desde) periodo.set(id, (periodo.get(id) ?? 0) + 1);
+      }
+      return (anuncios.data ?? []).map((a) => ({
+        id: a.id as string,
+        titulo: (a.titulo as string | null) ?? null,
+        referencia: a.referencia as string,
+        url: (a.url as string | null) ?? null,
+        estado: a.estado as AnuncioResumen["estado"],
+        vence_en: (a.vence_en as string | null) ?? null,
+        propiedad_titulo: uno(a.propiedades as Embebido<{ titulo: string }>)?.titulo ?? null,
+        contactos_periodo: periodo.get(a.id as string) ?? 0,
+        contactos_total: total.get(a.id as string) ?? 0,
+      }));
+    },
+
+    async anunciosPorVencer(corredorId, desde, hasta) {
+      const { data, error } = await db
+        .from("anuncios_e24")
+        .select("id, titulo, referencia, vence_en")
+        .eq("corredor_id", corredorId)
+        .eq("estado", "activo")
+        .is("aviso_vencimiento_enviado_at", null)
+        .gte("vence_en", desde)
+        .lte("vence_en", hasta)
+        .order("vence_en");
+      verificar(error, "anunciosPorVencer");
+      return (data ?? []) as AnuncioPorVencer[];
+    },
+
+    async marcarAvisoVencimiento(corredorId, ids) {
+      if (ids.length === 0) return [];
+      const { data, error } = await db
+        .from("anuncios_e24")
+        .update({ aviso_vencimiento_enviado_at: new Date().toISOString() })
+        .eq("corredor_id", corredorId)
+        .in("id", ids)
+        .is("aviso_vencimiento_enviado_at", null)
+        .select("id");
+      verificar(error, "marcarAvisoVencimiento");
+      return (data ?? []).map((a) => a.id as string);
     },
   };
 }

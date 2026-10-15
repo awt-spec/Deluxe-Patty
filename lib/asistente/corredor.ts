@@ -1,3 +1,5 @@
+import { prepararAnuncio } from "../anuncios/preparar";
+import { DIAS_REPORTE, armarReporte } from "../anuncios/reporte";
 import type { Conversacion, Corredor } from "../datos/tipos";
 import type { MensajeEntrante } from "../whatsapp/parsear";
 import { RechazoModelo } from "./cerebro";
@@ -8,7 +10,10 @@ const VENTANA_MS = 24 * 60 * 60_000 - 10 * 60_000; // 10 minutos de margen
 
 export type ResultadoCorredor =
   | { tipo: "duplicado" }
-  | { tipo: "corredor"; accion: "plan" | "plan_pendiente" | "analisis" | "ayuda" | "error" };
+  | {
+      tipo: "corredor";
+      accion: "plan" | "plan_pendiente" | "analisis" | "anuncio" | "reporte" | "ayuda" | "error";
+    };
 
 export async function conversacionDelCorredor(deps: Pick<Dependencias, "repo">, corredor: Corredor) {
   const contacto = await deps.repo.contactoCorredor(corredor.id, corredor.whatsapp_corredor!);
@@ -59,7 +64,8 @@ export async function enviarAlCorredor(
 
 const AYUDA =
   "Puedo analizarte una propiedad o una oferta: mándame el enlace de Encuentra24 o los datos (precio, metros, zona). " +
-  'Y si me escribes "plan", te mando tu plan del día.';
+  'Escribe "plan" para tu plan del día, "anuncio" y el código de una propiedad para prepararte el anuncio, ' +
+  'o "reporte" para ver qué anuncios te traen contactos.';
 
 /** Mensajes que el corredor le manda a su asistente desde su número personal. */
 export async function procesarMensajeCorredor(
@@ -106,6 +112,27 @@ export async function procesarMensajeCorredor(
   if (/^plan\b/i.test(texto)) {
     await responder(armarPlan(corredor, await datosDelPlan(deps, corredor, ahora), ahora));
     return { tipo: "corredor", accion: "plan" };
+  }
+
+  if (/^(reporte|anuncios)\b/i.test(texto)) {
+    const desde = new Date(ahora.getTime() - DIAS_REPORTE * 24 * 60 * 60_000);
+    await responder(armarReporte(await repo.reporteAnuncios(corredor.id, desde), fecha));
+    return { tipo: "corredor", accion: "reporte" };
+  }
+
+  const pedidoAnuncio = /^anuncio\s+(?:de\s+)?(\S+)/i.exec(texto);
+  if (pedidoAnuncio) {
+    try {
+      const listo = await prepararAnuncio(deps, corredor, pedidoAnuncio[1]);
+      if (listo.consumo) await ctx.usoClaude(1, listo.consumo);
+      for (const m of listo.mensajes) await responder(m);
+      return { tipo: "corredor", accion: "anuncio" };
+    } catch (error) {
+      if (error instanceof RechazoModelo) await ctx.usoClaude(1, error.consumo);
+      log("error_anuncio", { corredorId: corredor.id, error: error instanceof Error ? error.name : "desconocido" });
+      await responder("No pude preparar el anuncio ahora. Inténtalo de nuevo en un rato.");
+      return { tipo: "corredor", accion: "error" };
+    }
   }
 
   if (!texto) {

@@ -1,5 +1,14 @@
 import type { Repositorio } from "../lib/datos/repositorio";
-import type { Contacto, Conversacion, Corredor, EstadoCita, NuevaCita, NuevoMensaje } from "../lib/datos/tipos";
+import type {
+  AnuncioResumen,
+  Contacto,
+  Conversacion,
+  Corredor,
+  EstadoCita,
+  NuevaCita,
+  NuevoMensaje,
+  PropiedadConFotos,
+} from "../lib/datos/tipos";
 import type { MensajeEntrante } from "../lib/whatsapp/parsear";
 
 export const PATRICIA = "+50670000000";
@@ -9,6 +18,7 @@ export function corredorBase(): Corredor {
     id: "c1",
     nombre: "Deluxe Properties",
     nombre_contacto: "Patricia",
+    whatsapp_numero: "+50660000000",
     whatsapp_phone_number_id: "PNID",
     whatsapp_corredor: PATRICIA,
     zona_horaria: "America/Costa_Rica",
@@ -29,7 +39,14 @@ export function corredorBase(): Corredor {
 export function repoEnMemoria(corredor: Corredor) {
   const mensajes: (NuevoMensaje & { id: string })[] = [];
   const conversaciones: (Conversacion & { ultimo_mensaje_cliente_at?: string })[] = [];
-  const contactos: (Contacto & { es_corredor?: boolean; creado?: Date })[] = [];
+  const contactos: (Contacto & { es_corredor?: boolean; creado?: Date; anuncio_id?: string | null; origen?: string })[] = [];
+  type AnuncioFila = Omit<AnuncioResumen, "contactos_periodo" | "contactos_total"> & {
+    propiedad_id: string | null;
+    aviso: boolean;
+    texto?: Record<string, unknown>;
+  };
+  const anuncios: AnuncioFila[] = [];
+  const propiedades: PropiedadConFotos[] = [];
   const planes = new Map<string, { contenido: string; enviado: boolean }>();
   const citas: (NuevaCita & { id: string; estado: EstadoCita; recordatorio: boolean; creada: Date })[] = [];
   const horarios = [1, 2, 3, 4, 5].map((d) => ({ dia_semana: d, hora_inicio: "08:00:00", hora_fin: "17:00:00" }));
@@ -161,8 +178,56 @@ export function repoEnMemoria(corredor: Corredor) {
       const p = planes.get(fecha);
       if (p) p.enviado = true;
     },
+    atribuirContacto: async (_c, contactoId, referencia) => {
+      const anuncio = anuncios.find((a) => a.referencia === referencia.toUpperCase());
+      const contacto = contactos.find((c) => c.id === contactoId);
+      if (!anuncio || !contacto || contacto.anuncio_id) return false;
+      contacto.anuncio_id = anuncio.id;
+      contacto.origen = "anuncio";
+      return true;
+    },
+    propiedadPorCodigo: async (_c, codigo) =>
+      propiedades.find((p) => p.codigo.toLowerCase() === codigo.toLowerCase()) ?? null,
+    guardarBorradorAnuncio: async (_c, propiedadId, titulo, texto) => {
+      let a = anuncios.find((x) => x.propiedad_id === propiedadId && x.estado === "borrador");
+      if (!a) {
+        a = {
+          id: `an${++n}`,
+          referencia: `REF${n}`,
+          titulo,
+          url: null,
+          estado: "borrador",
+          vence_en: null,
+          propiedad_titulo: null,
+          propiedad_id: propiedadId,
+          aviso: false,
+        };
+        anuncios.push(a);
+      }
+      a.titulo = titulo;
+      a.texto = texto;
+      return a.referencia;
+    },
+    reporteAnuncios: async () =>
+      anuncios
+        .filter((a) => a.estado !== "eliminado")
+        .map((a) => {
+          const total = contactos.filter((c) => c.anuncio_id === a.id).length;
+          return { ...a, contactos_periodo: total, contactos_total: total };
+        }),
+    anunciosPorVencer: async (_c, desde, hasta) =>
+      anuncios
+        .filter((a) => a.estado === "activo" && !a.aviso && a.vence_en && a.vence_en >= desde && a.vence_en <= hasta)
+        .map((a) => ({ id: a.id, titulo: a.titulo, referencia: a.referencia, vence_en: a.vence_en! })),
+    marcarAvisoVencimiento: async (_c, ids) =>
+      anuncios
+        .filter((a) => ids.includes(a.id) && !a.aviso)
+        .map((a) => {
+          a.aviso = true;
+          return a.id;
+        }),
   };
-  return { repo, mensajes, conversaciones, uso, citas, contactos, planes };
+  return { repo, mensajes, conversaciones, uso, citas, contactos, planes, anuncios, propiedades };
 }
 
 export function entrante(texto: string | null, extra: Partial<MensajeEntrante> = {}): MensajeEntrante {

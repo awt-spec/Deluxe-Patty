@@ -14,7 +14,8 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   para redactar respuestas, analizar propiedades y ofertas y escribir anuncios.
 - Agenda propia en Supabase (no se integra Google Calendar): horarios, bloqueos y citas en la base;
   el corredor ve sus citas en el teléfono suscribiéndose al enlace ICS `/api/calendario/<token>.ics`.
-- Vercel Cron cada hora para recordatorios y plan del día (`vercel.json`, protegido con `CRON_SECRET`).
+- Vercel Cron cada hora para recordatorios, plan del día y vencimiento de anuncios (`vercel.json`,
+  protegido con `CRON_SECRET`).
 - Worker de búsqueda en Encuentra24 con Playwright en GitHub Actions (semana 2).
 
 ## Reglas
@@ -48,7 +49,16 @@ Si quien escribe es el propio corredor (`corredores.whatsapp_corredor`), no se t
 `lib/asistente/corredor.ts` le entrega su plan pendiente, responde "plan" o le hace un análisis con
 Sonnet y `web_fetch` (lee el enlace de Encuentra24). El plan del día lo arma el código
 (`lib/asistente/plan.ts`); fuera de la ventana de 24 horas solo puede salir la plantilla de aviso con
-un resumen, y el plan completo sale cuando el corredor responde. El acceso a datos va por `lib/datos/repositorio.ts`
+un resumen, y el plan completo sale cuando el corredor responde. Otros comandos del corredor:
+"anuncio <código>" prepara título y descripción en español e inglés y el orden de fotos
+(`lib/anuncios/preparar.ts`) y lo guarda como borrador con su referencia; "reporte" dice qué anuncios
+traen contactos (`lib/anuncios/reporte.ts`).
+
+## Anuncios de Encuentra24
+Encuentra24 no tiene API: la asistente prepara y vigila, el corredor publica. Cada anuncio tiene una
+`referencia` que va en el enlace wa.me de la descripción; el primer mensaje del cliente la trae y
+`atribuirContacto` enlaza el contacto al anuncio. Un anuncio nace como `borrador` (sin `e24_id` ni `url`)
+y pasa a `activo` cuando la lectura del perfil lo encuentra publicado. El acceso a datos va por `lib/datos/repositorio.ts`
 y Claude por `lib/asistente/cerebro.ts`; ambos son interfaces para poder probar con dobles.
 
 ## Instrucciones del agente
@@ -66,7 +76,7 @@ dueño o corredor. Un cambio de tono o de instrucciones se prueba con el set de 
 | citas | Visitas agendadas; una restricción de exclusión impide citas encimadas |
 | horarios_visitas | Franjas semanales en que el corredor acepta visitas |
 | bloqueos_agenda | Excepciones a la agenda (vacaciones, compromisos) |
-| anuncios_e24 | Anuncios, vencimiento y referencia para atribuir contactos |
+| anuncios_e24 | Anuncios (borrador o publicados), texto preparado, vencimiento y referencia para atribuir contactos |
 | leads_duenos | Búsqueda semanal: puntaje, señales, estado de contacto |
 | corredores_bloqueados | Corredores conocidos que no se captan como dueños |
 | uso_mensual | Mensajes, llamadas a Claude y costo por corredor y mes |
@@ -76,7 +86,7 @@ dueño o corredor. Un cambio de tono o de instrucciones se prueba con el set de 
 - `npm run dev` — app local.
 - `npm run typecheck` y `npm run build` — antes de cada push.
 - `npm test` — pruebas unitarias (vitest) de `tests/`: firma de Meta, parseo del webhook y el flujo
-  de la asistente y la agenda con dobles en memoria (`tests/dobles.ts`), disponibilidad, ICS, recordatorios, plan del día y mensajes del corredor.
+  de la asistente y la agenda con dobles en memoria (`tests/dobles.ts`), disponibilidad, ICS, recordatorios, plan del día, mensajes del corredor y anuncios.
 - `npm run test:db` — crea una base desechable en un Postgres local (usa `PGHOST`, `PGPORT`, `PGUSER`),
   aplica `supabase/tests/shim_supabase.sql`, las migraciones y la semilla, y corre las pruebas SQL de
   `supabase/tests/`. Incluye la prueba de que un corredor no ve datos de otro.

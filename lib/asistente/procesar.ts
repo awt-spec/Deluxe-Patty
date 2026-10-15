@@ -1,3 +1,4 @@
+import { extraerReferencia } from "../anuncios/atribucion";
 import type { Intencion } from "../datos/tipos";
 import type { EstadoEntrega, MensajeEntrante } from "../whatsapp/parsear";
 import { flujoAgenda } from "./agenda";
@@ -65,6 +66,10 @@ export async function procesarMensaje(deps: Dependencias, entrante: MensajeEntra
   await repo.actualizarConversacion(corredor.id, conversacion.id, {
     ultimo_mensaje_cliente_at: entrante.timestamp.toISOString(),
   });
+
+  // El enlace de WhatsApp de cada anuncio trae su referencia: el contacto queda atribuido.
+  const referencia = entrante.texto ? extraerReferencia(entrante.texto) : null;
+  if (referencia) await repo.atribuirContacto(corredor.id, contacto.id, referencia);
 
   const ctx = new Contexto(deps, corredor, conversacion, contacto.telefono, log);
   await ctx.uso({ mensajesEntrantes: 1 });

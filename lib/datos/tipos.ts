@@ -4,6 +4,8 @@ export interface Corredor {
   id: string;
   nombre: string;
   nombre_contacto: string;
+  /** Número de la asistente (E.164): va en los enlaces wa.me de los anuncios. */
+  whatsapp_numero: string | null;
   whatsapp_phone_number_id: string | null;
   whatsapp_corredor: string | null;
   zona_horaria: string;
@@ -163,4 +165,30 @@ export interface DatosPlan {
   conversacionesEscaladas: string[];
   borradoresPendientes: number;
   citasManana: number;
+}
+
+export interface Foto {
+  url: string;
+  orden?: number;
+}
+
+export type PropiedadConFotos = Propiedad & { fotos: Foto[] };
+
+export interface AnuncioResumen {
+  id: string;
+  titulo: string | null;
+  referencia: string;
+  url: string | null;
+  estado: "borrador" | "activo" | "vencido" | "pausado" | "eliminado";
+  vence_en: string | null;
+  propiedad_titulo: string | null;
+  contactos_periodo: number;
+  contactos_total: number;
+}
+
+export interface AnuncioPorVencer {
+  id: string;
+  titulo: string | null;
+  referencia: string;
+  vence_en: string;
 }
