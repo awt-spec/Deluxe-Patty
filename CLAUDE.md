@@ -19,8 +19,8 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   e Inter, logo oficial en `marcas/deluxe/`). Ejemplo: `npx tsx scripts/ficha-ejemplo.mts <salida.pdf> <fotos...>`.
 - Agenda propia en Supabase (no se integra Google Calendar): horarios, bloqueos y citas en la base;
   el corredor ve sus citas en el teléfono suscribiéndose al enlace ICS `/api/calendario/<token>.ics`.
-- Vercel Cron cada hora para recordatorios, plan del día y vencimiento de anuncios (`vercel.json`,
-  protegido con `CRON_SECRET`).
+- Vercel Cron cada hora para recordatorios, plan del día, vencimiento de anuncios y monitoreo
+  (`vercel.json`, protegido con `CRON_SECRET`).
 - Worker de búsqueda de dueños en Encuentra24 con Playwright en GitHub Actions
   (`worker/busqueda-duenos.ts`, `.github/workflows/busqueda-duenos.yml`, lunes temprano).
 
@@ -65,6 +65,22 @@ traen contactos (`lib/anuncios/reporte.ts`); "fotos <código>" mejora hasta 12 f
 (`lib/fotos/mejorar.ts`) y se las manda para revisar; "ficha <código>" genera la ficha PDF con la
 marca del corredor (`corredores.marca`), la sube al bucket público `fichas` y se la manda como documento.
 
+## Panel del corredor (`app/panel`)
+Para el teléfono: Hoy, Chats, Agenda, Dueños, Anuncios y Ajustes. Entrada por enlace mágico de Supabase
+Auth (`/entrar`, sin crear usuarios: el acceso lo da `scripts/dar-acceso.mts`); `proxy.ts` renueva la
+sesión. Las páginas leen con la sesión del corredor (`lib/panel/sesion.ts`, RLS). Las acciones
+(`app/panel/acciones.ts`) primero comprueban con esa sesión que el mensaje o la conversación son suyos y
+luego actúan con el backend (`lib/panel/acciones.ts`): aprobar, corregir o descartar borradores (con su
+acción de cita), tomar y devolver control, escribir como el corredor. Cada corrección se guarda en
+`correcciones` y las 8 últimas entran como ejemplos de tono en `responder`.
+
+## Monitoreo (`lib/monitoreo/`)
+Errores (`registrar("error_…")`), fallas del webhook, crons fallidos, mensajes no entregados y costo de
+IA del día por encima de `COSTO_DIARIO_ALERTA_USD` llegan como alerta por WhatsApp a `SOPORTE_WHATSAPP`
+(plantilla de aviso), una por clave y hora como máximo (`reclamar_alerta`). En serverless, cada ruta
+espera las alertas pendientes (`esperarAlertas`). Prueba: `GET /api/monitoreo/prueba` con
+`Authorization: Bearer $CRON_SECRET`.
+
 ## Anuncios de Encuentra24
 Encuentra24 no tiene API: la asistente prepara y vigila, el corredor publica. Cada anuncio tiene una
 `referencia` que va en el enlace wa.me de la descripción; el primer mensaje del cliente la trae y
@@ -103,6 +119,9 @@ dueño o corredor. Un cambio de tono o de instrucciones se prueba con el set de 
 | envios_pendientes | Mensajes largos para el corredor que esperan a que abra la ventana de 24 horas |
 | uso_mensual | Mensajes, llamadas a Claude y costo por corredor y mes |
 | planes_dia | Plan del día generado por corredor y fecha, y si ya se entregó |
+| correcciones | Correcciones del corredor a borradores: ejemplos de tono |
+| uso_diario | Mensajes, llamadas y costo de IA por corredor y día |
+| alertas | Última vez que se mandó cada alerta de monitoreo (sin ráfagas) |
 
 ## Comandos
 - `npm run dev` — app local.

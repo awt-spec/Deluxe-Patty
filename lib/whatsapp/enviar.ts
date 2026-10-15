@@ -12,6 +12,8 @@ export interface EnviadorWhatsApp {
 }
 
 const VERSION_GRAPH = process.env.WHATSAPP_GRAPH_VERSION ?? "v23.0";
+// Solo para staging o pruebas locales: apunta los envíos a un servidor que imita a Meta.
+const BASE_GRAPH = process.env.WHATSAPP_GRAPH_BASE ?? "https://graph.facebook.com";
 
 export class ErrorWhatsApp extends Error {
   constructor(
@@ -30,7 +32,7 @@ export function limpiarParametro(valor: string, max = 900): string {
 
 export function crearEnviadorWhatsApp(accessToken: string): EnviadorWhatsApp {
   async function enviar(phoneNumberId: string, cuerpo: object): Promise<string> {
-    const res = await fetch(`https://graph.facebook.com/${VERSION_GRAPH}/${phoneNumberId}/messages`, {
+    const res = await fetch(`${BASE_GRAPH}/${VERSION_GRAPH}/${phoneNumberId}/messages`, {
       method: "POST",
       headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
       body: JSON.stringify({ messaging_product: "whatsapp", ...cuerpo }),

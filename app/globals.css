@@ -1,0 +1,402 @@
+/* Panel del corredor. Pensado para el teléfono; los colores salen de la marca del corredor
+   (variables --principal, --soporte, --profundo, --base que pone app/panel/layout.tsx). */
+
+:root {
+  --principal: #b08a4a;
+  --soporte: #8c7a5e;
+  --profundo: #1c1a17;
+  --base: #f7f4ee;
+  --superficie: #ffffff;
+  --borde: color-mix(in srgb, var(--soporte) 35%, transparent);
+  --suave: color-mix(in srgb, var(--profundo) 62%, var(--base));
+  --peligro: #a3352b;
+  --ok: #3f6b3a;
+  --radio: 12px;
+  --serif: "Playfair Display", Georgia, serif;
+  --sans: "Inter", Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.marco {
+  min-height: 100vh;
+  background: var(--base);
+  color: var(--profundo);
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--base);
+  color: var(--profundo);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.45;
+  -webkit-text-size-adjust: 100%;
+}
+
+a {
+  color: inherit;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--serif);
+  font-weight: 500;
+  line-height: 1.2;
+  margin: 0;
+}
+
+h1 {
+  font-size: 1.6rem;
+}
+
+h2 {
+  font-size: 1.15rem;
+  margin: 1.4rem 0 0.6rem;
+}
+
+p {
+  margin: 0.4rem 0;
+}
+
+.suave {
+  color: var(--suave);
+  font-size: 0.9rem;
+}
+
+.etiqueta {
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--soporte);
+  font-weight: 600;
+}
+
+/* Estructura */
+
+.panel {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 16px 16px calc(84px + env(safe-area-inset-bottom));
+}
+
+.encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.navegacion {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  background: var(--profundo);
+  padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+  z-index: 10;
+}
+
+.navegacion a {
+  text-align: center;
+  text-decoration: none;
+  color: color-mix(in srgb, var(--base) 70%, transparent);
+  font-size: 0.72rem;
+  padding: 8px 2px;
+  border-radius: 8px;
+}
+
+.navegacion a[aria-current="page"] {
+  color: var(--principal);
+  font-weight: 600;
+}
+
+.navegacion .icono {
+  display: block;
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+
+/* Piezas */
+
+.tarjeta {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 14px;
+  margin-bottom: 10px;
+}
+
+.tarjeta.acento {
+  border-left: 3px solid var(--principal);
+}
+
+.fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.pila {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cifras {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 8px 0 4px;
+}
+
+.cifra {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 10px;
+  text-decoration: none;
+}
+
+.cifra strong {
+  display: block;
+  font-family: var(--serif);
+  font-size: 1.5rem;
+  font-weight: 500;
+}
+
+.insignia {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--soporte) 18%, transparent);
+  white-space: nowrap;
+}
+
+.insignia.alerta {
+  background: color-mix(in srgb, var(--peligro) 14%, transparent);
+  color: var(--peligro);
+}
+
+.insignia.dorada {
+  background: color-mix(in srgb, var(--principal) 22%, transparent);
+}
+
+.aviso {
+  background: color-mix(in srgb, var(--principal) 16%, var(--superficie));
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 10px 12px;
+  margin: 8px 0 12px;
+  font-size: 0.92rem;
+}
+
+.lista-enlaces {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.lista-enlaces a {
+  display: block;
+  text-decoration: none;
+}
+
+.pestanas {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  margin-bottom: 12px;
+}
+
+.pestanas a {
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--borde);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.pestanas a[aria-current="page"] {
+  background: var(--profundo);
+  color: var(--base);
+  border-color: var(--profundo);
+}
+
+/* Formularios */
+
+label {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="time"],
+input[type="number"],
+textarea,
+select {
+  width: 100%;
+  font: inherit;
+  font-size: 16px; /* evita el zoom automático de iOS */
+  color: var(--profundo);
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+button,
+.boton {
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--borde);
+  background: var(--superficie);
+  color: var(--profundo);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+button.primario,
+.boton.primario {
+  background: var(--profundo);
+  border-color: var(--profundo);
+  color: var(--base);
+}
+
+button.peligro {
+  color: var(--peligro);
+}
+
+.botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.botones > * {
+  flex: 1 1 auto;
+}
+
+.casilla {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+}
+
+.casilla input {
+  width: 22px;
+  height: 22px;
+}
+
+/* Conversación */
+
+.hilo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.burbuja {
+  max-width: 86%;
+  padding: 9px 12px;
+  border-radius: 14px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.95rem;
+}
+
+.burbuja .meta {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--suave);
+  margin-top: 4px;
+}
+
+.burbuja.cliente {
+  align-self: flex-start;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+}
+
+.burbuja.saliente {
+  align-self: flex-end;
+  background: color-mix(in srgb, var(--principal) 20%, var(--superficie));
+}
+
+.burbuja.descartado {
+  opacity: 0.5;
+  text-decoration: line-through;
+}
+
+.borrador {
+  align-self: stretch;
+  border: 1.5px dashed var(--principal);
+  border-radius: var(--radio);
+  padding: 12px;
+  background: var(--superficie);
+}
+
+.entrar {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 18vh 20px 40px;
+}
+
+.entrar h1 {
+  font-size: 2rem;
+  margin-bottom: 8px;
+}
+
+.entrar form {
+  margin-top: 20px;
+}
+
+.vacio {
+  text-align: center;
+  color: var(--suave);
+  padding: 28px 12px;
+}
+
+table.uso {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+table.uso td,
+table.uso th {
+  text-align: left;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--borde);
+}
+
+table.uso td:last-child,
+table.uso th:last-child {
+  text-align: right;
+}

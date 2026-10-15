@@ -1,4 +1,5 @@
 import type { Cerebro } from "../asistente/cerebro";
+import { precio as formatoPrecio } from "../formato";
 import { SIN_CONSUMO, sumar, type Consumo } from "../asistente/costo";
 import { anunciosDePagina, esDesafio, urlListado, type AnuncioE24 } from "./parsear";
 
@@ -151,7 +152,7 @@ export function armarListaDuenos(leads: LeadDueno[], maxEnMensaje = 15): string 
   const l = [`*Dueños directos de la semana (${leads.length})*`, ""];
   leads.slice(0, maxEnMensaje).forEach((lead, i) => {
     const a = lead.anuncio;
-    const precio = a.precio ? ` · ${a.moneda === "USD" ? "$" : `${a.moneda ?? ""} `}${a.precio.toLocaleString("en-US")}` : "";
+    const precio = a.precio ? ` · ${formatoPrecio(a.precio, a.moneda)}` : "";
     const zona = a.zona ? ` · ${a.zona.split(",").slice(-2).join(",").trim()}` : "";
     l.push(`${i + 1}. ${a.titulo}${precio}${zona} (${lead.puntaje}/100)`);
     if (lead.senales.length) l.push(`   ${lead.senales.slice(0, 2).join("; ")}`);

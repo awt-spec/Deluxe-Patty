@@ -12,6 +12,10 @@
     {
       "path": "/api/cron/anuncios",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/monitoreo",
+      "schedule": "30 * * * *"
     }
   ]
 }

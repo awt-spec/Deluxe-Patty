@@ -113,7 +113,7 @@ describe("buscarDuenos", () => {
     const [a] = anunciosDePagina(paginaE24([anuncioE24(2, "Propietario", "Ana Mora")]));
     const lista = armarListaDuenos([{ anuncio: a, puntaje: 88, senales: ["vendo mi casa", "una sola propiedad"] }]);
     expect(lista).toContain("*Dueños directos de la semana (1)*");
-    expect(lista).toContain("1. Casa de prueba 2 · $350,000 · Escazú, San Rafael (88/100)");
+    expect(lista).toContain("1. Casa de prueba 2 · $350.000 · Escazú, San Rafael (88/100)");
     expect(lista).toContain("   vendo mi casa; una sola propiedad");
     expect(lista).toContain(a.url);
     expect(armarListaDuenos([])).toContain("no encontré dueños directos nuevos");

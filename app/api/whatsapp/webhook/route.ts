@@ -1,5 +1,5 @@
 import { after, type NextRequest } from "next/server";
-import { dependencias } from "@/lib/asistente/dependencias";
+import { alertar, dependencias, esperarAlertas } from "@/lib/asistente/dependencias";
 import { procesarEstado, procesarMensaje } from "@/lib/asistente/procesar";
 import { firmaValida } from "@/lib/whatsapp/firma";
 import { parsearWebhook } from "@/lib/whatsapp/parsear";
@@ -48,12 +48,15 @@ export async function POST(req: NextRequest) {
       await procesarEstado(deps, estado).catch((e) =>
         console.error(JSON.stringify({ evento: "error_estado", error: String(e) })),
       );
+      if (estado.estado === "fallido") alertar("whatsapp_fallido", "WhatsApp reportó un mensaje no entregado");
     }
     for (const mensaje of mensajes) {
-      await procesarMensaje(deps, mensaje).catch((e) =>
-        console.error(JSON.stringify({ evento: "error_mensaje", waMessageId: mensaje.waMessageId, error: String(e) })),
-      );
+      await procesarMensaje(deps, mensaje).catch((e) => {
+        console.error(JSON.stringify({ evento: "error_mensaje", waMessageId: mensaje.waMessageId, error: String(e) }));
+        alertar("error_webhook", `El webhook falló procesando un mensaje: ${e instanceof Error ? e.message.slice(0, 200) : "error"}`);
+      });
     }
+    await esperarAlertas();
   });
 
   return new Response("OK", { status: 200 });
