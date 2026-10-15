@@ -14,7 +14,7 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   para redactar respuestas, analizar propiedades y ofertas y escribir anuncios.
 - Agenda propia en Supabase (no se integra Google Calendar): horarios, bloqueos y citas en la base;
   el corredor ve sus citas en el teléfono suscribiéndose al enlace ICS `/api/calendario/<token>.ics`.
-- Vercel Cron cada hora para recordatorios (`vercel.json`, protegido con `CRON_SECRET`).
+- Vercel Cron cada hora para recordatorios y plan del día (`vercel.json`, protegido con `CRON_SECRET`).
 - Worker de búsqueda en Encuentra24 con Playwright en GitHub Actions (semana 2).
 
 ## Reglas
@@ -43,7 +43,12 @@ conversación no está escalada ni tomada por el corredor, Haiku clasifica y Son
 propiedades activas; si la intención es agendar, `lib/asistente/agenda.ts` calcula horarios libres
 (`lib/agenda/disponibilidad.ts`), Sonnet elige la acción con ids cortos y el código arma las fechas y
 crea la cita. El modelo nunca escribe una fecha que llegue al cliente. Escalamientos, audios/imágenes, fallas de Claude y datos por confirmar se avisan al
-corredor con la plantilla `WHATSAPP_PLANTILLA_AVISO`. El acceso a datos va por `lib/datos/repositorio.ts`
+corredor con la plantilla `WHATSAPP_PLANTILLA_AVISO`.
+Si quien escribe es el propio corredor (`corredores.whatsapp_corredor`), no se trata como cliente:
+`lib/asistente/corredor.ts` le entrega su plan pendiente, responde "plan" o le hace un análisis con
+Sonnet y `web_fetch` (lee el enlace de Encuentra24). El plan del día lo arma el código
+(`lib/asistente/plan.ts`); fuera de la ventana de 24 horas solo puede salir la plantilla de aviso con
+un resumen, y el plan completo sale cuando el corredor responde. El acceso a datos va por `lib/datos/repositorio.ts`
 y Claude por `lib/asistente/cerebro.ts`; ambos son interfaces para poder probar con dobles.
 
 ## Instrucciones del agente
@@ -65,12 +70,13 @@ dueño o corredor. Un cambio de tono o de instrucciones se prueba con el set de 
 | leads_duenos | Búsqueda semanal: puntaje, señales, estado de contacto |
 | corredores_bloqueados | Corredores conocidos que no se captan como dueños |
 | uso_mensual | Mensajes, llamadas a Claude y costo por corredor y mes |
+| planes_dia | Plan del día generado por corredor y fecha, y si ya se entregó |
 
 ## Comandos
 - `npm run dev` — app local.
 - `npm run typecheck` y `npm run build` — antes de cada push.
 - `npm test` — pruebas unitarias (vitest) de `tests/`: firma de Meta, parseo del webhook y el flujo
-  de la asistente y la agenda con dobles en memoria (`tests/dobles.ts`), disponibilidad, ICS y recordatorios.
+  de la asistente y la agenda con dobles en memoria (`tests/dobles.ts`), disponibilidad, ICS, recordatorios, plan del día y mensajes del corredor.
 - `npm run test:db` — crea una base desechable en un Postgres local (usa `PGHOST`, `PGPORT`, `PGUSER`),
   aplica `supabase/tests/shim_supabase.sql`, las migraciones y la semilla, y corre las pruebas SQL de
   `supabase/tests/`. Incluye la prueba de que un corredor no ve datos de otro.

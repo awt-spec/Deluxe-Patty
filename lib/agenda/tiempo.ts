@@ -71,3 +71,20 @@ export function minutosDe(hora: string): number {
   const [h, m] = hora.split(":").map(Number);
   return h * 60 + m;
 }
+
+/** Minutos desde la medianoche local en la zona. */
+export function minutosLocales(fecha: Date, zona: string): number {
+  const p = partes(fecha, zona);
+  return p.hour * 60 + p.minute;
+}
+
+/** "2026-10-20" en la zona. */
+export function fechaIso(f: FechaLocal): string {
+  return `${f.anio}-${String(f.mes).padStart(2, "0")}-${String(f.dia).padStart(2, "0")}`;
+}
+
+/** Inicio y fin (UTC) del día local que contiene `fecha`, desplazado `dias`. */
+export function limitesDia(fecha: Date, zona: string, dias = 0): { desde: Date; hasta: Date } {
+  const dia = sumarDias(fechaLocal(fecha, zona), dias);
+  return { desde: aUtc(dia, 0, zona), hasta: aUtc(sumarDias(dia, 1), 0, zona) };
+}

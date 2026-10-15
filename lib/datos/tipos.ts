@@ -16,6 +16,7 @@ export interface Corredor {
   margen_visitas_min: number;
   anticipacion_min_horas: number;
   horizonte_agenda_dias: number;
+  hora_plan_dia: string;
 }
 
 export interface Contacto {
@@ -153,4 +154,13 @@ export interface CitaCalendario {
   propiedad_codigo: string | null;
   notas: string | null;
   updated_at: Date;
+}
+
+/** Lo que entra al plan del día de un corredor. */
+export interface DatosPlan {
+  citasHoy: { inicio: Date; estado: EstadoCita; cliente: string; propiedad: string | null }[];
+  prospectosNuevos: string[];
+  conversacionesEscaladas: string[];
+  borradoresPendientes: number;
+  citasManana: number;
 }

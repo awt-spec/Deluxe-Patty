@@ -21,14 +21,16 @@ export function corredorBase(): Corredor {
     margen_visitas_min: 30,
     anticipacion_min_horas: 3,
     horizonte_agenda_dias: 14,
+    hora_plan_dia: "07:00:00",
   };
 }
 
 // Repositorio en memoria que imita las reglas de la base que importan aquí.
 export function repoEnMemoria(corredor: Corredor) {
   const mensajes: (NuevoMensaje & { id: string })[] = [];
-  const conversaciones: Conversacion[] = [];
-  const contactos: Contacto[] = [];
+  const conversaciones: (Conversacion & { ultimo_mensaje_cliente_at?: string })[] = [];
+  const contactos: (Contacto & { es_corredor?: boolean; creado?: Date })[] = [];
+  const planes = new Map<string, { contenido: string; enviado: boolean }>();
   const citas: (NuevaCita & { id: string; estado: EstadoCita; recordatorio: boolean; creada: Date })[] = [];
   const horarios = [1, 2, 3, 4, 5].map((d) => ({ dia_semana: d, hora_inicio: "08:00:00", hora_fin: "17:00:00" }));
   const activa = (c: { estado: EstadoCita }) => c.estado === "agendada" || c.estado === "confirmada";
@@ -122,8 +124,45 @@ export function repoEnMemoria(corredor: Corredor) {
       return true;
     },
     calendarioPorToken: async () => null,
+    contactoCorredor: async (corredorId, telefono) => {
+      let c = contactos.find((x) => x.corredor_id === corredorId && x.telefono === telefono);
+      if (!c) contactos.push((c = { id: `ct${++n}`, corredor_id: corredorId, telefono, nombre: null }));
+      c.es_corredor = true;
+      return c;
+    },
+    ultimoMensajeDe: async (_c, contactoId) => {
+      const fechas = conversaciones
+        .filter((c) => c.contacto_id === contactoId && c.ultimo_mensaje_cliente_at)
+        .map((c) => new Date(c.ultimo_mensaje_cliente_at!).getTime());
+      return fechas.length ? new Date(Math.max(...fechas)) : null;
+    },
+    corredoresActivos: async () => [corredor],
+    datosPlan: async (_c, _ahora, hoy, manana) => ({
+      citasHoy: citas
+        .filter((c) => activa(c) && c.inicio >= hoy.desde && c.inicio < hoy.hasta)
+        .map((c) => ({ inicio: c.inicio, estado: c.estado, cliente: "Ana", propiedad: null })),
+      prospectosNuevos: contactos.filter((c) => !c.es_corredor).map((c) => c.nombre ?? c.telefono),
+      conversacionesEscaladas: conversaciones
+        .filter((c) => c.estado === "escalada")
+        .map((c) => contactos.find((x) => x.id === c.contacto_id)?.nombre ?? "Cliente"),
+      borradoresPendientes: mensajes.filter((m) => m.estado_borrador === "pendiente").length,
+      citasManana: citas.filter((c) => activa(c) && c.inicio >= manana.desde && c.inicio < manana.hasta).length,
+    }),
+    guardarPlan: async (_c, fecha, contenido) => {
+      if (planes.has(fecha)) return false;
+      planes.set(fecha, { contenido, enviado: false });
+      return true;
+    },
+    planPendiente: async (_c, fecha) => {
+      const p = planes.get(fecha);
+      return p && !p.enviado ? p.contenido : null;
+    },
+    marcarPlanEnviado: async (_c, fecha) => {
+      const p = planes.get(fecha);
+      if (p) p.enviado = true;
+    },
   };
-  return { repo, mensajes, conversaciones, uso, citas };
+  return { repo, mensajes, conversaciones, uso, citas, contactos, planes };
 }
 
 export function entrante(texto: string | null, extra: Partial<MensajeEntrante> = {}): MensajeEntrante {

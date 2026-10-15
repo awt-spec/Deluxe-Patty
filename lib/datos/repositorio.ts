@@ -5,6 +5,7 @@ import type {
   CitaParaRecordar,
   Contacto,
   DatosAgenda,
+  DatosPlan,
   EstadoCita,
   NuevaCita,
   Conversacion,
@@ -51,6 +52,25 @@ export interface Repositorio {
   /** Marca el recordatorio. true solo para la llamada que lo marcó (evita recordatorios dobles). */
   marcarRecordatorio(corredorId: string, citaId: string): Promise<boolean>;
   calendarioPorToken(token: string, desde: Date): Promise<{ nombre: string; citas: CitaCalendario[] } | null>;
+
+  // Asistente Base
+  /** Contacto del propio corredor (es_corredor = true), para su conversación con la asistente. */
+  contactoCorredor(corredorId: string, telefono: string): Promise<Contacto>;
+  /** Último mensaje que el contacto le escribió a la asistente (ventana de 24 horas). */
+  ultimoMensajeDe(corredorId: string, contactoId: string): Promise<Date | null>;
+  corredoresActivos(): Promise<Corredor[]>;
+  /** Citas de hoy y mañana, prospectos de las 24 horas previas a `ahora`, pendientes. */
+  datosPlan(
+    corredorId: string,
+    ahora: Date,
+    hoy: { desde: Date; hasta: Date },
+    manana: { desde: Date; hasta: Date },
+  ): Promise<DatosPlan>;
+  /** Guarda el plan del día. false si ya había uno para esa fecha. */
+  guardarPlan(corredorId: string, fecha: string, contenido: string): Promise<boolean>;
+  /** Plan del día generado y todavía no entregado. */
+  planPendiente(corredorId: string, fecha: string): Promise<string | null>;
+  marcarPlanEnviado(corredorId: string, fecha: string): Promise<void>;
 }
 
 const UNICA_VIOLADA = "23505";
@@ -67,14 +87,15 @@ function verificar(error: { message: string; code?: string } | null, que: string
   if (error) throw new Error(`${que}: ${error.code ?? ""} ${error.message}`);
 }
 
+const COLUMNAS_CORREDOR =
+  "id, nombre, nombre_contacto, whatsapp_phone_number_id, whatsapp_corredor, zona_horaria, tono, reglas_escalamiento, tope_mensajes_mes, aviso_mensajes_mes, respuesta_automatica, duracion_visita_min, margen_visitas_min, anticipacion_min_horas, horizonte_agenda_dias, hora_plan_dia";
+
 export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
   return {
     async corredorPorPhoneNumberId(phoneNumberId) {
       const { data, error } = await db
         .from("corredores")
-        .select(
-          "id, nombre, nombre_contacto, whatsapp_phone_number_id, whatsapp_corredor, zona_horaria, tono, reglas_escalamiento, tope_mensajes_mes, aviso_mensajes_mes, respuesta_automatica, duracion_visita_min, margen_visitas_min, anticipacion_min_horas, horizonte_agenda_dias",
-        )
+        .select(COLUMNAS_CORREDOR)
         .eq("whatsapp_phone_number_id", phoneNumberId)
         .eq("activo", true)
         .maybeSingle();
@@ -361,6 +382,133 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
           };
         }),
       };
+    },
+
+    async contactoCorredor(corredorId, telefono) {
+      const { data, error } = await db
+        .from("contactos")
+        .upsert(
+          { corredor_id: corredorId, telefono, origen: "otro", es_corredor: true },
+          { onConflict: "corredor_id,telefono" },
+        )
+        .select("id, corredor_id, telefono, nombre")
+        .single();
+      verificar(error, "contactoCorredor");
+      return data as Contacto;
+    },
+
+    async ultimoMensajeDe(corredorId, contactoId) {
+      const { data, error } = await db
+        .from("conversaciones")
+        .select("ultimo_mensaje_cliente_at")
+        .eq("corredor_id", corredorId)
+        .eq("contacto_id", contactoId)
+        .not("ultimo_mensaje_cliente_at", "is", null)
+        .order("ultimo_mensaje_cliente_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      verificar(error, "ultimoMensajeDe");
+      return data ? new Date(data.ultimo_mensaje_cliente_at as string) : null;
+    },
+
+    async corredoresActivos() {
+      const { data, error } = await db
+        .from("corredores")
+        .select(COLUMNAS_CORREDOR)
+        .eq("activo", true)
+        .not("whatsapp_phone_number_id", "is", null)
+        .not("whatsapp_corredor", "is", null);
+      verificar(error, "corredoresActivos");
+      return (data ?? []) as Corredor[];
+    },
+
+    async datosPlan(corredorId, ahora, hoy, manana) {
+      const [citas, prospectos, escaladas, borradores, citasManana] = await Promise.all([
+        db
+          .from("citas")
+          .select("inicio, estado, contactos(nombre, telefono), propiedades(titulo)")
+          .eq("corredor_id", corredorId)
+          .in("estado", CITA_ACTIVA)
+          .gte("inicio", hoy.desde.toISOString())
+          .lt("inicio", hoy.hasta.toISOString())
+          .order("inicio"),
+        db
+          .from("contactos")
+          .select("nombre, telefono")
+          .eq("corredor_id", corredorId)
+          .eq("es_corredor", false)
+          .gte("created_at", new Date(ahora.getTime() - 24 * 60 * 60_000).toISOString())
+          .lt("created_at", ahora.toISOString())
+          .order("created_at"),
+        db
+          .from("conversaciones")
+          .select("contactos!inner(nombre, telefono, es_corredor)")
+          .eq("corredor_id", corredorId)
+          .eq("estado", "escalada")
+          .eq("contactos.es_corredor", false),
+        db
+          .from("mensajes")
+          .select("id", { count: "exact", head: true })
+          .eq("corredor_id", corredorId)
+          .eq("estado_borrador", "pendiente"),
+        db
+          .from("citas")
+          .select("id", { count: "exact", head: true })
+          .eq("corredor_id", corredorId)
+          .in("estado", CITA_ACTIVA)
+          .gte("inicio", manana.desde.toISOString())
+          .lt("inicio", manana.hasta.toISOString()),
+      ]);
+      verificar(citas.error, "datosPlan (citas)");
+      verificar(prospectos.error, "datosPlan (prospectos)");
+      verificar(escaladas.error, "datosPlan (escaladas)");
+      verificar(borradores.error, "datosPlan (borradores)");
+      verificar(citasManana.error, "datosPlan (citas mañana)");
+      const nombre = (c: { nombre: string | null; telefono: string } | null) => c?.nombre ?? c?.telefono ?? "Cliente";
+      return {
+        citasHoy: (citas.data ?? []).map((c) => ({
+          inicio: new Date(c.inicio as string),
+          estado: c.estado as EstadoCita,
+          cliente: nombre(uno(c.contactos as Embebido<{ nombre: string | null; telefono: string }>)),
+          propiedad: uno(c.propiedades as Embebido<{ titulo: string }>)?.titulo ?? null,
+        })),
+        prospectosNuevos: (prospectos.data ?? []).map((c) => nombre(c as { nombre: string | null; telefono: string })),
+        conversacionesEscaladas: (escaladas.data ?? []).map((c) =>
+          nombre(uno(c.contactos as Embebido<{ nombre: string | null; telefono: string }>)),
+        ),
+        borradoresPendientes: borradores.count ?? 0,
+        citasManana: citasManana.count ?? 0,
+      };
+    },
+
+    async guardarPlan(corredorId, fecha, contenido) {
+      const { data, error } = await db
+        .from("planes_dia")
+        .upsert({ corredor_id: corredorId, fecha, contenido }, { onConflict: "corredor_id,fecha", ignoreDuplicates: true })
+        .select("fecha");
+      verificar(error, "guardarPlan");
+      return (data ?? []).length > 0;
+    },
+
+    async planPendiente(corredorId, fecha) {
+      const { data, error } = await db
+        .from("planes_dia")
+        .select("contenido")
+        .eq("corredor_id", corredorId)
+        .eq("fecha", fecha)
+        .is("enviado_at", null)
+        .maybeSingle();
+      verificar(error, "planPendiente");
+      return (data?.contenido as string | undefined) ?? null;
+    },
+
+    async marcarPlanEnviado(corredorId, fecha) {
+      const { error } = await db
+        .from("planes_dia")
+        .update({ enviado_at: new Date().toISOString() })
+        .eq("corredor_id", corredorId)
+        .eq("fecha", fecha);
+      verificar(error, "marcarPlanEnviado");
     },
   };
 }

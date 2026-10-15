@@ -8,7 +8,7 @@ y se combinan con los datos del corredor (`corredores.tono`, `reglas_escalamient
 | `clasificar.md` | Haiku | Intención del mensaje: consulta_propiedad, agendar_visita, otro, pasar_a_corredor | 1 |
 | `responder.md` | Sonnet | Respuesta al cliente con el contexto de las propiedades | 1 |
 | `agendar.md` | Sonnet | Elegir la acción de agenda (proponer, confirmar, cancelar, confirmar asistencia); el código arma las fechas | 1 |
-| `analizar.md` | Sonnet | Análisis de propiedad u oferta contra las propiedades de la zona | 1 |
+| `analizar.md` | Sonnet + web_fetch | Análisis de propiedad u oferta (enlace o datos) contra las propiedades del corredor | 1 |
 | `anuncio.md` | Sonnet | Título y texto en español e inglés, orden de fotos | 2 |
 | `dueno_o_corredor.md` | Haiku | Clasificar un anuncio de Encuentra24 como dueño directo o corredor | 2 |
 

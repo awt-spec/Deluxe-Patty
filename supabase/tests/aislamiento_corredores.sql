@@ -46,6 +46,9 @@ values (:'deluxe', 'E24-L1', 'https://www.encuentra24.com/y', date_trunc('week',
 insert into public.corredores_bloqueados (corredor_id, telefono, nombre)
 values (:'deluxe', '+50677770001', 'Corredor conocido');
 
+insert into public.planes_dia (corredor_id, fecha, contenido)
+values (:'deluxe', current_date, 'Plan de prueba');
+
 set local role service_role;
 select public.registrar_uso(:'deluxe', p_mensajes_entrantes => 1);
 reset role;
@@ -69,7 +72,7 @@ begin
   -- 1. No ve ninguna fila de Deluxe.
   foreach t in array array[
     'propiedades', 'anuncios_e24', 'contactos', 'conversaciones', 'mensajes',
-    'citas', 'leads_duenos', 'corredores_bloqueados', 'uso_mensual'
+    'citas', 'leads_duenos', 'corredores_bloqueados', 'uso_mensual', 'planes_dia'
   ] loop
     execute format('select count(*) from public.%I where corredor_id = %L', t, '00000000-0000-4000-8000-000000000001') into n;
     if n <> 0 then

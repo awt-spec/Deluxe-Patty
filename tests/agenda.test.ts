@@ -28,7 +28,7 @@ describe("agenda por WhatsApp", () => {
   let corredor: Corredor;
   let db: ReturnType<typeof repoEnMemoria>;
   let whatsapp: { texto: ReturnType<typeof vi.fn>; plantilla: ReturnType<typeof vi.fn> };
-  let cerebro: { clasificar: ReturnType<typeof vi.fn>; responder: ReturnType<typeof vi.fn>; agendar: ReturnType<typeof vi.fn> };
+  let cerebro: { clasificar: ReturnType<typeof vi.fn>; responder: ReturnType<typeof vi.fn>; agendar: ReturnType<typeof vi.fn>; analizar?: ReturnType<typeof vi.fn> };
   let deps: Dependencias;
 
   beforeEach(() => {

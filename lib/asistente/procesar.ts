@@ -1,6 +1,7 @@
 import type { Intencion } from "../datos/tipos";
 import type { EstadoEntrega, MensajeEntrante } from "../whatsapp/parsear";
 import { flujoAgenda } from "./agenda";
+import { procesarMensajeCorredor, type ResultadoCorredor } from "./corredor";
 import { RechazoModelo } from "./cerebro";
 import { Contexto, type Dependencias } from "./contexto";
 import { SIN_CONSUMO, sumar, type Consumo } from "./costo";
@@ -13,7 +14,8 @@ export type Resultado =
   | { tipo: "sin_respuesta"; motivo: "control_corredor" | "escalada" }
   | { tipo: "escalado"; intencion: Intencion | null }
   | { tipo: "respondido"; intencion: Intencion; borrador: boolean }
-  | { tipo: "agenda"; accion: string; borrador: boolean };
+  | { tipo: "agenda"; accion: string; borrador: boolean }
+  | ResultadoCorredor;
 
 const MENSAJES_HISTORIAL = 20;
 
@@ -39,6 +41,11 @@ export async function procesarMensaje(deps: Dependencias, entrante: MensajeEntra
   if (!corredor) {
     log("corredor_desconocido", { phoneNumberId: entrante.phoneNumberId });
     return { tipo: "corredor_desconocido" };
+  }
+
+  // El corredor también le escribe a su asistente (análisis, plan del día): no es un cliente.
+  if (corredor.whatsapp_corredor && entrante.telefono === corredor.whatsapp_corredor) {
+    return procesarMensajeCorredor(deps, corredor, entrante);
   }
 
   const contacto = await repo.contacto(corredor.id, entrante.telefono, entrante.nombrePerfil);

@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
 import type { Corredor, Intencion, Mensaje, Propiedad } from "../datos/tipos";
-import { consumo, type Consumo } from "./costo";
+import { consumo, sumar as sumarConsumo, type Consumo } from "./costo";
 import { instruccion } from "./instrucciones";
 
 export const MODELO_CLASIFICAR = "claude-haiku-5-5";
@@ -42,6 +42,8 @@ export interface DecisionAgenda {
 export interface Cerebro {
   clasificar(corredor: Corredor, historial: Mensaje[], mensaje: string): Promise<Clasificacion>;
   responder(corredor: Corredor, propiedades: Propiedad[], historial: Mensaje[], mensaje: string): Promise<Respuesta>;
+  /** Análisis a pedido del corredor: propiedad u oferta (enlace o datos). */
+  analizar(corredor: Corredor, propiedades: Propiedad[], historial: Mensaje[], mensaje: string): Promise<Respuesta>;
   agendar(
     corredor: Corredor,
     propiedades: Propiedad[],
@@ -79,18 +81,25 @@ const EsquemaAgenda = z.object({
   motivo_aviso: z.string().nullable(),
 });
 
-function transcripcion(historial: Mensaje[]): string {
+/** Con quién habla la asistente: un cliente o el propio corredor. */
+type Interlocutor = "cliente" | "corredor";
+
+function transcripcion(historial: Mensaje[], interlocutor: Interlocutor): string {
+  // En la conversación con el corredor, sus mensajes entran con autor "cliente" (es quien escribe).
+  const etiqueta = (autor: Mensaje["autor"]) =>
+    autor === "cliente" ? (interlocutor === "corredor" ? "Corredor" : "Cliente") : autor === "corredor" ? "Corredor" : "Asistente";
   return historial
     .filter((m) => m.contenido && m.estado_borrador !== "pendiente" && m.estado_borrador !== "descartado")
-    .map((m) => `${m.autor === "cliente" ? "Cliente" : m.autor === "corredor" ? "Corredor" : "Asistente"}: ${m.contenido}`)
+    .map((m) => `${etiqueta(m.autor)}: ${m.contenido}`)
     .join("\n");
 }
 
-function mensajeUsuario(historial: Mensaje[], mensaje: string): string {
-  const previo = transcripcion(historial);
+function mensajeUsuario(historial: Mensaje[], mensaje: string, interlocutor: Interlocutor = "cliente"): string {
+  const previo = transcripcion(historial, interlocutor);
+  const etiqueta = `mensaje_del_${interlocutor}`;
   return [
     previo ? `<conversacion_previa>\n${previo}\n</conversacion_previa>` : "<conversacion_previa>(ninguna)</conversacion_previa>",
-    `<mensaje_del_cliente>\n${mensaje}\n</mensaje_del_cliente>`,
+    `<${etiqueta}>\n${mensaje}\n</${etiqueta}>`,
   ].join("\n\n");
 }
 
@@ -174,6 +183,43 @@ export function crearCerebroClaude(client = new Anthropic()): Cerebro {
         avisarCorredor: avisar_corredor ? motivo_aviso?.trim() || "Revisar conversación" : null,
         consumo: c,
       };
+    },
+
+    async analizar(corredor, propiedades, historial, mensaje) {
+      const system = [
+        instruccion("analizar"),
+        `<corredor>\nNombre: ${corredor.nombre_contacto}, de ${corredor.nombre}.\n</corredor>`,
+        `<propiedades_del_corredor>\n${fichaPropiedades(propiedades)}\n</propiedades_del_corredor>`,
+      ].join("\n\n");
+      const tools: Anthropic.Beta.BetaToolUnion[] = [
+        { type: "web_fetch_20260209", name: "web_fetch", max_uses: 3, max_content_tokens: 20_000 },
+      ];
+      const messages: Anthropic.Beta.BetaMessageParam[] = [
+        { role: "user", content: mensajeUsuario(historial, mensaje, "corredor") },
+      ];
+      let total: Consumo = { tokensEntrada: 0, tokensSalida: 0, costoUsd: 0 };
+      const textos: string[] = [];
+      // Las herramientas del servidor pueden pausar el turno (pause_turn): se reanuda reenviándolo.
+      for (let vuelta = 0; vuelta < 4; vuelta++) {
+        const res = await client.beta.messages.create({
+          model: MODELO_REDACTAR,
+          max_tokens: 8000,
+          betas: ["server-side-fallback-2026-07-01"],
+          fallbacks: "default",
+          output_config: { effort: "medium" },
+          system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
+          tools,
+          messages,
+        });
+        total = sumarConsumo(total, consumo(res.model, res.usage));
+        if (res.stop_reason === "refusal") throw new RechazoModelo(total);
+        for (const b of res.content) if (b.type === "text") textos.push(b.text);
+        if (res.stop_reason !== "pause_turn") break;
+        messages.push({ role: "assistant", content: res.content });
+      }
+      const texto = textos.join("").trim();
+      if (!texto) throw new Error("Análisis sin texto");
+      return { texto, avisarCorredor: null, consumo: total };
     },
 
     async agendar(corredor, propiedades, agenda, historial, mensaje) {
