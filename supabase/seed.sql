@@ -48,3 +48,13 @@ insert into public.propiedades (
    'Heredia', 'Belén', 'La Asunción', 'Belén', null, null, null, 1200,
    'Propiedad ficticia para pruebas de desarrollo.', '{}', 'activa')
 on conflict (corredor_id, codigo) do nothing;
+
+-- Horario de visitas PROVISIONAL (lunes a viernes 8:00–17:00, sábado 8:00–12:00) hasta que
+-- Patricia confirme el suyo.
+insert into public.horarios_visitas (corredor_id, dia_semana, hora_inicio, hora_fin)
+select '00000000-0000-4000-8000-000000000001', d, '08:00', '17:00' from generate_series(1, 5) d
+where not exists (select 1 from public.horarios_visitas where corredor_id = '00000000-0000-4000-8000-000000000001');
+
+insert into public.horarios_visitas (corredor_id, dia_semana, hora_inicio, hora_fin)
+select '00000000-0000-4000-8000-000000000001', 6, '08:00', '12:00'
+where not exists (select 1 from public.horarios_visitas where corredor_id = '00000000-0000-4000-8000-000000000001' and dia_semana = 6);
