@@ -47,6 +47,7 @@ export function repoEnMemoria(corredor: Corredor) {
   };
   const anuncios: AnuncioFila[] = [];
   const propiedades: PropiedadConFotos[] = [];
+  const envios: { id: string; contenido: string; entregado: boolean }[] = [];
   const planes = new Map<string, { contenido: string; enviado: boolean }>();
   const citas: (NuevaCita & { id: string; estado: EstadoCita; recordatorio: boolean; creada: Date })[] = [];
   const horarios = [1, 2, 3, 4, 5].map((d) => ({ dia_semana: d, hora_inicio: "08:00:00", hora_fin: "17:00:00" }));
@@ -226,8 +227,17 @@ export function repoEnMemoria(corredor: Corredor) {
           a.aviso = true;
           return a.id;
         }),
+    guardarEnvioPendiente: async (_c, _tipo, contenido) => {
+      envios.push({ id: `env${++n}`, contenido, entregado: false });
+    },
+    enviosPendientes: async () => envios.filter((e) => !e.entregado).map(({ id, contenido }) => ({ id, contenido })),
+    marcarEnvioEntregado: async (_c, id) => {
+      const e = envios.find((x) => x.id === id && !x.entregado);
+      if (e) e.entregado = true;
+      return !!e;
+    },
   };
-  return { repo, mensajes, conversaciones, uso, citas, contactos, planes, anuncios, propiedades };
+  return { repo, mensajes, conversaciones, uso, citas, contactos, planes, anuncios, propiedades, envios };
 }
 
 export function entrante(texto: string | null, extra: Partial<MensajeEntrante> = {}): MensajeEntrante {

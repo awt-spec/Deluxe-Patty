@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
 import type { Corredor, Intencion, Mensaje, Propiedad, PropiedadConFotos } from "../datos/tipos";
+import type { AnuncioE24 } from "../encuentra24/parsear";
 import { consumo, sumar as sumarConsumo, type Consumo } from "./costo";
 import { instruccion } from "./instrucciones";
 
@@ -50,10 +51,19 @@ export interface AnuncioPreparado {
   consumo: Consumo;
 }
 
+export interface ClasificacionAnuncio {
+  esDueno: boolean;
+  puntaje: number;
+  senales: string[];
+  consumo: Consumo;
+}
+
 export interface Cerebro {
   clasificar(corredor: Corredor, historial: Mensaje[], mensaje: string): Promise<Clasificacion>;
   responder(corredor: Corredor, propiedades: Propiedad[], historial: Mensaje[], mensaje: string): Promise<Respuesta>;
   prepararAnuncio(corredor: Corredor, propiedad: PropiedadConFotos): Promise<AnuncioPreparado>;
+  /** Dueño directo o corredor, para la búsqueda semanal. */
+  clasificarAnuncio(anuncio: AnuncioE24, publicacionesDelAnunciante: number): Promise<ClasificacionAnuncio>;
   /** Análisis a pedido del corredor: propiedad u oferta (enlace o datos). */
   analizar(corredor: Corredor, propiedades: Propiedad[], historial: Mensaje[], mensaje: string): Promise<Respuesta>;
   agendar(
@@ -90,6 +100,12 @@ const EsquemaAnuncio = z.object({
   descripcion_en: z.string(),
   orden_fotos: z.array(z.object({ foto: z.number().int(), muestra: z.string() })),
   sugerencias: z.array(z.string()),
+});
+
+const EsquemaDueno = z.object({
+  es_dueno: z.boolean(),
+  puntaje: z.number().int(),
+  senales: z.array(z.string()),
 });
 
 /** Máximo de fotos que se le muestran al modelo para sugerir el orden. */
@@ -258,6 +274,35 @@ export function crearCerebroClaude(client = new Anthropic()): Cerebro {
         sugerencias: o.sugerencias,
         consumo: c,
       };
+    },
+
+    async clasificarAnuncio(anuncio, publicaciones) {
+      const datos = [
+        `Título: ${anuncio.titulo}`,
+        `Anunciante: ${anuncio.anunciante.nombre ?? "(sin nombre)"}${anuncio.anunciante.verificado ? " (cuenta verificada)" : ""}`,
+        `Se declara: ${anuncio.tipoAnunciante ?? "(no dice)"}`,
+        anuncio.anunciante.empresa ? `Empresa: ${anuncio.anunciante.empresa}` : null,
+        anuncio.anunciante.licencia ? `Licencia: ${anuncio.anunciante.licencia}` : null,
+        `Anuncios de esta cuenta en la búsqueda: ${publicaciones}`,
+        `Destacado pagado: ${anuncio.destacado ?? "no"}`,
+        `Precio: ${anuncio.precio ? `${anuncio.moneda ?? ""} ${anuncio.precio}` : "(no publicado)"}`,
+        `Zona: ${anuncio.zona ?? "(no dice)"}`,
+        `Descripción:\n${anuncio.descripcion.slice(0, 3000)}`,
+      ]
+        .filter(Boolean)
+        .join("\n");
+      const res = await client.beta.messages.parse({
+        model: MODELO_CLASIFICAR,
+        max_tokens: 2000,
+        output_config: { effort: "low", format: betaZodOutputFormat(EsquemaDueno) },
+        system: instruccion("dueno_o_corredor"),
+        messages: [{ role: "user", content: `<anuncio>\n${datos}\n</anuncio>` }],
+      });
+      const c = consumo(MODELO_CLASIFICAR, res.usage);
+      if (res.stop_reason === "refusal") throw new RechazoModelo(c);
+      if (!res.parsed_output) throw new Error(`Clasificación de anuncio sin salida (stop_reason ${res.stop_reason})`);
+      const o = res.parsed_output;
+      return { esDueno: o.es_dueno, puntaje: Math.max(0, Math.min(100, o.puntaje)), senales: o.senales.slice(0, 4), consumo: c };
     },
 
     async analizar(corredor, propiedades, historial, mensaje) {

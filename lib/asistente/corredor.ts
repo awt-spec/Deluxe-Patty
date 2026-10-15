@@ -105,8 +105,15 @@ export async function procesarMensajeCorredor(
   if (pendiente !== null) {
     await responder(armarPlan(corredor, await datosDelPlan(deps, corredor, ahora), ahora));
     await repo.marcarPlanEnviado(corredor.id, fecha);
-    // Una respuesta corta al aviso ("ok", "dale") no es un pedido de análisis.
-    if (!/https?:\/\/|\d/.test(texto)) return { tipo: "corredor", accion: "plan_pendiente" };
+  }
+  // Lo demás que esperaba la ventana (por ejemplo la lista semanal de dueños).
+  const envios = await repo.enviosPendientes(corredor.id);
+  for (const envio of envios) {
+    if (await repo.marcarEnvioEntregado(corredor.id, envio.id)) await responder(envio.contenido);
+  }
+  // Una respuesta corta al aviso ("ok", "dale") no es un pedido de análisis.
+  if ((pendiente !== null || envios.length > 0) && !/https?:\/\/|\d/.test(texto)) {
+    return { tipo: "corredor", accion: "plan_pendiente" };
   }
 
   if (/^plan\b/i.test(texto)) {

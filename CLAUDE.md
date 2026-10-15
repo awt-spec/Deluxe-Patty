@@ -16,7 +16,8 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   el corredor ve sus citas en el teléfono suscribiéndose al enlace ICS `/api/calendario/<token>.ics`.
 - Vercel Cron cada hora para recordatorios, plan del día y vencimiento de anuncios (`vercel.json`,
   protegido con `CRON_SECRET`).
-- Worker de búsqueda en Encuentra24 con Playwright en GitHub Actions (semana 2).
+- Worker de búsqueda de dueños en Encuentra24 con Playwright en GitHub Actions
+  (`worker/busqueda-duenos.ts`, `.github/workflows/busqueda-duenos.yml`, lunes temprano).
 
 ## Reglas
 - **Todo dato lleva `corredor_id`** y la tabla tiene RLS. Las llaves foráneas entre tablas de negocio son
@@ -58,7 +59,17 @@ traen contactos (`lib/anuncios/reporte.ts`).
 Encuentra24 no tiene API: la asistente prepara y vigila, el corredor publica. Cada anuncio tiene una
 `referencia` que va en el enlace wa.me de la descripción; el primer mensaje del cliente la trae y
 `atribuirContacto` enlaza el contacto al anuncio. Un anuncio nace como `borrador` (sin `e24_id` ni `url`)
-y pasa a `activo` cuando la lectura del perfil lo encuentra publicado. El acceso a datos va por `lib/datos/repositorio.ts`
+y pasa a `activo` cuando la lectura del perfil lo encuentra publicado.
+
+Lectura del sitio: las páginas son una app Next.js y cada anuncio viene como JSON en el payload de
+React Server Components; `lib/encuentra24/parsear.ts` lee ese JSON (no clases CSS). El campo
+`advertiserType` dice "Agente" o "Propietario". Paginación: `?page=N`. El sitio está detrás de
+Cloudflare: hace falta un navegador real (`worker/navegador.ts`), volumen bajo y pausas.
+`lib/encuentra24/busqueda.ts` recorre las zonas (`corredores.zonas_e24`, slugs de la URL) por turnos,
+descarta agentes, ya vistos, fuera de rango y corredores bloqueados, y Haiku confirma dueño o corredor.
+Si Encuentra24 bloquea o no trae anuncios, el workflow falla (GitHub avisa). La lista llega al corredor
+por WhatsApp; si su ventana de 24 horas está cerrada, queda en `envios_pendientes` y sale cuando escribe.
+Probar la lectura sin tocar datos: `npx tsx worker/busqueda-duenos.ts --prueba <zona> [páginas]`. El acceso a datos va por `lib/datos/repositorio.ts`
 y Claude por `lib/asistente/cerebro.ts`; ambos son interfaces para poder probar con dobles.
 
 ## Instrucciones del agente
@@ -78,7 +89,8 @@ dueño o corredor. Un cambio de tono o de instrucciones se prueba con el set de 
 | bloqueos_agenda | Excepciones a la agenda (vacaciones, compromisos) |
 | anuncios_e24 | Anuncios (borrador o publicados), texto preparado, vencimiento y referencia para atribuir contactos |
 | leads_duenos | Búsqueda semanal: puntaje, señales, estado de contacto |
-| corredores_bloqueados | Corredores conocidos que no se captan como dueños |
+| corredores_bloqueados | Corredores conocidos que no se captan como dueños (nombre, teléfono o cuenta de Encuentra24) |
+| envios_pendientes | Mensajes largos para el corredor que esperan a que abra la ventana de 24 horas |
 | uso_mensual | Mensajes, llamadas a Claude y costo por corredor y mes |
 | planes_dia | Plan del día generado por corredor y fecha, y si ya se entregó |
 
@@ -86,7 +98,8 @@ dueño o corredor. Un cambio de tono o de instrucciones se prueba con el set de 
 - `npm run dev` — app local.
 - `npm run typecheck` y `npm run build` — antes de cada push.
 - `npm test` — pruebas unitarias (vitest) de `tests/`: firma de Meta, parseo del webhook y el flujo
-  de la asistente y la agenda con dobles en memoria (`tests/dobles.ts`), disponibilidad, ICS, recordatorios, plan del día, mensajes del corredor y anuncios.
+  de la asistente y la agenda con dobles en memoria (`tests/dobles.ts`), disponibilidad, ICS, recordatorios, plan del día, mensajes del corredor, anuncios y búsqueda de dueños
+  (`tests/fixtures/e24.ts` arma páginas con la estructura real y datos ficticios).
 - `npm run test:db` — crea una base desechable en un Postgres local (usa `PGHOST`, `PGPORT`, `PGUSER`),
   aplica `supabase/tests/shim_supabase.sql`, las migraciones y la semilla, y corre las pruebas SQL de
   `supabase/tests/`. Incluye la prueba de que un corredor no ve datos de otro.

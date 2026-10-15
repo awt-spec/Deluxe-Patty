@@ -92,6 +92,12 @@ export interface Repositorio {
   anunciosPorVencer(corredorId: string, desde: string, hasta: string): Promise<AnuncioPorVencer[]>;
   /** Marca el aviso de vencimiento; devuelve los ids que esta llamada marcó. */
   marcarAvisoVencimiento(corredorId: string, ids: string[]): Promise<string[]>;
+
+  // Envíos que esperan a que el corredor abra la ventana de 24 horas
+  guardarEnvioPendiente(corredorId: string, tipo: "lista_duenos", contenido: string): Promise<void>;
+  enviosPendientes(corredorId: string): Promise<{ id: string; contenido: string }[]>;
+  /** true solo para la llamada que lo marcó (evita entregarlo dos veces). */
+  marcarEnvioEntregado(corredorId: string, id: string): Promise<boolean>;
 }
 
 const UNICA_VIOLADA = "23505";
@@ -656,6 +662,34 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
         .select("id");
       verificar(error, "marcarAvisoVencimiento");
       return (data ?? []).map((a) => a.id as string);
+    },
+
+    async guardarEnvioPendiente(corredorId, tipo, contenido) {
+      const { error } = await db.from("envios_pendientes").insert({ corredor_id: corredorId, tipo, contenido });
+      verificar(error, "guardarEnvioPendiente");
+    },
+
+    async enviosPendientes(corredorId) {
+      const { data, error } = await db
+        .from("envios_pendientes")
+        .select("id, contenido")
+        .eq("corredor_id", corredorId)
+        .is("enviado_at", null)
+        .order("created_at");
+      verificar(error, "enviosPendientes");
+      return (data ?? []) as { id: string; contenido: string }[];
+    },
+
+    async marcarEnvioEntregado(corredorId, id) {
+      const { data, error } = await db
+        .from("envios_pendientes")
+        .update({ enviado_at: new Date().toISOString() })
+        .eq("corredor_id", corredorId)
+        .eq("id", id)
+        .is("enviado_at", null)
+        .select("id");
+      verificar(error, "marcarEnvioEntregado");
+      return (data ?? []).length > 0;
     },
   };
 }

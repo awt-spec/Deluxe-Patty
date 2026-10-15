@@ -102,6 +102,15 @@ describe("Asistente Base", () => {
       expect(db.planes.get("2026-10-20")?.enviado).toBe(true);
     });
 
+    it("lo que esperaba la ventana (lista de dueños) sale cuando Patricia escribe", async () => {
+      await db.repo.guardarEnvioPendiente("c1", "lista_duenos", "*Dueños directos de la semana (2)*");
+      const r = await procesarMensaje(deps, dePatricia("dale"));
+      expect(r).toEqual({ tipo: "corredor", accion: "plan_pendiente" });
+      expect(whatsapp.texto.mock.calls.map((c) => c[2])).toEqual(["*Dueños directos de la semana (2)*"]);
+      await procesarMensaje(deps, dePatricia("gracias"));
+      expect(whatsapp.texto.mock.calls.filter((c) => String(c[2]).includes("Dueños"))).toHaveLength(1);
+    });
+
     it("con la ventana abierta manda el plan completo de una vez", async () => {
       await procesarMensaje(deps, dePatricia("Plan", local("2026-10-19T18:00")));
       whatsapp.texto.mockClear();
