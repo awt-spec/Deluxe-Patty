@@ -65,7 +65,13 @@ export async function mejorarFotos(
       const tipo = (original.headers.get("content-type") ?? "").split(";")[0];
       if (!original.ok || !TIPOS.test(tipo)) throw new Error(`descarga ${original.status} ${tipo}`);
       const mejorada = await editor.mejorar(Buffer.from(await original.arrayBuffer()), tipo);
-      const url = await deps.repo.subirFoto(corredor.id, `${propiedad.id}/${i + 1}-mejorada-${Date.now()}.jpg`, mejorada, "image/jpeg");
+      const url = await deps.repo.subirArchivo(
+        corredor.id,
+        "fotos",
+        `${propiedad.id}/${i + 1}-mejorada-${Date.now()}.jpg`,
+        mejorada,
+        "image/jpeg",
+      );
       foto.mejorada_url = url;
       return { numero: i + 1, url };
     } catch (error) {

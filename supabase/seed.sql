@@ -58,3 +58,14 @@ where not exists (select 1 from public.horarios_visitas where corredor_id = '000
 insert into public.horarios_visitas (corredor_id, dia_semana, hora_inicio, hora_fin)
 select '00000000-0000-4000-8000-000000000001', 6, '08:00', '12:00'
 where not exists (select 1 from public.horarios_visitas where corredor_id = '00000000-0000-4000-8000-000000000001' and dia_semana = 6);
+
+-- Identidad visual de Deluxe (Manual de Identidad Visual v1.0). El logo vive en marcas/deluxe/.
+update public.corredores set marca = '{
+  "nombre": "Deluxe Properties",
+  "logoSobreProfundo": "marcas/deluxe/logo-onyx.jpg",
+  "fondoLogo": "#1A1408",
+  "colores": { "principal": "#D4AF6A", "soporte": "#B89968", "profundo": "#1A1308", "base": "#F5F0E8" },
+  "eslogan": "Where rare addresses live",
+  "firma": { "nombre": "Patricia Quintanilla", "cargo": "CEO · Deluxe Properties" }
+}'::jsonb
+where id = '00000000-0000-4000-8000-000000000001' and marca is null;

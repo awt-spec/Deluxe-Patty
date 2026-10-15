@@ -1,3 +1,4 @@
+import path from "node:path";
 import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 import QRCode from "qrcode";
 import { createElement, type ReactElement } from "react";
@@ -29,6 +30,16 @@ export async function generarFicha({ propiedad, marca, whatsappAsistente }: Opci
         },
       )
     : null;
-  const documento = createElement(FichaPropiedad, { propiedad, marca, whatsapp: whatsappAsistente, qr, fotos });
+  // Un logo local (marcas/<corredor>/…) se resuelve desde la raíz del proyecto.
+  const logo = /^https?:\/\//.test(marca.logoSobreProfundo)
+    ? marca.logoSobreProfundo
+    : path.join(process.cwd(), marca.logoSobreProfundo);
+  const documento = createElement(FichaPropiedad, {
+    propiedad,
+    marca: { ...marca, logoSobreProfundo: logo },
+    whatsapp: whatsappAsistente,
+    qr,
+    fotos,
+  });
   return renderToBuffer(documento as unknown as ReactElement<DocumentProps>);
 }

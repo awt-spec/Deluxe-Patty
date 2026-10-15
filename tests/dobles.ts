@@ -1,4 +1,5 @@
 import type { Repositorio } from "../lib/datos/repositorio";
+import { MARCA_DELUXE } from "../lib/fichas/marca";
 import type {
   AnuncioResumen,
   Contacto,
@@ -32,6 +33,7 @@ export function corredorBase(): Corredor {
     anticipacion_min_horas: 3,
     horizonte_agenda_dias: 14,
     hora_plan_dia: "07:00:00",
+    marca: MARCA_DELUXE,
   };
 }
 
@@ -48,7 +50,7 @@ export function repoEnMemoria(corredor: Corredor) {
   const anuncios: AnuncioFila[] = [];
   const propiedades: PropiedadConFotos[] = [];
   const envios: { id: string; contenido: string; entregado: boolean }[] = [];
-  const subidas: string[] = [];
+  const subidas: { bucket: string; ruta: string; datos: Buffer }[] = [];
   let fotosMejoradas = 0;
   const planes = new Map<string, { contenido: string; enviado: boolean }>();
   const citas: (NuevaCita & { id: string; estado: EstadoCita; recordatorio: boolean; creada: Date })[] = [];
@@ -238,9 +240,9 @@ export function repoEnMemoria(corredor: Corredor) {
       if (e) e.entregado = true;
       return !!e;
     },
-    subirFoto: async (corredorId, ruta) => {
-      subidas.push(ruta);
-      return `https://storage.example/${corredorId}/${ruta}`;
+    subirArchivo: async (corredorId, bucket, ruta, datos) => {
+      subidas.push({ bucket, ruta, datos });
+      return `https://storage.example/${bucket}/${corredorId}/${ruta}`;
     },
     guardarFotos: async (_c, propiedadId, fotos) => {
       const p = propiedades.find((x) => x.id === propiedadId);

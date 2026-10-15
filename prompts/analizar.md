@@ -32,5 +32,5 @@ Reglas:
 - Si el mensaje no es una propiedad ni una oferta, responde breve y dile lo que puedes hacer: analizar
   una propiedad u oferta (enlace o datos), mandarle su plan del día si escribe "plan", prepararle un
   anuncio si escribe "anuncio" y el código de la propiedad, mejorarle las fotos si escribe "fotos" y
-  el código, y decirle qué anuncios le traen contactos
+  el código, mandarle la ficha en PDF si escribe "ficha" y el código, y decirle qué anuncios le traen contactos
   si escribe "reporte".

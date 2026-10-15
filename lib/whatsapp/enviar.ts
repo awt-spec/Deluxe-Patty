@@ -5,6 +5,8 @@ export interface EnviadorWhatsApp {
   texto(phoneNumberId: string, para: string, cuerpo: string): Promise<string>;
   /** Imagen por enlace público, con leyenda. Solo dentro de la ventana de 24 horas. */
   imagen(phoneNumberId: string, para: string, url: string, leyenda: string): Promise<string>;
+  /** Documento (PDF) por enlace público. Solo dentro de la ventana de 24 horas. */
+  documento(phoneNumberId: string, para: string, url: string, nombreArchivo: string, leyenda: string): Promise<string>;
   /** Plantilla aprobada por Meta: sirve fuera de la ventana de 24 horas. */
   plantilla(phoneNumberId: string, para: string, nombre: string, parametros: string[]): Promise<string>;
 }
@@ -55,6 +57,13 @@ export function crearEnviadorWhatsApp(accessToken: string): EnviadorWhatsApp {
         to: para.replace(/^\+/, ""),
         type: "image",
         image: { link: url, caption: leyenda },
+      }),
+    documento: (phoneNumberId, para, url, nombreArchivo, leyenda) =>
+      enviar(phoneNumberId, {
+        recipient_type: "individual",
+        to: para.replace(/^\+/, ""),
+        type: "document",
+        document: { link: url, filename: nombreArchivo, caption: leyenda },
       }),
     plantilla: (phoneNumberId, para, nombre, parametros) =>
       enviar(phoneNumberId, {

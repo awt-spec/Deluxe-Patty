@@ -15,7 +15,7 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
 - API de imágenes de OpenAI (`gpt-image-2`) solo para mejorar fotos de propiedades (`lib/fotos/`).
   Las mejoradas van al bucket público `fotos` de Supabase Storage.
 - Ficha de propiedad en PDF con `@react-pdf/renderer` (`lib/fichas/`): la identidad de cada corredor es
-  dato (`Marca`); la de Deluxe sigue su Manual de Identidad Visual (4 colores oficiales, Playfair Display
+  dato (`corredores.marca`, tipo `Marca`); la de Deluxe sigue su Manual de Identidad Visual (4 colores oficiales, Playfair Display
   e Inter, logo oficial en `marcas/deluxe/`). Ejemplo: `npx tsx scripts/ficha-ejemplo.mts <salida.pdf> <fotos...>`.
 - Agenda propia en Supabase (no se integra Google Calendar): horarios, bloqueos y citas en la base;
   el corredor ve sus citas en el teléfono suscribiéndose al enlace ICS `/api/calendario/<token>.ics`.
@@ -62,7 +62,8 @@ un resumen, y el plan completo sale cuando el corredor responde. Otros comandos 
 "anuncio <código>" prepara título y descripción en español e inglés y el orden de fotos
 (`lib/anuncios/preparar.ts`) y lo guarda como borrador con su referencia; "reporte" dice qué anuncios
 traen contactos (`lib/anuncios/reporte.ts`); "fotos <código>" mejora hasta 12 fotos con OpenAI
-(`lib/fotos/mejorar.ts`) y se las manda para revisar.
+(`lib/fotos/mejorar.ts`) y se las manda para revisar; "ficha <código>" genera la ficha PDF con la
+marca del corredor (`corredores.marca`), la sube al bucket público `fichas` y se la manda como documento.
 
 ## Anuncios de Encuentra24
 Encuentra24 no tiene API: la asistente prepara y vigila, el corredor publica. Cada anuncio tiene una

@@ -101,8 +101,8 @@ export interface Repositorio {
   marcarEnvioEntregado(corredorId: string, id: string): Promise<boolean>;
 
   // Fotos
-  /** Sube una foto al bucket público "fotos" y devuelve su URL. */
-  subirFoto(corredorId: string, ruta: string, imagen: Buffer, tipo: string): Promise<string>;
+  /** Sube un archivo a un bucket público ("fotos" o "fichas") y devuelve su URL. */
+  subirArchivo(corredorId: string, bucket: "fotos" | "fichas", ruta: string, datos: Buffer, tipo: string): Promise<string>;
   guardarFotos(corredorId: string, propiedadId: string, fotos: Foto[]): Promise<void>;
   registrarFotosMejoradas(corredorId: string, cantidad: number): Promise<void>;
 }
@@ -122,7 +122,7 @@ function verificar(error: { message: string; code?: string } | null, que: string
 }
 
 const COLUMNAS_CORREDOR =
-  "id, nombre, nombre_contacto, whatsapp_numero, whatsapp_phone_number_id, whatsapp_corredor, zona_horaria, tono, reglas_escalamiento, tope_mensajes_mes, aviso_mensajes_mes, respuesta_automatica, duracion_visita_min, margen_visitas_min, anticipacion_min_horas, horizonte_agenda_dias, hora_plan_dia";
+  "id, nombre, nombre_contacto, whatsapp_numero, whatsapp_phone_number_id, whatsapp_corredor, zona_horaria, tono, reglas_escalamiento, tope_mensajes_mes, aviso_mensajes_mes, respuesta_automatica, duracion_visita_min, margen_visitas_min, anticipacion_min_horas, horizonte_agenda_dias, hora_plan_dia, marca";
 
 export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
   return {
@@ -699,11 +699,11 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
       return (data ?? []).length > 0;
     },
 
-    async subirFoto(corredorId, ruta, imagen, tipo) {
+    async subirArchivo(corredorId, bucket, ruta, datos, tipo) {
       const camino = `${corredorId}/${ruta}`;
-      const { error } = await db.storage.from("fotos").upload(camino, imagen, { contentType: tipo, upsert: true });
-      verificar(error ? { message: error.message } : null, "subirFoto");
-      return db.storage.from("fotos").getPublicUrl(camino).data.publicUrl;
+      const { error } = await db.storage.from(bucket).upload(camino, datos, { contentType: tipo, upsert: true });
+      verificar(error ? { message: error.message } : null, "subirArchivo");
+      return db.storage.from(bucket).getPublicUrl(camino).data.publicUrl;
     },
 
     async guardarFotos(corredorId, propiedadId, fotos) {

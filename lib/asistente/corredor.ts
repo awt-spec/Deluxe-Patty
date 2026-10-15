@@ -1,6 +1,7 @@
 import { prepararAnuncio } from "../anuncios/preparar";
 import { DIAS_REPORTE, armarReporte } from "../anuncios/reporte";
 import type { Conversacion, Corredor } from "../datos/tipos";
+import { fichaDePropiedad } from "../fichas/comando";
 import { mejorarFotos } from "../fotos/mejorar";
 import type { MensajeEntrante } from "../whatsapp/parsear";
 import { RechazoModelo } from "./cerebro";
@@ -13,7 +14,7 @@ export type ResultadoCorredor =
   | { tipo: "duplicado" }
   | {
       tipo: "corredor";
-      accion: "plan" | "plan_pendiente" | "analisis" | "anuncio" | "fotos" | "reporte" | "ayuda" | "error";
+      accion: "plan" | "plan_pendiente" | "analisis" | "anuncio" | "fotos" | "ficha" | "reporte" | "ayuda" | "error";
     };
 
 export async function conversacionDelCorredor(deps: Pick<Dependencias, "repo">, corredor: Corredor) {
@@ -85,10 +86,40 @@ async function enviarImagenAlCorredor(
   await deps.repo.registrarUso(corredor.id, { mensajesSalientes: 1 });
 }
 
+/** Documento al corredor (solo dentro de la ventana de 24 horas, que abre su propio mensaje). */
+async function enviarDocumentoAlCorredor(
+  deps: Dependencias,
+  corredor: Corredor,
+  conversacion: Conversacion,
+  url: string,
+  nombreArchivo: string,
+  leyenda: string,
+) {
+  const waId = await deps.whatsapp.documento(
+    corredor.whatsapp_phone_number_id!,
+    corredor.whatsapp_corredor!,
+    url,
+    nombreArchivo,
+    leyenda,
+  );
+  await deps.repo.guardarMensaje({
+    corredor_id: corredor.id,
+    conversacion_id: conversacion.id,
+    direccion: "saliente",
+    autor: "asistente",
+    tipo: "documento",
+    contenido: url,
+    wa_message_id: waId,
+    estado_entrega: "enviado",
+  });
+  await deps.repo.registrarUso(corredor.id, { mensajesSalientes: 1 });
+}
+
 const AYUDA =
   "Puedo analizarte una propiedad o una oferta: mándame el enlace de Encuentra24 o los datos (precio, metros, zona). " +
   'Escribe "plan" para tu plan del día, "anuncio" y el código de una propiedad para prepararte el anuncio, ' +
-  '"fotos" y el código para mejorarle las fotos, o "reporte" para ver qué anuncios te traen contactos.';
+  '"fotos" y el código para mejorarle las fotos, "ficha" y el código para la ficha en PDF, ' +
+  'o "reporte" para ver qué anuncios te traen contactos.';
 
 /** Mensajes que el corredor le manda a su asistente desde su número personal. */
 export async function procesarMensajeCorredor(
@@ -173,6 +204,20 @@ export async function procesarMensajeCorredor(
     }
     for (const m of r.mensajes) await responder(m);
     return { tipo: "corredor", accion: "fotos" };
+  }
+
+  const pedidoFicha = /^ficha\s+(?:de\s+)?(\S+)/i.exec(texto);
+  if (pedidoFicha) {
+    try {
+      const ficha = await fichaDePropiedad(deps, corredor, pedidoFicha[1]);
+      if (ficha.tipo === "mensaje") await responder(ficha.texto);
+      else await enviarDocumentoAlCorredor(deps, corredor, conversacion, ficha.url, ficha.nombreArchivo, ficha.leyenda);
+      return { tipo: "corredor", accion: "ficha" };
+    } catch (error) {
+      log("error_ficha", { corredorId: corredor.id, error: error instanceof Error ? error.message : "desconocido" });
+      await responder("No pude generar la ficha ahora. Inténtalo de nuevo en un rato.");
+      return { tipo: "corredor", accion: "error" };
+    }
   }
 
   if (!texto) {

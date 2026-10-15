@@ -14,7 +14,7 @@ describe('"fotos <código>"', () => {
 
   beforeEach(() => {
     db = repoEnMemoria(corredorBase());
-    whatsapp = { texto: vi.fn(async () => "w"), plantilla: vi.fn(async () => "w"), imagen: vi.fn(async () => "w") };
+    whatsapp = { texto: vi.fn(async () => "w"), plantilla: vi.fn(async () => "w"), imagen: vi.fn(async () => "w"), documento: vi.fn(async () => "w") };
     editor = { mejorar: vi.fn(async (b: Buffer) => Buffer.concat([Buffer.from("mejorada:"), b])) };
     deps = {
       repo: db.repo,
@@ -54,7 +54,7 @@ describe('"fotos <código>"', () => {
     // Orden de la propiedad: a.jpg es la 1, b.jpg la 2.
     expect(editor.mejorar.mock.calls.map((c) => String(c[0]))).toEqual(["https://x/a.jpg", "https://x/b.jpg"]);
     const fotos = db.propiedades[0].fotos;
-    expect(fotos.find((f) => f.url === "https://x/a.jpg")?.mejorada_url).toMatch(/p1\/1-mejorada-/);
+    expect(fotos.find((f) => f.url === "https://x/a.jpg")?.mejorada_url).toMatch(/fotos\/c1\/p1\/1-mejorada-/);
     expect(fotos.find((f) => f.url === "https://x/rota.jpg")?.mejorada_url).toBeUndefined();
     // Las originales no cambian.
     expect(fotos.map((f) => f.url).sort()).toEqual(["https://x/a.jpg", "https://x/b.jpg", "https://x/rota.jpg"]);

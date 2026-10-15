@@ -1,4 +1,5 @@
 // Filas de la base que usa el backend. Reflejan supabase/migrations.
+import type { Marca } from "../fichas/marca";
 
 export interface Corredor {
   id: string;
@@ -19,6 +20,8 @@ export interface Corredor {
   anticipacion_min_horas: number;
   horizonte_agenda_dias: number;
   hora_plan_dia: string;
+  /** Identidad visual para la ficha de propiedad; null si no está configurada. */
+  marca: Marca | null;
 }
 
 export interface Contacto {
