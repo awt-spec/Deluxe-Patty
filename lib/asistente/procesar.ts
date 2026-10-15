@@ -129,8 +129,11 @@ export async function procesarMensaje(deps: Dependencias, entrante: MensajeEntra
       return { tipo: "agenda", accion: r.tipo, borrador: r.borrador };
     }
 
-    const propiedades = await repo.propiedadesActivas(corredor.id);
-    const respuesta = await deps.cerebro.responder(corredor, propiedades, historial, entrante.texto);
+    const [propiedades, correcciones] = await Promise.all([
+      repo.propiedadesActivas(corredor.id),
+      repo.correccionesRecientes(corredor.id, 8),
+    ]);
+    const respuesta = await deps.cerebro.responder(corredor, propiedades, historial, entrante.texto, correcciones);
     consumo = sumar(consumo, respuesta.consumo);
     llamadas++;
     await ctx.usoClaude(llamadas, consumo);

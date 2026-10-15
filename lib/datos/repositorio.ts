@@ -1,6 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   AnuncioPorVencer,
+  BorradorPendiente,
+  ConversacionConContacto,
+  Correccion,
   AnuncioResumen,
   Cita,
   CitaCalendario,
@@ -36,7 +39,11 @@ export interface Repositorio {
   actualizarConversacion(
     corredorId: string,
     id: string,
-    cambios: Partial<{ estado: Conversacion["estado"]; ultimo_mensaje_cliente_at: string }>,
+    cambios: Partial<{
+      estado: Conversacion["estado"];
+      control: Conversacion["control"];
+      ultimo_mensaje_cliente_at: string;
+    }>,
   ): Promise<void>;
   historial(corredorId: string, conversacionId: string, limite: number): Promise<Mensaje[]>;
   propiedadesActivas(corredorId: string): Promise<Propiedad[]>;
@@ -105,6 +112,22 @@ export interface Repositorio {
   subirArchivo(corredorId: string, bucket: "fotos" | "fichas", ruta: string, datos: Buffer, tipo: string): Promise<string>;
   guardarFotos(corredorId: string, propiedadId: string, fotos: Foto[]): Promise<void>;
   registrarFotosMejoradas(corredorId: string, cantidad: number): Promise<void>;
+
+  // Panel: piloto en sombra y toma de control
+  borrador(corredorId: string, mensajeId: string): Promise<BorradorPendiente | null>;
+  /**
+   * Cambia un borrador que sigue pendiente (o, con `desde`, en ese estado). true solo si lo cambió:
+   * dos toques seguidos no lo envían dos veces.
+   */
+  resolverBorrador(
+    corredorId: string,
+    mensajeId: string,
+    cambios: Partial<Pick<NuevoMensaje, "estado_borrador" | "contenido" | "wa_message_id" | "estado_entrega">>,
+    desde?: NonNullable<NuevoMensaje["estado_borrador"]>,
+  ): Promise<boolean>;
+  guardarCorreccion(corredorId: string, mensajeId: string, original: string, corregido: string): Promise<void>;
+  correccionesRecientes(corredorId: string, limite: number): Promise<Correccion[]>;
+  conversacionConContacto(corredorId: string, conversacionId: string): Promise<ConversacionConContacto | null>;
 }
 
 const UNICA_VIOLADA = "23505";
@@ -714,6 +737,86 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
     async registrarFotosMejoradas(corredorId, cantidad) {
       const { error } = await db.rpc("registrar_fotos_mejoradas", { p_corredor_id: corredorId, p_cantidad: cantidad });
       verificar(error, "registrarFotosMejoradas");
+    },
+
+    async borrador(corredorId, mensajeId) {
+      const { data, error } = await db
+        .from("mensajes")
+        .select(
+          "id, contenido, estado_borrador, accion, conversacion_id, conversaciones!inner(contacto_id, ultimo_mensaje_cliente_at, contactos!inner(telefono))",
+        )
+        .eq("corredor_id", corredorId)
+        .eq("id", mensajeId)
+        .maybeSingle();
+      verificar(error, "borrador");
+      if (!data) return null;
+      const conv = uno(
+        data.conversaciones as Embebido<{
+          contacto_id: string;
+          ultimo_mensaje_cliente_at: string | null;
+          contactos: Embebido<{ telefono: string }>;
+        }>,
+      );
+      if (!conv) return null;
+      return {
+        id: data.id as string,
+        contenido: (data.contenido as string | null) ?? "",
+        estado_borrador: data.estado_borrador as BorradorPendiente["estado_borrador"],
+        accion: (data.accion as BorradorPendiente["accion"]) ?? null,
+        conversacion_id: data.conversacion_id as string,
+        contacto_id: conv.contacto_id,
+        telefono: uno(conv.contactos)?.telefono ?? "",
+        ultimo_mensaje_cliente_at: conv.ultimo_mensaje_cliente_at,
+      };
+    },
+
+    async resolverBorrador(corredorId, mensajeId, cambios, desde = "pendiente") {
+      const { data, error } = await db
+        .from("mensajes")
+        .update(cambios)
+        .eq("corredor_id", corredorId)
+        .eq("id", mensajeId)
+        .eq("estado_borrador", desde)
+        .select("id");
+      verificar(error, "resolverBorrador");
+      return (data ?? []).length > 0;
+    },
+
+    async guardarCorreccion(corredorId, mensajeId, original, corregido) {
+      const { error } = await db
+        .from("correcciones")
+        .insert({ corredor_id: corredorId, mensaje_id: mensajeId, original, corregido });
+      verificar(error, "guardarCorreccion");
+    },
+
+    async correccionesRecientes(corredorId, limite) {
+      const { data, error } = await db
+        .from("correcciones")
+        .select("original, corregido")
+        .eq("corredor_id", corredorId)
+        .order("created_at", { ascending: false })
+        .limit(limite);
+      verificar(error, "correccionesRecientes");
+      return (data ?? []) as Correccion[];
+    },
+
+    async conversacionConContacto(corredorId, conversacionId) {
+      const { data, error } = await db
+        .from("conversaciones")
+        .select("id, contacto_id, control, estado, ultimo_mensaje_cliente_at, contactos!inner(telefono)")
+        .eq("corredor_id", corredorId)
+        .eq("id", conversacionId)
+        .maybeSingle();
+      verificar(error, "conversacionConContacto");
+      if (!data) return null;
+      return {
+        id: data.id as string,
+        contacto_id: data.contacto_id as string,
+        telefono: uno(data.contactos as Embebido<{ telefono: string }>)?.telefono ?? "",
+        control: data.control as ConversacionConContacto["control"],
+        estado: data.estado as ConversacionConContacto["estado"],
+        ultimo_mensaje_cliente_at: (data.ultimo_mensaje_cliente_at as string | null) ?? null,
+      };
     },
   };
 }

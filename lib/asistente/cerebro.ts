@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
-import type { Corredor, Intencion, Mensaje, Propiedad, PropiedadConFotos } from "../datos/tipos";
+import type { Correccion, Corredor, Intencion, Mensaje, Propiedad, PropiedadConFotos } from "../datos/tipos";
 import type { AnuncioE24 } from "../encuentra24/parsear";
 import { consumo, sumar as sumarConsumo, type Consumo } from "./costo";
 import { instruccion } from "./instrucciones";
@@ -60,7 +60,14 @@ export interface ClasificacionAnuncio {
 
 export interface Cerebro {
   clasificar(corredor: Corredor, historial: Mensaje[], mensaje: string): Promise<Clasificacion>;
-  responder(corredor: Corredor, propiedades: Propiedad[], historial: Mensaje[], mensaje: string): Promise<Respuesta>;
+  responder(
+    corredor: Corredor,
+    propiedades: Propiedad[],
+    historial: Mensaje[],
+    mensaje: string,
+    /** Correcciones recientes del corredor a borradores: ejemplos de su tono. */
+    correcciones?: Correccion[],
+  ): Promise<Respuesta>;
   prepararAnuncio(corredor: Corredor, propiedad: PropiedadConFotos): Promise<AnuncioPreparado>;
   /** Dueño directo o corredor, para la búsqueda semanal. */
   clasificarAnuncio(anuncio: AnuncioE24, publicacionesDelAnunciante: number): Promise<ClasificacionAnuncio>;
@@ -200,9 +207,16 @@ export function crearCerebroClaude(client = new Anthropic()): Cerebro {
       return { intencion: res.parsed_output.intencion, tema: res.parsed_output.tema, consumo: c };
     },
 
-    async responder(corredor, propiedades, historial, mensaje) {
+    async responder(corredor, propiedades, historial, mensaje, correcciones = []) {
       // Bloque estable por corredor (instrucciones, tono, propiedades) primero, para aprovechar la caché.
-      const system = [instruccion("responder"), ...contextoCorredor(corredor, propiedades)].join("\n\n");
+      const ejemplos = correcciones.length
+        ? `<correcciones_del_corredor>\nAsí corrigió el corredor respuestas tuyas; escribe como en la versión corregida.\n${correcciones
+            .map((c) => `Tú escribiste: ${c.original}\nEl corredor lo dejó así: ${c.corregido}`)
+            .join("\n---\n")}\n</correcciones_del_corredor>`
+        : null;
+      const system = [instruccion("responder"), ...contextoCorredor(corredor, propiedades), ejemplos]
+        .filter(Boolean)
+        .join("\n\n");
 
       const res = await client.beta.messages.parse({
         model: MODELO_REDACTAR,

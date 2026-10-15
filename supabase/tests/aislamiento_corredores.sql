@@ -52,6 +52,9 @@ values (:'deluxe', current_date, 'Plan de prueba');
 insert into public.envios_pendientes (corredor_id, tipo, contenido)
 values (:'deluxe', 'lista_duenos', 'Lista de prueba');
 
+insert into public.correcciones (corredor_id, mensaje_id, original, corregido)
+values (:'deluxe', gen_random_uuid(), 'Hola', 'Buenas tardes');
+
 set local role service_role;
 select public.registrar_uso(:'deluxe', p_mensajes_entrantes => 1);
 reset role;
@@ -75,7 +78,8 @@ begin
   -- 1. No ve ninguna fila de Deluxe.
   foreach t in array array[
     'propiedades', 'anuncios_e24', 'contactos', 'conversaciones', 'mensajes',
-    'citas', 'leads_duenos', 'corredores_bloqueados', 'uso_mensual', 'planes_dia', 'envios_pendientes'
+    'citas', 'leads_duenos', 'corredores_bloqueados', 'uso_mensual', 'planes_dia', 'envios_pendientes',
+    'correcciones', 'uso_diario'
   ] loop
     execute format('select count(*) from public.%I where corredor_id = %L', t, '00000000-0000-4000-8000-000000000001') into n;
     if n <> 0 then

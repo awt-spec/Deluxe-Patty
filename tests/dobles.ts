@@ -51,6 +51,7 @@ export function repoEnMemoria(corredor: Corredor) {
   const propiedades: PropiedadConFotos[] = [];
   const envios: { id: string; contenido: string; entregado: boolean }[] = [];
   const subidas: { bucket: string; ruta: string; datos: Buffer }[] = [];
+  const correcciones: { original: string; corregido: string }[] = [];
   let fotosMejoradas = 0;
   const planes = new Map<string, { contenido: string; enviado: boolean }>();
   const citas: (NuevaCita & { id: string; estado: EstadoCita; recordatorio: boolean; creada: Date })[] = [];
@@ -251,6 +252,42 @@ export function repoEnMemoria(corredor: Corredor) {
     registrarFotosMejoradas: async (_c, cantidad) => {
       fotosMejoradas += cantidad;
     },
+    borrador: async (_c, mensajeId) => {
+      const m = mensajes.find((x) => x.id === mensajeId);
+      if (!m) return null;
+      const conv = conversaciones.find((c) => c.id === m.conversacion_id)!;
+      return {
+        id: m.id,
+        contenido: m.contenido ?? "",
+        estado_borrador: m.estado_borrador ?? null,
+        accion: m.accion ?? null,
+        conversacion_id: conv.id,
+        contacto_id: conv.contacto_id,
+        telefono: contactos.find((c) => c.id === conv.contacto_id)!.telefono,
+        ultimo_mensaje_cliente_at: conv.ultimo_mensaje_cliente_at ?? null,
+      };
+    },
+    resolverBorrador: async (_c, mensajeId, cambios, desde = "pendiente") => {
+      const m = mensajes.find((x) => x.id === mensajeId && x.estado_borrador === desde);
+      if (m) Object.assign(m, cambios);
+      return !!m;
+    },
+    guardarCorreccion: async (_c, _m, original, corregido) => {
+      correcciones.unshift({ original, corregido });
+    },
+    correccionesRecientes: async (_c, limite) => correcciones.slice(0, limite),
+    conversacionConContacto: async (_c, id) => {
+      const conv = conversaciones.find((c) => c.id === id);
+      if (!conv) return null;
+      return {
+        id: conv.id,
+        contacto_id: conv.contacto_id,
+        telefono: contactos.find((c) => c.id === conv.contacto_id)!.telefono,
+        control: conv.control,
+        estado: conv.estado,
+        ultimo_mensaje_cliente_at: conv.ultimo_mensaje_cliente_at ?? null,
+      };
+    },
   };
   return {
     repo,
@@ -264,6 +301,7 @@ export function repoEnMemoria(corredor: Corredor) {
     propiedades,
     envios,
     subidas,
+    correcciones,
     fotosMejoradas: () => fotosMejoradas,
   };
 }

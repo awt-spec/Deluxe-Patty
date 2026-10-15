@@ -107,6 +107,31 @@ export interface UsoMensual {
   aviso_tope_enviado_at: string | null;
 }
 
+export interface BorradorPendiente {
+  id: string;
+  contenido: string;
+  estado_borrador: Mensaje["estado_borrador"];
+  accion: AccionPendiente | null;
+  conversacion_id: string;
+  contacto_id: string;
+  telefono: string;
+  ultimo_mensaje_cliente_at: string | null;
+}
+
+export interface ConversacionConContacto {
+  id: string;
+  contacto_id: string;
+  telefono: string;
+  control: Conversacion["control"];
+  estado: Conversacion["estado"];
+  ultimo_mensaje_cliente_at: string | null;
+}
+
+export interface Correccion {
+  original: string;
+  corregido: string;
+}
+
 export type EstadoCita = "agendada" | "confirmada" | "cancelada" | "realizada" | "no_asistio";
 
 export interface Cita {
