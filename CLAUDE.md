@@ -32,6 +32,14 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
 - Cada mensaje entrante y saliente suma en `uso_mensual` vía `registrar_uso()`; tope de 1.000 al mes,
   aviso a los 900.
 
+## Flujo de un mensaje de WhatsApp
+`app/api/whatsapp/webhook/route.ts` verifica la firma de Meta, responde 200 y sigue en `after()` con
+`lib/asistente/procesar.ts`: guarda el mensaje (idempotente por `wa_message_id`), suma uso, y si la
+conversación no está escalada ni tomada por el corredor, Haiku clasifica y Sonnet responde con las
+propiedades activas. Escalamientos, audios/imágenes, fallas de Claude y datos por confirmar se avisan al
+corredor con la plantilla `WHATSAPP_PLANTILLA_AVISO`. El acceso a datos va por `lib/datos/repositorio.ts`
+y Claude por `lib/asistente/cerebro.ts`; ambos son interfaces para poder probar con dobles.
+
 ## Instrucciones del agente
 Versionadas en `prompts/`, una por tarea: clasificar, responder, agendar, analizar, anuncio,
 dueño o corredor. Un cambio de tono o de instrucciones se prueba con el set de conversaciones antes de unirse.
@@ -53,6 +61,8 @@ dueño o corredor. Un cambio de tono o de instrucciones se prueba con el set de 
 ## Comandos
 - `npm run dev` — app local.
 - `npm run typecheck` y `npm run build` — antes de cada push.
+- `npm test` — pruebas unitarias (vitest) de `tests/`: firma de Meta, parseo del webhook y el flujo
+  de la asistente con dobles en memoria (escalamiento, piloto en sombra, duplicados, aviso de 900).
 - `npm run test:db` — crea una base desechable en un Postgres local (usa `PGHOST`, `PGPORT`, `PGUSER`),
   aplica `supabase/tests/shim_supabase.sql`, las migraciones y la semilla, y corre las pruebas SQL de
   `supabase/tests/`. Incluye la prueba de que un corredor no ve datos de otro.
