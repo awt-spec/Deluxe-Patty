@@ -116,7 +116,13 @@ export default async function Conversacion({
                 <label htmlFor={`texto-${m.id}`} className="suave">
                   Puedes corregirlo antes de enviarlo:
                 </label>
-                <textarea id={`texto-${m.id}`} name="texto" defaultValue={m.contenido ?? ""} />
+                <textarea
+                  id={`texto-${m.id}`}
+                  name="texto"
+                  defaultValue={m.contenido ?? ""}
+                  // Alto según el largo, para leer el borrador completo sin desplazarse dentro del cuadro.
+                  rows={Math.min(12, Math.max(4, Math.ceil((m.contenido ?? "").length / 30) + 1))}
+                />
                 <div className="botones">
                   <button type="submit" className="primario" disabled={!ventanaAbierta}>
                     Enviar
