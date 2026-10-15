@@ -14,6 +14,9 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   para redactar respuestas, analizar propiedades y ofertas y escribir anuncios.
 - API de imágenes de OpenAI (`gpt-image-2`) solo para mejorar fotos de propiedades (`lib/fotos/`).
   Las mejoradas van al bucket público `fotos` de Supabase Storage.
+- Ficha de propiedad en PDF con `@react-pdf/renderer` (`lib/fichas/`): la identidad de cada corredor es
+  dato (`Marca`); la de Deluxe sigue su Manual de Identidad Visual (4 colores oficiales, Playfair Display
+  e Inter, logo oficial en `marcas/deluxe/`). Ejemplo: `npx tsx scripts/ficha-ejemplo.mts <salida.pdf> <fotos...>`.
 - Agenda propia en Supabase (no se integra Google Calendar): horarios, bloqueos y citas en la base;
   el corredor ve sus citas en el teléfono suscribiéndose al enlace ICS `/api/calendario/<token>.ics`.
 - Vercel Cron cada hora para recordatorios, plan del día y vencimiento de anuncios (`vercel.json`,

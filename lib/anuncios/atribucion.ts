@@ -1,11 +1,14 @@
 // Cada anuncio lleva un enlace de WhatsApp con su referencia; el primer mensaje del cliente la trae
 // y así el contacto queda atribuido al anuncio.
 
-/** Enlace wa.me al número de la asistente con el mensaje inicial prellenado. */
+/** Enlace wa.me con un mensaje inicial prellenado. */
+export function enlaceWhatsAppConTexto(numero: string, texto: string): string {
+  return `https://wa.me/${numero.replace(/\D/g, "")}?text=${encodeURIComponent(texto)}`;
+}
+
+/** Enlace wa.me al número de la asistente con la referencia del anuncio. */
 export function enlaceWhatsApp(numeroAsistente: string, referencia: string): string {
-  const numero = numeroAsistente.replace(/\D/g, "");
-  const texto = `Hola, me interesa la propiedad del anuncio ref. ${referencia}`;
-  return `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`;
+  return enlaceWhatsAppConTexto(numeroAsistente, `Hola, me interesa la propiedad del anuncio ref. ${referencia}`);
 }
 
 /**
