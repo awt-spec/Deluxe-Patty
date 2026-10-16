@@ -85,10 +85,12 @@ El webhook se configura en el paso 4, cuando la app ya tiene dirección.
 
 ## 5. Datos de Patricia
 
-- Propiedades reales en `propiedades` (ficha, precio, zona, fotos, enlace de Encuentra24) y borrar las `EJEMPLO-*`.
-- Horario de visitas real en `horarios_visitas` (el de la semilla es provisional).
-- Lista de corredores conocidos en `corredores_bloqueados`.
-- En el panel → Ajustes: tono, temas que siempre le pasan, hora del plan, zonas de Encuentra24 y rango de precio.
+Todo desde el panel, en el teléfono de Patricia:
+- **Propiedades → Nueva**: cada propiedad con su ficha y fotos. Pausar o borrar las `EJEMPLO-*`
+  (editor SQL: `delete from propiedades where codigo like 'EJEMPLO-%';`).
+- **Agenda → Horario**: sus franjas reales de visitas (las de la semilla son provisionales) y bloqueos.
+- **Dueños → Corredores**: pegar la lista de corredores conocidos.
+- **Ajustes**: tono, temas que siempre le pasan, hora del plan, zonas de Encuentra24 y rango de precio.
 
 ## 6. Acceso al panel **[soporte]**
 

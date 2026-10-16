@@ -98,7 +98,7 @@ p {
   right: 0;
   bottom: 0;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   background: var(--profundo);
   padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
   z-index: 10;
@@ -108,8 +108,9 @@ p {
   text-align: center;
   text-decoration: none;
   color: color-mix(in srgb, var(--base) 70%, transparent);
-  font-size: 0.72rem;
-  padding: 8px 2px;
+  font-size: 0.68rem;
+  padding: 8px 0;
+  white-space: nowrap;
   border-radius: 8px;
 }
 
@@ -245,6 +246,8 @@ input[type="text"],
 input[type="email"],
 input[type="time"],
 input[type="number"],
+input[type="url"],
+input[type="date"],
 textarea,
 select {
   width: 100%;
@@ -399,4 +402,113 @@ table.uso th {
 table.uso td:last-child,
 table.uso th:last-child {
   text-align: right;
+}
+
+/* Propiedades */
+
+.fila.campos {
+  align-items: flex-start;
+}
+
+.fila.campos > * {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+input[type="date"],
+input[type="time"] {
+  min-width: 0;
+  min-height: 46px;
+}
+
+.tarjeta.propiedad {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+}
+
+.tarjeta.propiedad img,
+.tarjeta.propiedad .sin-foto {
+  flex: none;
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.tarjeta.propiedad .sin-foto {
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--soporte) 15%, var(--base));
+  color: var(--soporte);
+  font-size: 1.6rem;
+}
+
+.tarjeta.propiedad .insignia {
+  margin-left: auto;
+}
+
+.recortado {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.galeria {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.galeria figure {
+  margin: 0;
+  padding: 8px;
+}
+
+.galeria img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+button.chico {
+  min-height: 36px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+}
+
+.oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+label.boton {
+  font-size: 0.95rem;
+}
+
+label.boton[aria-disabled="true"] {
+  opacity: 0.6;
+}
+
+details summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 6px 0;
+}
+
+/* Horario */
+
+.franja {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+  border-top: 1px solid var(--borde);
 }

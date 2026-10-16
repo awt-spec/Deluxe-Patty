@@ -6,8 +6,9 @@ import { usePathname } from "next/navigation";
 const SECCIONES = [
   { ruta: "/panel", nombre: "Hoy", icono: "◐" },
   { ruta: "/panel/conversaciones", nombre: "Chats", icono: "✉" },
+  { ruta: "/panel/propiedades", nombre: "Propiedades", icono: "⌂" },
   { ruta: "/panel/agenda", nombre: "Agenda", icono: "▦" },
-  { ruta: "/panel/duenos", nombre: "Dueños", icono: "⌂" },
+  { ruta: "/panel/duenos", nombre: "Dueños", icono: "⚲" },
   { ruta: "/panel/anuncios", nombre: "Anuncios", icono: "❖" },
 ];
 
