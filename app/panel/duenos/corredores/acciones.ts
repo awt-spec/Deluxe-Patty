@@ -37,7 +37,10 @@ export async function agregarCorredores(f: FormData) {
     [
       `${nuevos.length} ${nuevos.length === 1 ? "agregado" : "agregados"}.`,
       repetidos ? `${repetidos} ya ${repetidos === 1 ? "estaba" : "estaban"}.` : "",
-      ignoradas.length ? `No entendí: ${ignoradas.join(" / ")}` : "",
+      // Solo la cantidad: el texto de las líneas (nombres, teléfonos) no va en la dirección de la página.
+      ignoradas.length
+        ? `No entendí ${ignoradas.length} ${ignoradas.length === 1 ? "línea" : "líneas"}: revisa que el teléfono tenga 8 dígitos.`
+        : "",
     ]
       .filter(Boolean)
       .join(" "),

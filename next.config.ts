@@ -7,7 +7,19 @@ const ARCHIVOS_ASISTENTE = [
   "./node_modules/@fontsource/inter/files/inter-latin-*.woff",
 ];
 
+// Nadie puede mostrar la app dentro de otra página (para que un toque en "Enviar así" no se pueda
+// engañar desde un iframe), y el navegador no adivina tipos de archivo.
+const CABECERAS_SEGURIDAD = [
+  { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "same-origin" },
+];
+
 const nextConfig: NextConfig = {
+  async headers() {
+    return [{ source: "/:path*", headers: CABECERAS_SEGURIDAD }];
+  },
   // @react-pdf/renderer se carga desde node_modules tal cual (ESM con dependencias nativas de fuentes).
   serverExternalPackages: ["@react-pdf/renderer"],
   // Archivos que se leen en tiempo de ejecución: instrucciones del agente, logos de las marcas y

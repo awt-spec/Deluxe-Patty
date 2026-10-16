@@ -132,4 +132,30 @@ describe("procesarMensaje", () => {
     expect(r).toEqual({ tipo: "corredor_desconocido" });
     expect(db.mensajes).toHaveLength(0);
   });
+
+  describe("topes que frenan la IA", () => {
+    it("al llegar al tope de mensajes del mes no llama a Claude y el chat queda para Patricia", async () => {
+      db.uso.mensajes_total = corredor.tope_mensajes_mes - 1;
+      const r = await procesarMensaje(deps, entrante("¿Sigue disponible?"));
+      expect(r).toEqual({ tipo: "sin_respuesta", motivo: "tope_mes" });
+      expect(cerebro.clasificar).not.toHaveBeenCalled();
+      expect(whatsapp.texto).not.toHaveBeenCalled();
+      expect(db.conversaciones[0].estado).toBe("escalada");
+    });
+
+    it("con el costo del día en el tope, se frena hasta mañana", async () => {
+      db.costoDia.usd = 50;
+      const r = await procesarMensaje(deps, entrante("Hola"));
+      expect(r).toEqual({ tipo: "sin_respuesta", motivo: "tope_dia" });
+      expect(cerebro.clasificar).not.toHaveBeenCalled();
+    });
+
+    it("una ráfaga de un mismo cliente se frena", async () => {
+      for (let i = 0; i < 20; i++) await procesarMensaje(deps, entrante(`mensaje ${i}`));
+      cerebro.clasificar.mockClear();
+      const r = await procesarMensaje(deps, entrante("uno más"));
+      expect(r).toEqual({ tipo: "sin_respuesta", motivo: "rafaga" });
+      expect(cerebro.clasificar).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -105,9 +105,13 @@ begin
   get diagnostics n = row_count;
   if n <> 0 then raise exception 'FALLA: el otro corredor modificó % propiedades de Deluxe', n; end if;
 
-  delete from public.contactos where corredor_id = '00000000-0000-4000-8000-000000000001';
-  get diagnostics n = row_count;
-  if n <> 0 then raise exception 'FALLA: el otro corredor borró % contactos de Deluxe', n; end if;
+  -- (Los contactos ya no se escriben desde la sesión; si algún día vuelve a poder, RLS debe frenarlo.)
+  begin
+    delete from public.contactos where corredor_id = '00000000-0000-4000-8000-000000000001';
+    get diagnostics n = row_count;
+    if n <> 0 then raise exception 'FALLA: el otro corredor borró % contactos de Deluxe', n; end if;
+  exception when insufficient_privilege then null;
+  end;
 
   update public.corredores set tono = 'x' where id = '00000000-0000-4000-8000-000000000001';
   get diagnostics n = row_count;
@@ -127,7 +131,8 @@ begin
     values ('00000000-0000-4000-8000-000000000002', '40000000-0000-4000-8000-000000000001',
             'saliente', 'corredor', 'x');
     raise exception 'FALLA: se creó un mensaje del otro corredor en una conversación de Deluxe';
-  exception when foreign_key_violation then null;
+  -- Hoy el corredor ni siquiera puede insertar mensajes; la llave compuesta sigue protegiendo al backend.
+  exception when foreign_key_violation or insufficient_privilege then null;
   end;
 
   -- 5. No puede darse acceso a Deluxe ni subir su propio tope.

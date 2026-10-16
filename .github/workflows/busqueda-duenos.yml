@@ -15,6 +15,9 @@ on:
         required: false
         default: "2"
 
+permissions:
+  contents: read
+
 concurrency:
   group: busqueda-duenos
   cancel-in-progress: false
@@ -34,7 +37,11 @@ jobs:
 
       - name: Prueba de lectura
         if: ${{ inputs.prueba_zona != '' }}
-        run: npx tsx worker/busqueda-duenos.ts --prueba "${{ inputs.prueba_zona }}" "${{ inputs.prueba_paginas }}"
+        # Los valores entran como variables, no pegados en el comando.
+        env:
+          ZONA: ${{ inputs.prueba_zona }}
+          PAGINAS: ${{ inputs.prueba_paginas }}
+        run: npx tsx worker/busqueda-duenos.ts --prueba "$ZONA" "$PAGINAS"
 
       - name: Búsqueda
         if: ${{ github.event_name == 'schedule' || inputs.prueba_zona == '' }}

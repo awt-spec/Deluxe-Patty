@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Corredor } from "../datos/tipos";
 import type { Bloqueado, LeadDueno } from "./busqueda";
+import { ErrorDatos } from "../monitoreo/errores";
 
 // Consultas del worker de búsqueda semanal. Corre con service_role: todo filtra por corredor_id.
 
@@ -12,7 +13,7 @@ export type CorredorBusqueda = Corredor & {
 };
 
 function verificar(error: { message: string; code?: string } | null, que: string): void {
-  if (error) throw new Error(`${que}: ${error.code ?? ""} ${error.message}`);
+  if (error) throw new ErrorDatos(que, error.code, error.message);
 }
 
 export async function corredoresConBusqueda(db: SupabaseClient): Promise<CorredorBusqueda[]> {

@@ -28,14 +28,24 @@ function volver(ruta: string, r: Resultado, ok: string): never {
 
 async function conversacionPropia(conversacionId: string) {
   const s = await sesionConCorredor();
-  const { data } = await s.supabase.from("conversaciones").select("id").eq("id", conversacionId).maybeSingle();
+  const { data } = await s.supabase
+    .from("conversaciones")
+    .select("id")
+    .eq("corredor_id", s.corredor.id)
+    .eq("id", conversacionId)
+    .maybeSingle();
   if (!data) redirect("/panel/conversaciones?aviso=No%20encontr%C3%A9%20la%20conversaci%C3%B3n.");
   return s.corredor;
 }
 
 async function mensajePropio(mensajeId: string) {
   const s = await sesionConCorredor();
-  const { data } = await s.supabase.from("mensajes").select("id, conversacion_id").eq("id", mensajeId).maybeSingle();
+  const { data } = await s.supabase
+    .from("mensajes")
+    .select("id, conversacion_id")
+    .eq("corredor_id", s.corredor.id)
+    .eq("id", mensajeId)
+    .maybeSingle();
   if (!data) redirect("/panel/conversaciones?aviso=No%20encontr%C3%A9%20el%20mensaje.");
   return { corredor: s.corredor, conversacionId: data.conversacion_id as string };
 }
@@ -123,6 +133,7 @@ export async function marcarLead(f: FormData) {
     const { data: lead } = await supabase
       .from("leads_duenos")
       .select("anunciante_e24_id, nombre_anunciante")
+      .eq("corredor_id", corredor.id)
       .eq("id", id)
       .maybeSingle();
     if (lead) {
@@ -131,10 +142,14 @@ export async function marcarLead(f: FormData) {
         anunciante_e24_id: lead.anunciante_e24_id,
         nombre: lead.nombre_anunciante,
       });
-      await supabase.from("leads_duenos").update({ es_dueno: false, estado_contacto: "descartado" }).eq("id", id);
+      await supabase
+        .from("leads_duenos")
+        .update({ es_dueno: false, estado_contacto: "descartado" })
+        .eq("corredor_id", corredor.id)
+        .eq("id", id);
     }
   } else if (ESTADOS_LEAD.has(estado)) {
-    await supabase.from("leads_duenos").update({ estado_contacto: estado }).eq("id", id);
+    await supabase.from("leads_duenos").update({ estado_contacto: estado }).eq("corredor_id", corredor.id).eq("id", id);
   }
   revalidatePath("/panel/duenos");
   redirect("/panel/duenos");

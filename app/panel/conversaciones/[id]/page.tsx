@@ -138,8 +138,15 @@ export default async function Conversacion({
             m.direccion === "entrante" ? "cliente" : `saliente ${m.estado_borrador === "descartado" ? "descartado" : ""}`;
           return (
             <div key={m.id} className={`burbuja ${clase}`}>
-              {m.tipo === "documento" || m.tipo === "imagen" ? (
-                <a href={m.contenido ?? "#"} target="_blank" rel="noreferrer">
+              {(m.tipo === "documento" || m.tipo === "imagen") && m.direccion === "entrante" ? (
+                // Lo que manda el cliente con una foto es su pie de foto: se muestra como texto, nunca
+                // como enlace (podría ser una página falsa). La foto se ve en el WhatsApp del corredor.
+                <>
+                  {m.tipo === "documento" ? "📄 Mandó un documento" : "📷 Mandó una foto"}
+                  {m.contenido ? `: ${m.contenido}` : ""}
+                </>
+              ) : (m.tipo === "documento" || m.tipo === "imagen") && m.contenido?.startsWith("https://") ? (
+                <a href={m.contenido} target="_blank" rel="noreferrer">
                   {m.tipo === "documento" ? "Documento" : "Imagen"}
                 </a>
               ) : (

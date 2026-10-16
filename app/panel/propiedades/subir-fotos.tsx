@@ -9,7 +9,9 @@ import { pedirSubidas, registrarFotos } from "./acciones";
 // a 2400 px de lado (sobra para Encuentra24 y para la ficha) para que suban rápido con datos móviles.
 const LADO_MAXIMO = 2400;
 
-async function achicar(archivo: File): Promise<Blob> {
+// Al volver a dibujar la foto se le quitan los datos ocultos (como la ubicación GPS). Si el teléfono no
+// la puede convertir, no se sube el original: devuelve null y se avisa.
+async function achicar(archivo: File): Promise<Blob | null> {
   try {
     const imagen = await createImageBitmap(archivo);
     const escala = Math.min(1, LADO_MAXIMO / Math.max(imagen.width, imagen.height));
@@ -17,10 +19,9 @@ async function achicar(archivo: File): Promise<Blob> {
     lienzo.width = Math.round(imagen.width * escala);
     lienzo.height = Math.round(imagen.height * escala);
     lienzo.getContext("2d")!.drawImage(imagen, 0, 0, lienzo.width, lienzo.height);
-    const blob = await new Promise<Blob | null>((ok) => lienzo.toBlob(ok, "image/jpeg", 0.88));
-    return blob ?? archivo;
+    return await new Promise<Blob | null>((ok) => lienzo.toBlob(ok, "image/jpeg", 0.88));
   } catch {
-    return archivo;
+    return null;
   }
 }
 
@@ -46,16 +47,19 @@ export function SubirFotos({ propiedadId }: { propiedadId: string }) {
       for (const [i, archivo] of archivos.entries()) {
         setEstado(`Subiendo ${i + 1} de ${archivos.length}…`);
         const { camino, token } = subidas[i];
-        const { error } = await almacen.uploadToSignedUrl(camino, token, await achicar(archivo), {
-          contentType: "image/jpeg",
-        });
+        const foto = await achicar(archivo);
+        if (!foto) continue;
+        const { error } = await almacen.uploadToSignedUrl(camino, token, foto, { contentType: "image/jpeg" });
         if (!error) listos.push(camino);
       }
       if (listos.length === 0) return setEstado("No se pudo subir ninguna foto. Revisa la conexión.");
       const r = await registrarFotos(propiedadId, listos);
       const faltaron = archivos.length - listos.length;
       setEstado(
-        r.error ?? (faltaron ? `Listo, pero ${faltaron} no subieron: vuelve a intentarlo con esas.` : "Listo."),
+        r.error ??
+          (faltaron
+            ? `Listo, pero ${faltaron} no subieron. Vuelve a intentarlo con esas; si siguen fallando, mándalas como JPG.`
+            : "Listo."),
       );
       router.refresh();
     } finally {

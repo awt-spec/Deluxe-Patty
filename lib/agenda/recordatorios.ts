@@ -1,5 +1,6 @@
 import type { Dependencias } from "../asistente/procesar";
 import { conPunto, etiquetaHorario } from "./formato";
+import { errorSeguro } from "../monitoreo/errores";
 
 const HORA = 60 * 60_000;
 
@@ -50,7 +51,7 @@ export async function enviarRecordatorios(
       resumen.enviados++;
     } catch (error) {
       resumen.fallidos++;
-      log("error_recordatorio", { corredorId: cita.corredor_id, citaId: cita.id, error: String(error) });
+      log("error_recordatorio", { corredorId: cita.corredor_id, citaId: cita.id, error: errorSeguro(error) });
     }
   }
   return resumen;
