@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { EnviadorWhatsApp } from "../whatsapp/enviar";
+import { errorSeguro } from "./errores";
 
 // Alertas de operación a soporte (AWT) por WhatsApp, con la plantilla de aviso (funciona fuera de la
 // ventana de 24 horas). Nunca llevan datos personales: solo qué falló, dónde y cuándo.
@@ -33,7 +34,7 @@ export function crearAlertas(c: ConfigAlertas): Alertas {
         return true;
       } catch (error) {
         // Una alerta que falla no puede tumbar lo que la disparó.
-        console.error(JSON.stringify({ evento: "error_alerta", clave, error: String(error) }));
+        console.error(JSON.stringify({ evento: "error_alerta", clave, error: errorSeguro(error) }));
         return false;
       }
     },

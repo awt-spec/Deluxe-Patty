@@ -4,7 +4,11 @@ import type { CitaCalendario } from "../datos/tipos";
 // desde el calendario del teléfono (iPhone, Google Calendar, Outlook).
 
 function escapar(texto: string): string {
-  return texto.replace(/\\/g, "\\\\").replace(/;/g, "\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+  return texto
+    .replace(/\\/g, "\\\\")
+    .replace(/;/g, "\\;")
+    .replace(/,/g, "\\,")
+    .replace(/\r\n|\r|\n/g, "\\n");
 }
 
 function fechaUtc(d: Date): string {

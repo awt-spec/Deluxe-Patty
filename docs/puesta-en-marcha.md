@@ -40,6 +40,8 @@ El webhook se configura en el paso 4, cuando la app ya tiene dirección.
    - **Redirect URLs**: `https://<dominio-de-la-app>/auth/confirmar`
 5. Auth → Providers → Email: dejar habilitado el enlace mágico. No hace falta permitir registros: el acceso
    lo da `scripts/dar-acceso.mts`.
+6. Auth → Attack Protection: activar el captcha (hCaptcha o Turnstile) para que nadie gaste el límite de
+   correos de entrada. Redirect URLs: solo el dominio de producción (y el de vistas previas, si se usan).
 
 ## 3. Vercel **[soporte]**
 
@@ -63,7 +65,9 @@ El webhook se configura en el paso 4, cuando la app ya tiene dirección.
    | `OPENAI_API_KEY` | Llave de OpenAI (solo para "fotos"; sin ella la función queda apagada) |
    | `SOPORTE_WHATSAPP` | Tu número, por ejemplo `+5068…` |
    | `SOPORTE_PHONE_NUMBER_ID` | Phone number ID de la asistente (las alertas salen desde ese número) |
-   | `COSTO_DIARIO_ALERTA_USD` | `3` |
+   | `COSTO_DIARIO_ALERTA_USD` | `3` (te avisa) |
+   | `COSTO_DIARIO_TOPE_USD` | `10` (la IA se detiene hasta mañana) |
+   | `NEXT_PUBLIC_URL_APP` | `https://<dominio-de-la-app>` |
 
 4. Desplegar.
 

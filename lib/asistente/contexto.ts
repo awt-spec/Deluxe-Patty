@@ -1,9 +1,10 @@
 import type { Repositorio } from "../datos/repositorio";
-import type { AccionPendiente, Conversacion, Corredor, Intencion, UsoDelta } from "../datos/tipos";
+import type { AccionPendiente, Conversacion, Corredor, Intencion, UsoDelta, UsoMensual } from "../datos/tipos";
 import type { EditorFotos } from "../fotos/editor";
 import type { EnviadorWhatsApp } from "../whatsapp/enviar";
 import type { Cerebro } from "./cerebro";
 import type { Consumo } from "./costo";
+import { errorSeguro } from "../monitoreo/errores";
 
 export interface Dependencias {
   repo: Repositorio;
@@ -45,13 +46,15 @@ export class Contexto {
   }
 
   /** Suma uso y, al cruzar el umbral de aviso, le avisa al corredor una sola vez por mes. */
-  async uso(delta: UsoDelta) {
+  async uso(delta: UsoDelta): Promise<UsoMensual> {
     const uso = await this.deps.repo.registrarUso(this.corredor.id, delta);
-    if (uso.mensajes_total < this.corredor.aviso_mensajes_mes || uso.aviso_tope_enviado_at) return;
-    if (!(await this.deps.repo.marcarAvisoTope(this.corredor.id, uso.mes))) return;
+    if (uso.mensajes_total < this.corredor.aviso_mensajes_mes || uso.aviso_tope_enviado_at) return uso;
+    if (!(await this.deps.repo.marcarAvisoTope(this.corredor.id, uso.mes))) return uso;
     await this.avisarCorredor(
-      `Tu asistente lleva ${uso.mensajes_total} de ${this.corredor.tope_mensajes_mes} mensajes de WhatsApp este mes.`,
+      `Tu asistente lleva ${uso.mensajes_total} de ${this.corredor.tope_mensajes_mes} mensajes de WhatsApp este mes. ` +
+        `Al llegar a ${this.corredor.tope_mensajes_mes} deja de contestar sola y los chats te quedan a ti.`,
     );
+    return uso;
   }
 
   /**
@@ -79,7 +82,7 @@ export class Contexto {
       await this.uso({ mensajesSalientes: 1 });
     } catch (error) {
       await repo.actualizarMensaje(this.corredor.id, id, { estado_entrega: "fallido" });
-      this.log("error_envio_cliente", { corredorId: this.corredor.id, mensajeId: id, error: String(error) });
+      this.log("error_envio_cliente", { corredorId: this.corredor.id, mensajeId: id, error: errorSeguro(error) });
     }
     return false;
   }
@@ -106,7 +109,7 @@ export class Contexto {
       // umbral, para no encadenar avisos).
       await this.deps.repo.registrarUso(this.corredor.id, { mensajesSalientes: 1 });
     } catch (error) {
-      this.log("error_aviso_corredor", { corredorId: this.corredor.id, error: String(error) });
+      this.log("error_aviso_corredor", { corredorId: this.corredor.id, error: errorSeguro(error) });
     }
   }
 

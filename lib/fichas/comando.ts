@@ -1,5 +1,6 @@
 import type { Dependencias } from "../asistente/contexto";
 import type { Corredor } from "../datos/tipos";
+import { fotosPropias } from "../fotos/origen";
 import { generarFicha } from "./generar";
 
 export type FichaLista =
@@ -16,14 +17,15 @@ export async function fichaDePropiedad(deps: Dependencias, corredor: Corredor, c
     return { tipo: "mensaje", texto: `No encontré una propiedad con el código ${codigo}.` };
   }
   const pdf = await generarFicha({
-    propiedad,
+    // Solo fotos del bucket propio: el generador de PDF descarga cada URL.
+    propiedad: { ...propiedad, fotos: fotosPropias(propiedad.fotos, corredor.id) },
     marca: corredor.marca,
     whatsappAsistente: corredor.whatsapp_numero,
   });
   const url = await deps.repo.subirArchivo(
     corredor.id,
     "fichas",
-    `${propiedad.id}/ficha-${propiedad.codigo}-${Date.now()}.pdf`,
+    `${propiedad.id}/ficha-${propiedad.codigo.replace(/[^A-Za-z0-9-]/g, "")}-${Date.now()}.pdf`,
     pdf,
     "application/pdf",
   );

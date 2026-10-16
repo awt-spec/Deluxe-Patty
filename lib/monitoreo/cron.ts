@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { alertar, esperarAlertas } from "../asistente/dependencias";
+import { errorSeguro } from "./errores";
 
 /** Verifica el secreto de Vercel Cron y avisa a soporte si la tarea falla. */
 export async function tareaProgramada(req: NextRequest, nombre: string, tarea: () => Promise<unknown>) {
@@ -13,8 +14,8 @@ export async function tareaProgramada(req: NextRequest, nombre: string, tarea: (
     if (fallidos) alertar(`cron_${nombre}`, `La tarea ${nombre} terminó con ${fallidos} fallas`);
     return Response.json(resultado);
   } catch (error) {
-    console.error(JSON.stringify({ evento: "error_cron", tarea: nombre, error: String(error) }));
-    alertar(`cron_${nombre}`, `La tarea ${nombre} falló: ${error instanceof Error ? error.message.slice(0, 200) : "error"}`);
+    console.error(JSON.stringify({ evento: "error_cron", tarea: nombre, error: errorSeguro(error) }));
+    alertar(`cron_${nombre}`, `La tarea ${nombre} falló: ${errorSeguro(error)}`);
     return new Response("Error", { status: 500 });
   } finally {
     await esperarAlertas();

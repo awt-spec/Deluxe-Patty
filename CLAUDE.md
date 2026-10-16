@@ -44,7 +44,15 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   se reemplaza y el corredor las revisa antes de publicarlas, porque el modelo regenera la imagen y
   puede cambiar detalles. La instrucción (`prompts/foto.md`) prohíbe agregar, quitar o cambiar nada.
 - Cada mensaje entrante y saliente suma en `uso_mensual` vía `registrar_uso()`; tope de 1.000 al mes,
-  aviso a los 900.
+  aviso a los 900. **Los topes frenan, no solo avisan** (`lib/asistente/limites.ts`): al llegar al tope del
+  mes, al costo de Claude del día `COSTO_DIARIO_TOPE_USD` o a más de 20 mensajes de un cliente en una hora,
+  la IA no se llama y el chat queda para el corredor. Las funciones con IA del panel respetan el tope diario.
+- El corredor (rol `authenticated`) solo escribe lo que el panel le deja: ficha de sus propiedades (no las
+  fotos), horario, bloqueos, corredores conocidos, leads y algunos ajustes. Mensajes, conversaciones,
+  contactos, citas, anuncios y las fotos los escribe el backend tras comprobar con su sesión.
+- El servidor solo descarga fotos del bucket `fotos` del propio corredor (`lib/fotos/origen.ts`).
+- Registros y alertas: errores con `errorSeguro()` (`lib/monitoreo/errores.ts`, tipo y código, nunca el
+  mensaje), nada de datos de clientes en `?aviso=` ni en registros de Actions (el repositorio es público).
 
 ## Flujo de un mensaje de WhatsApp
 `app/api/whatsapp/webhook/route.ts` verifica la firma de Meta, responde 200 y sigue en `after()` con

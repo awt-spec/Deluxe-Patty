@@ -1,5 +1,6 @@
 import type { Dependencias } from "../asistente/contexto";
 import type { Corredor } from "../datos/tipos";
+import { esFotoPropia } from "./origen";
 
 export const MAX_FOTOS = 12;
 const EN_PARALELO = 3;
@@ -52,14 +53,20 @@ export async function mejorarFotos(
   if (fotos.length === 0) {
     return { mensajes: [`${propiedad.titulo} no tiene fotos cargadas.`], mejoradas: [], fallidas: 0 };
   }
-  const aMejorar = fotos.slice(0, MAX_FOTOS);
+  // Solo fotos del bucket propio y que todavía no tienen versión mejorada (no se paga dos veces).
+  const aMejorar = fotos.filter((f) => esFotoPropia(f.url, corredor.id) && !f.mejorada_url).slice(0, MAX_FOTOS);
+  if (aMejorar.length === 0) {
+    return { mensajes: [`Las fotos de ${propiedad.titulo} ya están mejoradas.`], mejoradas: [], fallidas: 0 };
+  }
   await avisar(
     `Estoy mejorando ${aMejorar.length} ${aMejorar.length === 1 ? "foto" : "fotos"} de ${propiedad.titulo}. ` +
       "Te las mando en unos minutos.",
   );
 
   const log = deps.registrar ?? ((evento, datos) => console.info(JSON.stringify({ evento, ...datos })));
-  const resultados = await enParalelo(aMejorar, EN_PARALELO, async (foto, i) => {
+  const resultados = await enParalelo(aMejorar, EN_PARALELO, async (foto) => {
+    // Número de la foto en el orden de la propiedad, para que coincida con lo que ve el corredor.
+    const numero = fotos.indexOf(foto) + 1;
     try {
       const original = await fetch(foto.url);
       const tipo = (original.headers.get("content-type") ?? "").split(";")[0];
@@ -68,14 +75,19 @@ export async function mejorarFotos(
       const url = await deps.repo.subirArchivo(
         corredor.id,
         "fotos",
-        `${propiedad.id}/${i + 1}-mejorada-${Date.now()}.jpg`,
+        `${propiedad.id}/${numero}-mejorada-${Date.now()}.jpg`,
         mejorada,
         "image/jpeg",
       );
       foto.mejorada_url = url;
-      return { numero: i + 1, url };
+      return { numero, url };
     } catch (error) {
-      log("error_foto", { corredorId: corredor.id, propiedadId: propiedad.id, foto: i + 1, error: String(error) });
+      log("error_foto", {
+        corredorId: corredor.id,
+        propiedadId: propiedad.id,
+        foto: numero,
+        error: error instanceof Error ? error.name : "desconocido",
+      });
       return null;
     }
   });

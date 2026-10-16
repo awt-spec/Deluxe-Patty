@@ -1,6 +1,7 @@
 import type { Dependencias } from "../asistente/contexto";
 import { conversacionDelCorredor, enviarAlCorredor } from "../asistente/corredor";
 import { fechaIso, fechaLocal, sumarDias } from "../agenda/tiempo";
+import { errorSeguro } from "../monitoreo/errores";
 
 export const DIAS_AVISO_VENCIMIENTO = 5;
 
@@ -42,7 +43,7 @@ export async function avisarVencimientos(deps: Dependencias): Promise<{ avisados
       resumen.avisados += anuncios.length;
     } catch (error) {
       resumen.fallidos++;
-      log("error_aviso_vencimiento", { corredorId: corredor.id, error: String(error) });
+      log("error_aviso_vencimiento", { corredorId: corredor.id, error: errorSeguro(error) });
     }
   }
   return resumen;

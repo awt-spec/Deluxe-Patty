@@ -6,13 +6,14 @@ import { procesarMensajeCorredor, type ResultadoCorredor } from "./corredor";
 import { RechazoModelo } from "./cerebro";
 import { Contexto, type Dependencias } from "./contexto";
 import { SIN_CONSUMO, sumar, type Consumo } from "./costo";
+import { frenoCliente, type Freno } from "./limites";
 
 export type { Dependencias } from "./contexto";
 
 export type Resultado =
   | { tipo: "corredor_desconocido" }
   | { tipo: "duplicado" }
-  | { tipo: "sin_respuesta"; motivo: "control_corredor" | "escalada" }
+  | { tipo: "sin_respuesta"; motivo: "control_corredor" | "escalada" | Freno }
   | { tipo: "escalado"; intencion: Intencion | null }
   | { tipo: "respondido"; intencion: Intencion; borrador: boolean }
   | { tipo: "agenda"; accion: string; borrador: boolean }
@@ -72,10 +73,21 @@ export async function procesarMensaje(deps: Dependencias, entrante: MensajeEntra
   if (referencia) await repo.atribuirContacto(corredor.id, contacto.id, referencia);
 
   const ctx = new Contexto(deps, corredor, conversacion, contacto.telefono, log);
-  await ctx.uso({ mensajesEntrantes: 1 });
+  const uso = await ctx.uso({ mensajesEntrantes: 1 });
 
   if (conversacion.control === "corredor") return { tipo: "sin_respuesta", motivo: "control_corredor" };
   if (conversacion.estado === "escalada") return { tipo: "sin_respuesta", motivo: "escalada" };
+
+  // Topes: el chat queda para el corredor sin llamar a la IA ni gastar mensajes.
+  const freno = await frenoCliente(repo, corredor, uso, conversacion.id, deps.ahora?.() ?? new Date());
+  if (freno) {
+    await repo.actualizarConversacion(corredor.id, conversacion.id, { estado: "escalada" });
+    log(freno === "rafaga" ? "rafaga_cliente" : `error_${freno === "tope_mes" ? "tope_mensual" : "tope_diario"}`, {
+      corredorId: corredor.id,
+      conversacionId: conversacion.id,
+    });
+    return { tipo: "sin_respuesta", motivo: freno };
+  }
 
   const nombreCliente = contacto.nombre ?? contacto.telefono;
 

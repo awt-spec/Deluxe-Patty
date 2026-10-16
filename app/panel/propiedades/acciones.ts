@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prepararAnuncio } from "@/lib/anuncios/preparar";
 import { dependencias } from "@/lib/asistente/dependencias";
+import { SIN_PRESUPUESTO, hayPresupuestoHoy } from "@/lib/asistente/limites";
 import type { FichaParcial, Foto } from "@/lib/datos/tipos";
 import { fichaDePropiedad } from "@/lib/fichas/comando";
 import { mejorarFotos } from "@/lib/fotos/mejorar";
@@ -38,7 +39,12 @@ const ir = (ruta: string, aviso: string): never => {
 
 async function propiedadPropia(id: string) {
   const s = await sesionConCorredor();
-  const { data } = await s.supabase.from("propiedades").select("id, codigo, fotos").eq("id", id).maybeSingle();
+  const { data } = await s.supabase
+    .from("propiedades")
+    .select("id, codigo, fotos")
+    .eq("corredor_id", s.corredor.id)
+    .eq("id", id)
+    .maybeSingle();
   if (!data) ir("/panel/propiedades", "No encontré la propiedad.");
   return { ...s, propiedad: data as { id: string; codigo: string; fotos: Foto[] } };
 }
@@ -98,8 +104,8 @@ export type Subida = { camino: string; token: string };
  */
 export async function pedirSubidas(propiedadId: string, nombres: string[]): Promise<Subida[] | { error: string }> {
   const { corredor, propiedad } = await propiedadPropia(propiedadId);
-  if (propiedad.fotos.length + nombres.length > MAX_FOTOS_PROPIEDAD) {
-    return { error: `Cada propiedad lleva hasta ${MAX_FOTOS_PROPIEDAD} fotos.` };
+  if (nombres.length === 0 || nombres.length > 12 || propiedad.fotos.length + nombres.length > MAX_FOTOS_PROPIEDAD) {
+    return { error: `Sube hasta 12 fotos a la vez (cada casa lleva hasta ${MAX_FOTOS_PROPIEDAD}).` };
   }
   const almacen = createAdminClient().storage.from("fotos");
   const subidas: Subida[] = [];
@@ -114,13 +120,16 @@ export async function pedirSubidas(propiedadId: string, nombres: string[]): Prom
 
 /** Después de subirlas, las fotos se agregan a la propiedad en su orden. */
 export async function registrarFotos(propiedadId: string, caminos: string[]): Promise<{ error?: string }> {
-  const { supabase, corredor, propiedad } = await propiedadPropia(propiedadId);
+  const { corredor, propiedad } = await propiedadPropia(propiedadId);
   const prefijo = `${corredor.id}/`;
   const validos = caminos.filter((c) => c.startsWith(prefijo) && rutaDePropiedad(c.slice(prefijo.length), propiedadId));
   if (validos.length !== caminos.length) return { error: "Alguna foto no se reconoció." };
-  const almacen = createAdminClient().storage.from("fotos");
+  const admin = createAdminClient();
+  const almacen = admin.storage.from("fotos");
   const urls = validos.map((c) => almacen.getPublicUrl(c).data.publicUrl);
-  const { error } = await supabase
+  // Las fotos las escribe solo el backend (el corredor no puede escribir esa columna): la propiedad ya
+  // se comprobó con su sesión y se filtra por su corredor_id.
+  const { error } = await admin
     .from("propiedades")
     .update({ fotos: agregarFotos(propiedad.fotos, urls) })
     .eq("corredor_id", corredor.id)
@@ -134,11 +143,11 @@ const ACCIONES_FOTO = new Set(["principal", "subir", "bajar", "quitar"]);
 export async function ordenarFoto(f: FormData) {
   const id = String(f.get("id") ?? "");
   const accion = String(f.get("accion") ?? "");
-  const { supabase, corredor, propiedad } = await propiedadPropia(id);
+  const { corredor, propiedad } = await propiedadPropia(id);
   if (ACCIONES_FOTO.has(accion)) {
     const fotos = moverFoto(propiedad.fotos, String(f.get("url") ?? ""), accion as "principal");
     // El archivo queda en el bucket: quitarla de la propiedad no borra nada que ya se haya compartido.
-    await supabase.from("propiedades").update({ fotos }).eq("corredor_id", corredor.id).eq("id", id);
+    await createAdminClient().from("propiedades").update({ fotos }).eq("corredor_id", corredor.id).eq("id", id);
   }
   revalidatePath(`/panel/propiedades/${id}`);
   redirect(`/panel/propiedades/${id}#fotos`);
@@ -149,21 +158,23 @@ export async function ordenarFoto(f: FormData) {
 export async function generarFicha(f: FormData) {
   const id = String(f.get("id") ?? "");
   const { corredor, propiedad } = await propiedadPropia(id);
+  // redirect() lanza una excepción: se decide el destino dentro del try y se redirige afuera.
   let destino: string;
   try {
     const ficha = await fichaDePropiedad(dependencias(), corredor, propiedad.codigo);
-    if (ficha.tipo === "mensaje") ir(`/panel/propiedades/${id}`, ficha.texto);
-    destino = (ficha as Extract<typeof ficha, { tipo: "pdf" }>).url;
+    destino =
+      ficha.tipo === "pdf" ? ficha.url : `/panel/propiedades/${id}?aviso=${encodeURIComponent(ficha.texto)}`;
   } catch {
-    ir(`/panel/propiedades/${id}`, "No pude generar la ficha ahora. Inténtalo de nuevo en un rato.");
+    destino = `/panel/propiedades/${id}?aviso=${encodeURIComponent("No pude generar la ficha ahora. Inténtalo de nuevo en un rato.")}`;
   }
-  redirect(destino!);
+  redirect(destino);
 }
 
 export async function prepararAnuncioPanel(f: FormData) {
   const id = String(f.get("id") ?? "");
   const { corredor, propiedad } = await propiedadPropia(id);
   const deps = dependencias();
+  if (!(await hayPresupuestoHoy(deps.repo, corredor))) ir("/panel/anuncios", SIN_PRESUPUESTO);
   let aviso: string;
   try {
     const listo = await prepararAnuncio(deps, corredor, propiedad.codigo);
@@ -185,9 +196,12 @@ export async function prepararAnuncioPanel(f: FormData) {
 export async function mejorarFotosPanel(f: FormData) {
   const id = String(f.get("id") ?? "");
   const { corredor, propiedad } = await propiedadPropia(id);
+  const deps = dependencias();
+  // Fuera del try: redirect() lanza una excepción que el catch no debe tragarse.
+  if (!(await hayPresupuestoHoy(deps.repo, corredor))) ir(`/panel/propiedades/${id}`, SIN_PRESUPUESTO);
   let aviso: string;
   try {
-    const r = await mejorarFotos(dependencias(), corredor, propiedad.codigo, async () => {});
+    const r = await mejorarFotos(deps, corredor, propiedad.codigo, async () => {});
     aviso =
       r.mejoradas.length > 0
         ? `Mejoré ${r.mejoradas.length} ${r.mejoradas.length === 1 ? "foto" : "fotos"}${r.fallidas ? ` (${r.fallidas} no se pudieron)` : ""}. Revísalas antes de publicarlas.`
@@ -216,6 +230,7 @@ export async function conversarCasa(mensajesNavegador: unknown, fichaNavegador: 
     .filter((m) => m.texto.trim());
   if (!mensajes.some((m) => m.autor === "corredor")) return { error: "Cuéntame algo de la casa." };
   const deps = dependencias();
+  if (!(await hayPresupuestoHoy(deps.repo, corredor))) return { error: SIN_PRESUPUESTO };
   try {
     const r = await conversarFicha(deps.cerebro, corredor, mensajes, fichaNavegador ? fichaLimpia(fichaNavegador) : null);
     await deps.repo.registrarUso(corredor.id, {

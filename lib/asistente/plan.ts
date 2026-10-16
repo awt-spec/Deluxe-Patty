@@ -3,6 +3,7 @@ import { fechaIso, fechaLocal, limitesDia, minutosDe, minutosLocales } from "../
 import type { Corredor, DatosPlan } from "../datos/tipos";
 import type { Dependencias } from "./contexto";
 import { conversacionDelCorredor, enviarAlCorredor } from "./corredor";
+import { errorSeguro } from "../monitoreo/errores";
 
 const ESTADO: Record<string, string> = { agendada: "por confirmar", confirmada: "confirmada" };
 
@@ -100,7 +101,7 @@ export async function enviarPlanes(deps: Dependencias): Promise<ResumenPlanes> {
       }
     } catch (error) {
       resumen.fallidos++;
-      log("error_plan_dia", { corredorId: corredor.id, error: String(error) });
+      log("error_plan_dia", { corredorId: corredor.id, error: errorSeguro(error) });
     }
   }
   return resumen;

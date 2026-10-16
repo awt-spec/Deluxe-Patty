@@ -7,6 +7,7 @@ import type { MensajeEntrante } from "../whatsapp/parsear";
 import { RechazoModelo } from "./cerebro";
 import { Contexto, type Dependencias } from "./contexto";
 import { armarPlan, datosDelPlan, fechaDelPlan } from "./plan";
+import { errorSeguro } from "../monitoreo/errores";
 
 const VENTANA_MS = 24 * 60 * 60_000 - 10 * 60_000; // 10 minutos de margen
 
@@ -214,7 +215,7 @@ export async function procesarMensajeCorredor(
       else await enviarDocumentoAlCorredor(deps, corredor, conversacion, ficha.url, ficha.nombreArchivo, ficha.leyenda);
       return { tipo: "corredor", accion: "ficha" };
     } catch (error) {
-      log("error_ficha", { corredorId: corredor.id, error: error instanceof Error ? error.message : "desconocido" });
+      log("error_ficha", { corredorId: corredor.id, error: errorSeguro(error) });
       await responder("No pude generar la ficha ahora. Inténtalo de nuevo en un rato.");
       return { tipo: "corredor", accion: "error" };
     }

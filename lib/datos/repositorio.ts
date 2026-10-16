@@ -23,6 +23,7 @@ import type {
   UsoDelta,
   UsoMensual,
 } from "./tipos";
+import { ErrorDatos } from "../monitoreo/errores";
 
 // Acceso a datos del backend. Corre con service_role (sin RLS): cada consulta filtra por corredor_id.
 export interface Repositorio {
@@ -48,6 +49,10 @@ export interface Repositorio {
   historial(corredorId: string, conversacionId: string, limite: number): Promise<Mensaje[]>;
   propiedadesActivas(corredorId: string): Promise<Propiedad[]>;
   registrarUso(corredorId: string, delta: UsoDelta): Promise<UsoMensual>;
+  /** Costo de Claude del día (fecha local del corredor, YYYY-MM-DD). */
+  costoClaudeDelDia(corredorId: string, dia: string): Promise<number>;
+  /** Mensajes del cliente en una conversación desde un momento (para frenar ráfagas). */
+  entrantesDesde(corredorId: string, conversacionId: string, desde: Date): Promise<number>;
   /** Marca el aviso de tope del mes. true solo para la llamada que lo marcó (evita avisos dobles). */
   marcarAvisoTope(corredorId: string, mes: string): Promise<boolean>;
   actualizarEstadoEntrega(waMessageId: string, estado: NonNullable<NuevoMensaje["estado_entrega"]>): Promise<void>;
@@ -141,7 +146,7 @@ function uno<T>(v: Embebido<T>): T | null {
 }
 
 function verificar(error: { message: string; code?: string } | null, que: string): void {
-  if (error) throw new Error(`${que}: ${error.code ?? ""} ${error.message}`);
+  if (error) throw new ErrorDatos(que, error.code, error.message);
 }
 
 export const COLUMNAS_CORREDOR =
@@ -264,6 +269,29 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
       });
       verificar(error, "registrarUso");
       return data as UsoMensual;
+    },
+
+    async costoClaudeDelDia(corredorId, dia) {
+      const { data, error } = await db
+        .from("uso_diario")
+        .select("costo_claude_usd")
+        .eq("corredor_id", corredorId)
+        .eq("dia", dia)
+        .maybeSingle();
+      verificar(error, "costoClaudeDelDia");
+      return Number(data?.costo_claude_usd ?? 0);
+    },
+
+    async entrantesDesde(corredorId, conversacionId, desde) {
+      const { count, error } = await db
+        .from("mensajes")
+        .select("id", { count: "exact", head: true })
+        .eq("corredor_id", corredorId)
+        .eq("conversacion_id", conversacionId)
+        .eq("direccion", "entrante")
+        .gte("created_at", desde.toISOString());
+      verificar(error, "entrantesDesde");
+      return count ?? 0;
     },
 
     async marcarAvisoTope(corredorId, mes) {

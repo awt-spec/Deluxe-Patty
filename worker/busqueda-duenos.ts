@@ -17,6 +17,7 @@ import { bloqueados, corredoresConBusqueda, guardarLeads, idsVistos } from "../l
 import { anunciosDePagina, esDesafio, urlListado } from "../lib/encuentra24/parsear";
 import { crearEnviadorWhatsApp } from "../lib/whatsapp/enviar";
 import { abrirNavegador } from "./navegador";
+import { errorSeguro } from "../lib/monitoreo/errores";
 
 function requerida(nombre: string): string {
   const v = process.env[nombre];
@@ -42,7 +43,9 @@ async function prueba(zona: string, paginas: number) {
       const anuncios = anunciosDePagina(html);
       const noAgentes = anuncios.filter((a) => a.tipoAnunciante !== "Agente");
       console.log(`página ${n}: ${anuncios.length} anuncios, ${noAgentes.length} no se declaran agente`);
-      for (const a of noAgentes) console.log(`  ${a.id} ${a.tipoAnunciante} · ${a.titulo} · ${a.precio ?? "s/p"} · ${a.url}`);
+      // Los registros de Actions son públicos: solo id, tipo y precio (el título puede traer nombre o
+      // teléfono del dueño).
+      for (const a of noAgentes) console.log(`  ${a.id} ${a.tipoAnunciante ?? "?"} · ${a.precio ?? "s/p"}`);
     }
   } finally {
     await nav.cerrar();
@@ -112,7 +115,7 @@ async function principal() {
         }
       } catch (error) {
         fallas++;
-        console.error(JSON.stringify({ evento: "error_busqueda_duenos", corredorId: corredor.id, error: String(error) }));
+        console.error(JSON.stringify({ evento: "error_busqueda_duenos", corredorId: corredor.id, error: errorSeguro(error) }));
       }
     }
   } finally {
@@ -123,6 +126,6 @@ async function principal() {
 
 const [modo, zona, paginas] = process.argv.slice(2);
 (modo === "--prueba" ? prueba(zona ?? "san-jose-provincia-escazu", Number(paginas ?? 2)) : principal()).catch((e) => {
-  console.error(e);
+  console.error(JSON.stringify({ evento: "error_busqueda_duenos", error: errorSeguro(e) }));
   process.exit(1);
 });

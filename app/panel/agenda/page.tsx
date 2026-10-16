@@ -4,6 +4,8 @@ import { diaLargo, horaCorta } from "@/lib/agenda/formato";
 import { fechaIso, fechaLocal } from "@/lib/agenda/tiempo";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { Aviso } from "../aviso";
+import { cambiarEnlaceCalendario } from "./acciones";
 
 type Cita = {
   id: string;
@@ -15,7 +17,8 @@ type Cita = {
 
 const uno = <T,>(v: T | T[] | null): T | null => (Array.isArray(v) ? (v[0] ?? null) : v);
 
-export default async function Agenda() {
+export default async function Agenda({ searchParams }: { searchParams: Promise<{ aviso?: string }> }) {
+  const { aviso } = await searchParams;
   const { supabase, corredor } = await sesionConCorredor();
   const zona = corredor.zona_horaria;
   const desde = new Date();
@@ -55,6 +58,7 @@ export default async function Agenda() {
           Mi horario
         </Link>
       </header>
+      <Aviso texto={aviso} />
       {citas.length === 0 && <p className="vacio">No tienes visitas agendadas. Cuando la asistente agende una, aparece aquí.</p>}
       {[...porDia.entries()].map(([dia, lista]) => (
         <section key={dia}>
@@ -89,6 +93,12 @@ export default async function Agenda() {
           </a>
           <p className="suave">En Google Calendar: “Otros calendarios” → “Desde URL” y pega este enlace:</p>
           <input type="text" readOnly value={`${protocolo}://${enlace}`} aria-label="Enlace del calendario" />
+          <form action={cambiarEnlaceCalendario}>
+            <p className="suave">¿Lo compartiste sin querer? Cámbialo y el anterior deja de funcionar.</p>
+            <button type="submit" className="chico">
+              Cambiar el enlace
+            </button>
+          </form>
         </details>
       )}
     </>

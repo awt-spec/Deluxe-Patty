@@ -31,9 +31,34 @@ describe("calendarioIcs", () => {
 
   it("escapa comas y punto y coma, y pliega líneas largas", () => {
     expect(ics).toContain("Ana\\, la de Escazú");
-    expect(ics).toContain("condominio\; con piscina");
+    // (antes "\;" en el código era solo ";": el punto y coma no se escapaba)
+    expect(ics.replace(/\r\n /g, "")).toContain("condominio\\; con piscina");
     for (const linea of ics.split("\r\n")) {
       expect(new TextEncoder().encode(linea).length).toBeLessThanOrEqual(75);
     }
+  });
+
+  it("escapa punto y coma y saltos de línea (también un \\r suelto) en lo que escribe el cliente", () => {
+    const otro = calendarioIcs(
+      "Deluxe",
+      [
+        {
+          id: "x",
+          inicio: new Date("2026-10-21T16:00:00Z"),
+          fin: new Date("2026-10-21T17:00:00Z"),
+          estado: "agendada",
+          cliente_nombre: "Ana\rATTENDEE:mailto:x@y.z",
+          cliente_telefono: "+50688880001",
+          propiedad_titulo: null,
+          propiedad_codigo: null,
+          notas: "uno; dos",
+          updated_at: new Date("2026-10-20T00:00:00Z"),
+        },
+      ],
+      new Date("2026-10-20T12:00:00Z"),
+    );
+    expect(otro).not.toMatch(/\r(?!\n)/);
+    expect(otro).not.toMatch(/\r\nATTENDEE/);
+    expect(otro.replace(/\r\n /g, "")).toContain("uno\\; dos");
   });
 });
