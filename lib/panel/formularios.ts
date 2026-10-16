@@ -303,3 +303,37 @@ export function leerCorredoresConocidos(texto: string): { corredores: CorredorCo
   }
   return { corredores, ignoradas };
 }
+
+// --- Horario sencillo: mañana y tarde por día ---------------------------------------------------
+
+export const TURNOS = {
+  manana: { hora_inicio: "08:00", hora_fin: "12:00", nombre: "Mañana" },
+  tarde: { hora_inicio: "13:00", hora_fin: "17:00", nombre: "Tarde" },
+} as const;
+
+/** Qué turnos tiene un día según sus franjas: mañana si atiende antes de las 12, tarde si después de la 1. */
+export function turnosDelDia(franjas: Franja[], dia: number): { manana: boolean; tarde: boolean } {
+  const delDia = franjas.filter((f) => f.dia_semana === dia);
+  return {
+    manana: delDia.some((f) => minutosDe(f.hora_inicio) < 12 * 60),
+    tarde: delDia.some((f) => minutosDe(f.hora_fin) > 13 * 60),
+  };
+}
+
+/** Franjas exactas de lo que se marcó (casillas m<día> y t<día>). */
+export function franjasDeTurnos(f: Campos): Franja[] {
+  const franjas: Franja[] = [];
+  for (let d = 0; d < 7; d++) {
+    if (f.get(`m${d}`) === "on") franjas.push({ dia_semana: d, hora_inicio: TURNOS.manana.hora_inicio, hora_fin: TURNOS.manana.hora_fin });
+    if (f.get(`t${d}`) === "on") franjas.push({ dia_semana: d, hora_inicio: TURNOS.tarde.hora_inicio, hora_fin: TURNOS.tarde.hora_fin });
+  }
+  return franjas;
+}
+
+/** Si las franjas de un día son exactamente los turnos de siempre (para no pisar horas especiales sin avisar). */
+export function esHorarioSencillo(franjas: Franja[]): boolean {
+  const corta = (h: string) => h.slice(0, 5);
+  return franjas.every((f) =>
+    Object.values(TURNOS).some((t) => corta(f.hora_inicio) === t.hora_inicio && corta(f.hora_fin) === t.hora_fin),
+  );
+}

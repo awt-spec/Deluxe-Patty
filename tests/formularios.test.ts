@@ -175,3 +175,23 @@ describe("corredores conocidos", () => {
     expect(r.ignoradas).toEqual(["Juan, 12-34"]);
   });
 });
+
+describe("horario sencillo", () => {
+  it("lee mañana y tarde de las franjas y arma las franjas de lo marcado", async () => {
+    const { turnosDelDia, franjasDeTurnos, esHorarioSencillo } = await import("../lib/panel/formularios");
+    const franjas = [
+      { dia_semana: 1, hora_inicio: "08:00:00", hora_fin: "17:00:00" },
+      { dia_semana: 6, hora_inicio: "09:00:00", hora_fin: "12:00:00" },
+    ];
+    expect(turnosDelDia(franjas, 1)).toEqual({ manana: true, tarde: true });
+    expect(turnosDelDia(franjas, 6)).toEqual({ manana: true, tarde: false });
+    expect(turnosDelDia(franjas, 0)).toEqual({ manana: false, tarde: false });
+    expect(franjasDeTurnos(campos({ m1: "on", t1: "on", t3: "on" }))).toEqual([
+      { dia_semana: 1, hora_inicio: "08:00", hora_fin: "12:00" },
+      { dia_semana: 1, hora_inicio: "13:00", hora_fin: "17:00" },
+      { dia_semana: 3, hora_inicio: "13:00", hora_fin: "17:00" },
+    ]);
+    expect(esHorarioSencillo(franjas)).toBe(false);
+    expect(esHorarioSencillo([{ dia_semana: 2, hora_inicio: "13:00:00", hora_fin: "17:00:00" }])).toBe(true);
+  });
+});

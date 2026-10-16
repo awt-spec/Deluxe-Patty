@@ -4,9 +4,36 @@ import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Aviso } from "../../aviso";
 import { crearPropiedad } from "../acciones";
 import { FormularioPropiedad } from "../formulario";
+import { ChatCasa } from "./chat-casa";
 
-export default async function NuevaPropiedad({ searchParams }: { searchParams: Promise<{ aviso?: string }> }) {
-  const { aviso } = await searchParams;
+// Cada turno del chat llama a Claude.
+export const maxDuration = 60;
+
+export default async function NuevaPropiedad({
+  searchParams,
+}: {
+  searchParams: Promise<{ aviso?: string; formulario?: string }>;
+}) {
+  const { aviso, formulario } = await searchParams;
+  // Lo normal es contarla en el chat; el formulario completo queda para soporte.
+  if (formulario !== "1") {
+    return (
+      <>
+        <p>
+          <Link href="/panel/propiedades" className="suave">
+            ← Mis casas
+          </Link>
+        </p>
+        <header className="encabezado">
+          <h1>Agregar casa</h1>
+        </header>
+        <ChatCasa />
+        <p className="suave" style={{ marginTop: 16 }}>
+          <Link href="/panel/propiedades/nueva?formulario=1">Prefiero llenar el formulario</Link>
+        </p>
+      </>
+    );
+  }
   const { supabase, corredor } = await sesionConCorredor();
   const { data } = await supabase.from("propiedades").select("codigo").eq("corredor_id", corredor.id);
 
@@ -14,7 +41,7 @@ export default async function NuevaPropiedad({ searchParams }: { searchParams: P
     <>
       <p>
         <Link href="/panel/propiedades" className="suave">
-          ← Propiedades
+          ← Mis casas
         </Link>
       </p>
       <header className="encabezado">

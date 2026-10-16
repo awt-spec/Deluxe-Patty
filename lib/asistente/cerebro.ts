@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
-import type { Correccion, Corredor, Intencion, Mensaje, Propiedad, PropiedadConFotos } from "../datos/tipos";
+import type { Correccion, Corredor, FichaParcial, Intencion, Mensaje, Propiedad, PropiedadConFotos } from "../datos/tipos";
 import type { AnuncioE24 } from "../encuentra24/parsear";
 import { consumo, sumar as sumarConsumo, type Consumo } from "./costo";
 import { instruccion } from "./instrucciones";
@@ -58,6 +58,13 @@ export interface ClasificacionAnuncio {
   consumo: Consumo;
 }
 
+export interface FichaConversada {
+  ficha: FichaParcial;
+  /** Lo que la asistente le pregunta al corredor si falta algo esencial; null si ya se puede guardar. */
+  pregunta: string | null;
+  consumo: Consumo;
+}
+
 export interface Cerebro {
   clasificar(corredor: Corredor, historial: Mensaje[], mensaje: string): Promise<Clasificacion>;
   responder(
@@ -73,6 +80,12 @@ export interface Cerebro {
   clasificarAnuncio(anuncio: AnuncioE24, publicacionesDelAnunciante: number): Promise<ClasificacionAnuncio>;
   /** Análisis a pedido del corredor: propiedad u oferta (enlace o datos). */
   analizar(corredor: Corredor, propiedades: Propiedad[], historial: Mensaje[], mensaje: string): Promise<Respuesta>;
+  /** Arma la ficha de una propiedad a partir de lo que el corredor cuenta en el panel. */
+  fichaConversada(
+    corredor: Corredor,
+    mensajes: { autor: "corredor" | "asistente"; texto: string }[],
+    actual: FichaParcial | null,
+  ): Promise<FichaConversada>;
   agendar(
     corredor: Corredor,
     propiedades: Propiedad[],
@@ -117,6 +130,27 @@ const EsquemaDueno = z.object({
 
 /** Máximo de fotos que se le muestran al modelo para sugerir el orden. */
 export const MAX_FOTOS_ANUNCIO = 20;
+
+const textoNulo = z.string().nullable();
+const numeroNulo = z.number().nullable();
+const EsquemaFicha = z.object({
+  titulo: textoNulo,
+  tipo: z.enum(["casa", "apartamento", "lote", "local", "oficina", "finca", "otro"]).nullable(),
+  operacion: z.enum(["venta", "alquiler"]).nullable(),
+  precio: numeroNulo,
+  moneda: z.enum(["USD", "CRC"]).nullable(),
+  provincia: textoNulo,
+  canton: textoNulo,
+  distrito: textoNulo,
+  zona: textoNulo,
+  habitaciones: numeroNulo,
+  banos: numeroNulo,
+  m2_construccion: numeroNulo,
+  m2_terreno: numeroNulo,
+  descripcion: textoNulo,
+  amenidades: z.array(z.string()),
+  pregunta: textoNulo,
+});
 
 const EsquemaAgenda = z.object({
   accion: z.enum(["proponer", "confirmar", "cancelar", "confirmar_asistencia", "responder"]),
@@ -317,6 +351,36 @@ export function crearCerebroClaude(client = new Anthropic()): Cerebro {
       if (!res.parsed_output) throw new Error(`Clasificación de anuncio sin salida (stop_reason ${res.stop_reason})`);
       const o = res.parsed_output;
       return { esDueno: o.es_dueno, puntaje: Math.max(0, Math.min(100, o.puntaje)), senales: o.senales.slice(0, 4), consumo: c };
+    },
+
+    async fichaConversada(corredor, mensajes, actual) {
+      const conversacion = mensajes
+        .map((m) => `${m.autor === "corredor" ? corredor.nombre_contacto : "Asistente"}: ${m.texto}`)
+        .join("\n");
+      const res = await client.beta.messages.parse({
+        model: MODELO_REDACTAR,
+        max_tokens: 4000,
+        betas: ["server-side-fallback-2026-07-01"],
+        fallbacks: "default",
+        output_config: { effort: "low", format: betaZodOutputFormat(EsquemaFicha) },
+        system: instruccion("propiedad"),
+        messages: [
+          {
+            role: "user",
+            content: [
+              actual ? `<ficha_actual>\n${JSON.stringify(actual)}\n</ficha_actual>` : null,
+              `<conversacion>\n${conversacion}\n</conversacion>`,
+            ]
+              .filter(Boolean)
+              .join("\n\n"),
+          },
+        ],
+      });
+      const c = consumo(res.model, res.usage);
+      if (res.stop_reason === "refusal") throw new RechazoModelo(c);
+      if (!res.parsed_output) throw new Error(`Ficha sin salida (stop_reason ${res.stop_reason})`);
+      const { pregunta, ...ficha } = res.parsed_output;
+      return { ficha, pregunta: pregunta?.trim() || null, consumo: c };
     },
 
     async analizar(corredor, propiedades, historial, mensaje) {

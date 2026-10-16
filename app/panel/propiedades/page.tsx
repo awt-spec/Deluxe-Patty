@@ -38,23 +38,14 @@ export default async function Propiedades({
   return (
     <>
       <header className="encabezado">
-        <h1>Propiedades</h1>
-        <Link href="/panel/propiedades/nueva" className="boton primario">
-          Nueva
-        </Link>
+        <h1>Mis casas</h1>
       </header>
       <Aviso texto={aviso} />
-      <nav className="pestanas" aria-label="Filtro">
-        <Link href="/panel/propiedades" aria-current={todas ? undefined : "page"}>
-          En oferta
-        </Link>
-        <Link href="/panel/propiedades?ver=todas" aria-current={todas ? "page" : undefined}>
-          Todas
-        </Link>
-      </nav>
-      <p className="suave">La asistente les habla a los clientes solo de las activas.</p>
+      <Link href="/panel/propiedades/nueva" className="boton primario grande" style={{ marginBottom: 14 }}>
+        ＋ Agregar casa
+      </Link>
       {propiedades.length === 0 && (
-        <p className="vacio">{todas ? "Todavía no hay propiedades." : "No hay propiedades en oferta."}</p>
+        <p className="vacio">{todas ? "Todavía no tienes casas cargadas." : "No tienes casas en oferta."}</p>
       )}
       {propiedades.map((p) => {
         const principal = ordenarFotos(p.fotos)[0];
@@ -83,6 +74,17 @@ export default async function Propiedades({
           </Link>
         );
       })}
+      <p style={{ marginTop: 12 }}>
+        {todas ? (
+          <Link href="/panel/propiedades" className="suave">
+            Ver solo las que están en oferta
+          </Link>
+        ) : (
+          <Link href="/panel/propiedades?ver=todas" className="suave">
+            Ver también las vendidas o pausadas
+          </Link>
+        )}
+      </p>
     </>
   );
 }

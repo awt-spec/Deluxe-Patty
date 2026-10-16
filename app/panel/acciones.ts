@@ -18,6 +18,8 @@ import { COOKIE_CORREDOR, sesionConCorredor } from "@/lib/panel/sesion";
 // del usuario (RLS) que el mensaje o la conversación son de su corredor.
 
 const texto = (f: FormData, k: string) => String(f.get(k) ?? "");
+// Desde el inicio (Chats) las acciones vuelven al inicio; si no, a la conversación.
+const destino = (f: FormData, ruta: string) => (texto(f, "volver") === "/panel" ? "/panel" : ruta);
 
 function volver(ruta: string, r: Resultado, ok: string): never {
   revalidatePath(ruta);
@@ -42,14 +44,14 @@ export async function aprobar(f: FormData) {
   const mensaje = texto(f, "mensaje");
   const { corredor, conversacionId } = await mensajePropio(mensaje);
   const r = await aprobarBorrador(dependencias(), corredor, mensaje, texto(f, "texto"));
-  volver(`/panel/conversaciones/${conversacionId}`, r, "Enviado.");
+  volver(destino(f, `/panel/conversaciones/${conversacionId}`), r, "Enviado.");
 }
 
 export async function descartar(f: FormData) {
   const mensaje = texto(f, "mensaje");
   const { corredor, conversacionId } = await mensajePropio(mensaje);
   const r = await descartarBorrador(dependencias(), corredor, mensaje);
-  volver(`/panel/conversaciones/${conversacionId}`, r, "Borrador descartado.");
+  volver(destino(f, `/panel/conversaciones/${conversacionId}`), r, "Listo, no se envió.");
 }
 
 export async function tomar(f: FormData) {
@@ -58,7 +60,7 @@ export async function tomar(f: FormData) {
   volver(
     `/panel/conversaciones/${id}`,
     await tomarControl(dependencias(), corredor, id),
-    "La conversación es tuya: la asistente no contesta aquí.",
+    "Ahora le contestas tú: la asistente no se mete en este chat.",
   );
 }
 
@@ -66,9 +68,9 @@ export async function devolver(f: FormData) {
   const id = texto(f, "conversacion");
   const corredor = await conversacionPropia(id);
   volver(
-    `/panel/conversaciones/${id}`,
+    destino(f, `/panel/conversaciones/${id}`),
     await devolverControl(dependencias(), corredor, id),
-    "La asistente vuelve a contestar aquí.",
+    "Listo: la asistente vuelve a contestarle.",
   );
 }
 
@@ -80,6 +82,34 @@ export async function escribir(f: FormData) {
     await escribirComoCorredor(dependencias(), corredor, id, texto(f, "texto")),
     "Enviado.",
   );
+}
+
+/**
+ * "Le escribo yo": la asistente deja ese chat (lo que tenía por enviar no sale) y se abre el WhatsApp
+ * de la corredora con el cliente.
+ */
+export async function yoLeEscribo(f: FormData) {
+  const id = texto(f, "conversacion");
+  const { supabase, corredor } = await sesionConCorredor();
+  const { data } = await supabase
+    .from("conversaciones")
+    .select("id, contactos!inner(telefono)")
+    .eq("corredor_id", corredor.id)
+    .eq("id", id)
+    .maybeSingle();
+  if (!data) redirect("/panel?aviso=No%20encontr%C3%A9%20el%20chat.");
+  const deps = dependencias();
+  const { data: pendientes } = await supabase
+    .from("mensajes")
+    .select("id")
+    .eq("corredor_id", corredor.id)
+    .eq("conversacion_id", id)
+    .eq("estado_borrador", "pendiente");
+  for (const m of pendientes ?? []) await descartarBorrador(deps, corredor, m.id as string);
+  await tomarControl(deps, corredor, id);
+  revalidatePath("/panel");
+  const contacto = (Array.isArray(data!.contactos) ? data!.contactos[0] : data!.contactos) as { telefono: string };
+  redirect(`https://wa.me/${contacto.telefono.replace(/\D/g, "")}`);
 }
 
 const ESTADOS_LEAD = new Set(["contactado", "respondio", "captado", "descartado"]);

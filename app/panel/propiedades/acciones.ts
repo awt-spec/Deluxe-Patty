@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prepararAnuncio } from "@/lib/anuncios/preparar";
 import { dependencias } from "@/lib/asistente/dependencias";
-import type { Foto } from "@/lib/datos/tipos";
+import type { FichaParcial, Foto } from "@/lib/datos/tipos";
 import { fichaDePropiedad } from "@/lib/fichas/comando";
 import { mejorarFotos } from "@/lib/fotos/mejorar";
 import {
@@ -14,8 +14,17 @@ import {
   moverFoto,
   rutaDePropiedad,
   rutaFotoOriginal,
+  siguienteCodigo,
 } from "@/lib/panel/formularios";
 import { sesionConCorredor } from "@/lib/panel/sesion";
+import {
+  MAX_MENSAJES_FICHA,
+  MAX_TEXTO_FICHA,
+  conversarFicha,
+  datosParaGuardar,
+  fichaLimpia,
+  resumenFicha,
+} from "@/lib/propiedades/conversar";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Las propiedades se leen y se guardan con la sesión del corredor (RLS). Solo la subida de fotos y lo
@@ -187,4 +196,60 @@ export async function mejorarFotosPanel(f: FormData) {
     aviso = "No pude mejorar las fotos ahora. Inténtalo de nuevo en un rato.";
   }
   ir(`/panel/propiedades/${id}#fotos`, aviso);
+}
+
+// --- Agregar casa conversando ----------------------------------------------------------------------
+
+export type RespuestaCasa =
+  | { ficha: FichaParcial; mensaje: string; lista: boolean; resumen: string[] }
+  | { error: string };
+
+/** Un turno del chat de "Agregar casa": Claude actualiza la ficha con lo que contó el corredor. */
+export async function conversarCasa(mensajesNavegador: unknown, fichaNavegador: unknown): Promise<RespuestaCasa> {
+  const { corredor } = await sesionConCorredor();
+  const mensajes = (Array.isArray(mensajesNavegador) ? mensajesNavegador : [])
+    .slice(-MAX_MENSAJES_FICHA)
+    .map((m) => ({
+      autor: (m?.autor === "asistente" ? "asistente" : "corredor") as "asistente" | "corredor",
+      texto: String(m?.texto ?? "").slice(0, MAX_TEXTO_FICHA),
+    }))
+    .filter((m) => m.texto.trim());
+  if (!mensajes.some((m) => m.autor === "corredor")) return { error: "Cuéntame algo de la casa." };
+  const deps = dependencias();
+  try {
+    const r = await conversarFicha(deps.cerebro, corredor, mensajes, fichaNavegador ? fichaLimpia(fichaNavegador) : null);
+    await deps.repo.registrarUso(corredor.id, {
+      llamadasClaude: 1,
+      tokensEntrada: r.consumo.tokensEntrada,
+      tokensSalida: r.consumo.tokensSalida,
+      costoClaudeUsd: r.consumo.costoUsd,
+    });
+    return { ficha: r.ficha, mensaje: r.mensaje, lista: r.lista, resumen: resumenFicha(r.ficha) };
+  } catch (error) {
+    console.error(JSON.stringify({ evento: "error_ficha_conversada", corredorId: corredor.id, error: error instanceof Error ? error.name : "desconocido" }));
+    return { error: "No te entendí bien esta vez. ¿Me lo repites?" };
+  }
+}
+
+/** Guarda la casa conversada, con el siguiente código libre. */
+export async function guardarCasaConversada(fichaNavegador: unknown): Promise<{ id: string } | { error: string }> {
+  const { supabase, corredor } = await sesionConCorredor();
+  const ficha = fichaLimpia(fichaNavegador);
+  for (let intento = 0; intento < 3; intento++) {
+    const { data: codigos } = await supabase.from("propiedades").select("codigo").eq("corredor_id", corredor.id);
+    const r = datosParaGuardar(ficha, siguienteCodigo((codigos ?? []).map((c) => c.codigo as string)));
+    if (!r.ok) return { error: r.motivo };
+    const { data, error } = await supabase
+      .from("propiedades")
+      .insert({ ...r.valor, corredor_id: corredor.id })
+      .select("id")
+      .single();
+    if (data) {
+      revalidatePath("/panel/propiedades");
+      return { id: data.id as string };
+    }
+    // Otro guardado tomó el mismo código al mismo tiempo: se reintenta con el siguiente.
+    if (error?.code !== "23505") break;
+  }
+  return { error: "No se pudo guardar. Inténtalo de nuevo." };
 }
