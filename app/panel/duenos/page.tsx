@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { fechaCorta, precio } from "@/lib/formato";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { marcarLead } from "../acciones";
@@ -40,6 +41,9 @@ export default async function Duenos() {
     <>
       <header className="encabezado">
         <h1>Dueños directos</h1>
+        <Link href="/panel/duenos/corredores" className="boton">
+          Corredores
+        </Link>
       </header>
       <p className="suave">
         Lista semanal de Encuentra24. Escríbeles desde el botón de WhatsApp del anuncio; la asistente nunca les

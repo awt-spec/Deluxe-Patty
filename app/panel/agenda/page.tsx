@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import Link from "next/link";
 import { diaLargo, horaCorta } from "@/lib/agenda/formato";
 import { fechaIso, fechaLocal } from "@/lib/agenda/tiempo";
 import { sesionConCorredor } from "@/lib/panel/sesion";
@@ -50,6 +51,9 @@ export default async function Agenda() {
     <>
       <header className="encabezado">
         <h1>Agenda</h1>
+        <Link href="/panel/agenda/horario" className="boton">
+          Horario
+        </Link>
       </header>
       {citas.length === 0 && <p className="vacio">No tienes visitas próximas.</p>}
       {[...porDia.entries()].map(([dia, lista]) => (
