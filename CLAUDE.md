@@ -161,6 +161,9 @@ dueño o corredor. Un cambio de tono o de instrucciones se prueba con el set de 
 - `npm run test:db` — crea una base desechable en un Postgres local (usa `PGHOST`, `PGPORT`, `PGUSER`),
   aplica `supabase/tests/shim_supabase.sql`, las migraciones y la semilla, y corre las pruebas SQL de
   `supabase/tests/`. Incluye la prueba de que un corredor no ve datos de otro.
+- `SUPABASE_ACCESS_TOKEN=… npx tsx scripts/montar-supabase.mts <ref> [https://dominio]` — monta o pone al
+  día el Supabase real por la API de administración (migraciones pendientes, semilla la primera vez, Auth,
+  revisión de RLS y buckets; llaves en `.env.local`). Necesita `api.supabase.com` y `*.supabase.co` permitidos.
 - `npm run eval:conversaciones` — set de conversaciones (`evals/conversaciones/`): corre cada caso por la
   asistente con Claude real (base y WhatsApp simulados) y califica con código intención, escalamiento,
   agenda, avisos, cifras inventadas y fechas del modelo. Necesita `ANTHROPIC_API_KEY` y cuesta llamadas.
