@@ -79,9 +79,12 @@ letra y botones grandes, palabras de todos los días (nada de "borrador" ni "esc
 es el inicio, como WhatsApp: arriba "Te necesitan" con lo que espera al corredor (✓ Enviar así,
 Cambiarla, Le escribo yo; "Escribirle por WhatsApp" y "Ya lo atendí" si el cliente pidió hablar con él),
 abajo todos los chats. Lo de poco uso (Probar la asistente, Resumen del día, Dueños, Anuncios, Mi horario,
-Ajustes) está detrás de un botón "Más" (`/panel/mas`). Entrada por enlace mágico de Supabase
-Auth (`/entrar`, sin crear usuarios: el acceso lo da `scripts/dar-acceso.mts`); `proxy.ts` renueva la
-sesión. Las páginas leen con la sesión del corredor (`lib/panel/sesion.ts`, RLS). Las acciones
+Ajustes, Salir) está detrás de un botón "Más" (`/panel/mas`). Íconos dibujados en `app/panel/iconos.tsx`
+(nada de emojis en la navegación); sobre Chats, el número de clientes que esperan. Entrada por enlace
+mágico de Supabase Auth (`/entrar`, sin crear usuarios: el acceso lo da `scripts/dar-acceso.mts`), con la
+marca del corredor (`lib/panel/marca.ts`): la de `?c=<slug>` o la del único corredor si hay uno solo; el
+logo se sirve en `/marca/<slug>/logo`. Después de pedir el enlace, pantalla "Revisa tu correo" y otro
+enlace solo pasado un minuto. `proxy.ts` renueva la sesión. Las páginas leen con la sesión del corredor (`lib/panel/sesion.ts`, RLS). Las acciones
 (`app/panel/acciones.ts`) primero comprueban con esa sesión que el mensaje o la conversación son suyos y
 luego actúan con el backend (`lib/panel/acciones.ts`): aprobar, corregir o descartar borradores (con su
 acción de cita), tomar y devolver control, escribir como el corredor. Cada corrección se guarda en

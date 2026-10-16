@@ -6,6 +6,7 @@ import { sesionConCorredor } from "@/lib/panel/sesion";
 import { aprobar, devolver, yoLeEscribo } from "./acciones";
 import { Aviso } from "./aviso";
 import { BotonEnviar } from "./boton-enviar";
+import { IconoMas } from "./iconos";
 
 // Inicio del panel, como WhatsApp: arriba lo que espera a Patricia (respuestas por enviar y clientes que
 // quieren hablar con ella), con botones grandes; abajo, todos los chats.
@@ -91,8 +92,12 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
   return (
     <>
       <header className="encabezado">
-        <h1>Chats</h1>
-        <Link href="/panel/mas" className="boton">
+        <div>
+          <p className="etiqueta">{corredor.nombre}</p>
+          <h1>Hola, {corredor.nombre_contacto}</h1>
+        </div>
+        <Link href="/panel/mas" className="boton boton-mas">
+          <IconoMas tamano={20} />
           Más
         </Link>
       </header>
@@ -127,13 +132,13 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
                 ) : (
                   <p className="aviso">Pasó más de un día desde que escribió: contéstale desde tu WhatsApp.</p>
                 )}
-                <div className="botones">
-                  <Link href={`/panel/conversaciones/${c.id}#borrador`} className="boton">
+                <div className="botones secundarios">
+                  <Link href={`/panel/conversaciones/${c.id}#borrador`} className="boton secundario">
                     ✎ Cambiarla
                   </Link>
                   <form action={yoLeEscribo} style={{ flex: "1 1 auto", display: "flex" }}>
                     <input type="hidden" name="conversacion" value={c.id} />
-                    <button type="submit" style={{ flex: 1 }}>
+                    <button type="submit" className="secundario" style={{ flex: 1 }}>
                       Le escribo yo
                     </button>
                   </form>
@@ -155,14 +160,16 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
                 <form action={devolver}>
                   <input type="hidden" name="conversacion" value={c.id} />
                   <input type="hidden" name="volver" value="/panel" />
-                  <BotonEnviar texto="Ya lo atendí" pendiente="Un momento…" className="grande" />
+                  <BotonEnviar texto="Ya lo atendí" pendiente="Un momento…" className="grande secundario" />
                 </form>
               </article>
             );
           })}
         </section>
       ) : (
-        <p className="aviso">✓ Todo al día: ningún cliente te espera.</p>
+        <p className="al-dia">
+          <span aria-hidden>✓</span> Todo al día: ningún cliente te espera.
+        </p>
       )}
 
       <h2>Todos los chats</h2>
