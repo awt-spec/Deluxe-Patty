@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { leerBloqueo, leerFranja, type Franja } from "@/lib/panel/formularios";
+import { franjasDeTurnos, leerBloqueo, leerFranja, type Franja } from "@/lib/panel/formularios";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 
 // Horario de visitas y bloqueos: se guardan con la sesión del corredor (RLS). La disponibilidad que
@@ -90,4 +90,19 @@ export async function guardarReglasVisitas(f: FormData) {
   if (Object.values(cambios).some((v) => v === null)) volver("Revisa los números de las visitas.");
   const { error } = await supabase.from("corredores").update(cambios).eq("id", corredor.id);
   volver(error ? "No se pudo guardar." : "Guardado.");
+}
+
+/** "¿Qué días enseñas casas?": mañana y tarde por día. Reemplaza el horario de la semana. */
+export async function guardarTurnos(f: FormData) {
+  const { supabase, corredor } = await sesionConCorredor();
+  const franjas = franjasDeTurnos(f);
+  const { error: borrar } = await supabase.from("horarios_visitas").delete().eq("corredor_id", corredor.id);
+  if (borrar) volver("No se pudo guardar el horario.");
+  if (franjas.length > 0) {
+    const { error } = await supabase
+      .from("horarios_visitas")
+      .insert(franjas.map((x) => ({ ...x, corredor_id: corredor.id })));
+    if (error) volver("No se pudo guardar el horario. Revísalo y guárdalo otra vez.");
+  }
+  volver(franjas.length ? "Listo, guardé tu horario." : "Guardado: sin días, la asistente no ofrecerá visitas.");
 }

@@ -98,7 +98,7 @@ p {
   right: 0;
   bottom: 0;
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   background: var(--profundo);
   padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
   z-index: 10;
@@ -108,7 +108,7 @@ p {
   text-align: center;
   text-decoration: none;
   color: color-mix(in srgb, var(--base) 70%, transparent);
-  font-size: 0.68rem;
+  font-size: 0.9rem;
   padding: 8px 0;
   white-space: nowrap;
   border-radius: 8px;
@@ -121,7 +121,7 @@ p {
 
 .navegacion .icono {
   display: block;
-  font-size: 1.15rem;
+  font-size: 1.5rem;
   line-height: 1.2;
 }
 
@@ -529,4 +529,190 @@ details summary {
   color: var(--suave);
   text-align: center;
   margin: 0;
+}
+
+/* Sencillo: letra y botones grandes en el panel */
+
+.panel {
+  font-size: 17px;
+}
+
+.panel button,
+.panel .boton {
+  min-height: 52px;
+  font-size: 1rem;
+}
+
+.panel button.chico {
+  min-height: 40px;
+  font-size: 0.9rem;
+}
+
+.boton.grande,
+button.grande {
+  width: 100%;
+  min-height: 60px;
+  font-size: 1.1rem;
+}
+
+.ok {
+  background: var(--ok) !important;
+  border-color: var(--ok) !important;
+  color: #fff !important;
+}
+
+/* Chats */
+
+.te-necesitan {
+  background: color-mix(in srgb, var(--principal) 14%, var(--base));
+  border: 1px solid color-mix(in srgb, var(--principal) 45%, transparent);
+  border-radius: var(--radio);
+  padding: 12px;
+  margin-bottom: 18px;
+}
+
+.te-necesitan > h2 {
+  margin-top: 0;
+}
+
+.pendiente {
+  background: var(--superficie);
+  border-radius: var(--radio);
+  padding: 12px;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pendiente .dijo {
+  background: var(--base);
+  border-radius: 12px;
+  padding: 8px 12px;
+}
+
+.pendiente .respuesta {
+  background: color-mix(in srgb, var(--principal) 20%, var(--superficie));
+  border-radius: 12px;
+  padding: 8px 12px;
+  white-space: pre-wrap;
+}
+
+.chat-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.chat-lista a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 4px;
+  border-bottom: 1px solid var(--borde);
+  text-decoration: none;
+}
+
+.avatar {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--soporte) 25%, var(--base));
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.chat-lista .texto {
+  flex: 1;
+  min-width: 0;
+}
+
+.chat-lista .vista {
+  color: var(--suave);
+  font-size: 0.92rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.punto {
+  flex: none;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--principal);
+  color: var(--profundo);
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  padding: 0 6px;
+}
+
+.mas-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mas-lista a {
+  justify-content: flex-start;
+  gap: 12px;
+  min-height: 64px;
+  font-size: 1.05rem;
+}
+
+.ficha-resumen {
+  align-self: stretch;
+  border: 1.5px solid var(--principal);
+}
+
+/* Horario sencillo */
+
+.dia-turnos {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-top: 1px solid var(--borde);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 92px;
+  min-height: 46px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1.5px solid var(--borde);
+  background: var(--superficie);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chip input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.chip:has(input:checked) {
+  background: var(--profundo);
+  border-color: var(--profundo);
+  color: var(--base);
+}
+
+.chip:has(input:checked)::before {
+  content: "✓ ";
+  white-space: pre;
+}
+
+.chip:has(input:focus-visible) {
+  outline: 2px solid var(--principal);
+  outline-offset: 2px;
 }

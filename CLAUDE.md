@@ -66,16 +66,26 @@ traen contactos (`lib/anuncios/reporte.ts`); "fotos <código>" mejora hasta 12 f
 marca del corredor (`corredores.marca`), la sube al bucket público `fichas` y se la manda como documento.
 
 ## Panel del corredor (`app/panel`)
-Para el teléfono: Hoy, Chats, Propiedades, Agenda, Dueños, Anuncios y Ajustes. Entrada por enlace mágico de Supabase
+Para el teléfono y para alguien que no usa tecnología: **solo tres botones** (Chats, Agenda, Mis casas),
+letra y botones grandes, palabras de todos los días (nada de "borrador" ni "escalada"). Chats (`/panel`)
+es el inicio, como WhatsApp: arriba "Te necesitan" con lo que espera al corredor (✓ Enviar así,
+Cambiarla, Le escribo yo; "Escribirle por WhatsApp" y "Ya lo atendí" si el cliente pidió hablar con él),
+abajo todos los chats. Lo de poco uso (Probar la asistente, Resumen del día, Dueños, Anuncios, Mi horario,
+Ajustes) está detrás de un botón "Más" (`/panel/mas`). Entrada por enlace mágico de Supabase
 Auth (`/entrar`, sin crear usuarios: el acceso lo da `scripts/dar-acceso.mts`); `proxy.ts` renueva la
 sesión. Las páginas leen con la sesión del corredor (`lib/panel/sesion.ts`, RLS). Las acciones
 (`app/panel/acciones.ts`) primero comprueban con esa sesión que el mensaje o la conversación son suyos y
 luego actúan con el backend (`lib/panel/acciones.ts`): aprobar, corregir o descartar borradores (con su
 acción de cita), tomar y devolver control, escribir como el corredor. Cada corrección se guarda en
 `correcciones` y las 8 últimas entran como ejemplos de tono en `responder`.
-El corredor carga sus datos desde el panel, sin SQL: propiedades (`app/panel/propiedades`, con ficha PDF,
-anuncio y mejora de fotos a un toque), horario de visitas y bloqueos (`app/panel/agenda/horario`) y
-corredores conocidos (`app/panel/duenos/corredores`). Se guardan con su sesión (RLS); los formularios se
+El corredor carga sus datos desde el panel, sin SQL. Una casa nueva se agrega **conversando**
+(`app/panel/propiedades/nueva`): cuenta la casa con sus palabras, Claude llena la ficha
+(`cerebro.fichaConversada`, `prompts/propiedad.md`), el código (`lib/propiedades/conversar.ts`) pregunta
+lo esencial que falte (venta o alquiler, tipo, zona, precio), muestra el resumen, guarda al confirmar y
+pide las fotos; el formulario completo queda en `?formulario=1`. En la casa: ficha PDF, anuncio, fotos,
+"Ya se vendió" o "Pausarla". Horario (`app/panel/agenda/horario`): Mañana (8–12) y Tarde (1–5) por día,
+"¿Un día no puedes?" y, plegado, horas exactas y bloqueos por rango. Corredores conocidos en
+`app/panel/duenos/corredores`. Se guardan con su sesión (RLS); los formularios se
 leen y validan en `lib/panel/formularios.ts`. Las fotos suben directo del teléfono al bucket `fotos`
 (`<corredor>/<propiedad>/originales/…`) con un permiso de subida por archivo (`createSignedUploadUrl`),
 achicadas a 2400 px, para no pasar por el límite de tamaño de las funciones de Vercel.

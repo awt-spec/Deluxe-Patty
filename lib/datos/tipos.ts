@@ -222,3 +222,22 @@ export interface AnuncioPorVencer {
   referencia: string;
   vence_en: string;
 }
+
+/** Ficha de una propiedad que se va armando al conversar con el corredor (todo puede faltar). */
+export interface FichaParcial {
+  titulo: string | null;
+  tipo: "casa" | "apartamento" | "lote" | "local" | "oficina" | "finca" | "otro" | null;
+  operacion: "venta" | "alquiler" | null;
+  precio: number | null;
+  moneda: "USD" | "CRC" | null;
+  provincia: string | null;
+  canton: string | null;
+  distrito: string | null;
+  zona: string | null;
+  habitaciones: number | null;
+  banos: number | null;
+  m2_construccion: number | null;
+  m2_terreno: number | null;
+  descripcion: string | null;
+  amenidades: string[];
+}

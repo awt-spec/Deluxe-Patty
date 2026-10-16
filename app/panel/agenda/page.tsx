@@ -52,10 +52,10 @@ export default async function Agenda() {
       <header className="encabezado">
         <h1>Agenda</h1>
         <Link href="/panel/agenda/horario" className="boton">
-          Horario
+          Mi horario
         </Link>
       </header>
-      {citas.length === 0 && <p className="vacio">No tienes visitas próximas.</p>}
+      {citas.length === 0 && <p className="vacio">No tienes visitas agendadas. Cuando la asistente agende una, aparece aquí.</p>}
       {[...porDia.entries()].map(([dia, lista]) => (
         <section key={dia}>
           <h2>{diaLargo(new Date(lista[0].inicio), zona)}</h2>
@@ -78,8 +78,8 @@ export default async function Agenda() {
       ))}
 
       {enlace && (
-        <section className="tarjeta pila">
-          <h2 style={{ marginTop: 0 }}>Ver las citas en tu calendario</h2>
+        <details className="tarjeta pila" style={{ marginTop: 20 }}>
+          <summary>Ver las visitas en el calendario de tu teléfono</summary>
           <p className="suave">
             Suscríbete una vez y las visitas aparecen solas en el calendario de tu teléfono. El enlace es privado: no lo
             compartas.
@@ -89,7 +89,7 @@ export default async function Agenda() {
           </a>
           <p className="suave">En Google Calendar: “Otros calendarios” → “Desde URL” y pega este enlace:</p>
           <input type="text" readOnly value={`${protocolo}://${enlace}`} aria-label="Enlace del calendario" />
-        </section>
+        </details>
       )}
     </>
   );

@@ -10,8 +10,8 @@ export default async function Probar() {
   return (
     <>
       <p>
-        <Link href="/panel/conversaciones" className="suave">
-          ← Conversaciones
+        <Link href="/panel/mas" className="suave">
+          ← Más
         </Link>
       </p>
       <header className="encabezado">

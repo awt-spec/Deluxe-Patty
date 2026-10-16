@@ -22,13 +22,13 @@ const AUTOR: Record<Mensaje["autor"], string> = {
   cliente: "Cliente",
   asistente: "Asistente",
   corredor: "Tú",
-  sistema: "Sistema",
+  sistema: "Aviso",
 };
 
 function describirAccion(a: AccionPendiente, zona: string): string {
-  if (a.tipo === "crear_cita") return conPunto(`Al aprobar se agenda la visita del ${etiquetaHorario(new Date(a.inicio), zona)}`);
-  if (a.tipo === "cancelar_cita") return "Al aprobar se cancela la visita.";
-  return "Al aprobar se marca la visita como confirmada.";
+  if (a.tipo === "crear_cita") return conPunto(`Al enviarla queda agendada la visita del ${etiquetaHorario(new Date(a.inicio), zona)}`);
+  if (a.tipo === "cancelar_cita") return "Al enviarla se cancela la visita.";
+  return "Al enviarla la visita queda confirmada.";
 }
 
 export default async function Conversacion({
@@ -69,8 +69,8 @@ export default async function Conversacion({
   return (
     <>
       <p>
-        <Link href="/panel/conversaciones" className="suave">
-          ← Conversaciones
+        <Link href="/panel" className="suave">
+          ← Chats
         </Link>
       </p>
       <header className="encabezado">
@@ -83,22 +83,22 @@ export default async function Conversacion({
       </header>
 
       <div className="botones">
-        {conv.estado === "escalada" && <span className="insignia alerta">Te espera</span>}
+        {conv.estado === "escalada" && <span className="insignia alerta">Quiere hablar contigo</span>}
         {suya ? (
           <form action={devolver}>
             <input type="hidden" name="conversacion" value={id} />
-            <button type="submit">Devolver a la asistente</button>
+            <button type="submit">Que siga la asistente</button>
           </form>
         ) : (
           <form action={tomar}>
             <input type="hidden" name="conversacion" value={id} />
-            <button type="submit">Tomar control</button>
+            <button type="submit">Le contesto yo</button>
           </form>
         )}
         {conv.estado === "escalada" && !suya && (
           <form action={devolver}>
             <input type="hidden" name="conversacion" value={id} />
-            <button type="submit">Ya lo atendí: que siga la asistente</button>
+            <button type="submit">Ya lo atendí</button>
           </form>
         )}
       </div>
@@ -109,12 +109,12 @@ export default async function Conversacion({
           const hora = etiquetaHorario(new Date(m.created_at), zona);
           if (m.estado_borrador === "pendiente") {
             return (
-              <form key={m.id} action={aprobar} className="borrador pila">
-                <span className="etiqueta">Borrador de la asistente</span>
+              <form key={m.id} id="borrador" action={aprobar} className="borrador pila">
+                <span className="etiqueta">La asistente quiere contestarle</span>
                 {m.accion && <p className="suave">{describirAccion(m.accion, zona)}</p>}
                 <input type="hidden" name="mensaje" value={m.id} />
                 <label htmlFor={`texto-${m.id}`} className="suave">
-                  Puedes corregirlo antes de enviarlo:
+                  Si quieres, cambia el texto antes de enviarlo:
                 </label>
                 <textarea
                   id={`texto-${m.id}`}
@@ -125,10 +125,10 @@ export default async function Conversacion({
                 />
                 <div className="botones">
                   <button type="submit" className="primario" disabled={!ventanaAbierta}>
-                    Enviar
+                    ✓ Enviar
                   </button>
                   <button type="submit" formAction={descartar} className="peligro">
-                    Descartar
+                    No enviar
                   </button>
                 </div>
               </form>
@@ -158,17 +158,19 @@ export default async function Conversacion({
       {ventanaAbierta ? (
         <form action={escribir} className="pila tarjeta">
           <input type="hidden" name="conversacion" value={id} />
-          <label htmlFor="texto-nuevo">Escribirle como tú</label>
-          <textarea id="texto-nuevo" name="texto" placeholder="Al enviar, la conversación pasa a ser tuya." />
+          <label htmlFor="texto-nuevo">Escribirle</label>
+          <textarea id="texto-nuevo" name="texto" placeholder="Al escribirle tú, la asistente deja de contestar en este chat." />
           <button type="submit" className="primario">
             Enviar
           </button>
         </form>
       ) : (
-        <p className="aviso">
-          Pasaron más de 24 horas desde el último mensaje del cliente: WhatsApp no deja escribirle desde la
-          asistente. Escríbele desde tu WhatsApp.
-        </p>
+        <div className="pila">
+          <p className="aviso">Pasó más de un día desde que te escribió: contéstale desde tu WhatsApp.</p>
+          <a href={`https://wa.me/${contacto.telefono.replace(/\D/g, "")}`} className="boton primario grande" target="_blank" rel="noreferrer">
+            Abrir WhatsApp
+          </a>
+        </div>
       )}
     </>
   );

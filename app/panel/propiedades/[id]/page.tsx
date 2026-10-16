@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Foto } from "@/lib/datos/tipos";
-import { MAX_FOTOS } from "@/lib/fotos/mejorar";
 import { MAX_FOTOS_PROPIEDAD, ordenarFotos } from "@/lib/panel/formularios";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Aviso } from "../../aviso";
@@ -60,7 +59,7 @@ export default async function Propiedad({
     <>
       <p>
         <Link href="/panel/propiedades" className="suave">
-          ← Propiedades
+          ← Mis casas
         </Link>
       </p>
       <header className="encabezado">
@@ -71,37 +70,20 @@ export default async function Propiedad({
       </header>
       <Aviso texto={aviso} />
 
-      <section className="pila">
-        <div className="botones">
-          <form action={generarFicha}>
-            <input type="hidden" name="id" value={p.id} />
-            <BotonEnviar texto="Ficha PDF" pendiente="Armando la ficha…" />
-          </form>
-          <form action={prepararAnuncioPanel}>
-            <input type="hidden" name="id" value={p.id} />
-            <BotonEnviar texto="Preparar anuncio" pendiente="Escribiendo el anuncio…" />
-          </form>
-        </div>
-        <div className="botones">
-          {p.estado !== "activa" ? (
-            <form action={cambiarEstado}>
-              <input type="hidden" name="id" value={p.id} />
-              <input type="hidden" name="estado" value="activa" />
-              <button type="submit">Volver a ofrecerla</button>
-            </form>
-          ) : (
-            <form action={cambiarEstado}>
-              <input type="hidden" name="id" value={p.id} />
-              <input type="hidden" name="estado" value="inactiva" />
-              <button type="submit">Pausar: que la asistente no la ofrezca</button>
-            </form>
-          )}
-        </div>
+      <section className="pila" style={{ marginBottom: 8 }}>
+        <form action={generarFicha}>
+          <input type="hidden" name="id" value={p.id} />
+          <BotonEnviar texto="📄 Ficha para mandar a un cliente" pendiente="Armando la ficha…" className="primario grande" />
+        </form>
+        <form action={prepararAnuncioPanel}>
+          <input type="hidden" name="id" value={p.id} />
+          <BotonEnviar texto="📣 Escribir el anuncio de Encuentra24" pendiente="Escribiendo el anuncio…" className="grande" />
+        </form>
       </section>
 
       <h2 id="fotos">Fotos</h2>
       <p className="suave">
-        La primera es la principal: va en la ficha y en el anuncio. Hasta {MAX_FOTOS_PROPIEDAD} fotos.
+        La primera es la que se ve en la ficha y en el anuncio.
       </p>
       {fotos.length === 0 && <p className="vacio">Todavía no tiene fotos.</p>}
       <div className="galeria">
@@ -112,7 +94,7 @@ export default async function Propiedad({
               <img src={f.url} alt={`Foto ${i + 1}`} loading="lazy" />
             </a>
             <figcaption className="suave">
-              {i === 0 ? "Principal" : `Foto ${i + 1}`}
+              {i === 0 ? "★ Principal" : `Foto ${i + 1}`}
               {f.mejorada_url && (
                 <>
                   {" · "}
@@ -123,7 +105,7 @@ export default async function Propiedad({
               )}
             </figcaption>
             <div className="botones">
-              {i > 0 && <BotonFoto id={p.id} url={f.url} accion="principal" texto="Principal" />}
+              {i > 0 && <BotonFoto id={p.id} url={f.url} accion="principal" texto="★ Principal" />}
               {i > 0 && <BotonFoto id={p.id} url={f.url} accion="subir" texto="↑" />}
               {i < fotos.length - 1 && <BotonFoto id={p.id} url={f.url} accion="bajar" texto="↓" />}
               <BotonFoto id={p.id} url={f.url} accion="quitar" texto="Quitar" peligro />
@@ -136,15 +118,42 @@ export default async function Propiedad({
         <form action={mejorarFotosPanel} className="pila tarjeta">
           <input type="hidden" name="id" value={p.id} />
           <p className="suave">
-            Mejora con IA la luz y el color de las primeras {Math.min(MAX_FOTOS, fotos.length)} fotos. Tarda unos minutos.
-            La original no se toca: revisa cada mejorada antes de publicarla, porque la IA puede cambiar detalles.
+            Mejora la luz y el color de las fotos. Tarda unos minutos. Tus fotos originales no se tocan: revisa las
+            mejoradas antes de usarlas.
           </p>
           <BotonEnviar texto="Mejorar fotos" pendiente="Mejorando… puede tardar unos minutos" />
         </form>
       )}
 
-      <h2>Ficha</h2>
-      <FormularioPropiedad p={p} accion={guardarPropiedad} boton="Guardar cambios" />
+      <h2>¿Sigue disponible?</h2>
+      {p.estado !== "activa" ? (
+        <form action={cambiarEstado}>
+          <input type="hidden" name="id" value={p.id} />
+          <input type="hidden" name="estado" value="activa" />
+          <p className="suave">La asistente no la está ofreciendo.</p>
+          <button type="submit" className="grande">
+            Volver a ofrecerla
+          </button>
+        </form>
+      ) : (
+        <div className="botones">
+          <form action={cambiarEstado}>
+            <input type="hidden" name="id" value={p.id} />
+            <input type="hidden" name="estado" value={p.operacion === "alquiler" ? "alquilada" : "vendida"} />
+            <button type="submit">{p.operacion === "alquiler" ? "Ya se alquiló" : "Ya se vendió"}</button>
+          </form>
+          <form action={cambiarEstado}>
+            <input type="hidden" name="id" value={p.id} />
+            <input type="hidden" name="estado" value="inactiva" />
+            <button type="submit">Pausarla</button>
+          </form>
+        </div>
+      )}
+
+      <details style={{ marginTop: 20 }}>
+        <summary>Ver o cambiar todos los datos</summary>
+        <FormularioPropiedad p={p} accion={guardarPropiedad} boton="Guardar cambios" />
+      </details>
     </>
   );
 }

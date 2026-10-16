@@ -29,8 +29,8 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
   return (
     <>
       <p>
-        <Link href="/panel" className="suave">
-          ← Hoy
+        <Link href="/panel/mas" className="suave">
+          ← Más
         </Link>
       </p>
       <header className="encabezado">
