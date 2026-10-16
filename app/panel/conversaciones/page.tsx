@@ -49,6 +49,9 @@ export default async function Conversaciones({
     <>
       <header className="encabezado">
         <h1>Conversaciones</h1>
+        <Link href="/panel/probar" className="boton">
+          Probar
+        </Link>
       </header>
       <Aviso texto={aviso} />
       <nav className="pestanas" aria-label="Filtro">

@@ -512,3 +512,21 @@ details summary {
   padding: 6px 0;
   border-top: 1px solid var(--borde);
 }
+
+/* Probar la asistente */
+
+.burbuja.aviso-prueba {
+  align-self: stretch;
+  max-width: 100%;
+  background: color-mix(in srgb, var(--soporte) 12%, var(--base));
+  border: 1px dashed var(--soporte);
+  font-size: 0.88rem;
+}
+
+.nota-prueba {
+  align-self: center;
+  font-size: 0.75rem;
+  color: var(--suave);
+  text-align: center;
+  margin: 0;
+}

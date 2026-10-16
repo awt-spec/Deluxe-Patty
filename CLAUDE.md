@@ -79,6 +79,11 @@ corredores conocidos (`app/panel/duenos/corredores`). Se guardan con su sesión 
 leen y validan en `lib/panel/formularios.ts`. Las fotos suben directo del teléfono al bucket `fotos`
 (`<corredor>/<propiedad>/originales/…`) con un permiso de subida por archivo (`createSignedUploadUrl`),
 achicadas a 2400 px, para no pasar por el límite de tamaño de las funciones de Vercel.
+"Probar la asistente" (`app/panel/probar`, desde Chats): el corredor le escribe como si fuera un cliente y
+`lib/simulador/simulador.ts` corre `procesarMensaje` real con un repositorio que solo lee propiedades,
+agenda y correcciones; la conversación, las citas de prueba y los avisos viven en el estado que guarda el
+navegador (`lib/simulador/estado.ts`). Nada se escribe en mensajes, citas ni conversaciones, nada sale por
+WhatsApp y no suma al tope; solo se registra el costo de Claude.
 
 ## Monitoreo (`lib/monitoreo/`)
 Errores (`registrar("error_…")`), fallas del webhook, crons fallidos, mensajes no entregados y costo de
