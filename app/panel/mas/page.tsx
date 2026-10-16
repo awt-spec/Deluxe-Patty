@@ -1,44 +1,68 @@
 import Link from "next/link";
 import { sesionConCorredor } from "@/lib/panel/sesion";
-import { elegirCorredor } from "../acciones";
+import { elegirCorredor, salir } from "../acciones";
+import {
+  IconoAjustes,
+  IconoAnuncio,
+  IconoFlecha,
+  IconoLlave,
+  IconoProbar,
+  IconoReloj,
+  IconoResumen,
+  IconoSalir,
+} from "../iconos";
 
 // Lo que no se usa todos los días: detrás de un solo botón, para que el menú quede en tres.
-const OPCIONES = [
-  { ruta: "/panel/probar", icono: "🧪", nombre: "Probar la asistente", detalle: "Escríbele como si fueras un cliente" },
-  { ruta: "/panel/resumen", icono: "📋", nombre: "Resumen del día", detalle: "Visitas, clientes nuevos y avisos" },
-  { ruta: "/panel/duenos", icono: "🔑", nombre: "Dueños directos", detalle: "La lista de cada lunes" },
-  { ruta: "/panel/anuncios", icono: "📣", nombre: "Anuncios", detalle: "Textos listos y contactos que traen" },
-  { ruta: "/panel/agenda/horario", icono: "🕘", nombre: "Mi horario", detalle: "Días y horas para enseñar casas" },
-  { ruta: "/panel/ajustes", icono: "⚙️", nombre: "Ajustes", detalle: "Tono, temas que te pasa y uso del mes" },
+const GRUPOS = [
+  [
+    { ruta: "/panel/probar", Icono: IconoProbar, nombre: "Probar la asistente", detalle: "Escríbele como si fueras un cliente" },
+    { ruta: "/panel/resumen", Icono: IconoResumen, nombre: "Resumen del día", detalle: "Visitas, clientes nuevos y avisos" },
+  ],
+  [
+    { ruta: "/panel/duenos", Icono: IconoLlave, nombre: "Dueños directos", detalle: "La lista de cada lunes" },
+    { ruta: "/panel/anuncios", Icono: IconoAnuncio, nombre: "Anuncios", detalle: "Textos listos y contactos que traen" },
+  ],
+  [
+    { ruta: "/panel/agenda/horario", Icono: IconoReloj, nombre: "Mi horario", detalle: "Días y horas para enseñar casas" },
+    { ruta: "/panel/ajustes", Icono: IconoAjustes, nombre: "Ajustes", detalle: "Tono, temas que te pasa y uso del mes" },
+  ],
 ];
 
 export default async function Mas() {
-  const { corredor, corredores } = await sesionConCorredor();
+  const { corredor, corredores, usuario } = await sesionConCorredor();
   return (
     <>
       <p>
-        <Link href="/panel" className="suave">
+        <Link href="/panel" className="volver">
           ← Chats
         </Link>
       </p>
       <header className="encabezado">
         <h1>Más</h1>
       </header>
-      <nav className="mas-lista" aria-label="Más opciones">
-        {OPCIONES.map((o) => (
-          <Link key={o.ruta} href={o.ruta} className="boton">
-            <span aria-hidden style={{ fontSize: "1.5rem" }}>
-              {o.icono}
-            </span>
-            <span style={{ textAlign: "left" }}>
-              {o.nombre}
-              <span className="suave" style={{ display: "block", fontWeight: 400 }}>
-                {o.detalle}
-              </span>
-            </span>
-          </Link>
+      <nav aria-label="Más opciones">
+        {GRUPOS.map((grupo, i) => (
+          <ul key={i} className="opciones">
+            {grupo.map((o) => (
+              <li key={o.ruta}>
+                <Link href={o.ruta}>
+                  <span className="opcion-icono">
+                    <o.Icono />
+                  </span>
+                  <span className="opcion-texto">
+                    {o.nombre}
+                    <span className="suave">{o.detalle}</span>
+                  </span>
+                  <span className="opcion-flecha">
+                    <IconoFlecha tamano={20} />
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
         ))}
       </nav>
+
       {corredores.length > 1 && (
         <form action={elegirCorredor} className="pila tarjeta" style={{ marginTop: 18 }}>
           <label htmlFor="corredor">Corredor (soporte)</label>
@@ -52,6 +76,18 @@ export default async function Mas() {
           <button type="submit">Ver</button>
         </form>
       )}
+
+      <form action={salir} className="opciones">
+        <button type="submit" className="opcion-salir">
+          <span className="opcion-icono">
+            <IconoSalir />
+          </span>
+          <span className="opcion-texto">
+            Salir
+            {usuario.email && <span className="suave">{usuario.email}</span>}
+          </span>
+        </button>
+      </form>
     </>
   );
 }

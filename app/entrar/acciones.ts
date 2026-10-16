@@ -2,11 +2,15 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { slugValido } from "@/lib/panel/marca";
 import { clienteConSesion } from "@/lib/supabase/servidor";
 
 export async function pedirEnlace(formulario: FormData) {
   const correo = String(formulario.get("correo") ?? "").trim().toLowerCase();
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) redirect("/entrar?aviso=correo");
+  // El corredor de la entrada (?c=) se conserva para que la pantalla siguiente tenga su marca.
+  const c = String(formulario.get("c") ?? "");
+  const conMarca = (aviso: string) => `/entrar?aviso=${aviso}${slugValido(c) ? `&c=${c}` : ""}`;
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) redirect(conMarca("correo"));
   // La dirección del enlace sale de la configuración; el encabezado Origin queda solo para local.
   const origen = process.env.NEXT_PUBLIC_URL_APP || (await headers()).get("origin") || "";
   const supabase = await clienteConSesion();
@@ -16,5 +20,5 @@ export async function pedirEnlace(formulario: FormData) {
     options: { shouldCreateUser: false, emailRedirectTo: `${origen}/auth/confirmar` },
   });
   // Misma respuesta exista o no la cuenta: no se revela qué correos están registrados.
-  redirect("/entrar?aviso=enviado");
+  redirect(conMarca("enviado"));
 }

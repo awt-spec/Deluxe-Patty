@@ -72,8 +72,9 @@ p {
   font-size: 0.7rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--soporte);
+  color: color-mix(in srgb, var(--soporte) 55%, var(--profundo));
   font-weight: 600;
+  margin: 0 0 2px;
 }
 
 /* Estructura */
@@ -105,13 +106,17 @@ p {
 }
 
 .navegacion a {
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
   text-decoration: none;
-  color: color-mix(in srgb, var(--base) 70%, transparent);
-  font-size: 0.9rem;
-  padding: 8px 0;
+  color: color-mix(in srgb, var(--base) 72%, transparent);
+  font-size: 0.88rem;
+  letter-spacing: 0.01em;
+  padding: 7px 0 6px;
   white-space: nowrap;
-  border-radius: 8px;
+  border-radius: 10px;
 }
 
 .navegacion a[aria-current="page"] {
@@ -120,9 +125,33 @@ p {
 }
 
 .navegacion .icono {
-  display: block;
-  font-size: 1.5rem;
-  line-height: 1.2;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 32px;
+  border-radius: 16px;
+}
+
+.navegacion a[aria-current="page"] .icono {
+  background: color-mix(in srgb, var(--principal) 16%, transparent);
+}
+
+.navegacion .contador {
+  position: absolute;
+  top: -4px;
+  right: 6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: var(--principal);
+  color: var(--profundo);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--profundo);
 }
 
 /* Piezas */
@@ -365,19 +394,93 @@ button.peligro {
   background: var(--superficie);
 }
 
-.entrar {
+.entrada {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--profundo);
+  color: var(--profundo);
+  padding: max(28px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
+}
+
+.entrada-marca {
+  flex: 1 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 150px;
+  max-height: 34vh;
+}
+
+.entrada-marca img {
+  display: block;
+  width: min(176px, 46vw);
+  height: auto;
+}
+
+.entrada-nombre {
+  font-family: var(--serif);
+  font-size: 1.8rem;
+  color: var(--principal);
+  margin: 0;
+}
+
+.entrada-tarjeta {
+  width: 100%;
   max-width: 420px;
-  margin: 0 auto;
-  padding: 18vh 20px 40px;
+  background: var(--base);
+  border-radius: 20px;
+  padding: 26px 22px 24px;
+  box-shadow: 0 18px 48px rgb(0 0 0 / 0.35);
+  font-size: 17px;
 }
 
-.entrar h1 {
-  font-size: 2rem;
-  margin-bottom: 8px;
+.entrada-tarjeta h1 {
+  font-size: 1.75rem;
+  margin-bottom: 6px;
 }
 
-.entrar form {
-  margin-top: 20px;
+.entrada-tarjeta form {
+  margin-top: 18px;
+}
+
+.entrada-tarjeta input[type="email"] {
+  min-height: 54px;
+  font-size: 17px;
+}
+
+.entrada-tarjeta .boton.grande,
+.entrada-tarjeta button.grande {
+  margin-top: 6px;
+}
+
+.entrada-tarjeta > .boton.grande {
+  margin-top: 18px;
+}
+
+.entrada-eslogan {
+  flex: 1 0 auto;
+  display: flex;
+  align-items: flex-end;
+  margin: 22px 0 0;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: color-mix(in srgb, var(--principal) 80%, transparent);
+  letter-spacing: 0.02em;
+}
+
+.sello {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  margin-bottom: 14px;
+  background: color-mix(in srgb, var(--principal) 22%, var(--base));
+  color: var(--profundo);
 }
 
 .vacio {
@@ -715,4 +818,172 @@ button.grande {
 .chip:has(input:focus-visible) {
   outline: 2px solid var(--principal);
   outline-offset: 2px;
+}
+
+/* Jerarquía de botones: uno principal por tarjeta, los demás secundarios */
+
+button.secundario,
+.boton.secundario {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--soporte) 45%, transparent);
+  font-weight: 500;
+}
+
+.botones.secundarios {
+  margin-top: -2px;
+}
+
+.boton.deshabilitado {
+  opacity: 0.55;
+  cursor: default;
+  margin: 18px 0 0;
+}
+
+.boton-mas {
+  gap: 6px;
+  border-radius: 999px;
+  padding-inline: 16px;
+}
+
+.volver {
+  color: var(--suave);
+  text-decoration: none;
+  font-weight: 600;
+  display: inline-block;
+  padding: 6px 0;
+}
+
+.al-dia {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: color-mix(in srgb, var(--ok) 10%, var(--superficie));
+  border: 1px solid color-mix(in srgb, var(--ok) 30%, transparent);
+  border-radius: var(--radio);
+  padding: 12px 14px;
+  margin: 8px 0 12px;
+}
+
+.al-dia span {
+  color: var(--ok);
+  font-weight: 700;
+}
+
+.aviso.error {
+  background: color-mix(in srgb, var(--peligro) 9%, var(--superficie));
+  border-color: color-mix(in srgb, var(--peligro) 35%, transparent);
+  color: var(--peligro);
+}
+
+/* Más: lista de opciones como los ajustes del teléfono */
+
+.opciones {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.opciones li + li {
+  border-top: 1px solid var(--borde);
+}
+
+.opciones a,
+.opcion-salir {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 72px;
+  padding: 12px 14px;
+  text-decoration: none;
+  text-align: left;
+  font-size: 1.05rem;
+  font-weight: 600;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.opcion-icono {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--principal) 18%, var(--base));
+  color: var(--profundo);
+}
+
+.opcion-texto {
+  flex: 1;
+  min-width: 0;
+}
+
+.opcion-texto .suave {
+  display: block;
+  font-weight: 400;
+  font-size: 0.9rem;
+}
+
+.opcion-flecha {
+  flex: none;
+  color: var(--suave);
+  display: grid;
+}
+
+.opcion-salir {
+  color: var(--peligro);
+}
+
+.opcion-salir .opcion-icono {
+  background: color-mix(in srgb, var(--peligro) 10%, var(--base));
+  color: var(--peligro);
+}
+
+/* Detalles: foco visible, respuesta al tocar y menos movimiento si el teléfono lo pide */
+
+:where(a, button, input, select, textarea, summary):focus-visible {
+  outline: 2.5px solid var(--principal);
+  outline-offset: 2px;
+}
+
+.navegacion a:focus-visible {
+  outline-offset: -2px;
+}
+
+button,
+.boton,
+.opciones a,
+.chat-lista a {
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.08s ease, background-color 0.15s ease, opacity 0.15s ease;
+}
+
+button:not(:disabled):active,
+.boton:not(.deshabilitado):active {
+  transform: scale(0.98);
+}
+
+.opciones a:active,
+.chat-lista a:active,
+.opcion-salir:active {
+  background: color-mix(in srgb, var(--soporte) 10%, transparent);
+  transform: none;
+}
+
+button:disabled,
+button[aria-busy="true"] {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
 }

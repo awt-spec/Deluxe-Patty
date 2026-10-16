@@ -24,23 +24,21 @@ El webhook se configura en el paso 4, cuando la app ya tiene dirección.
 
 ## 2. Supabase **[soporte]**
 
-1. Crear el proyecto (región más cercana a Vercel, por ejemplo `us-east-1`). Anotar **Project URL**,
-   **anon key** y **service_role key** (Configuración → API).
-2. Aplicar las migraciones desde este repositorio:
+1. Crear el proyecto (región más cercana a Vercel, por ejemplo `us-east-1`). Anotar el **Project ref**.
+2. Montarlo desde este repositorio con una llave de acceso (Account → Access Tokens), sin conexión directa
+   a Postgres. Aplica las migraciones en orden, carga la semilla la primera vez, configura Auth (sin
+   registros abiertos, enlace a `/auth/confirmar`), revisa RLS y buckets, y deja las llaves en `.env.local`:
    ```bash
-   npx supabase login
-   npx supabase link --project-ref <ref-del-proyecto>
-   npx supabase db push
+   SUPABASE_ACCESS_TOKEN=… npx tsx scripts/montar-supabase.mts <project-ref> [https://<dominio-de-la-app>]
    ```
-3. Cargar la semilla: abrir `supabase/seed.sql` en el editor SQL de Supabase y ejecutarlo. Crea Deluxe, su
-   horario provisional, su marca y tres propiedades **de ejemplo** (`EJEMPLO-*`): borrarlas cuando se carguen
-   las reales.
-4. Auth → URL Configuration:
-   - **Site URL**: `https://<dominio-de-la-app>`
-   - **Redirect URLs**: `https://<dominio-de-la-app>/auth/confirmar`
-5. Auth → Providers → Email: dejar habilitado el enlace mágico. No hace falta permitir registros: el acceso
+   Se puede volver a correr: solo aplica lo pendiente. Con el dominio de Vercel, correrlo de nuevo con esa
+   dirección. La semilla crea Deluxe, su horario provisional, su marca y tres propiedades **de ejemplo**
+   (`EJEMPLO-*`): borrarlas cuando se carguen las reales.
+3. Revisar en Auth → URL Configuration que **Site URL** sea `https://<dominio-de-la-app>` y **Redirect URLs**
+   solo `https://<dominio-de-la-app>/auth/confirmar` (el script lo deja así si le pasas el dominio).
+4. Auth → Providers → Email: dejar habilitado el enlace mágico. No hace falta permitir registros: el acceso
    lo da `scripts/dar-acceso.mts`.
-6. Auth → Attack Protection: activar el captcha (hCaptcha o Turnstile) para que nadie gaste el límite de
+5. Auth → Attack Protection: activar el captcha (hCaptcha o Turnstile) para que nadie gaste el límite de
    correos de entrada. Redirect URLs: solo el dominio de producción (y el de vistas previas, si se usan).
 
 ## 3. Vercel **[soporte]**

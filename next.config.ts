@@ -30,6 +30,8 @@ const nextConfig: NextConfig = {
     "/panel/propiedades/[id]": ARCHIVOS_ASISTENTE,
     "/panel/probar": ARCHIVOS_ASISTENTE,
     "/panel/propiedades/nueva": ARCHIVOS_ASISTENTE,
+    // Logo de la pantalla de entrada.
+    "/marca/[slug]/logo": ["./marcas/**/*"],
   },
 };
 

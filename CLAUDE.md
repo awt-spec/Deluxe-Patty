@@ -79,9 +79,12 @@ letra y botones grandes, palabras de todos los días (nada de "borrador" ni "esc
 es el inicio, como WhatsApp: arriba "Te necesitan" con lo que espera al corredor (✓ Enviar así,
 Cambiarla, Le escribo yo; "Escribirle por WhatsApp" y "Ya lo atendí" si el cliente pidió hablar con él),
 abajo todos los chats. Lo de poco uso (Probar la asistente, Resumen del día, Dueños, Anuncios, Mi horario,
-Ajustes) está detrás de un botón "Más" (`/panel/mas`). Entrada por enlace mágico de Supabase
-Auth (`/entrar`, sin crear usuarios: el acceso lo da `scripts/dar-acceso.mts`); `proxy.ts` renueva la
-sesión. Las páginas leen con la sesión del corredor (`lib/panel/sesion.ts`, RLS). Las acciones
+Ajustes, Salir) está detrás de un botón "Más" (`/panel/mas`). Íconos dibujados en `app/panel/iconos.tsx`
+(nada de emojis en la navegación); sobre Chats, el número de clientes que esperan. Entrada por enlace
+mágico de Supabase Auth (`/entrar`, sin crear usuarios: el acceso lo da `scripts/dar-acceso.mts`), con la
+marca del corredor (`lib/panel/marca.ts`): la de `?c=<slug>` o la del único corredor si hay uno solo; el
+logo se sirve en `/marca/<slug>/logo`. Después de pedir el enlace, pantalla "Revisa tu correo" y otro
+enlace solo pasado un minuto. `proxy.ts` renueva la sesión. Las páginas leen con la sesión del corredor (`lib/panel/sesion.ts`, RLS). Las acciones
 (`app/panel/acciones.ts`) primero comprueban con esa sesión que el mensaje o la conversación son suyos y
 luego actúan con el backend (`lib/panel/acciones.ts`): aprobar, corregir o descartar borradores (con su
 acción de cita), tomar y devolver control, escribir como el corredor. Cada corrección se guarda en
@@ -161,6 +164,9 @@ dueño o corredor. Un cambio de tono o de instrucciones se prueba con el set de 
 - `npm run test:db` — crea una base desechable en un Postgres local (usa `PGHOST`, `PGPORT`, `PGUSER`),
   aplica `supabase/tests/shim_supabase.sql`, las migraciones y la semilla, y corre las pruebas SQL de
   `supabase/tests/`. Incluye la prueba de que un corredor no ve datos de otro.
+- `SUPABASE_ACCESS_TOKEN=… npx tsx scripts/montar-supabase.mts <ref> [https://dominio]` — monta o pone al
+  día el Supabase real por la API de administración (migraciones pendientes, semilla la primera vez, Auth,
+  revisión de RLS y buckets; llaves en `.env.local`). Necesita `api.supabase.com` y `*.supabase.co` permitidos.
 - `npm run eval:conversaciones` — set de conversaciones (`evals/conversaciones/`): corre cada caso por la
   asistente con Claude real (base y WhatsApp simulados) y califica con código intención, escalamiento,
   agenda, avisos, cifras inventadas y fechas del modelo. Necesita `ANTHROPIC_API_KEY` y cuesta llamadas.

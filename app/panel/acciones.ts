@@ -13,6 +13,7 @@ import {
   type Resultado,
 } from "@/lib/panel/acciones";
 import { COOKIE_CORREDOR, sesionConCorredor } from "@/lib/panel/sesion";
+import { clienteConSesion } from "@/lib/supabase/servidor";
 
 // Server actions del panel. Antes de actuar con el backend (service_role) se comprueba con la sesión
 // del usuario (RLS) que el mensaje o la conversación son de su corredor.
@@ -187,8 +188,10 @@ export async function elegirCorredor(f: FormData) {
   redirect("/panel");
 }
 
+// Sin exigir corredor: también sale quien entró con un correo que todavía no tiene acceso.
 export async function salir() {
-  const { supabase } = await sesionConCorredor();
+  const supabase = await clienteConSesion();
   await supabase.auth.signOut();
+  (await cookies()).delete(COOKIE_CORREDOR);
   redirect("/entrar");
 }
