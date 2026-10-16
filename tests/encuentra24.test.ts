@@ -99,6 +99,30 @@ describe("buscarDuenos", () => {
     ]);
   });
 
+  it("una página bloqueada se salta y la zona sigue; dos bloqueos seguidos la abandonan", async () => {
+    const DESAFIO = "<title>Attention Required! | Cloudflare</title>";
+    const zonaA: Record<number, string> = {
+      1: paginaE24([anuncioE24(11, "Propietario", "Ana Mora")]),
+      2: DESAFIO,
+      3: paginaE24([anuncioE24(13, "Propietario", "Luis Vargas")]),
+      4: DESAFIO,
+      5: DESAFIO,
+      6: paginaE24([anuncioE24(16, "Propietario", "No debería leerse")]),
+    };
+    const pedidas: string[] = [];
+    const r = await buscarDuenos(
+      { categoria: CAT, zonas: ["a"], precioMin: null, precioMax: null, yaVistos: new Set(), bloqueados: [], maxPaginasPorZona: 6 },
+      async (url) => {
+        pedidas.push(url);
+        const n = Number(/page=(\d+)/.exec(url)?.[1] ?? 1);
+        return zonaA[n];
+      },
+      cerebro,
+    );
+    expect(r.leads.map((l) => l.anuncio.id).sort()).toEqual(["11", "13"]);
+    expect(pedidas).toHaveLength(5);
+  });
+
   it("si Encuentra24 bloquea todo, falla para que se note", async () => {
     await expect(
       buscarDuenos(
