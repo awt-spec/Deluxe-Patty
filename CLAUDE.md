@@ -132,7 +132,10 @@ dueño o corredor. Un cambio de tono o de instrucciones se prueba con el set de 
 - `npm run test:db` — crea una base desechable en un Postgres local (usa `PGHOST`, `PGPORT`, `PGUSER`),
   aplica `supabase/tests/shim_supabase.sql`, las migraciones y la semilla, y corre las pruebas SQL de
   `supabase/tests/`. Incluye la prueba de que un corredor no ve datos de otro.
-- Set de conversaciones de prueba: pendiente (semana 1, con las conversaciones reales de Patricia).
+- `npm run eval:conversaciones` — set de conversaciones (`evals/conversaciones/`): corre cada caso por la
+  asistente con Claude real (base y WhatsApp simulados) y califica con código intención, escalamiento,
+  agenda, avisos, cifras inventadas y fechas del modelo. Necesita `ANTHROPIC_API_KEY` y cuesta llamadas.
+  Hoy son 30 casos sintéticos; se completan con conversaciones reales de Patricia.
 
 ## Forma de trabajo
 Una rama por entregable, plan antes de código, pruebas de la parte nueva, set de conversaciones,

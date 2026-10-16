@@ -9,7 +9,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test:db": "scripts/test-db.sh",
-    "test": "vitest run"
+    "test": "vitest run",
+    "eval:conversaciones": "tsx scripts/evaluar-conversaciones.mts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.134.0",

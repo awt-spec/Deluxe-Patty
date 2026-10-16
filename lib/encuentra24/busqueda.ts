@@ -73,16 +73,22 @@ export async function buscarDuenos(
 
   // Las zonas se recorren por turnos (página 1 de cada una, luego página 2…) para repartir la
   // búsqueda y no agotar una sola zona.
+  // El desafío de Cloudflare es intermitente: una página bloqueada se salta y la zona sigue; solo se
+  // abandona tras dos bloqueos seguidos.
   const activas = new Set(p.zonas);
+  const bloqueosSeguidos = new Map<string, number>();
   for (let n = 1; n <= maxPaginas && activas.size > 0; n++) {
     for (const zona of [...activas]) {
       const html = await obtenerPagina(urlListado(p.categoria, zona, n));
       paginas++;
       if (esDesafio(html)) {
         desafios++;
-        activas.delete(zona);
+        const seguidos = (bloqueosSeguidos.get(zona) ?? 0) + 1;
+        bloqueosSeguidos.set(zona, seguidos);
+        if (seguidos >= 2) activas.delete(zona);
         continue;
       }
+      bloqueosSeguidos.set(zona, 0);
       const anuncios = anunciosDePagina(html);
       const nuevos = anuncios.filter((a) => !leidos.has(a.id));
       if (nuevos.length === 0) {
