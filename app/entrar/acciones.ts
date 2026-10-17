@@ -27,7 +27,10 @@ export async function pedirEnlace(formulario: FormData) {
 
 /** "Ver la demo": entra sin correo a la cuenta de demo, con datos ficticios. */
 export async function entrarDemo() {
-  const listo = await abrirSesionDemo().catch(() => false);
+  const listo = await abrirSesionDemo().catch((e: unknown) => {
+    console.error(JSON.stringify({ evento: "error_demo", paso: "excepcion", tipo: e instanceof Error ? e.name : "desconocido" }));
+    return false;
+  });
   if (!listo) redirect("/entrar?aviso=demo");
   (await cookies()).delete(COOKIE_CORREDOR);
   redirect("/panel");
