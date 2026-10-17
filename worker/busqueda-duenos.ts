@@ -56,10 +56,14 @@ async function principal() {
   const db = createClient(requerida("SUPABASE_URL"), requerida("SUPABASE_SERVICE_ROLE_KEY"), {
     auth: { persistSession: false },
   });
+  // Sin WhatsApp la búsqueda igual corre: los dueños quedan en la base y el corredor los ve en el panel
+  // (Más → Dueños directos). Con WhatsApp, además se le manda la lista.
+  const tokenWhatsApp = process.env.WHATSAPP_ACCESS_TOKEN || null;
+  if (!tokenWhatsApp) console.log(JSON.stringify({ evento: "busqueda_sin_whatsapp" }));
   const deps: Dependencias = {
     repo: crearRepositorioSupabase(db),
     cerebro: crearCerebroClaude(),
-    whatsapp: crearEnviadorWhatsApp(requerida("WHATSAPP_ACCESS_TOKEN")),
+    whatsapp: crearEnviadorWhatsApp(tokenWhatsApp ?? ""),
     plantillaAviso: process.env.WHATSAPP_PLANTILLA_AVISO ?? "aviso_corredor",
     plantillaRecordatorio: process.env.WHATSAPP_PLANTILLA_RECORDATORIO ?? "recordatorio_visita",
   };
@@ -101,7 +105,7 @@ async function principal() {
           }),
         );
 
-        if (corredor.whatsapp_corredor && corredor.whatsapp_phone_number_id) {
+        if (tokenWhatsApp && corredor.whatsapp_corredor && corredor.whatsapp_phone_number_id) {
           const lista = armarListaDuenos(resultado.leads);
           const resumen =
             `Tu lista semanal de dueños directos está lista: ${resultado.leads.length} ` +

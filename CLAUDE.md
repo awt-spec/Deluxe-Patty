@@ -125,8 +125,10 @@ React Server Components; `lib/encuentra24/parsear.ts` lee ese JSON (no clases CS
 Cloudflare: hace falta un navegador real (`worker/navegador.ts`), volumen bajo y pausas.
 `lib/encuentra24/busqueda.ts` recorre las zonas (`corredores.zonas_e24`, slugs de la URL) por turnos,
 descarta agentes, ya vistos, fuera de rango y corredores bloqueados, y Haiku confirma dueño o corredor.
-Si Encuentra24 bloquea o no trae anuncios, el workflow falla (GitHub avisa). La lista llega al corredor
-por WhatsApp; si su ventana de 24 horas está cerrada, queda en `envios_pendientes` y sale cuando escribe.
+Si Encuentra24 bloquea o no trae anuncios, el workflow falla (GitHub avisa). Los dueños quedan en
+`leads_duenos` y el corredor los ve en el panel (Más → Dueños directos); si hay WhatsApp
+(`WHATSAPP_ACCESS_TOKEN` y números del corredor), además le llega la lista, y si su ventana de 24 horas
+está cerrada, queda en `envios_pendientes` y sale cuando escribe. Sin WhatsApp la búsqueda corre igual.
 Probar la lectura sin tocar datos: `npx tsx worker/busqueda-duenos.ts --prueba <zona> [páginas]`. El acceso a datos va por `lib/datos/repositorio.ts`
 y Claude por `lib/asistente/cerebro.ts`; ambos son interfaces para poder probar con dobles.
 
