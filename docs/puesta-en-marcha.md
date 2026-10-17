@@ -108,12 +108,10 @@ Patricia entra en `https://<dominio-de-la-app>/entrar` con su correo.
 Para mostrar el panel sin datos reales: un botón "Ver la demo" en `/entrar` que entra directo a una cuenta
 con casas, chats y visitas de prueba. Nada sale por WhatsApp y no se suben fotos.
 
-1. Aplicar la migración `supabase/migrations/20261102000000_demo.sql` (editor SQL de Supabase) **antes**
-   de desplegar este código: el panel lee `corredores.activo`.
-2. En `.env.local`: `DEMO_CORREO=demo@<tu-dominio>` (un correo inventado: nunca se le escribe).
-3. `npm run demo`. Crea el corredor de demo (inactivo, con la marca de Deluxe) y su usuario.
+1. En `.env.local`: `DEMO_CORREO=demo@<tu-dominio>` (un correo inventado: nunca se le escribe).
+2. `npm run demo`. Crea el corredor de demo (inactivo, con la marca de Deluxe) y su usuario.
    Volver a correrlo deja la demo como nueva.
-4. En Vercel: `DEMO_CORREO` con el mismo valor y volver a desplegar. Sin esa variable el botón no aparece.
+3. En Vercel: `DEMO_CORREO` con el mismo valor y volver a desplegar. Sin esa variable el botón no aparece.
 
 Cualquiera con el enlace puede entrar a la demo: las respuestas de "Probar la asistente" y "Agregar casa"
 gastan Claude dentro del tope diario (`COSTO_DIARIO_TOPE_USD`).
