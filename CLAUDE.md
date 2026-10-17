@@ -21,8 +21,10 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   el corredor ve sus citas en el teléfono suscribiéndose al enlace ICS `/api/calendario/<token>.ics`.
 - Vercel Cron cada hora para recordatorios, plan del día, vencimiento de anuncios y monitoreo
   (`vercel.json`, protegido con `CRON_SECRET`).
-- Worker de búsqueda de dueños en Encuentra24 con Playwright en GitHub Actions
-  (`worker/busqueda-duenos.ts`, `.github/workflows/busqueda-duenos.yml`, lunes temprano).
+- Worker de búsqueda de dueños en Encuentra24 con Playwright (`worker/busqueda-duenos.ts`). Cloudflare
+  frena a los servidores de GitHub Actions, así que se corre una vez por semana desde la computadora de
+  soporte con `npm run duenos` (Chrome visible, perfil en `.perfil-encuentra24/`; quien lo corre resuelve
+  la verificación si aparece). `.github/workflows/busqueda-duenos.yml` queda solo para pruebas a mano.
 
 ## Reglas
 - **Todo dato lleva `corredor_id`** y la tabla tiene RLS. Las llaves foráneas entre tablas de negocio son
@@ -129,7 +131,7 @@ Si Encuentra24 bloquea o no trae anuncios, el workflow falla (GitHub avisa). Los
 `leads_duenos` y el corredor los ve en el panel (Más → Dueños directos); si hay WhatsApp
 (`WHATSAPP_ACCESS_TOKEN` y números del corredor), además le llega la lista, y si su ventana de 24 horas
 está cerrada, queda en `envios_pendientes` y sale cuando escribe. Sin WhatsApp la búsqueda corre igual.
-Probar la lectura sin tocar datos: `npx tsx worker/busqueda-duenos.ts --prueba <zona> [páginas]`. El acceso a datos va por `lib/datos/repositorio.ts`
+Probar la lectura sin tocar datos: `npm run duenos:prueba -- <zona> [páginas]`. El acceso a datos va por `lib/datos/repositorio.ts`
 y Claude por `lib/asistente/cerebro.ts`; ambos son interfaces para poder probar con dobles.
 
 ## Instrucciones del agente

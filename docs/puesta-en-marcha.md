@@ -103,14 +103,25 @@ SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… npx tsx scripts/dar-acceso.mts <t
 
 Patricia entra en `https://<dominio-de-la-app>/entrar` con su correo.
 
-## 7. Búsqueda semanal de dueños (GitHub)
+## 7. Búsqueda semanal de dueños (desde tu computadora)
 
-En el repositorio → Settings → Secrets and variables → Actions:
-- Secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`, `WHATSAPP_ACCESS_TOKEN`.
-- Variable: `WHATSAPP_PLANTILLA_AVISO` = `aviso_corredor`.
+Encuentra24 está detrás de Cloudflare, que casi siempre frena a los servidores de GitHub Actions. Por eso
+la búsqueda se corre una vez por semana desde tu computadora, con Chrome visible y tu internet de casa.
 
-Corre solo cada lunes. Para probar la lectura sin tocar datos: Actions → **Búsqueda semanal de dueños** →
-Run workflow, con una zona en `prueba_zona`.
+1. Zonas y rango de precios de Deluxe: en el panel, Más → Ajustes (zonas como en la dirección de
+   Encuentra24, por ejemplo `san-jose-provincia-escazu`).
+2. En `.env.local` (lo deja `scripts/montar-supabase.mts`): `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` y
+   además `ANTHROPIC_API_KEY` (Haiku confirma si cada anuncio es de un dueño). `WHATSAPP_ACCESS_TOKEN` es
+   opcional: sin él los dueños solo quedan en el panel.
+3. La primera vez: `npx playwright install chromium` (si no tienes Google Chrome; con Chrome usa ese).
+4. Cada semana: `npm run duenos`. Se abre Chrome; si Encuentra24 pide verificar que eres una persona,
+   resuélvelo en la ventana y la búsqueda sigue sola. Al final dice cuántos dueños nuevos guardó; están en
+   el panel, en Más → Dueños directos. Las cookies quedan en `.perfil-encuentra24/` y las semanas
+   siguientes casi nunca pide verificar.
+
+Para probar la lectura de una zona sin tocar datos: `npm run duenos:prueba -- <zona> [páginas]`. También
+existe en GitHub (Actions → **Búsqueda semanal de dueños** → Run workflow, con `prueba_zona`), pero ahí
+Cloudflare suele frenarla.
 
 ## 8. Verificación antes del piloto
 

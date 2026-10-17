@@ -3,6 +3,12 @@
 //
 //   npx tsx worker/busqueda-duenos.ts                       búsqueda real para todos los corredores
 //   npx tsx worker/busqueda-duenos.ts --prueba <zona> [n]   solo lee n páginas y muestra lo que encuentra
+//   npm run duenos                                          búsqueda real desde la computadora de soporte,
+//                                                           con Chrome visible (--visible) y .env.local
+//
+// Desde GitHub Actions Cloudflare casi siempre frena la lectura (sus servidores son de centro de datos);
+// por eso la búsqueda semanal se corre con --visible desde una computadora con internet de casa, y si
+// Encuentra24 pide verificar que es una persona, quien la corre lo resuelve en la ventana.
 //
 // Termina con código 1 si alguna búsqueda falla o no trae anuncios (el portal pudo cambiar):
 // GitHub avisa por correo del workflow fallido.
@@ -19,6 +25,11 @@ import { crearEnviadorWhatsApp } from "../lib/whatsapp/enviar";
 import { abrirNavegador } from "./navegador";
 import { errorSeguro } from "../lib/monitoreo/errores";
 
+const args = process.argv.slice(2);
+const VISIBLE = args.includes("--visible");
+// Perfil de Chrome propio de la búsqueda (cookies entre semanas), fuera del repositorio (.gitignore).
+const opcionesVisible = VISIBLE ? { visible: { perfil: ".perfil-encuentra24" } } : {};
+
 function requerida(nombre: string): string {
   const v = process.env[nombre];
   if (!v) throw new Error(`Falta la variable ${nombre}`);
@@ -32,7 +43,7 @@ function semanaDe(ahora: Date, zona: string): string {
 }
 
 async function prueba(zona: string, paginas: number) {
-  const nav = await abrirNavegador({ pausaMinMs: 3000, pausaMaxMs: 6000 });
+  const nav = await abrirNavegador({ pausaMinMs: 3000, pausaMaxMs: 6000, ...opcionesVisible });
   try {
     for (let n = 1; n <= paginas; n++) {
       const html = await nav.obtenerPagina(urlListado("bienes-raices-venta-de-propiedades-casas", zona, n));
@@ -69,10 +80,13 @@ async function principal() {
   };
 
   const ahora = new Date();
-  const nav = await abrirNavegador();
+  const nav = await abrirNavegador(opcionesVisible);
   let fallas = 0;
+  let guardados = 0;
   try {
-    for (const corredor of await corredoresConBusqueda(db)) {
+    const corredores = await corredoresConBusqueda(db);
+    if (corredores.length === 0) console.log("Ningún corredor tiene zonas de Encuentra24: cárgalas en el panel, en Más → Ajustes.");
+    for (const corredor of corredores) {
       try {
         const resultado = await buscarDuenos(
           {
@@ -87,6 +101,7 @@ async function principal() {
           deps.cerebro,
         );
         await guardarLeads(db, corredor.id, semanaDe(ahora, corredor.zona_horaria), resultado.leads);
+        guardados += resultado.leads.length;
         await deps.repo.registrarUso(corredor.id, {
           llamadasClaude: resultado.llamadasClaude,
           tokensEntrada: resultado.consumo.tokensEntrada,
@@ -125,10 +140,18 @@ async function principal() {
   } finally {
     await nav.cerrar();
   }
+  if (VISIBLE) {
+    console.log(
+      fallas
+        ? `Terminó con ${fallas} ${fallas === 1 ? "búsqueda fallida" : "búsquedas fallidas"} (arriba dice cuál).`
+        : `Listo: ${guardados} ${guardados === 1 ? "dueño nuevo" : "dueños nuevos"}. Están en el panel, en Más → Dueños directos.`,
+    );
+  }
   if (fallas) process.exit(1);
 }
 
-const [modo, zona, paginas] = process.argv.slice(2);
+const posicionales = args.filter((a) => a !== "--visible");
+const [modo, zona, paginas] = posicionales;
 (modo === "--prueba" ? prueba(zona ?? "san-jose-provincia-escazu", Number(paginas ?? 2)) : principal()).catch((e) => {
   console.error(JSON.stringify({ evento: "error_busqueda_duenos", error: errorSeguro(e) }));
   process.exit(1);
