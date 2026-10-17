@@ -69,7 +69,8 @@ const franjas = [1, 2, 3, 4, 5].flatMap((d) => [
 franjas.push({ corredor_id: ID, dia_semana: 6, hora_inicio: "09:00", hora_fin: "12:00" });
 revisar("horario", (await db.from("horarios_visitas").insert(franjas)).error);
 
-// 3. Casas de prueba.
+// 3. Casas de prueba. Al insertar varias filas, una columna que falta en alguna queda en null (no en su
+// valor por defecto): por eso todas llevan `estado`.
 const { data: casas, error: eCasas } = await db
   .from("propiedades")
   .insert([
@@ -78,17 +79,20 @@ const { data: casas, error: eCasas } = await db
       precio: 1250000, zona: "Escazú", provincia: "San José", canton: "Escazú", habitaciones: 4, banos: 4.5,
       m2_construccion: 520, m2_terreno: 1100, amenidades: ["piscina", "vista al valle", "cuarto de servicio", "seguridad 24/7"],
       descripcion: "Casa de líneas limpias en condominio cerrado, con piscina, jardín y vista abierta al Valle Central.",
+      estado: "activa",
     },
     {
       corredor_id: ID, codigo: "DEMO-02", titulo: "Apartamento amueblado en torre con amenidades", tipo: "apartamento",
       operacion: "alquiler", precio: 2800, zona: "Santa Ana", provincia: "San José", canton: "Santa Ana", habitaciones: 2,
       banos: 2, m2_construccion: 145, amenidades: ["amueblado", "gimnasio", "piscina", "2 parqueos"],
       descripcion: "Apartamento amueblado con balcón, cerca de centros comerciales y de la ruta 27.",
+      estado: "activa",
     },
     {
       corredor_id: ID, codigo: "DEMO-03", titulo: "Lote plano en condominio", tipo: "lote", operacion: "venta",
       precio: 340000, zona: "Ciudad Colón", provincia: "San José", canton: "Mora", m2_terreno: 2400,
       amenidades: ["agua y luz", "acceso controlado"], descripcion: "Lote plano con servicios, listo para construir.",
+      estado: "activa",
     },
     {
       corredor_id: ID, codigo: "DEMO-04", titulo: "Casa familiar con jardín", tipo: "casa", operacion: "venta",
