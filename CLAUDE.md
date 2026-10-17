@@ -86,7 +86,12 @@ Ajustes, Salir) está detrás de un botón "Más" (`/panel/mas`). Íconos dibuja
 mágico de Supabase Auth (`/entrar`, sin crear usuarios: el acceso lo da `scripts/dar-acceso.mts`), con la
 marca del corredor (`lib/panel/marca.ts`): la de `?c=<slug>` o la del único corredor si hay uno solo; el
 logo se sirve en `/marca/<slug>/logo`. Después de pedir el enlace, pantalla "Revisa tu correo" y otro
-enlace solo pasado un minuto. `proxy.ts` renueva la sesión. Las páginas leen con la sesión del corredor (`lib/panel/sesion.ts`, RLS). Las acciones
+enlace solo pasado un minuto. Con `DEMO_CORREO` aparece además "Ver la demo" (`lib/panel/demo.ts`): entra
+sin correo a un corredor **inactivo** con datos ficticios (`scripts/crear-demo.mts`, `npm run demo`), con
+una banda que lo dice; la demo no abre si ese usuario fuera miembro de un corredor activo. Un corredor
+inactivo nunca manda nada por WhatsApp (`dependenciasPara`, envíos simulados), no presta su marca a la
+entrada y en él no se suben ni mejoran fotos. Sin `WHATSAPP_ACCESS_TOKEN` el panel funciona igual y lo
+que tenga que salir por WhatsApp falla con su mensaje. `proxy.ts` renueva la sesión. Las páginas leen con la sesión del corredor (`lib/panel/sesion.ts`, RLS). Las acciones
 (`app/panel/acciones.ts`) primero comprueban con esa sesión que el mensaje o la conversación son suyos y
 luego actúan con el backend (`lib/panel/acciones.ts`): aprobar, corregir o descartar borradores (con su
 acción de cita), tomar y devolver control, escribir como el corredor. Cada corrección se guarda en
@@ -171,6 +176,8 @@ dueño o corredor. Un cambio de tono o de instrucciones se prueba con el set de 
 - `SUPABASE_ACCESS_TOKEN=… npx tsx scripts/montar-supabase.mts <ref> [https://dominio]` — monta o pone al
   día el Supabase real por la API de administración (migraciones pendientes, semilla la primera vez, Auth,
   revisión de RLS y buckets; llaves en `.env.local`). Necesita `api.supabase.com` y `*.supabase.co` permitidos.
+- `npm run demo` — crea o deja como nueva la cuenta de demo (lee `.env.local`: `SUPABASE_URL`,
+  `SUPABASE_SERVICE_ROLE_KEY`, `DEMO_CORREO`).
 - `npm run eval:conversaciones` — set de conversaciones (`evals/conversaciones/`): corre cada caso por la
   asistente con Claude real (base y WhatsApp simulados) y califica con código intención, escalamiento,
   agenda, avisos, cifras inventadas y fechas del modelo. Necesita `ANTHROPIC_API_KEY` y cuesta llamadas.

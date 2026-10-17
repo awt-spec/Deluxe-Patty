@@ -1,8 +1,10 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { abrirSesionDemo } from "@/lib/panel/demo";
 import { slugValido } from "@/lib/panel/marca";
+import { COOKIE_CORREDOR } from "@/lib/panel/sesion";
 import { clienteConSesion } from "@/lib/supabase/servidor";
 
 export async function pedirEnlace(formulario: FormData) {
@@ -21,4 +23,12 @@ export async function pedirEnlace(formulario: FormData) {
   });
   // Misma respuesta exista o no la cuenta: no se revela qué correos están registrados.
   redirect(conMarca("enviado"));
+}
+
+/** "Ver la demo": entra sin correo a la cuenta de demo, con datos ficticios. */
+export async function entrarDemo() {
+  const listo = await abrirSesionDemo().catch(() => false);
+  if (!listo) redirect("/entrar?aviso=demo");
+  (await cookies()).delete(COOKIE_CORREDOR);
+  redirect("/panel");
 }

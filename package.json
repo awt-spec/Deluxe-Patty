@@ -12,7 +12,8 @@
     "test": "vitest run",
     "eval:conversaciones": "tsx scripts/evaluar-conversaciones.mts",
     "duenos": "tsx --env-file=.env.local worker/busqueda-duenos.ts --visible",
-    "duenos:prueba": "tsx worker/busqueda-duenos.ts --visible --prueba"
+    "duenos:prueba": "tsx worker/busqueda-duenos.ts --visible --prueba",
+    "demo": "tsx --env-file=.env.local scripts/crear-demo.mts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.134.0",

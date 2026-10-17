@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { dependencias } from "@/lib/asistente/dependencias";
+import { dependenciasPara } from "@/lib/asistente/dependencias";
 import {
   aprobarBorrador,
   descartarBorrador,
@@ -54,14 +54,14 @@ async function mensajePropio(mensajeId: string) {
 export async function aprobar(f: FormData) {
   const mensaje = texto(f, "mensaje");
   const { corredor, conversacionId } = await mensajePropio(mensaje);
-  const r = await aprobarBorrador(dependencias(), corredor, mensaje, texto(f, "texto"));
+  const r = await aprobarBorrador(dependenciasPara(corredor), corredor, mensaje, texto(f, "texto"));
   volver(destino(f, `/panel/conversaciones/${conversacionId}`), r, "Enviado.");
 }
 
 export async function descartar(f: FormData) {
   const mensaje = texto(f, "mensaje");
   const { corredor, conversacionId } = await mensajePropio(mensaje);
-  const r = await descartarBorrador(dependencias(), corredor, mensaje);
+  const r = await descartarBorrador(dependenciasPara(corredor), corredor, mensaje);
   volver(destino(f, `/panel/conversaciones/${conversacionId}`), r, "Listo, no se envió.");
 }
 
@@ -70,7 +70,7 @@ export async function tomar(f: FormData) {
   const corredor = await conversacionPropia(id);
   volver(
     `/panel/conversaciones/${id}`,
-    await tomarControl(dependencias(), corredor, id),
+    await tomarControl(dependenciasPara(corredor), corredor, id),
     "Ahora le contestas tú: la asistente no se mete en este chat.",
   );
 }
@@ -80,7 +80,7 @@ export async function devolver(f: FormData) {
   const corredor = await conversacionPropia(id);
   volver(
     destino(f, `/panel/conversaciones/${id}`),
-    await devolverControl(dependencias(), corredor, id),
+    await devolverControl(dependenciasPara(corredor), corredor, id),
     "Listo: la asistente vuelve a contestarle.",
   );
 }
@@ -90,7 +90,7 @@ export async function escribir(f: FormData) {
   const corredor = await conversacionPropia(id);
   volver(
     `/panel/conversaciones/${id}`,
-    await escribirComoCorredor(dependencias(), corredor, id, texto(f, "texto")),
+    await escribirComoCorredor(dependenciasPara(corredor), corredor, id, texto(f, "texto")),
     "Enviado.",
   );
 }
@@ -109,7 +109,7 @@ export async function yoLeEscribo(f: FormData) {
     .eq("id", id)
     .maybeSingle();
   if (!data) redirect("/panel?aviso=No%20encontr%C3%A9%20el%20chat.");
-  const deps = dependencias();
+  const deps = dependenciasPara(corredor);
   const { data: pendientes } = await supabase
     .from("mensajes")
     .select("id")

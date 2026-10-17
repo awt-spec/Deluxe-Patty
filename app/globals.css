@@ -987,3 +987,40 @@ button[aria-busy="true"] {
     transition: none !important;
   }
 }
+
+/* Demo */
+
+.entrada-demo {
+  margin-top: 6px;
+  text-align: center;
+}
+
+.entrada-demo .suave {
+  margin-top: 8px;
+}
+
+.separador {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0 14px;
+  color: var(--suave);
+  font-size: 0.9rem;
+}
+
+.separador::before,
+.separador::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--borde);
+}
+
+.banda-demo {
+  margin: 0;
+  padding: 8px 16px;
+  text-align: center;
+  font-size: 0.88rem;
+  font-weight: 600;
+  background: var(--principal);
+  color: var(--profundo);
+}
