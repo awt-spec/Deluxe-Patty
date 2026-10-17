@@ -4,7 +4,7 @@ import { SIN_CONSUMO } from "../lib/asistente/costo";
 import { procesarMensaje, type Dependencias } from "../lib/asistente/procesar";
 import type { Corredor } from "../lib/datos/tipos";
 import { aprobarBorrador, descartarBorrador, devolverControl, escribirComoCorredor, tomarControl } from "../lib/panel/acciones";
-import type { EnviadorWhatsApp } from "../lib/whatsapp/enviar";
+import { enviadorDemo, enviadorSinConfigurar, type EnviadorWhatsApp } from "../lib/whatsapp/enviar";
 import { corredorBase, entrante, repoEnMemoria } from "./dobles";
 
 describe("panel: piloto en sombra y toma de control", () => {
@@ -47,6 +47,23 @@ describe("panel: piloto en sombra y toma de control", () => {
     expect(borrador()).toMatchObject({ estado_borrador: "aprobado", estado_entrega: "enviado" });
     expect(await aprobarBorrador(deps, corredor, borrador().id)).toEqual({ ok: false, motivo: "Este borrador ya se resolvió." });
     expect(whatsapp.texto).toHaveBeenCalledTimes(1);
+  });
+
+  it("en la demo aprobar simula el envío: queda como enviado sin llamar a Meta", async () => {
+    await llega("¿Sigue disponible?");
+    const demo = { ...deps, whatsapp: enviadorDemo() };
+    expect(await aprobarBorrador(demo, corredor, borrador().id)).toEqual({ ok: true });
+    expect(borrador()).toMatchObject({ estado_borrador: "aprobado", estado_entrega: "enviado" });
+    expect(String(borrador().wa_message_id)).toMatch(/^demo-/);
+    expect(whatsapp.texto).not.toHaveBeenCalled();
+  });
+
+  it("sin token de WhatsApp aprobar falla con su mensaje y el borrador sigue pendiente de envío", async () => {
+    await llega("¿Sigue disponible?");
+    const sinToken = { ...deps, whatsapp: enviadorSinConfigurar() };
+    const r = await aprobarBorrador(sinToken, corredor, borrador().id);
+    expect(r.ok).toBe(false);
+    expect(borrador()).toMatchObject({ estado_entrega: "fallido" });
   });
 
   it("corregir envía la versión de Patricia y la usa como ejemplo de tono la próxima vez", async () => {

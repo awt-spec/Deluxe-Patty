@@ -3,7 +3,8 @@ import { crearRepositorioSupabase } from "../datos/repositorio";
 import { createAdminClient } from "../supabase/admin";
 import { crearEditorOpenAI } from "../fotos/editor";
 import { crearAlertas, reclamarConSupabase, type Alertas } from "../monitoreo/alertas";
-import { crearEnviadorWhatsApp } from "../whatsapp/enviar";
+import type { Corredor } from "../datos/tipos";
+import { crearEnviadorWhatsApp, enviadorDemo, enviadorSinConfigurar } from "../whatsapp/enviar";
 import { crearCerebroClaude } from "./cerebro";
 import type { Dependencias } from "./procesar";
 
@@ -40,12 +41,13 @@ export function alertasSoporte(): Alertas {
 
 export function dependencias(): Dependencias {
   if (!deps) {
+    // Sin token el panel sigue funcionando (casas, horario, probar la asistente); lo que tenga que salir
+    // por WhatsApp falla con su mensaje de siempre.
     const token = process.env.WHATSAPP_ACCESS_TOKEN;
-    if (!token) throw new Error("Falta WHATSAPP_ACCESS_TOKEN");
     deps = {
       repo: crearRepositorioSupabase(createAdminClient()),
       cerebro: crearCerebroClaude(),
-      whatsapp: crearEnviadorWhatsApp(token),
+      whatsapp: token ? crearEnviadorWhatsApp(token) : enviadorSinConfigurar(),
       plantillaAviso: process.env.WHATSAPP_PLANTILLA_AVISO ?? "aviso_corredor",
       plantillaRecordatorio: process.env.WHATSAPP_PLANTILLA_RECORDATORIO ?? "recordatorio_visita",
       fotos: process.env.OPENAI_API_KEY ? crearEditorOpenAI() : undefined,
@@ -62,4 +64,13 @@ export function dependencias(): Dependencias {
     };
   }
   return deps;
+}
+
+/**
+ * Dependencias para actuar en nombre de un corredor desde el panel. Un corredor inactivo (la cuenta de
+ * demo) nunca manda nada por WhatsApp: los envíos se simulan.
+ */
+export function dependenciasPara(corredor: Pick<Corredor, "activo">): Dependencias {
+  const base = dependencias();
+  return corredor.activo === false ? { ...base, whatsapp: enviadorDemo() } : base;
 }

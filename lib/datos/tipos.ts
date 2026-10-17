@@ -22,6 +22,8 @@ export interface Corredor {
   hora_plan_dia: string;
   /** Identidad visual para la ficha de propiedad; null si no está configurada. */
   marca: Marca | null;
+  /** false en la cuenta de demo (y en un corredor dado de baja): nada sale por WhatsApp. */
+  activo?: boolean;
 }
 
 export interface Contacto {

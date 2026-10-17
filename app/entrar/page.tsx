@@ -1,13 +1,15 @@
 import { BotonEnviar } from "@/app/panel/boton-enviar";
 import { IconoCorreo } from "@/app/panel/iconos";
+import { demoDisponible } from "@/lib/panel/demo";
 import { marcaDeEntrada, slugValido } from "@/lib/panel/marca";
-import { pedirEnlace } from "./acciones";
+import { entrarDemo, pedirEnlace } from "./acciones";
 import { OtroEnlace } from "./otro-enlace";
 import { PantallaEntrada } from "./pantalla";
 
 const ERRORES: Record<string, string> = {
   correo: "Ese correo parece incompleto. Revísalo y vuelve a intentar.",
   enlace: "Ese enlace ya se usó o venció. Escribe tu correo y te mandamos uno nuevo.",
+  demo: "La demo no está disponible en este momento.",
 };
 
 export default async function Entrar({ searchParams }: { searchParams: Promise<{ aviso?: string; c?: string }> }) {
@@ -55,6 +57,15 @@ export default async function Entrar({ searchParams }: { searchParams: Promise<{
         />
         <BotonEnviar texto="Enviarme el enlace" pendiente="Enviando…" className="primario grande" />
       </form>
+      {demoDisponible() && (
+        <form action={entrarDemo} className="entrada-demo">
+          <p className="separador">
+            <span>¿Solo quieres conocerla?</span>
+          </p>
+          <BotonEnviar texto="Ver la demo" pendiente="Entrando…" className="grande secundario" />
+          <p className="suave">Con casas y clientes de prueba. Nada se manda a nadie.</p>
+        </form>
+      )}
     </PantallaEntrada>
   );
 }

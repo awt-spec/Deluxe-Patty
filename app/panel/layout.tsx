@@ -41,6 +41,11 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
     : undefined;
   return (
     <div style={estilo} className="marco">
+      {corredor.activo === false && (
+        <p className="banda-demo" role="note">
+          Estás en la demo: casas y clientes de prueba. Nada se manda por WhatsApp.
+        </p>
+      )}
       <main className="panel">{children}</main>
       <Navegacion teNecesitan={teNecesitan} />
     </div>

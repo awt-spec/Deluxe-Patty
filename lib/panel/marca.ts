@@ -30,7 +30,8 @@ export async function marcaDeEntrada(slug?: string | null): Promise<MarcaEntrada
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return null;
   try {
     const db = createAdminClient();
-    const consulta = db.from("corredores").select("slug, nombre, marca");
+    // Solo corredores activos: la cuenta de demo (inactiva) no cuenta ni presta su marca.
+    const consulta = db.from("corredores").select("slug, nombre, marca").eq("activo", true);
     const { data } = slugValido(slug) ? await consulta.eq("slug", slug).limit(1) : await consulta.limit(2);
     if (!data || data.length !== 1) return null;
     const fila = data[0] as { slug: string; nombre: string; marca: Marca | null };

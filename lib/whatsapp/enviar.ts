@@ -84,3 +84,17 @@ export function crearEnviadorWhatsApp(accessToken: string): EnviadorWhatsApp {
       }),
   };
 }
+
+/** Sin WHATSAPP_ACCESS_TOKEN: cada envío falla como si Meta lo rechazara, y el panel lo dice. */
+export function enviadorSinConfigurar(): EnviadorWhatsApp {
+  const fallar = async (): Promise<string> => {
+    throw new ErrorWhatsApp(0, undefined);
+  };
+  return { texto: fallar, imagen: fallar, documento: fallar, plantilla: fallar };
+}
+
+/** Cuenta de demo (corredor inactivo): nada sale de verdad; cada envío devuelve un id inventado. */
+export function enviadorDemo(): EnviadorWhatsApp {
+  const simular = async () => `demo-${crypto.randomUUID()}`;
+  return { texto: simular, imagen: simular, documento: simular, plantilla: simular };
+}

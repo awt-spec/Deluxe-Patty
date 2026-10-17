@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prepararAnuncio } from "@/lib/anuncios/preparar";
-import { dependencias } from "@/lib/asistente/dependencias";
+import { dependenciasPara } from "@/lib/asistente/dependencias";
 import { SIN_PRESUPUESTO, hayPresupuestoHoy } from "@/lib/asistente/limites";
 import type { FichaParcial, Foto } from "@/lib/datos/tipos";
 import { fichaDePropiedad } from "@/lib/fichas/comando";
@@ -36,6 +36,8 @@ const ir = (ruta: string, aviso: string): never => {
   revalidatePath("/panel/propiedades");
   redirect(`${ruta}?aviso=${encodeURIComponent(aviso)}`);
 };
+
+const EN_LA_DEMO = "En la demo no se suben ni se mejoran fotos.";
 
 async function propiedadPropia(id: string) {
   const s = await sesionConCorredor();
@@ -104,6 +106,8 @@ export type Subida = { camino: string; token: string };
  */
 export async function pedirSubidas(propiedadId: string, nombres: string[]): Promise<Subida[] | { error: string }> {
   const { corredor, propiedad } = await propiedadPropia(propiedadId);
+  // En la demo cualquiera puede entrar: no se suben archivos al bucket público.
+  if (corredor.activo === false) return { error: EN_LA_DEMO };
   if (nombres.length === 0 || nombres.length > 12 || propiedad.fotos.length + nombres.length > MAX_FOTOS_PROPIEDAD) {
     return { error: `Sube hasta 12 fotos a la vez (cada casa lleva hasta ${MAX_FOTOS_PROPIEDAD}).` };
   }
@@ -161,7 +165,7 @@ export async function generarFicha(f: FormData) {
   // redirect() lanza una excepción: se decide el destino dentro del try y se redirige afuera.
   let destino: string;
   try {
-    const ficha = await fichaDePropiedad(dependencias(), corredor, propiedad.codigo);
+    const ficha = await fichaDePropiedad(dependenciasPara(corredor), corredor, propiedad.codigo);
     destino =
       ficha.tipo === "pdf" ? ficha.url : `/panel/propiedades/${id}?aviso=${encodeURIComponent(ficha.texto)}`;
   } catch {
@@ -173,7 +177,7 @@ export async function generarFicha(f: FormData) {
 export async function prepararAnuncioPanel(f: FormData) {
   const id = String(f.get("id") ?? "");
   const { corredor, propiedad } = await propiedadPropia(id);
-  const deps = dependencias();
+  const deps = dependenciasPara(corredor);
   if (!(await hayPresupuestoHoy(deps.repo, corredor))) ir("/panel/anuncios", SIN_PRESUPUESTO);
   let aviso: string;
   try {
@@ -196,7 +200,9 @@ export async function prepararAnuncioPanel(f: FormData) {
 export async function mejorarFotosPanel(f: FormData) {
   const id = String(f.get("id") ?? "");
   const { corredor, propiedad } = await propiedadPropia(id);
-  const deps = dependencias();
+  // Mejorar fotos usa OpenAI y sube archivos: en la demo no.
+  if (corredor.activo === false) ir(`/panel/propiedades/${id}`, EN_LA_DEMO);
+  const deps = dependenciasPara(corredor);
   // Fuera del try: redirect() lanza una excepción que el catch no debe tragarse.
   if (!(await hayPresupuestoHoy(deps.repo, corredor))) ir(`/panel/propiedades/${id}`, SIN_PRESUPUESTO);
   let aviso: string;
@@ -229,7 +235,7 @@ export async function conversarCasa(mensajesNavegador: unknown, fichaNavegador: 
     }))
     .filter((m) => m.texto.trim());
   if (!mensajes.some((m) => m.autor === "corredor")) return { error: "Cuéntame algo de la casa." };
-  const deps = dependencias();
+  const deps = dependenciasPara(corredor);
   if (!(await hayPresupuestoHoy(deps.repo, corredor))) return { error: SIN_PRESUPUESTO };
   try {
     const r = await conversarFicha(deps.cerebro, corredor, mensajes, fichaNavegador ? fichaLimpia(fichaNavegador) : null);
