@@ -10,7 +10,9 @@
     "typecheck": "tsc --noEmit",
     "test:db": "scripts/test-db.sh",
     "test": "vitest run",
-    "eval:conversaciones": "tsx scripts/evaluar-conversaciones.mts"
+    "eval:conversaciones": "tsx scripts/evaluar-conversaciones.mts",
+    "duenos": "tsx --env-file=.env.local worker/busqueda-duenos.ts --visible",
+    "duenos:prueba": "tsx worker/busqueda-duenos.ts --visible --prueba"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.134.0",
