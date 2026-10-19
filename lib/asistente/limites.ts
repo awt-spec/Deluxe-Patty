@@ -36,7 +36,7 @@ export async function frenoCliente(
 }
 
 /** Las funciones con IA del panel (probar, agregar casa, anuncio, fotos) respetan el mismo tope diario. */
-export async function hayPresupuestoHoy(repo: Repositorio, corredor: Corredor, ahora = new Date()): Promise<boolean> {
+export async function hayPresupuestoHoy(repo: Pick<Repositorio, "costoClaudeDelDia">, corredor: Corredor, ahora = new Date()): Promise<boolean> {
   return (await repo.costoClaudeDelDia(corredor.id, diaLocal(corredor, ahora))) < topeCostoDiarioUsd();
 }
 

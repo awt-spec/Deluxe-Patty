@@ -2,6 +2,8 @@ import Link from "next/link";
 import { fechaCorta, precio } from "@/lib/formato";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { marcarLead } from "../acciones";
+import { desconectarExtension } from "./acciones";
+import { ConectarExtension } from "./conectar-extension";
 
 type Lead = {
   id: string;
@@ -25,15 +27,26 @@ const ESTADO: Record<string, string> = {
 };
 
 export default async function Duenos() {
-  const { supabase } = await sesionConCorredor();
-  const { data } = await supabase
+  const { supabase, corredor } = await sesionConCorredor();
+  const [{ data }, { data: conexiones }] = await Promise.all([
+    supabase
     .from("leads_duenos")
     .select("id, url, titulo, zona, precio, moneda, puntaje, senales, estado_contacto, semana")
     .eq("es_dueno", true)
     .neq("estado_contacto", "descartado")
     .order("semana", { ascending: false })
     .order("puntaje", { ascending: false })
-    .limit(90);
+    .limit(90),
+    supabase
+      .from("extension_conexiones")
+      .select("conectada_at, ultimo_uso_at")
+      .eq("corredor_id", corredor.id)
+      .not("conectada_at", "is", null)
+      .is("revocada_at", null)
+      .order("conectada_at", { ascending: false })
+      .limit(1),
+  ]);
+  const conexion = conexiones?.[0] as { conectada_at: string; ultimo_uso_at: string | null } | undefined;
   const leads = (data ?? []) as Lead[];
   const semanas = [...new Set(leads.map((l) => l.semana))];
 
@@ -49,7 +62,31 @@ export default async function Duenos() {
         Lista semanal de Encuentra24. Escríbeles desde el botón de WhatsApp del anuncio; la asistente nunca les
         escribe.
       </p>
-      {leads.length === 0 && <p className="vacio">Todavía no hay dueños directos. La búsqueda corre los lunes.</p>}
+      <section className="tarjeta pila">
+        <h2>Buscar desde Chrome</h2>
+        {conexion ? (
+          <>
+            <p>
+              Tu extensión está conectada
+              {conexion.ultimo_uso_at ? ` (la usaste el ${fechaCorta(conexion.ultimo_uso_at.slice(0, 10))})` : ""}. Ábrela en
+              Chrome y toca <strong>Buscar dueños</strong> una vez por semana.
+            </p>
+            <form action={desconectarExtension}>
+              <button type="submit">Desconectar la extensión</button>
+            </form>
+          </>
+        ) : (
+          <>
+            <p>
+              La búsqueda corre en tu Chrome: la extensión abre Encuentra24 en una pestaña y aquí aparecen los dueños.{" "}
+              <Link href="/panel/duenos/extension">Cómo instalarla</Link>.
+            </p>
+            <ConectarExtension />
+          </>
+        )}
+      </section>
+
+      {leads.length === 0 && <p className="vacio">Todavía no hay dueños directos.</p>}
       {semanas.map((semana) => (
         <section key={semana}>
           <h2>Semana del {fechaCorta(semana)}</h2>

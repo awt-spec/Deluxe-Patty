@@ -1024,3 +1024,17 @@ button[aria-busy="true"] {
   background: var(--principal);
   color: var(--profundo);
 }
+
+.codigo-extension {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  user-select: all;
+}
+
+.pasos {
+  padding-left: 1.4em;
+  gap: 10px;
+}
