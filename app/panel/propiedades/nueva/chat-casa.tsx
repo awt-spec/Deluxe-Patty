@@ -25,7 +25,11 @@ export function ChatCasa() {
   const [error, setError] = useState<string | null>(null);
   const final = useRef<HTMLDivElement>(null);
 
-  useEffect(() => final.current?.scrollIntoView({ behavior: "smooth", block: "end" }), [lineas, resumen, guardada, ocupado]);
+  // Con llaves: en los Chrome nuevos scrollIntoView devuelve una promesa, y si el efecto la devuelve React
+  // la toma por la función de limpieza y la página se cae ("destroy is not a function").
+  useEffect(() => {
+    final.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [lineas, resumen, guardada, ocupado]);
 
   async function enviar() {
     const limpio = texto.trim();
