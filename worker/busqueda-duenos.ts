@@ -64,6 +64,13 @@ async function prueba(zona: string, paginas: number) {
 }
 
 async function principal() {
+  // Antes de abrir nada: si falta una variable se dice cuál (el nombre no es secreto), en vez del error
+  // genérico que da el cliente de Claude sin llave.
+  const faltan = ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "ANTHROPIC_API_KEY"].filter((v) => !process.env[v]);
+  if (faltan.length) {
+    console.error(`Faltan en .env.local: ${faltan.join(", ")}. Agrégalas y vuelve a correr la búsqueda.`);
+    process.exit(1);
+  }
   const db = createClient(requerida("SUPABASE_URL"), requerida("SUPABASE_SERVICE_ROLE_KEY"), {
     auth: { persistSession: false },
   });
