@@ -65,7 +65,8 @@ export async function conManejo(ruta: string, f: () => Promise<Response>): Promi
   } catch (e) {
     console.error(JSON.stringify({ evento: "error_extension", ruta, error: errorSeguro(e) }));
     alertar(`error_extension:${ruta}`, `La extensión de Chrome falló en ${ruta}: ${errorSeguro(e)}`);
-    return fallo("servidor", 500);
+    // El detalle (operación y código, sin datos personales) le sirve a soporte para saber qué falló.
+    return responder({ ok: false, motivo: "servidor", mensaje: MENSAJES.servidor, detalle: errorSeguro(e) }, 500);
   } finally {
     await esperarAlertas();
   }
