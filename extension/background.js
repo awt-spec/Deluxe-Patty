@@ -12,6 +12,8 @@ const ESPERA_RESULTADO_MS = 6 * 60_000;
 
 let corriendo = false;
 
+class VerificacionPendiente extends Error {}
+
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function progreso(cambios) {
@@ -98,6 +100,8 @@ async function abrir(tabId, url) {
       html = await leerPestana(tabId);
       await progreso({});
     }
+    // Sin resolver no se sigue: cada página volvería a esperar 5 minutos.
+    if (esVerificacion(html)) throw new VerificacionPendiente();
     await progreso({ fase: "buscando", mensaje: "Sigo buscando…" });
   }
   return html;
@@ -150,8 +154,14 @@ async function buscar() {
           ? `Listo: revisé ${r.resumen.anuncios} anuncios y esta semana no hay dueños nuevos.`
           : `Listo: ${n} ${n === 1 ? "dueño nuevo" : "dueños nuevos"}. Están en el panel, en Más → Dueños directos.`,
     });
-  } catch {
-    await progreso({ fase: "error", mensaje: "La búsqueda se cortó. Vuelve a intentarlo." });
+  } catch (e) {
+    await progreso({
+      fase: "error",
+      mensaje:
+        e instanceof VerificacionPendiente
+          ? "Encuentra24 siguió pidiendo la verificación. Vuelve a buscar cuando puedas resolverla en la pestaña."
+          : "La búsqueda se cortó. Vuelve a intentarlo.",
+    });
   } finally {
     corriendo = false;
     if (tabId !== null) chrome.tabs.remove(tabId).catch(() => {});
