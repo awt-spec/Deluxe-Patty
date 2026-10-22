@@ -21,10 +21,17 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   el corredor ve sus citas en el teléfono suscribiéndose al enlace ICS `/api/calendario/<token>.ics`.
 - Vercel Cron cada hora para recordatorios, plan del día, vencimiento de anuncios y monitoreo
   (`vercel.json`, protegido con `CRON_SECRET`).
-- Worker de búsqueda de dueños en Encuentra24 con Playwright (`worker/busqueda-duenos.ts`). Cloudflare
-  frena a los servidores de GitHub Actions, así que se corre una vez por semana desde la computadora de
-  soporte con `npm run duenos` (Chrome visible, perfil en `.perfil-encuentra24/`; quien lo corre resuelve
-  la verificación si aparece). `.github/workflows/busqueda-duenos.yml` queda solo para pruebas a mano.
+- Búsqueda de dueños en Encuentra24: Cloudflare frena a los servidores (GitHub Actions, Vercel), así que
+  corre en el Chrome del corredor con la **extensión** `extension/` (Manifest V3): el servidor le dice qué
+  página abrir (`/api/extension/*`, `lib/encuentra24/extension.ts`), la extensión la abre en una pestaña y
+  le manda los scripts con los datos; al final Haiku revisa en segundo plano (`after()`) y la extensión
+  consulta el resultado. Se conecta con un código de un solo uso del panel (Más → Dueños directos) que se
+  canjea por un permiso; solo se guardan huellas (`extension_conexiones`). `npm run build` la empaca en
+  `public/extension/buscador-duenos.zip` con la dirección de `NEXT_PUBLIC_URL_APP`
+  (`scripts/empacar-extension.mts`); se instala "descomprimida" (paso a paso en `/panel/duenos/extension`).
+  El worker con Playwright (`worker/busqueda-duenos.ts`, `npm run duenos` con Chrome visible) usa el mismo
+  recorrido y evaluación (`lib/encuentra24/busqueda.ts`) y queda para soporte;
+  `.github/workflows/busqueda-duenos.yml` solo para pruebas a mano.
 
 ## Reglas
 - **Todo dato lleva `corredor_id`** y la tabla tiene RLS. Las llaves foráneas entre tablas de negocio son
@@ -132,7 +139,7 @@ React Server Components; `lib/encuentra24/parsear.ts` lee ese JSON (no clases CS
 Cloudflare: hace falta un navegador real (`worker/navegador.ts`), volumen bajo y pausas.
 `lib/encuentra24/busqueda.ts` recorre las zonas (`corredores.zonas_e24`, slugs de la URL) por turnos,
 descarta agentes, ya vistos, fuera de rango y corredores bloqueados, y Haiku confirma dueño o corredor.
-Si Encuentra24 bloquea o no trae anuncios, el workflow falla (GitHub avisa). Los dueños quedan en
+Si Encuentra24 bloquea o no trae anuncios, la búsqueda avisa a soporte (extensión) o falla el workflow. Los dueños quedan en
 `leads_duenos` y el corredor los ve en el panel (Más → Dueños directos); si hay WhatsApp
 (`WHATSAPP_ACCESS_TOKEN` y números del corredor), además le llega la lista, y si su ventana de 24 horas
 está cerrada, queda en `envios_pendientes` y sale cuando escribe. Sin WhatsApp la búsqueda corre igual.
@@ -163,6 +170,8 @@ dueño o corredor. Un cambio de tono o de instrucciones se prueba con el set de 
 | correcciones | Correcciones del corredor a borradores: ejemplos de tono |
 | uso_diario | Mensajes, llamadas y costo de IA por corredor y día |
 | alertas | Última vez que se mandó cada alerta de monitoreo (sin ráfagas) |
+| extension_conexiones | Extensión de Chrome conectada a un corredor: huellas del código y del permiso, último uso |
+| busquedas_extension / busquedas_extension_anuncios | Búsqueda de dueños en curso desde la extensión y anuncios leídos (se borran al terminar) |
 
 ## Comandos
 - `npm run dev` — app local.

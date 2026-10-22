@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es" translate="no">
+  <head>
+    <meta charset="utf-8" />
+    <title>Buscador de dueños</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <h1>Buscador de dueños</h1>
+
+    <section id="sin-conectar" hidden>
+      <p>En el panel de tu asistente, entra a <strong>Más → Dueños directos</strong>, toca <strong>Conectar la extensión</strong> y escribe aquí el código.</p>
+      <form id="form-codigo">
+        <label for="codigo">Código</label>
+        <input id="codigo" autocomplete="off" autocapitalize="characters" placeholder="ABCD-EFGH" maxlength="9" required />
+        <button type="submit" class="primario">Conectar</button>
+      </form>
+    </section>
+
+    <section id="conectada" hidden>
+      <p class="suave" id="corredor"></p>
+      <button id="buscar" class="primario">Buscar dueños</button>
+    </section>
+
+    <p id="mensaje" role="status" aria-live="polite" hidden></p>
+
+    <footer id="pie" hidden>
+      <p class="suave">Una vez por semana. Se abre una pestaña de Encuentra24 y tarda unos 5 minutos; puedes seguir usando Chrome.</p>
+      <button id="desconectar" class="enlace">Desconectar</button>
+    </footer>
+    <script src="popup.js" type="module"></script>
+  </body>
+</html>

@@ -16,9 +16,8 @@ import { createClient } from "@supabase/supabase-js";
 import { crearCerebroClaude } from "../lib/asistente/cerebro";
 import type { Dependencias } from "../lib/asistente/contexto";
 import { conversacionDelCorredor, enviarAlCorredor } from "../lib/asistente/corredor";
-import { fechaIso, fechaLocal, sumarDias } from "../lib/agenda/tiempo";
 import { crearRepositorioSupabase } from "../lib/datos/repositorio";
-import { armarListaDuenos, buscarDuenos } from "../lib/encuentra24/busqueda";
+import { armarListaDuenos, buscarDuenos, semanaDe } from "../lib/encuentra24/busqueda";
 import { bloqueados, corredoresConBusqueda, guardarLeads, idsVistos } from "../lib/encuentra24/datos";
 import { anunciosDePagina, esDesafio, urlListado } from "../lib/encuentra24/parsear";
 import { crearEnviadorWhatsApp } from "../lib/whatsapp/enviar";
@@ -34,12 +33,6 @@ function requerida(nombre: string): string {
   const v = process.env[nombre];
   if (!v) throw new Error(`Falta la variable ${nombre}`);
   return v;
-}
-
-/** Lunes de la semana local, "YYYY-MM-DD". */
-function semanaDe(ahora: Date, zona: string): string {
-  const hoy = fechaLocal(ahora, zona);
-  return fechaIso(sumarDias(hoy, -((hoy.diaSemana + 6) % 7)));
 }
 
 async function prueba(zona: string, paginas: number) {

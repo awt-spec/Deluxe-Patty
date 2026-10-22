@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "Buscador de dueños",
+  "description": "Busca dueños directos en Encuentra24 desde tu Chrome y los deja en tu panel de la asistente.",
+  "version": "1.0.0",
+  "action": { "default_popup": "popup.html", "default_title": "Buscador de dueños" },
+  "background": { "service_worker": "background.js", "type": "module" },
+  "permissions": ["storage", "scripting"],
+  "host_permissions": ["https://www.encuentra24.com/*", "__APP__/*"],
+  "icons": { "16": "icono-16.png", "48": "icono-48.png", "128": "icono-128.png" }
+}
