@@ -16,6 +16,10 @@
     {
       "path": "/api/cron/monitoreo",
       "schedule": "30 * * * *"
+    },
+    {
+      "path": "/api/cron/demo",
+      "schedule": "0 9 * * *"
     }
   ]
 }

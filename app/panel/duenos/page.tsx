@@ -64,7 +64,9 @@ export default async function Duenos() {
       </p>
       <section className="tarjeta pila">
         <h2>Buscar desde Chrome</h2>
-        {conexion ? (
+        {corredor.activo === false ? (
+          <p className="suave">En la demo no se conecta la extensión: en una cuenta real, aquí la conectas.</p>
+        ) : conexion ? (
           <>
             <p>
               Tu extensión está conectada
