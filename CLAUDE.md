@@ -19,7 +19,8 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   e Inter, logo oficial en `marcas/deluxe/`). Ejemplo: `npx tsx scripts/ficha-ejemplo.mts <salida.pdf> <fotos...>`.
 - Agenda propia en Supabase (no se integra Google Calendar): horarios, bloqueos y citas en la base;
   el corredor ve sus citas en el teléfono suscribiéndose al enlace ICS `/api/calendario/<token>.ics`.
-- Vercel Cron cada hora para recordatorios, plan del día, vencimiento de anuncios y monitoreo
+- Vercel Cron cada hora para recordatorios, plan del día, vencimiento de anuncios y monitoreo, y cada
+  noche para rehacer la demo
   (`vercel.json`, protegido con `CRON_SECRET`).
 - Búsqueda de dueños en Encuentra24: Cloudflare frena a los servidores (GitHub Actions, Vercel), así que
   corre en el Chrome del corredor con la **extensión** `extension/` (Manifest V3): el servidor le dice qué
@@ -94,7 +95,8 @@ mágico de Supabase Auth (`/entrar`, sin crear usuarios: el acceso lo da `script
 marca del corredor (`lib/panel/marca.ts`): la de `?c=<slug>` o la del único corredor si hay uno solo; el
 logo se sirve en `/marca/<slug>/logo`. Después de pedir el enlace, pantalla "Revisa tu correo" y otro
 enlace solo pasado un minuto. Con `DEMO_CORREO` aparece además "Ver la demo" (`lib/panel/demo.ts`): entra
-sin correo a un corredor **inactivo** con datos ficticios (`scripts/crear-demo.mts`, `npm run demo`), con
+sin correo a un corredor **inactivo** con datos ficticios (`lib/panel/demo-datos.ts`: `npm run demo` y el
+cron nocturno `/api/cron/demo`, que la deja como nueva cada día), con
 una banda que lo dice; la demo no abre si ese usuario fuera miembro de un corredor activo. Un corredor
 inactivo nunca manda nada por WhatsApp (`dependenciasPara`, envíos simulados), no presta su marca a la
 entrada y en él no se suben ni mejoran fotos. Sin `WHATSAPP_ACCESS_TOKEN` el panel funciona igual y lo
