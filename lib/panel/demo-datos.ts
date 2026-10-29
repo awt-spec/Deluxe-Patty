@@ -11,6 +11,19 @@ export async function rehacerDemo(db: SupabaseClient, correo: string, ahora = Da
   const ID = ID_DEMO;
   const hace = (min: number) => new Date(ahora - min * 60_000).toISOString();
   // Costa Rica no cambia de horario: UTC−6. `dias` desde hoy a la hora local indicada.
+  /** Días hábiles (lunes a viernes) desde hoy: así las visitas caen dentro del horario de la demo. */
+  function habil(n: number): number {
+    const hoy = new Date(ahora - 6 * 3600_000).getUTCDay();
+    let dias = 0;
+    for (let d = hoy; n > 0; ) {
+      dias++;
+      d = (d + 1) % 7;
+      if (d !== 0 && d !== 6) n--;
+    }
+    return dias;
+  }
+  const DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+  const nombreDia = (dias: number) => DIAS[horaCR(dias, 12).getUTCDay()];
   function horaCR(dias: number, hora: number): Date {
     const hoy = new Date(ahora - 6 * 3600_000);
     return new Date(Date.UTC(hoy.getUTCFullYear(), hoy.getUTCMonth(), hoy.getUTCDate() + dias, hora + 6));
@@ -134,7 +147,7 @@ export async function rehacerDemo(db: SupabaseClient, correo: string, ahora = Da
         entra(1, 16, "Buenas tardes, vi la casa de Escazú con vista al valle. ¿Sigue disponible?", "consulta_propiedad"),
         sale(1, 15, "Buenas tardes, Laura. Sí, la casa contemporánea en Escazú sigue disponible: 4 habitaciones, 520 m² de construcción y piscina. ¿Le gustaría conocerla?"),
         entra(1, 14, "Sí, me encantaría verla esta semana.", "agendar_visita"),
-        sale(1, 13, "Con gusto, Laura. Tengo disponible mañana a las 10:00 a. m. o el jueves a las 3:00 p. m. ¿Cuál le queda mejor?", {
+        sale(1, 13, `Con gusto, Laura. Tengo disponible el ${nombreDia(habil(2))} a las 10:00 a. m. o el ${nombreDia(habil(3))} a las 9:00 a. m. ¿Cuál le queda mejor?`, {
           estado_borrador: "pendiente", estado_entrega: null,
         }),
         entra(2, 50, "Hello, I'm interested in the Escazú house. Would the owner accept $1.1M?", "pasar_a_corredor"),
@@ -154,8 +167,8 @@ export async function rehacerDemo(db: SupabaseClient, correo: string, ahora = Da
     "citas",
     (
       await db.from("citas").insert([
-        { corredor_id: ID, contacto_id: cliente(3), conversacion_id: chat(3), propiedad_id: casa("DEMO-02"), inicio: horaCR(2, 10), fin: horaCR(2, 11), estado: "confirmada" },
-        { corredor_id: ID, contacto_id: cliente(4), conversacion_id: chat(4), propiedad_id: casa("DEMO-04"), inicio: horaCR(3, 15), fin: horaCR(3, 16), estado: "agendada" },
+        { corredor_id: ID, contacto_id: cliente(3), conversacion_id: chat(3), propiedad_id: casa("DEMO-02"), inicio: horaCR(habil(1), 10), fin: horaCR(habil(1), 11), estado: "confirmada" },
+        { corredor_id: ID, contacto_id: cliente(4), conversacion_id: chat(4), propiedad_id: casa("DEMO-04"), inicio: horaCR(habil(3), 15), fin: horaCR(habil(3), 16), estado: "agendada" },
       ])
     ).error,
   );
