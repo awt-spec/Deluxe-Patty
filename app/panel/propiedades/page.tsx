@@ -48,6 +48,7 @@ export default async function Propiedades({
       {propiedades.length === 0 && (
         <p className="vacio">{todas ? "Todavía no tienes casas cargadas." : "No tienes casas en oferta."}</p>
       )}
+      <div className="casas-grid">
       {propiedades.map((p) => {
         const principal = ordenarFotos(p.fotos)[0];
         return (
@@ -75,6 +76,7 @@ export default async function Propiedades({
           </Link>
         );
       })}
+      </div>
       <p style={{ marginTop: 12 }}>
         {todas ? (
           <Link href="/panel/propiedades" className="suave">
