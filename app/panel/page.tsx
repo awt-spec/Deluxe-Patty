@@ -6,6 +6,7 @@ import { sesionConCorredor } from "@/lib/panel/sesion";
 import { aprobar, devolver, yoLeEscribo } from "./acciones";
 import { Aviso } from "./aviso";
 import { BotonEnviar } from "./boton-enviar";
+import { Avatar } from "./avatar";
 import { IconoMas } from "./iconos";
 
 // Inicio del panel, como WhatsApp: arriba lo que espera a Patricia (respuestas por enviar y clientes que
@@ -26,7 +27,6 @@ type Borrador = { id: string; conversacion_id: string; contenido: string | null;
 const uno = <T,>(v: T | T[]): T => (Array.isArray(v) ? v[0] : v);
 const DIA = 24 * 60 * 60_000;
 const nombre = (c: Contacto) => c.nombre ?? c.telefono;
-const inicial = (c: Contacto) => (c.nombre ?? "#").trim().charAt(0).toUpperCase();
 const whatsapp = (telefono: string) => `https://wa.me/${telefono.replace(/\D/g, "")}`;
 
 function queHace(a: AccionPendiente, zona: string): string {
@@ -91,13 +91,13 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
 
   return (
     <>
-      <header className="encabezado">
+      <header className="barra-wa">
         <div>
-          <p className="etiqueta">{corredor.nombre}</p>
-          <h1>Hola, {corredor.nombre_contacto}</h1>
+          <h1>Chats</h1>
+          <p className="barra-sub">Hola, {corredor.nombre_contacto}</p>
         </div>
         <Link href="/panel/mas" className="boton boton-mas">
-          <IconoMas tamano={20} />
+          <IconoMas tamano={22} />
           Más
         </Link>
       </header>
@@ -106,7 +106,7 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
       {total > 0 ? (
         <section className="te-necesitan" aria-label="Te necesitan">
           <h2>
-            Te {total === 1 ? "necesita" : "necesitan"} {total === 1 ? "1 cliente" : `${total} clientes`}
+            {total === 1 ? "1 cliente te espera" : `${total} clientes te esperan`}
           </h2>
 
           {pendientes.map((b) => {
@@ -115,19 +115,24 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
             const dijo = delCliente.get(c.id);
             return (
               <article key={b.id} className="pendiente">
-                <strong>{nombre(contacto)}</strong>
-                {dijo?.contenido && <p className="dijo">“{dijo.contenido}”</p>}
-                <p className="suave" style={{ margin: 0 }}>
-                  La asistente quiere contestarle:
-                </p>
-                <p className="respuesta">{b.contenido}</p>
+                <Link href={`/panel/conversaciones/${c.id}`} className="pendiente-quien">
+                  <Avatar nombre={contacto.nombre} telefono={contacto.telefono} />
+                  <strong>{nombre(contacto)}</strong>
+                </Link>
+                <div className="mini-hilo">
+                  {dijo?.contenido && <p className="burbuja cliente">{dijo.contenido}</p>}
+                  <p className="burbuja saliente propuesta">
+                    <span className="propuesta-titulo">La asistente le contestaría:</span>
+                    {b.contenido}
+                  </p>
+                </div>
                 {b.accion && <p className="suave">{queHace(b.accion, zona)}</p>}
                 {abierta(c) ? (
                   <form action={aprobar}>
                     <input type="hidden" name="mensaje" value={b.id} />
                     <input type="hidden" name="texto" value={b.contenido ?? ""} />
                     <input type="hidden" name="volver" value="/panel" />
-                    <BotonEnviar texto="✓ Enviar así" pendiente="Enviando…" className="primario grande" />
+                    <BotonEnviar texto="✓ Enviar así" pendiente="Enviando…" className="verde grande" />
                   </form>
                 ) : (
                   <p className="aviso">Pasó más de un día desde que escribió: contéstale desde tu WhatsApp.</p>
@@ -152,9 +157,16 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
             const dijo = delCliente.get(c.id);
             return (
               <article key={c.id} className="pendiente">
-                <strong>{nombre(contacto)} quiere hablar contigo</strong>
-                {dijo?.contenido && <p className="dijo">“{dijo.contenido}”</p>}
-                <a href={whatsapp(contacto.telefono)} className="boton primario grande" target="_blank" rel="noreferrer">
+                <Link href={`/panel/conversaciones/${c.id}`} className="pendiente-quien">
+                  <Avatar nombre={contacto.nombre} telefono={contacto.telefono} />
+                  <strong>{nombre(contacto)} quiere hablar contigo</strong>
+                </Link>
+                {dijo?.contenido && (
+                  <div className="mini-hilo">
+                    <p className="burbuja cliente">{dijo.contenido}</p>
+                  </div>
+                )}
+                <a href={whatsapp(contacto.telefono)} className="boton verde grande" target="_blank" rel="noreferrer">
                   Escribirle por WhatsApp
                 </a>
                 <form action={devolver}>
@@ -172,9 +184,8 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
         </p>
       )}
 
-      <h2>Todos los chats</h2>
       {conversaciones.length === 0 && <p className="vacio">Todavía no te ha escrito ningún cliente.</p>}
-      <ul className="chat-lista">
+      <ul className="chat-lista" aria-label="Todos los chats">
         {conversaciones.map((c) => {
           const contacto = uno(c.contactos);
           const m = ultimo.get(c.id);
@@ -182,19 +193,24 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
           return (
             <li key={c.id}>
               <Link href={`/panel/conversaciones/${c.id}`}>
-                <span className="avatar" aria-hidden>
-                  {inicial(contacto)}
-                </span>
+                <Avatar nombre={contacto.nombre} telefono={contacto.telefono} />
                 <span className="texto">
-                  <strong>{nombre(contacto)}</strong>
-                  <span className="vista" style={{ display: "block" }}>
-                    {c.control === "corredor" ? "Le contestas tú · " : ""}
-                    {m ? `${m.direccion === "saliente" ? "Tú: " : ""}${m.contenido ?? "(archivo)"}` : ""}
+                  <span className="renglon">
+                    <strong>{nombre(contacto)}</strong>
+                    {m && <span className={`hora${marca ? " nueva" : ""}`}>{cuando(m.created_at)}</span>}
                   </span>
-                </span>
-                <span className="pila" style={{ alignItems: "flex-end", gap: 4 }}>
-                  {m && <span className="suave">{cuando(m.created_at)}</span>}
-                  {marca && <span className="punto">!</span>}
+                  <span className="renglon">
+                    <span className="vista">
+                      {c.control === "corredor" ? "Le contestas tú · " : ""}
+                      {m?.direccion === "saliente" && <span className="visto" aria-label="enviado">✓✓ </span>}
+                      {m ? (m.contenido ?? "(archivo)") : ""}
+                    </span>
+                    {marca && (
+                      <span className="punto" aria-label="te espera">
+                        1
+                      </span>
+                    )}
+                  </span>
                 </span>
               </Link>
             </li>

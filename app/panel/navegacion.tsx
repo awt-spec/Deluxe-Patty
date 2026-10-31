@@ -16,6 +16,8 @@ export function Navegacion({ teNecesitan }: { teNecesitan: number }) {
   const ruta = usePathname();
   const activa = (s: (typeof SECCIONES)[number]) =>
     s.ruta === "/panel" ? ruta === "/panel" || s.tambien.some((r) => ruta.startsWith(r)) : ruta.startsWith(s.ruta);
+  // Dentro de un chat, como en WhatsApp, abajo va la caja para escribir y no las pestañas.
+  if (ruta.startsWith("/panel/conversaciones/")) return null;
   return (
     <nav className="navegacion" aria-label="Secciones">
       {SECCIONES.map((s) => {

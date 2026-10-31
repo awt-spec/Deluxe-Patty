@@ -113,3 +113,22 @@ export const IconoCorreo = (p: Props) => (
     <path d="m4 7 8 6 8-6" />
   </Icono>
 );
+
+export const IconoEnviar = (p: Props) => (
+  <Icono {...p}>
+    <path d="M4 12 20 4l-5 16-3.5-6.5L4 12Z" />
+    <path d="m11.5 13.5 3-3" />
+  </Icono>
+);
+
+export const IconoTelefono = (p: Props) => (
+  <Icono {...p}>
+    <path d="M5 4h3.5l1.5 4-2 1.5a11 11 0 0 0 6.5 6.5L16 14l4 1.5V19a1.5 1.5 0 0 1-1.6 1.5A16 16 0 0 1 3.5 5.6 1.5 1.5 0 0 1 5 4Z" />
+  </Icono>
+);
+
+export const IconoAtras = (p: Props) => (
+  <Icono {...p}>
+    <path d="M15 5 8 12l7 7" strokeWidth={2.2} />
+  </Icono>
+);
