@@ -46,18 +46,18 @@ export default async function Resumen() {
         </p>
       )}
 
-      <div className="cifras">
-        <Link href="/panel" className="cifra">
+      <div className="kpis resumen-kpis">
+        <Link href="/panel" className="kpi">
           <strong>{datos.borradoresPendientes}</strong>
-          <span className="suave">Por aprobar</span>
+          <span>Por aprobar</span>
         </Link>
-        <Link href="/panel" className="cifra">
+        <Link href="/panel" className="kpi">
           <strong>{datos.conversacionesEscaladas.length}</strong>
-          <span className="suave">Te esperan</span>
+          <span>Te esperan</span>
         </Link>
-        <Link href="/panel/duenos" className="cifra">
+        <Link href="/panel/duenos" className="kpi">
           <strong>{leads.count ?? 0}</strong>
-          <span className="suave">Dueños nuevos</span>
+          <span>Dueños nuevos</span>
         </Link>
       </div>
 

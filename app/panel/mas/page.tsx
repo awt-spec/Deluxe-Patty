@@ -37,7 +37,7 @@ export default async function Mas() {
       <header className="encabezado">
         <h1>Más</h1>
       </header>
-      <nav aria-label="Más opciones">
+      <nav aria-label="Más opciones" className="mas-grupos">
         {GRUPOS.map((grupo, i) => (
           <ul key={i} className="opciones">
             {grupo.map((o) => (
