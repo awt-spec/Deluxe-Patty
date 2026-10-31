@@ -90,7 +90,7 @@ export default async function Duenos() {
 
       {leads.length === 0 && <p className="vacio">Todavía no hay dueños directos.</p>}
       {semanas.map((semana) => (
-        <section key={semana}>
+        <section key={semana} className="semana-duenos">
           <h2>Semana del {fechaCorta(semana)}</h2>
           {leads
             .filter((l) => l.semana === semana)

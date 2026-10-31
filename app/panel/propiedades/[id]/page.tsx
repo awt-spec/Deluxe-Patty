@@ -152,12 +152,16 @@ export default async function Propiedad({
           <form action={cambiarEstado}>
             <input type="hidden" name="id" value={p.id} />
             <input type="hidden" name="estado" value={p.operacion === "alquiler" ? "alquilada" : "vendida"} />
-            <button type="submit">{p.operacion === "alquiler" ? "Ya se alquiló" : "Ya se vendió"}</button>
+            <button type="submit" className="grande">
+              {p.operacion === "alquiler" ? "Ya se alquiló" : "Ya se vendió"}
+            </button>
           </form>
           <form action={cambiarEstado}>
             <input type="hidden" name="id" value={p.id} />
             <input type="hidden" name="estado" value="inactiva" />
-            <button type="submit">Pausarla</button>
+            <button type="submit" className="grande">
+              Pausarla
+            </button>
           </form>
         </div>
       )}
