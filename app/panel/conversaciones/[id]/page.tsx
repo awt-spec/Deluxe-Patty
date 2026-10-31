@@ -1,3 +1,5 @@
+import { NOMBRE_ETAPA, resumenBusca, type Busca, type Etapa } from "@/lib/crm/perfil";
+import { Escribir } from "./escribir";
 import { IconoCamara, IconoCheck, IconoDocumento, IconoDobleCheck } from "../../iconos";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -19,7 +21,15 @@ type Mensaje = {
   estado_borrador: "pendiente" | "aprobado" | "corregido" | "descartado" | null;
   estado_entrega: string | null;
   accion: AccionPendiente | null;
+  intencion: string | null;
   created_at: string;
+};
+
+const INTENCION: Record<string, string> = {
+  consulta_propiedad: "pregunta por una propiedad",
+  agendar_visita: "quiere agendar una visita",
+  pasar_a_corredor: "quiere hablar contigo",
+  otro: "un saludo o comentario",
 };
 
 function describirAccion(a: AccionPendiente, zona: string): string {
@@ -43,22 +53,36 @@ export default async function Conversacion({
   const [{ data: conv }, { data: mensajes }] = await Promise.all([
     supabase
       .from("conversaciones")
-      .select("id, estado, control, ultimo_mensaje_cliente_at, contactos!inner(nombre, telefono, origen)")
+      .select("id, estado, control, ultimo_mensaje_cliente_at, contactos!inner(id, nombre, telefono, origen, etapa, busca)")
       .eq("id", id)
       .maybeSingle(),
     supabase
       .from("mensajes")
-      .select("id, direccion, autor, tipo, contenido, estado_borrador, estado_entrega, accion, created_at")
+      .select("id, direccion, autor, tipo, contenido, estado_borrador, estado_entrega, accion, intencion, created_at")
       .eq("conversacion_id", id)
       .order("created_at", { ascending: true })
       .limit(200),
   ]);
   if (!conv) notFound();
   const contacto = (Array.isArray(conv.contactos) ? conv.contactos[0] : conv.contactos) as {
+    id: string;
     nombre: string | null;
     telefono: string;
     origen: string;
+    etapa: Etapa;
+    busca: Busca;
   };
+  const lista = (mensajes ?? []) as Mensaje[];
+  // Para la propuesta pendiente: qué entendió la asistente del último mensaje del cliente y qué casas menciona.
+  const hayBorrador = lista.some((m) => m.estado_borrador === "pendiente");
+  const { data: casas } = hayBorrador
+    ? await supabase.from("propiedades").select("id, codigo, titulo").eq("corredor_id", corredor.id).in("estado", ["activa", "reservada"]).limit(200)
+    : { data: [] };
+  const casasEn = (texto: string | null) =>
+    ((casas ?? []) as { id: string; codigo: string; titulo: string }[]).filter(
+      (p) => !!texto && (texto.toLowerCase().includes(p.titulo.toLowerCase()) || texto.includes(p.codigo)),
+    );
+  const ultimaIntencion = [...lista].reverse().find((m) => m.direccion === "entrante" && m.intencion)?.intencion ?? null;
   const ultimo = conv.ultimo_mensaje_cliente_at ? new Date(conv.ultimo_mensaje_cliente_at as string) : null;
   const ventanaAbierta = !!ultimo && Date.now() - ultimo.getTime() < 24 * 60 * 60_000;
   const suya = conv.control === "corredor";
@@ -80,10 +104,13 @@ export default async function Conversacion({
           <IconoAtras tamano={28} />
         </Link>
         <Avatar nombre={contacto.nombre} telefono={contacto.telefono} />
-        <div className="barra-chat-nombre">
+        <Link href={`/panel/clientes/${contacto.id}`} className="barra-chat-nombre" aria-label="Ver la ficha del cliente">
           <strong>{contacto.nombre ?? contacto.telefono}</strong>
-          <span>{contacto.nombre ? contacto.telefono : `llegó por ${contacto.origen}`}</span>
-        </div>
+          <span>
+            <span className={`etapa etapa-${contacto.etapa}`}>{NOMBRE_ETAPA[contacto.etapa] ?? contacto.etapa}</span>{" "}
+            {resumenBusca(contacto.busca ?? {}) || "toca para ver su ficha"}
+          </span>
+        </Link>
         <a href={`tel:${contacto.telefono}`} className="llamar" aria-label="Llamar">
           <IconoTelefono tamano={26} />
         </a>
@@ -118,7 +145,7 @@ export default async function Conversacion({
       <Aviso texto={aviso} />
 
       <section className="hilo fondo-wa" aria-label="Mensajes">
-        {((mensajes ?? []) as Mensaje[]).map((m) => {
+        {lista.map((m) => {
           const dia = diaDe(m.created_at);
           const separador =
             dia !== diaAnterior ? (
@@ -133,6 +160,22 @@ export default async function Conversacion({
               separador,
               <form key={m.id} id="borrador" action={aprobar} className="borrador pila">
                 <span className="propuesta-titulo">La asistente le contestaría esto. ¿Se lo mando?</span>
+                <p className="por-que">
+                  {ultimaIntencion && <>Entendió: {INTENCION[ultimaIntencion] ?? ultimaIntencion}.</>}
+                  {casasEn(m.contenido).length > 0 && (
+                    <>
+                      {" "}
+                      Menciona:{" "}
+                      {casasEn(m.contenido).map((p, i) => (
+                        <span key={p.id}>
+                          {i > 0 && ", "}
+                          <Link href={`/panel/propiedades/${p.id}`}>{p.titulo}</Link>
+                        </span>
+                      ))}
+                      .
+                    </>
+                  )}
+                </p>
                 {m.accion && <p className="suave">{describirAccion(m.accion, zona)}</p>}
                 <input type="hidden" name="mensaje" value={m.id} />
                 <label htmlFor={`texto-${m.id}`} className="suave">
@@ -193,16 +236,7 @@ export default async function Conversacion({
       </section>
 
       {ventanaAbierta ? (
-        <form action={escribir} className="escribir-wa">
-          <input type="hidden" name="conversacion" value={id} />
-          <label htmlFor="texto-nuevo" className="oculto">
-            Escribirle
-          </label>
-          <textarea id="texto-nuevo" name="texto" rows={1} required placeholder="Escribe un mensaje" />
-          <button type="submit" className="enviar-redondo" aria-label="Enviar">
-            <IconoEnviar tamano={26} />
-          </button>
-        </form>
+        <Escribir conversacion={id} accion={escribir} />
       ) : (
         <div className="escribir-wa cerrado">
           <p>Pasó más de un día desde que te escribió: contéstale desde tu WhatsApp.</p>

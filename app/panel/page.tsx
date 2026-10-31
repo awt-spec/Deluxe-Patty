@@ -25,12 +25,12 @@ import { aprobar, devolver, yoLeEscribo } from "./acciones";
 import { Aviso } from "./aviso";
 import { BotonEnviar } from "./boton-enviar";
 import { Avatar } from "./avatar";
-import { IconoMas } from "./iconos";
+import { IconoCampana, IconoMas } from "./iconos";
 
 // Inicio del panel: el día de un vistazo (cifras, próxima visita con la foto de la casa y sus casas),
 // lo que espera a la corredora con botones grandes y, abajo, todos los chats como en WhatsApp.
 
-type Contacto = { nombre: string | null; telefono: string };
+type Contacto = { id?: string; nombre: string | null; telefono: string; etapa?: string };
 type Conv = {
   id: string;
   estado: "abierta" | "escalada" | "cerrada";
@@ -95,7 +95,7 @@ export default async function Chats({
     supabase
       .from("conversaciones")
       .select(
-        "id, estado, control, ultimo_mensaje_cliente_at, updated_at, contactos!inner(nombre, telefono, es_corredor)",
+        "id, estado, control, ultimo_mensaje_cliente_at, updated_at, contactos!inner(id, nombre, telefono, es_corredor, etapa)",
       )
       .eq("corredor_id", corredor.id)
       .eq("contactos.es_corredor", false)
@@ -148,6 +148,14 @@ export default async function Chats({
       .eq("estado_contacto", "nuevo")
       .eq("semana", semanaDe(ahora, zona)),
   ]);
+  const { data: seguimientosData } = await supabase
+    .from("contactos")
+    .select("id, nombre, telefono, seguimiento_nota")
+    .eq("corredor_id", corredor.id)
+    .lte("seguimiento_fecha", fechaIso(fechaLocal(ahora, zona)))
+    .order("seguimiento_fecha")
+    .limit(10);
+  const seguimientos = (seguimientosData ?? []) as { id: string; nombre: string | null; telefono: string; seguimiento_nota: string | null }[];
   const casas = (casasData ?? []) as Casa[];
   const proxima = ((visitas ?? []) as Visita[])[0];
   const fotoDe = (c: Casa | null | undefined) =>
@@ -195,6 +203,15 @@ export default async function Chats({
   const abierta = (c: Conv) =>
     !!c.ultimo_mensaje_cliente_at &&
     ahora.getTime() - Date.parse(c.ultimo_mensaje_cliente_at) < DIA;
+
+  // Clientes que no contestan: el último mensaje del chat fue nuestro hace más de 3 días.
+  const sinRespuesta = conversaciones
+    .filter((c) => {
+      const m = ultimo.get(c.id);
+      const etapa = uno(c.contactos).etapa;
+      return m?.direccion === "saliente" && ahora.getTime() - Date.parse(m.created_at) > 3 * DIA && etapa !== "cerrado" && etapa !== "perdido";
+    })
+    .slice(0, 6);
 
   const cuando = (iso: string) => {
     const d = new Date(iso);
@@ -456,6 +473,41 @@ export default async function Chats({
         <p className="al-dia">
           <IconoCheck tamano={24} /> Todo al día: ningún cliente te espera.
         </p>
+      )}
+
+      {(seguimientos.length > 0 || sinRespuesta.length > 0) && (
+        <section className="para-hoy" aria-label="Para hoy">
+          <h2>
+            <IconoCampana tamano={22} /> Para hoy
+          </h2>
+          <ul className="chat-lista">
+            {seguimientos.map((s) => (
+              <li key={`s-${s.id}`}>
+                <Link href={`/panel/clientes/${s.id}`}>
+                  <Avatar nombre={s.nombre} telefono={s.telefono} />
+                  <span className="texto">
+                    <strong>{s.nombre ?? s.telefono}</strong>
+                    <span className="vista">{s.seguimiento_nota ?? "Darle seguimiento"}</span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+            {sinRespuesta.map((c) => {
+              const contacto = uno(c.contactos);
+              return (
+                <li key={`r-${c.id}`}>
+                  <Link href={`/panel/conversaciones/${c.id}`}>
+                    <Avatar nombre={contacto.nombre} telefono={contacto.telefono} />
+                    <span className="texto">
+                      <strong>{nombre(contacto)}</strong>
+                      <span className="vista">No contesta hace más de 3 días: escríbele</span>
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
       )}
 
       <h2>Chats</h2>

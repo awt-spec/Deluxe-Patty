@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { IconoAgenda, IconoCasa, IconoChats, IconoMas } from "./iconos";
+import { IconoAgenda, IconoCasa, IconoChats, IconoMas, IconoPersonas } from "./iconos";
 
-// Solo tres botones, grandes: lo demás está en "Más", dentro de Chats.
+// Cuatro botones, grandes: lo demás está en "Más", dentro de Chats.
 const SECCIONES = [
   {
     ruta: "/panel",
@@ -12,6 +12,7 @@ const SECCIONES = [
     Icono: IconoChats,
     tambien: ["/panel/conversaciones"],
   },
+  { ruta: "/panel/clientes", nombre: "Clientes", Icono: IconoPersonas, tambien: [] },
   { ruta: "/panel/agenda", nombre: "Agenda", Icono: IconoAgenda, tambien: [] },
   {
     ruta: "/panel/propiedades",

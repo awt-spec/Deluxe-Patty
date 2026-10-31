@@ -14,3 +14,9 @@ Intenciones:
 
 Si un mensaje mezcla un tema de la lista de escalamiento con otra cosa, es pasar_a_corredor.
 En `tema` escribe en pocas palabras de qué trata el mensaje, sin copiar datos personales.
+
+En `busca` anota solo lo que el cliente dijo de forma explícita sobre lo que busca, en este mensaje o
+en la conversación: si quiere comprar (`venta`) o alquilar (`alquiler`), el tipo (casa, apartamento,
+lote…), las zonas que nombra, su presupuesto máximo (número, sin símbolos; `moneda` USD o CRC) y
+cuántos cuartos necesita. Lo que no dijo va en null (o lista vacía en `zonas`). No adivines ni deduzcas
+un presupuesto de la propiedad por la que pregunta.

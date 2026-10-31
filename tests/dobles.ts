@@ -190,6 +190,12 @@ export function repoEnMemoria(corredor: Corredor) {
       const p = planes.get(fecha);
       if (p) p.enviado = true;
     },
+    actualizarPerfilCliente: async (_c, contactoId, cambios) => {
+      const contacto = contactos.find((c) => c.id === contactoId);
+      if (!contacto) return;
+      if (cambios.busca) contacto.busca = cambios.busca;
+      if (cambios.etapa && (!cambios.soloDesde || cambios.soloDesde.includes(contacto.etapa ?? "nuevo"))) contacto.etapa = cambios.etapa;
+    },
     atribuirContacto: async (_c, contactoId, referencia) => {
       const anuncio = anuncios.find((a) => a.referencia === referencia.toUpperCase());
       const contacto = contactos.find((c) => c.id === contactoId);

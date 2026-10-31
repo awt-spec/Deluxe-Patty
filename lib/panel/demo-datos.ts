@@ -31,6 +31,7 @@ export async function rehacerDemo(db: SupabaseClient, correo: string, ahora = Da
     const hoy = new Date(ahora - 6 * 3600_000);
     return new Date(Date.UTC(hoy.getUTCFullYear(), hoy.getUTCMonth(), hoy.getUTCDate() + dias, hora + 6));
   }
+  const hoyCR = new Date(ahora - 6 * 3600_000).toISOString().slice(0, 10);
   const lunesCR = (() => {
     const hoy = new Date(ahora - 6 * 3600_000);
     const d = new Date(Date.UTC(hoy.getUTCFullYear(), hoy.getUTCMonth(), hoy.getUTCDate() - ((hoy.getUTCDay() + 6) % 7)));
@@ -119,10 +120,10 @@ export async function rehacerDemo(db: SupabaseClient, correo: string, ahora = Da
   const { data: clientes, error: eClientes } = await db
     .from("contactos")
     .insert([
-      { corredor_id: ID, telefono: "+50688000001", nombre: "Laura Méndez" },
-      { corredor_id: ID, telefono: "+50688000002", nombre: "Robert Miller" },
-      { corredor_id: ID, telefono: "+50688000003", nombre: "Ana Solís" },
-      { corredor_id: ID, telefono: "+50688000004", nombre: null },
+      { corredor_id: ID, telefono: "+50688000001", nombre: "Laura Méndez", etapa: "interesado", busca: { operacion: "venta", tipo: "casa", zonas: ["Escazú"], presupuesto_max: 1300000, moneda: "USD", habitaciones: 4 }, seguimiento_fecha: null, seguimiento_nota: null, notas: "Viene de Estados Unidos con dos hijos; busca colegio bilingüe cerca." },
+      { corredor_id: ID, telefono: "+50688000002", nombre: "Robert Miller", etapa: "negociando", busca: { operacion: "venta", zonas: ["Escazú"], presupuesto_max: 1100000, moneda: "USD" }, seguimiento_fecha: hoyCR, seguimiento_nota: "Llamarlo por la oferta de $1.1M", notas: null },
+      { corredor_id: ID, telefono: "+50688000003", nombre: "Ana Solís", etapa: "visita", busca: { operacion: "alquiler", tipo: "apartamento", zonas: ["Santa Ana"], habitaciones: 2 }, seguimiento_fecha: null, seguimiento_nota: null, notas: "Tiene un perro pequeño." },
+      { corredor_id: ID, telefono: "+50688000004", nombre: null, etapa: "nuevo", busca: { zonas: ["Belén"] }, seguimiento_fecha: null, seguimiento_nota: null, notas: null },
     ])
     .select("id, telefono");
   revisar("clientes", eClientes);
