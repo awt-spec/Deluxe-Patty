@@ -34,13 +34,14 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
     ...(escaladas ?? []).map((c) => c.id as string),
   ]).size;
 
-  // El panel toma los colores de la marca del corredor.
+  // El panel es oscuro, como una app de banca privada, con los colores de la marca del corredor: su
+  // acento (dorado en Deluxe) y su color profundo de fondo. Los textos claros salen de su color base.
   const c = corredor.marca?.colores;
   const estilo = c
-    ? ({ "--principal": c.principal, "--soporte": c.soporte, "--profundo": c.profundo, "--base": c.base } as CSSProperties)
+    ? ({ "--principal": c.principal, "--soporte": c.soporte, "--onyx": c.profundo, "--crema": c.base } as CSSProperties)
     : undefined;
   return (
-    <div style={estilo} className="marco">
+    <div style={estilo} className="marco oscuro">
       {corredor.activo === false && (
         <p className="banda-demo" role="note">
           Estás en la demo: casas y clientes de prueba. Nada se manda por WhatsApp.

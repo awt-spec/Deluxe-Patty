@@ -1,6 +1,10 @@
 import Link from "next/link";
-import { conPunto, etiquetaHorario, horaCorta } from "@/lib/agenda/formato";
-import { fechaIso, fechaLocal } from "@/lib/agenda/tiempo";
+import { conPunto, diaLargo, etiquetaHorario, horaCorta } from "@/lib/agenda/formato";
+import { fechaIso, fechaLocal, limitesDia } from "@/lib/agenda/tiempo";
+import { semanaDe } from "@/lib/encuentra24/busqueda";
+import { precio } from "@/lib/formato";
+import { ordenarFotos } from "@/lib/panel/formularios";
+import type { Foto } from "@/lib/datos/tipos";
 import type { AccionPendiente } from "@/lib/datos/tipos";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { aprobar, devolver, yoLeEscribo } from "./acciones";
@@ -9,8 +13,8 @@ import { BotonEnviar } from "./boton-enviar";
 import { Avatar } from "./avatar";
 import { IconoMas } from "./iconos";
 
-// Inicio del panel, como WhatsApp: arriba lo que espera a Patricia (respuestas por enviar y clientes que
-// quieren hablar con ella), con botones grandes; abajo, todos los chats.
+// Inicio del panel: el día de un vistazo (cifras, próxima visita con la foto de la casa y sus casas),
+// lo que espera a la corredora con botones grandes y, abajo, todos los chats como en WhatsApp.
 
 type Contacto = { nombre: string | null; telefono: string };
 type Conv = {
@@ -20,6 +24,12 @@ type Conv = {
   ultimo_mensaje_cliente_at: string | null;
   updated_at: string;
   contactos: Contacto | Contacto[];
+};
+type Casa = { id: string; titulo: string; precio: number | null; moneda: string; operacion: string; zona: string | null; fotos: Foto[] };
+type Visita = {
+  inicio: string;
+  contactos: Contacto | Contacto[] | null;
+  propiedades: Casa | Casa[] | null;
 };
 type Msj = { conversacion_id: string; direccion: string; contenido: string | null; created_at: string };
 type Borrador = { id: string; conversacion_id: string; contenido: string | null; accion: AccionPendiente | null };
@@ -57,6 +67,44 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
       .eq("estado_borrador", "pendiente")
       .order("created_at"),
   ]);
+  const hoy = limitesDia(ahora, zona);
+  const [{ data: visitas }, { count: visitasHoy }, { data: casasData }, { count: duenosNuevos }] = await Promise.all([
+    supabase
+      .from("citas")
+      .select("inicio, contactos(nombre, telefono), propiedades(id, titulo, precio, moneda, operacion, zona, fotos)")
+      .eq("corredor_id", corredor.id)
+      .in("estado", ["agendada", "confirmada"])
+      .gte("inicio", ahora.toISOString())
+      .order("inicio")
+      .limit(1),
+    supabase
+      .from("citas")
+      .select("id", { count: "exact", head: true })
+      .eq("corredor_id", corredor.id)
+      .in("estado", ["agendada", "confirmada"])
+      .gte("inicio", hoy.desde.toISOString())
+      .lt("inicio", hoy.hasta.toISOString()),
+    supabase
+      .from("propiedades")
+      .select("id, titulo, precio, moneda, operacion, zona, fotos")
+      .eq("corredor_id", corredor.id)
+      .in("estado", ["activa", "reservada"])
+      .order("updated_at", { ascending: false })
+      .limit(12),
+    supabase
+      .from("leads_duenos")
+      .select("id", { count: "exact", head: true })
+      .eq("corredor_id", corredor.id)
+      .eq("es_dueno", true)
+      .eq("estado_contacto", "nuevo")
+      .eq("semana", semanaDe(ahora, zona)),
+  ]);
+  const casas = (casasData ?? []) as Casa[];
+  const proxima = ((visitas ?? []) as Visita[])[0];
+  const fotoDe = (c: Casa | null | undefined) => (c ? ordenarFotos(c.fotos ?? [])[0]?.url : undefined);
+  const hora = Number(new Intl.DateTimeFormat("es-CR", { hour: "numeric", hourCycle: "h23", timeZone: zona }).format(ahora));
+  const saludo = hora < 12 ? "Buenos días" : hora < 19 ? "Buenas tardes" : "Buenas noches";
+
   const conversaciones = (convs ?? []) as Conv[];
   const ids = conversaciones.map((c) => c.id);
   // Último mensaje de cada chat (para la vista previa) y último del cliente (para "te escribió").
@@ -91,10 +139,13 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
 
   return (
     <>
-      <header className="barra-wa">
+      <header className="saludo">
         <div>
-          <h1>Chats</h1>
-          <p className="barra-sub">Hola, {corredor.nombre_contacto}</p>
+          <p className="etiqueta">{corredor.nombre}</p>
+          <h1>
+            {saludo}, {corredor.nombre_contacto}
+          </h1>
+          <p className="saludo-fecha">{diaLargo(ahora, zona)}</p>
         </div>
         <Link href="/panel/mas" className="boton boton-mas">
           <IconoMas tamano={22} />
@@ -103,11 +154,80 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
       </header>
       <Aviso texto={aviso} />
 
+      <section className="kpis" aria-label="Tu día">
+        <a href="#te-esperan" className={`kpi${total > 0 ? " urgente" : ""}`}>
+          <strong>{total}</strong>
+          <span>{total === 1 ? "cliente te espera" : "clientes te esperan"}</span>
+        </a>
+        <Link href="/panel/agenda" className="kpi">
+          <strong>{visitasHoy ?? 0}</strong>
+          <span>{visitasHoy === 1 ? "visita hoy" : "visitas hoy"}</span>
+        </Link>
+        <Link href="/panel/propiedades" className="kpi">
+          <strong>{casas.length}</strong>
+          <span>{casas.length === 1 ? "casa en oferta" : "casas en oferta"}</span>
+        </Link>
+        <Link href="/panel/duenos" className="kpi">
+          <strong>{duenosNuevos ?? 0}</strong>
+          <span>{duenosNuevos === 1 ? "dueño nuevo esta semana" : "dueños nuevos esta semana"}</span>
+        </Link>
+      </section>
+
+      {proxima && (
+        <>
+          <h2>Próxima visita</h2>
+          <Link
+            href="/panel/agenda"
+            className="proxima"
+            style={fotoDe(uno(proxima.propiedades)) ? { backgroundImage: `url("${fotoDe(uno(proxima.propiedades))}")` } : undefined}
+          >
+            <span className="proxima-texto">
+              <span className="etiqueta">{proxima.contactos ? nombre(uno(proxima.contactos)) : "Visita"}</span>
+              <span className="proxima-cuando">{etiquetaHorario(new Date(proxima.inicio), zona)}</span>
+              <span>{uno(proxima.propiedades)?.titulo ?? ""}</span>
+            </span>
+          </Link>
+        </>
+      )}
+
+      {casas.length > 0 && (
+        <>
+          <div className="titulo-seccion">
+            <h2>Tus casas</h2>
+            <Link href="/panel/propiedades">Ver todas</Link>
+          </div>
+          <div className="carrusel">
+            {casas.map((c) => {
+              const foto = fotoDe(c);
+              return (
+                <Link key={c.id} href={`/panel/propiedades/${c.id}`} className="casa-tarjeta">
+                  {foto ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={foto} alt="" loading="lazy" />
+                  ) : (
+                    <span className="sin-foto" aria-hidden>
+                      ⌂
+                    </span>
+                  )}
+                  <span className="casa-tarjeta-texto">
+                    <strong>{c.titulo}</strong>
+                    {c.precio !== null && (
+                      <span>
+                        {precio(c.precio, c.moneda)}
+                        {c.operacion === "alquiler" ? " al mes" : ""}
+                      </span>
+                    )}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </>
+      )}
+
       {total > 0 ? (
-        <section className="te-necesitan" aria-label="Te necesitan">
-          <h2>
-            {total === 1 ? "1 cliente te espera" : `${total} clientes te esperan`}
-          </h2>
+        <section className="te-necesitan" id="te-esperan" aria-label="Te necesitan">
+          <h2>{total === 1 ? "1 cliente te espera" : `${total} clientes te esperan`}</h2>
 
           {pendientes.map((b) => {
             const c = porId.get(b.conversacion_id)!;
@@ -184,6 +304,7 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
         </p>
       )}
 
+      <h2>Chats</h2>
       {conversaciones.length === 0 && <p className="vacio">Todavía no te ha escrito ningún cliente.</p>}
       <ul className="chat-lista" aria-label="Todos los chats">
         {conversaciones.map((c) => {
