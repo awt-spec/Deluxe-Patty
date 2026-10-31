@@ -1,3 +1,4 @@
+import { Volver } from "../volver";
 import Link from "next/link";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Chat } from "./chat";
@@ -9,11 +10,7 @@ export default async function Probar() {
   const { corredor } = await sesionConCorredor();
   return (
     <>
-      <p>
-        <Link href="/panel/mas" className="suave">
-          ← Más
-        </Link>
-      </p>
+      <Volver href="/panel/mas" texto="Más" />
       <header className="encabezado">
         <h1>Probar la asistente</h1>
       </header>

@@ -1,10 +1,14 @@
+import { IconoCamara, IconoCheck, IconoDocumento, IconoDobleCheck } from "../../iconos";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { conPunto, etiquetaHorario } from "@/lib/agenda/formato";
+import { conPunto, diaLargo, etiquetaHorario, horaCorta } from "@/lib/agenda/formato";
+import { fechaIso, fechaLocal, sumarDias } from "@/lib/agenda/tiempo";
 import type { AccionPendiente } from "@/lib/datos/tipos";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { aprobar, descartar, devolver, escribir, tomar } from "../../acciones";
 import { Aviso } from "../../aviso";
+import { Avatar } from "../../avatar";
+import { IconoAtras, IconoEnviar, IconoTelefono } from "../../iconos";
 
 type Mensaje = {
   id: string;
@@ -16,13 +20,6 @@ type Mensaje = {
   estado_entrega: string | null;
   accion: AccionPendiente | null;
   created_at: string;
-};
-
-const AUTOR: Record<Mensaje["autor"], string> = {
-  cliente: "Cliente",
-  asistente: "Asistente",
-  corredor: "Tú",
-  sistema: "Aviso",
 };
 
 function describirAccion(a: AccionPendiente, zona: string): string {
@@ -66,24 +63,40 @@ export default async function Conversacion({
   const ventanaAbierta = !!ultimo && Date.now() - ultimo.getTime() < 24 * 60 * 60_000;
   const suya = conv.control === "corredor";
 
+  // Separadores de día como en WhatsApp: "Hoy", "Ayer" o la fecha.
+  const hoy = fechaLocal(new Date(), zona);
+  const diaDe = (iso: string) => {
+    const d = fechaIso(fechaLocal(new Date(iso), zona));
+    if (d === fechaIso(hoy)) return "Hoy";
+    if (d === fechaIso(sumarDias(hoy, -1))) return "Ayer";
+    return diaLargo(new Date(iso), zona);
+  };
+  let diaAnterior = "";
+
   return (
     <>
-      <p>
-        <Link href="/panel" className="suave">
-          ← Chats
+      <header className="barra-chat">
+        <Link href="/panel" className="atras" aria-label="Volver a los chats">
+          <IconoAtras tamano={28} />
         </Link>
-      </p>
-      <header className="encabezado">
-        <div>
-          <h1>{contacto.nombre ?? contacto.telefono}</h1>
-          <p className="suave">
-            <a href={`tel:${contacto.telefono}`}>{contacto.telefono}</a> · llegó por {contacto.origen}
-          </p>
+        <Avatar nombre={contacto.nombre} telefono={contacto.telefono} />
+        <div className="barra-chat-nombre">
+          <strong>{contacto.nombre ?? contacto.telefono}</strong>
+          <span>{contacto.nombre ? contacto.telefono : `llegó por ${contacto.origen}`}</span>
         </div>
+        <a href={`tel:${contacto.telefono}`} className="llamar" aria-label="Llamar">
+          <IconoTelefono tamano={26} />
+        </a>
       </header>
 
-      <div className="botones">
-        {conv.estado === "escalada" && <span className="insignia alerta">Quiere hablar contigo</span>}
+      <div className={`quien-contesta${suya ? " tu" : ""}${conv.estado === "escalada" ? " espera" : ""}`}>
+        <p>
+          {conv.estado === "escalada"
+            ? "Quiere hablar contigo."
+            : suya
+              ? "Le estás contestando tú."
+              : "La asistente le está contestando."}
+        </p>
         {suya ? (
           <form action={devolver}>
             <input type="hidden" name="conversacion" value={id} />
@@ -104,17 +117,26 @@ export default async function Conversacion({
       </div>
       <Aviso texto={aviso} />
 
-      <section className="hilo" aria-label="Mensajes">
+      <section className="hilo fondo-wa" aria-label="Mensajes">
         {((mensajes ?? []) as Mensaje[]).map((m) => {
-          const hora = etiquetaHorario(new Date(m.created_at), zona);
+          const dia = diaDe(m.created_at);
+          const separador =
+            dia !== diaAnterior ? (
+              <p className="dia-separador" key={`d-${m.id}`}>
+                {dia}
+              </p>
+            ) : null;
+          diaAnterior = dia;
+          const hora = horaCorta(new Date(m.created_at), zona);
           if (m.estado_borrador === "pendiente") {
-            return (
+            return [
+              separador,
               <form key={m.id} id="borrador" action={aprobar} className="borrador pila">
-                <span className="etiqueta">La asistente quiere contestarle</span>
+                <span className="propuesta-titulo">La asistente le contestaría esto. ¿Se lo mando?</span>
                 {m.accion && <p className="suave">{describirAccion(m.accion, zona)}</p>}
                 <input type="hidden" name="mensaje" value={m.id} />
                 <label htmlFor={`texto-${m.id}`} className="suave">
-                  Si quieres, cambia el texto antes de enviarlo:
+                  Puedes cambiar el texto antes de enviarlo:
                 </label>
                 <textarea
                   id={`texto-${m.id}`}
@@ -124,25 +146,28 @@ export default async function Conversacion({
                   rows={Math.min(12, Math.max(4, Math.ceil((m.contenido ?? "").length / 30) + 1))}
                 />
                 <div className="botones">
-                  <button type="submit" className="primario" disabled={!ventanaAbierta}>
-                    ✓ Enviar
+                  <button type="submit" className="verde grande" disabled={!ventanaAbierta}>
+                    <IconoCheck tamano={24} /> Enviar
                   </button>
                   <button type="submit" formAction={descartar} className="peligro">
                     No enviar
                   </button>
                 </div>
-              </form>
-            );
+              </form>,
+            ];
           }
           const clase =
             m.direccion === "entrante" ? "cliente" : `saliente ${m.estado_borrador === "descartado" ? "descartado" : ""}`;
-          return (
+          return [
+            separador,
             <div key={m.id} className={`burbuja ${clase}`}>
+              {m.direccion === "saliente" && m.autor === "asistente" && <span className="autor">Asistente</span>}
               {(m.tipo === "documento" || m.tipo === "imagen") && m.direccion === "entrante" ? (
                 // Lo que manda el cliente con una foto es su pie de foto: se muestra como texto, nunca
                 // como enlace (podría ser una página falsa). La foto se ve en el WhatsApp del corredor.
                 <>
-                  {m.tipo === "documento" ? "📄 Mandó un documento" : "📷 Mandó una foto"}
+                  {m.tipo === "documento" ? <IconoDocumento tamano={20} /> : <IconoCamara tamano={20} />}{" "}
+                  {m.tipo === "documento" ? "Mandó un documento" : "Mandó una foto"}
                   {m.contenido ? `: ${m.contenido}` : ""}
                 </>
               ) : (m.tipo === "documento" || m.tipo === "imagen") && m.contenido?.startsWith("https://") ? (
@@ -153,28 +178,35 @@ export default async function Conversacion({
                 m.contenido ?? `(${m.tipo})`
               )}
               <span className="meta">
-                {AUTOR[m.autor]} · {hora}
-                {m.estado_borrador === "corregido" && " · corregido por ti"}
-                {m.estado_entrega === "fallido" && " · no se entregó"}
+                {m.estado_borrador === "corregido" && "corregido por ti · "}
+                {m.estado_entrega === "fallido" && "no se entregó · "}
+                {hora}
+                {m.direccion === "saliente" && m.estado_entrega !== "fallido" && (
+                  <span className={`visto${m.estado_entrega === "leido" ? " leido" : ""}`} aria-label={m.estado_entrega === "leido" ? "leído" : "enviado"}>
+                    <IconoDobleCheck tamano={18} />
+                  </span>
+                )}
               </span>
-            </div>
-          );
+            </div>,
+          ];
         })}
       </section>
 
       {ventanaAbierta ? (
-        <form action={escribir} className="pila tarjeta">
+        <form action={escribir} className="escribir-wa">
           <input type="hidden" name="conversacion" value={id} />
-          <label htmlFor="texto-nuevo">Escribirle</label>
-          <textarea id="texto-nuevo" name="texto" placeholder="Al escribirle tú, la asistente deja de contestar en este chat." />
-          <button type="submit" className="primario">
-            Enviar
+          <label htmlFor="texto-nuevo" className="oculto">
+            Escribirle
+          </label>
+          <textarea id="texto-nuevo" name="texto" rows={1} required placeholder="Escribe un mensaje" />
+          <button type="submit" className="enviar-redondo" aria-label="Enviar">
+            <IconoEnviar tamano={26} />
           </button>
         </form>
       ) : (
-        <div className="pila">
-          <p className="aviso">Pasó más de un día desde que te escribió: contéstale desde tu WhatsApp.</p>
-          <a href={`https://wa.me/${contacto.telefono.replace(/\D/g, "")}`} className="boton primario grande" target="_blank" rel="noreferrer">
+        <div className="escribir-wa cerrado">
+          <p>Pasó más de un día desde que te escribió: contéstale desde tu WhatsApp.</p>
+          <a href={`https://wa.me/${contacto.telefono.replace(/\D/g, "")}`} className="boton verde" target="_blank" rel="noreferrer">
             Abrir WhatsApp
           </a>
         </div>

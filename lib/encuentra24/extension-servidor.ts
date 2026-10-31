@@ -25,9 +25,9 @@ export function dependenciasExtension(): DependenciasExtension {
 
 export const MENSAJES: Record<string, string> = {
   codigo: "Ese código no sirve: puede haber vencido (dura 10 minutos) o ya se usó. Pide otro en el panel.",
-  permiso: "La extensión ya no está conectada. Conéctala de nuevo desde el panel: Más → Dueños directos.",
-  sin_corredor: "La extensión ya no está conectada. Conéctala de nuevo desde el panel: Más → Dueños directos.",
-  sin_zonas: "Primero escribe tus zonas de Encuentra24 en el panel: Más → Ajustes → Búsqueda de dueños.",
+  permiso: "La extensión ya no está conectada. Conéctala de nuevo desde el panel, en Más y luego Dueños directos.",
+  sin_corredor: "La extensión ya no está conectada. Conéctala de nuevo desde el panel, en Más y luego Dueños directos.",
+  sin_zonas: "Primero escribe tus zonas de Encuentra24 en el panel, en Más y luego Ajustes, en Búsqueda de dueños.",
   sin_presupuesto: SIN_PRESUPUESTO,
   no_encontrada: "La búsqueda se interrumpió. Vuelve a empezarla.",
   fuera_de_orden: "La búsqueda se interrumpió. Vuelve a empezarla.",

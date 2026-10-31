@@ -5,6 +5,9 @@ import { MARCA_DELUXE } from "../fichas/marca";
 // usuario `correo` enlazado solo a él. Lo usan `npm run demo` y el cron nocturno (/api/cron/demo), que
 // la deja como nueva cada día: así las visitas siempre son de los próximos días y los chats, recientes.
 
+/** Fotos de muestra (Unsplash, licencia libre) para que la demo se vea como una cuenta con casas reales. */
+const foto = (id: string, orden: number) => ({ url: `https://images.unsplash.com/photo-${id}?w=1200&q=70&auto=format&fit=crop`, orden });
+
 export const ID_DEMO = "00000000-0000-4000-8000-0000000000de";
 
 export async function rehacerDemo(db: SupabaseClient, correo: string, ahora = Date.now()) {
@@ -78,27 +81,31 @@ export async function rehacerDemo(db: SupabaseClient, correo: string, ahora = Da
     .from("propiedades")
     .insert([
       {
-        corredor_id: ID, codigo: "DEMO-01", titulo: "Casa contemporánea con vista al valle", tipo: "casa", operacion: "venta",
+        corredor_id: ID, fotos: [foto("1613490493576-7fde63acd811", 1), foto("1600596542815-ffad4c1539a9", 2), foto("1600607687939-ce8a6c25118c", 3)],
+        codigo: "DEMO-01", titulo: "Casa contemporánea con vista al valle", tipo: "casa", operacion: "venta",
         precio: 1250000, zona: "Escazú", provincia: "San José", canton: "Escazú", habitaciones: 4, banos: 4.5,
         m2_construccion: 520, m2_terreno: 1100, amenidades: ["piscina", "vista al valle", "cuarto de servicio", "seguridad 24/7"],
         descripcion: "Casa de líneas limpias en condominio cerrado, con piscina, jardín y vista abierta al Valle Central.",
         estado: "activa",
       },
       {
-        corredor_id: ID, codigo: "DEMO-02", titulo: "Apartamento amueblado en torre con amenidades", tipo: "apartamento",
+        corredor_id: ID, fotos: [foto("1522708323590-d24dbb6b0267", 1), foto("1502672260266-1c1ef2d93688", 2)],
+        codigo: "DEMO-02", titulo: "Apartamento amueblado en torre con amenidades", tipo: "apartamento",
         operacion: "alquiler", precio: 2800, zona: "Santa Ana", provincia: "San José", canton: "Santa Ana", habitaciones: 2,
         banos: 2, m2_construccion: 145, amenidades: ["amueblado", "gimnasio", "piscina", "2 parqueos"],
         descripcion: "Apartamento amueblado con balcón, cerca de centros comerciales y de la ruta 27.",
         estado: "activa",
       },
       {
-        corredor_id: ID, codigo: "DEMO-03", titulo: "Lote plano en condominio", tipo: "lote", operacion: "venta",
+        corredor_id: ID, fotos: [foto("1500382017468-9049fed747ef", 1)],
+        codigo: "DEMO-03", titulo: "Lote plano en condominio", tipo: "lote", operacion: "venta",
         precio: 340000, zona: "Ciudad Colón", provincia: "San José", canton: "Mora", m2_terreno: 2400,
         amenidades: ["agua y luz", "acceso controlado"], descripcion: "Lote plano con servicios, listo para construir.",
         estado: "activa",
       },
       {
-        corredor_id: ID, codigo: "DEMO-04", titulo: "Casa familiar con jardín", tipo: "casa", operacion: "venta",
+        corredor_id: ID, fotos: [foto("1568605114967-8130f3a36994", 1), foto("1570129477492-45c003edd2be", 2)],
+        codigo: "DEMO-04", titulo: "Casa familiar con jardín", tipo: "casa", operacion: "venta",
         precio: 690000, zona: "Belén", provincia: "Heredia", canton: "Belén", habitaciones: 3, banos: 3, m2_construccion: 310,
         m2_terreno: 600, amenidades: ["jardín", "terraza", "bodega"], estado: "reservada",
         descripcion: "Casa de una planta con jardín amplio, cerca de colegios bilingües.",

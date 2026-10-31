@@ -1038,3 +1038,986 @@ button[aria-busy="true"] {
   padding-left: 1.4em;
   gap: 10px;
 }
+
+/* ------------------------------------------------------------------------------------------------
+   Panel oscuro, como una app de banca privada: fondo onyx, superficies con brillo suave, dorado de la
+   marca en acentos y cifras, Playfair en títulos. Los chats conservan la forma de WhatsApp (lista con
+   fotos, burbujas, caja para escribir abajo) para quien ya lo usa todos los días.
+   Entradas desde app/panel/layout.tsx: --principal, --soporte, --onyx y --crema de la marca.
+   ------------------------------------------------------------------------------------------------ */
+
+.marco.oscuro {
+  --onyx: #1a1308;
+  --crema: #f5f0e8;
+  --base: color-mix(in srgb, var(--onyx) 70%, #000);
+  --superficie: color-mix(in srgb, var(--onyx) 78%, #fff 6%);
+  --superficie-alta: color-mix(in srgb, var(--onyx) 70%, #fff 11%);
+  --profundo: var(--crema);
+  --suave: color-mix(in srgb, var(--crema) 62%, transparent);
+  --borde: color-mix(in srgb, var(--principal) 18%, transparent);
+  --peligro: #f08a7e;
+  --ok: #8fd19e;
+  --radio: 18px;
+  --sombra: 0 10px 30px rgb(0 0 0 / 35%), inset 0 1px 0 rgb(255 255 255 / 4%);
+  --brillo: linear-gradient(160deg, color-mix(in srgb, var(--principal) 10%, transparent), transparent 55%);
+  --chat-fondo: color-mix(in srgb, var(--onyx) 55%, #000);
+  --chat-entrante: var(--superficie-alta);
+  --chat-saliente: color-mix(in srgb, var(--principal) 26%, var(--onyx));
+  background:
+    radial-gradient(120% 60% at 50% -10%, color-mix(in srgb, var(--principal) 14%, transparent), transparent 60%),
+    var(--base);
+  color: var(--profundo);
+  font-size: 17px;
+}
+
+.oscuro ::selection {
+  background: color-mix(in srgb, var(--principal) 40%, transparent);
+}
+
+.oscuro h1 {
+  font-size: 2rem;
+  letter-spacing: -0.01em;
+}
+
+.oscuro h2 {
+  font-size: 1.25rem;
+  margin: 1.8rem 0 0.8rem;
+}
+
+.oscuro .etiqueta {
+  color: var(--principal);
+}
+
+.oscuro a {
+  color: inherit;
+}
+
+.oscuro .tarjeta,
+.oscuro .cifra,
+.oscuro .pendiente,
+.oscuro .opciones,
+.oscuro .entrada-tarjeta {
+  background: var(--brillo), var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+}
+
+.oscuro input[type="text"],
+.oscuro input[type="email"],
+.oscuro input[type="time"],
+.oscuro input[type="number"],
+.oscuro input[type="url"],
+.oscuro input[type="date"],
+.oscuro textarea,
+.oscuro select {
+  background: var(--superficie-alta);
+  color: var(--profundo);
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+  color-scheme: dark;
+}
+
+.oscuro input:focus,
+.oscuro textarea:focus,
+.oscuro select:focus {
+  outline: 2px solid var(--principal);
+  outline-offset: 1px;
+}
+
+.oscuro button,
+.oscuro .boton {
+  background: var(--superficie-alta);
+  color: var(--profundo);
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+}
+
+/* Botón principal: dorado, como un botón de pago */
+.oscuro button.primario,
+.oscuro .boton.primario,
+.oscuro button.verde,
+.oscuro .boton.verde {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--principal) 100%, #fff 18%), var(--principal));
+  border: none;
+  color: var(--onyx);
+  font-weight: 700;
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--principal) 28%, transparent);
+}
+
+.oscuro button.primario:disabled,
+.oscuro button.verde:disabled {
+  opacity: 0.45;
+  box-shadow: none;
+}
+
+.oscuro button.peligro {
+  color: var(--peligro);
+}
+
+.oscuro .aviso {
+  background: color-mix(in srgb, var(--principal) 12%, var(--superficie));
+  border-color: var(--borde);
+  color: var(--profundo);
+}
+
+.oscuro .insignia {
+  background: color-mix(in srgb, var(--principal) 18%, transparent);
+  color: var(--principal);
+}
+
+.oscuro .banda-demo {
+  background: color-mix(in srgb, var(--principal) 85%, #000);
+  color: var(--onyx);
+}
+
+/* Pestañas de abajo: vidrio oscuro con el dorado en la activa */
+.oscuro .navegacion {
+  background: color-mix(in srgb, var(--onyx) 82%, transparent);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border-top: 1px solid var(--borde);
+}
+
+.oscuro .navegacion a {
+  color: var(--suave);
+  font-size: 0.95rem;
+}
+
+.oscuro .navegacion a[aria-current="page"] {
+  color: var(--principal);
+}
+
+.oscuro .navegacion a[aria-current="page"] .icono {
+  background: color-mix(in srgb, var(--principal) 18%, transparent);
+}
+
+.oscuro .navegacion .contador {
+  background: var(--principal);
+  color: var(--onyx);
+  box-shadow: 0 0 0 2px var(--onyx);
+}
+
+/* ---- Inicio ---- */
+
+.saludo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 8px 0 18px;
+}
+
+.saludo-fecha {
+  margin: 4px 0 0;
+  color: var(--suave);
+  font-size: 1rem;
+}
+
+.saludo-fecha::first-letter {
+  text-transform: uppercase;
+}
+
+.oscuro .boton-mas {
+  border-radius: 999px;
+  padding: 10px 18px;
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.kpi {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px;
+  border-radius: var(--radio);
+  border: 1px solid var(--borde);
+  background: var(--brillo), var(--superficie);
+  box-shadow: var(--sombra);
+  text-decoration: none;
+  min-height: 112px;
+  justify-content: space-between;
+}
+
+.kpi strong {
+  font-family: var(--serif);
+  font-size: 2.6rem;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--principal);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.kpi span {
+  font-size: 0.98rem;
+  color: var(--profundo);
+  line-height: 1.25;
+}
+
+.kpi.urgente {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--principal) 30%, transparent), transparent 70%), var(--superficie);
+  border-color: color-mix(in srgb, var(--principal) 55%, transparent);
+}
+
+.kpi.urgente::after {
+  content: "";
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--principal);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--principal) 25%, transparent);
+}
+
+.proxima {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  min-height: 210px;
+  border-radius: 22px;
+  border: 1px solid var(--borde);
+  box-shadow: var(--sombra);
+  text-decoration: none;
+  background: var(--superficie) center / cover no-repeat;
+  margin-bottom: 8px;
+}
+
+.proxima::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgb(0 0 0 / 5%) 20%, rgb(0 0 0 / 82%));
+}
+
+.proxima-texto {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: #fff;
+}
+
+.proxima-texto .etiqueta {
+  color: var(--principal);
+}
+
+.proxima-cuando {
+  font-family: var(--serif);
+  font-size: 1.6rem;
+  line-height: 1.15;
+}
+
+.proxima-texto span:last-child {
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+.carrusel {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 78%;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  margin: 0 -16px;
+  padding: 0 16px 6px;
+  scrollbar-width: none;
+}
+
+.carrusel::-webkit-scrollbar {
+  display: none;
+}
+
+.casa-tarjeta {
+  scroll-snap-align: start;
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 3;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid var(--borde);
+  box-shadow: var(--sombra);
+  text-decoration: none;
+  background: var(--superficie);
+}
+
+.casa-tarjeta img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.casa-tarjeta .sin-foto {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  font-size: 2.5rem;
+  color: var(--principal);
+}
+
+.casa-tarjeta-texto {
+  position: absolute;
+  inset: auto 0 0;
+  padding: 36px 14px 12px;
+  background: linear-gradient(180deg, transparent, rgb(0 0 0 / 85%));
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+.casa-tarjeta-texto strong {
+  font-size: 1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.casa-tarjeta-texto span {
+  font-family: var(--serif);
+  font-size: 1.3rem;
+  color: var(--principal);
+}
+
+.titulo-seccion {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.titulo-seccion a {
+  font-size: 0.95rem;
+  color: var(--principal);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.oscuro .al-dia {
+  background: var(--brillo), var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  color: var(--profundo);
+}
+
+/* ---- Lo que espera a la corredora ---- */
+
+.te-necesitan {
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.oscuro .pendiente {
+  padding: 16px;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.pendiente-quien {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  font-size: 1.1rem;
+}
+
+.mini-hilo {
+  background: var(--chat-fondo);
+  border-radius: 14px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mini-hilo .burbuja {
+  margin: 0;
+}
+
+.propuesta-titulo {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--principal);
+  margin-bottom: 4px;
+}
+
+/* ---- Lista de chats, como WhatsApp ---- */
+
+.chat-lista {
+  background: var(--brillo), var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+  padding: 4px 14px;
+}
+
+.chat-lista a {
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: none;
+}
+
+.chat-lista li + li .texto {
+  border-top: 1px solid var(--borde);
+}
+
+.chat-lista .texto {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  padding: 6px 0;
+}
+
+.chat-lista .renglon {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.chat-lista strong {
+  font-size: 1.1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-lista .vista {
+  font-size: 1rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.chat-lista .hora {
+  flex: none;
+  font-size: 0.85rem;
+  color: var(--suave);
+}
+
+.chat-lista .hora.nueva {
+  color: var(--principal);
+  font-weight: 600;
+}
+
+.avatar {
+  width: 54px;
+  height: 54px;
+  color: #fff;
+  font-size: 1.35rem;
+  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 12%);
+}
+
+.punto {
+  background: var(--principal);
+  color: var(--onyx);
+  border-radius: 999px;
+  font-size: 0.85rem;
+}
+
+.visto {
+  color: var(--suave);
+  font-size: 0.85em;
+  letter-spacing: -0.15em;
+}
+
+.visto.leido {
+  color: #53bdeb;
+}
+
+/* ---- Dentro de un chat ---- */
+
+.panel:has(.barra-chat) {
+  padding-top: 0;
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
+}
+
+.barra-chat {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 -16px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--onyx) 85%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--borde);
+}
+
+.barra-chat .atras,
+.barra-chat .llamar {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  color: var(--principal);
+}
+
+.barra-chat .llamar {
+  background: color-mix(in srgb, var(--principal) 14%, transparent);
+}
+
+.barra-chat .avatar {
+  width: 46px;
+  height: 46px;
+  font-size: 1.1rem;
+}
+
+.barra-chat-nombre {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.barra-chat-nombre strong {
+  font-size: 1.15rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.barra-chat-nombre span {
+  font-size: 0.85rem;
+  color: var(--suave);
+}
+
+.quien-contesta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 -16px;
+  padding: 12px 16px;
+  background: color-mix(in srgb, var(--principal) 9%, var(--base));
+  border-bottom: 1px solid var(--borde);
+  font-size: 0.98rem;
+}
+
+.quien-contesta p {
+  flex: 1 1 160px;
+  margin: 0;
+  font-weight: 600;
+}
+
+.quien-contesta.espera {
+  background: color-mix(in srgb, var(--principal) 24%, var(--base));
+}
+
+.oscuro .quien-contesta button {
+  min-height: 46px;
+  padding: 8px 16px;
+  font-size: 0.95rem;
+  border-radius: 999px;
+}
+
+.hilo.fondo-wa {
+  margin: 0 -16px;
+  padding: 14px 12px 18px;
+  min-height: 55vh;
+  gap: 6px;
+  background:
+    radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--principal) 9%, transparent) 1px, transparent 0) 0 0 / 22px 22px,
+    var(--chat-fondo);
+}
+
+.burbuja {
+  max-width: 85%;
+  padding: 9px 12px 6px;
+  border-radius: 14px;
+  font-size: 1.05rem;
+  line-height: 1.42;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 30%);
+}
+
+.oscuro .burbuja.cliente {
+  background: var(--chat-entrante);
+  border: none;
+  border-top-left-radius: 4px;
+}
+
+.oscuro .burbuja.saliente {
+  background: var(--chat-saliente);
+  border-top-right-radius: 4px;
+}
+
+.burbuja .meta {
+  text-align: right;
+  font-size: 0.75rem;
+  margin-top: 2px;
+}
+
+.burbuja .autor {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--principal);
+}
+
+.dia-separador {
+  align-self: center;
+  margin: 10px 0 4px;
+  padding: 4px 14px;
+  border-radius: 999px;
+  background: var(--superficie-alta);
+  color: var(--suave);
+  font-size: 0.85rem;
+}
+
+.dia-separador::first-letter {
+  text-transform: uppercase;
+}
+
+.oscuro .borrador {
+  border: 1.5px dashed var(--principal);
+  background: color-mix(in srgb, var(--principal) 10%, var(--superficie));
+  border-radius: 16px;
+}
+
+.escribir-wa {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--onyx) 88%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid var(--borde);
+}
+
+.oscuro .escribir-wa textarea {
+  flex: 1;
+  min-height: 54px;
+  max-height: 160px;
+  margin: 0;
+  padding: 14px 20px;
+  border-radius: 27px;
+  font-size: 1.05rem;
+  resize: none;
+  field-sizing: content;
+}
+
+.oscuro .enviar-redondo {
+  flex: none;
+  width: 54px;
+  height: 54px;
+  min-height: 54px;
+  padding: 0;
+  border-radius: 50%;
+  border: none;
+  display: grid;
+  place-items: center;
+  background: var(--principal);
+  color: var(--onyx);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--principal) 35%, transparent);
+}
+
+.escribir-wa.cerrado {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.escribir-wa.cerrado p {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+/* Mis casas y propiedades: la foto manda */
+.oscuro .tarjeta.propiedad img,
+.oscuro .tarjeta.propiedad .sin-foto {
+  border-radius: 14px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .kpi,
+  .proxima,
+  .casa-tarjeta,
+  .pendiente,
+  .burbuja {
+    animation: aparecer 0.25s ease-out both;
+  }
+
+  .kpi:active,
+  .casa-tarjeta:active,
+  .proxima:active {
+    transform: scale(0.98);
+  }
+}
+
+@keyframes aparecer {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+body:has(.marco.oscuro) {
+  background: #0f0b06;
+}
+
+.oscuro .boton-mas {
+  flex: none;
+  flex-direction: row;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+/* Íconos dibujados dentro de botones, enlaces y marcas (en lugar de emojis) */
+button,
+.boton,
+.volver {
+  gap: 8px;
+}
+
+.volver {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--principal);
+}
+
+.visto {
+  display: inline-flex;
+  vertical-align: -3px;
+  margin-right: 4px;
+}
+
+.burbuja .meta .visto {
+  margin: 0 0 0 4px;
+}
+
+.oscuro .al-dia svg {
+  color: var(--principal);
+  flex: none;
+}
+
+.galeria figcaption svg,
+.insignia svg {
+  vertical-align: -2px;
+}
+
+.kpi svg {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  color: var(--principal);
+  opacity: 0.85;
+}
+
+.kpi.urgente::after {
+  display: none;
+}
+
+.kpi.urgente svg {
+  opacity: 1;
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--principal) 60%, transparent));
+}
+
+/* ------------------------------------------------------------------------------------------------
+   Computadora: menú a la izquierda, contenido ancho, inicio en columnas y el chat a todo lo ancho.
+   ------------------------------------------------------------------------------------------------ */
+
+.navegacion-marca,
+.solo-escritorio {
+  display: none;
+}
+
+@media (max-width: 899px) {
+  /* En el teléfono, dentro de un chat va la caja para escribir y no las pestañas. */
+  .navegacion.en-chat {
+    display: none;
+  }
+}
+
+@media (min-width: 900px) {
+  .marco.oscuro {
+    --lateral: 248px;
+    padding-left: var(--lateral);
+  }
+
+  .oscuro .navegacion {
+    top: 0;
+    right: auto;
+    bottom: 0;
+    width: var(--lateral);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 28px 16px;
+    border-top: none;
+    border-right: 1px solid var(--borde);
+  }
+
+  .navegacion-marca {
+    display: block;
+    font-family: var(--serif);
+    font-size: 1.35rem;
+    line-height: 1.2;
+    color: var(--principal);
+    padding: 0 12px 24px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--borde);
+  }
+
+  .oscuro .navegacion a,
+  .oscuro .navegacion .solo-escritorio {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    font-size: 1.05rem;
+  }
+
+  .oscuro .navegacion a:hover {
+    background: color-mix(in srgb, var(--principal) 8%, transparent);
+    color: var(--profundo);
+  }
+
+  .oscuro .navegacion a[aria-current="page"] {
+    background: color-mix(in srgb, var(--principal) 14%, transparent);
+  }
+
+  .oscuro .navegacion a[aria-current="page"] .icono {
+    background: none;
+  }
+
+  .navegacion .icono {
+    width: 32px;
+  }
+
+  .oscuro .panel {
+    max-width: 1120px;
+    padding: 32px 40px 48px;
+  }
+
+  .banda-demo {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+  }
+
+  /* Inicio */
+  .saludo .boton-mas {
+    display: none;
+  }
+
+  .kpis {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+
+  .destacados {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+    gap: 24px;
+    align-items: start;
+  }
+
+  .proxima {
+    min-height: 300px;
+  }
+
+  .carrusel {
+    grid-auto-columns: calc(50% - 6px);
+    margin: 0;
+    padding: 0 0 6px;
+  }
+
+  .te-necesitan {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    align-items: start;
+  }
+
+  .te-necesitan > h2 {
+    grid-column: 1 / -1;
+    margin-bottom: 0;
+  }
+
+  .oscuro .pendiente {
+    margin-bottom: 0;
+  }
+
+  .chat-lista a:hover strong {
+    color: var(--principal);
+  }
+
+  /* Chat */
+  .panel:has(.barra-chat) {
+    max-width: none;
+    padding: 0 0 calc(96px + env(safe-area-inset-bottom));
+  }
+
+  .barra-chat,
+  .quien-contesta,
+  .hilo.fondo-wa {
+    margin: 0;
+  }
+
+  .barra-chat,
+  .quien-contesta {
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+
+  .hilo.fondo-wa {
+    padding: 20px 10% 24px;
+    min-height: calc(100vh - 170px);
+  }
+
+  .burbuja {
+    max-width: min(560px, 70%);
+  }
+
+  .oscuro .borrador {
+    max-width: 640px;
+    align-self: flex-end;
+  }
+
+  .escribir-wa {
+    left: var(--lateral);
+    max-width: none;
+    padding: 12px 10%;
+  }
+
+  /* Mis casas en cuadrícula */
+  .oscuro .panel:has(.tarjeta.propiedad) {
+    max-width: 1120px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .marco.oscuro {
+    --lateral: 280px;
+  }
+}

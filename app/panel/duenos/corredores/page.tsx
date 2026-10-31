@@ -1,3 +1,4 @@
+import { Volver } from "../../volver";
 import Link from "next/link";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Aviso } from "../../aviso";
@@ -24,11 +25,7 @@ export default async function CorredoresConocidos({ searchParams }: { searchPara
 
   return (
     <>
-      <p>
-        <Link href="/panel/duenos" className="suave">
-          ← Dueños
-        </Link>
-      </p>
+      <Volver href="/panel/duenos" texto="Dueños" />
       <header className="encabezado">
         <h1>Corredores conocidos</h1>
       </header>

@@ -91,7 +91,7 @@ export default async function Agenda({ searchParams }: { searchParams: Promise<{
           <a href={`webcal://${enlace}`} className="boton primario">
             Suscribirme desde el iPhone
           </a>
-          <p className="suave">En Google Calendar: “Otros calendarios” → “Desde URL” y pega este enlace:</p>
+          <p className="suave">En Google Calendar: “Otros calendarios” y luego “Desde URL” y pega este enlace:</p>
           <input type="text" readOnly value={`${protocolo}://${enlace}`} aria-label="Enlace del calendario" />
           <form action={cambiarEnlaceCalendario}>
             <p className="suave">¿Lo compartiste sin querer? Cámbialo y el anterior deja de funcionar.</p>

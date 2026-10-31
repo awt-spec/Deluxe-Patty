@@ -1,5 +1,6 @@
 "use client";
 
+import { IconoCheck } from "../../iconos";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { FichaParcial } from "@/lib/datos/tipos";
@@ -88,14 +89,14 @@ export function ChatCasa() {
           <div className="tarjeta pila ficha-resumen">
             {resumen.map((r, i) => (i === 0 ? <strong key={i}>{r}</strong> : <span key={i}>{r}</span>))}
             <button type="button" className="primario grande" onClick={() => void guardar()} disabled={ocupado}>
-              ✓ Sí, guardarla
+              <IconoCheck tamano={24} /> Sí, guardarla
             </button>
             <p className="suave">¿Algo está mal o falta? Escríbemelo abajo y lo cambio.</p>
           </div>
         )}
         {guardada && (
           <>
-            <div className="burbuja cliente">¡Listo, ya la guardé! Ahora súbele las fotos 📷 La primera que subas será la principal.</div>
+            <div className="burbuja cliente">¡Listo, ya la guardé! Ahora súbele las fotos. La primera que subas será la principal.</div>
             <SubirFotos propiedadId={guardada} />
             <Link href={`/panel/propiedades/${guardada}`} className="boton grande">
               Terminé

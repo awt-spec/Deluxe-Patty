@@ -1,3 +1,4 @@
+import { Volver } from "../../volver";
 import Link from "next/link";
 import { diaLargo, etiquetaHorario } from "@/lib/agenda/formato";
 import { minutosLocales } from "@/lib/agenda/tiempo";
@@ -42,7 +43,7 @@ function rango(b: Bloqueo, zona: string): string {
       ? `${primero}, todo el día`
       : `${primero} al ${ultimo}`;
   }
-  return `${etiquetaHorario(inicio, zona)} → ${etiquetaHorario(fin, zona)}`;
+  return `del ${etiquetaHorario(inicio, zona)} al ${etiquetaHorario(fin, zona)}`;
 }
 
 // Lunes primero, como se lee una semana de trabajo.
@@ -75,11 +76,7 @@ export default async function Horario({
 
   return (
     <>
-      <p>
-        <Link href="/panel/agenda" className="suave">
-          ← Agenda
-        </Link>
-      </p>
+      <Volver href="/panel/agenda" texto="Agenda" />
       <header className="encabezado">
         <h1>Mi horario</h1>
       </header>

@@ -152,7 +152,7 @@ async function buscar() {
       mensaje:
         n === 0
           ? `Listo: revisé ${r.resumen.anuncios} anuncios y esta semana no hay dueños nuevos.`
-          : `Listo: ${n} ${n === 1 ? "dueño nuevo" : "dueños nuevos"}. Están en el panel, en Más → Dueños directos.`,
+          : `Listo: ${n} ${n === 1 ? "dueño nuevo" : "dueños nuevos"}. Están en el panel, en Más, en Dueños directos.`,
     });
   } catch (e) {
     await progreso({

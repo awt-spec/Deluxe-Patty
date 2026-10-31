@@ -1,3 +1,4 @@
+import { Volver } from "../volver";
 import Link from "next/link";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { elegirCorredor, salir } from "../acciones";
@@ -32,11 +33,7 @@ export default async function Mas() {
   const { corredor, corredores, usuario } = await sesionConCorredor();
   return (
     <>
-      <p>
-        <Link href="/panel" className="volver">
-          ← Chats
-        </Link>
-      </p>
+      <Volver href="/panel" texto="Chats" />
       <header className="encabezado">
         <h1>Más</h1>
       </header>
