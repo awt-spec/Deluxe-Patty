@@ -1,3 +1,4 @@
+import type { Busca } from "../crm/perfil";
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
@@ -12,6 +13,8 @@ export const MODELO_REDACTAR = "claude-sonnet-5-5";
 export interface Clasificacion {
   intencion: Intencion;
   tema: string;
+  /** Lo que el cliente dijo que busca en este mensaje (para su ficha en el CRM). */
+  busca?: Busca;
   consumo: Consumo;
 }
 
@@ -105,6 +108,14 @@ export class RechazoModelo extends Error {
 const EsquemaClasificacion = z.object({
   intencion: z.enum(["consulta_propiedad", "agendar_visita", "otro", "pasar_a_corredor"]),
   tema: z.string(),
+  busca: z.object({
+    operacion: z.enum(["venta", "alquiler"]).nullable(),
+    tipo: z.string().nullable(),
+    zonas: z.array(z.string()),
+    presupuesto_max: z.number().nullable(),
+    moneda: z.enum(["USD", "CRC"]).nullable(),
+    habitaciones: z.number().int().nullable(),
+  }),
 });
 
 const EsquemaRespuesta = z.object({
@@ -239,7 +250,15 @@ export function crearCerebroClaude(client = new Anthropic()): Cerebro {
       const c = consumo(MODELO_CLASIFICAR, res.usage);
       if (res.stop_reason === "refusal") throw new RechazoModelo(c);
       if (!res.parsed_output) throw new Error(`Clasificación sin salida (stop_reason ${res.stop_reason})`);
-      return { intencion: res.parsed_output.intencion, tema: res.parsed_output.tema, consumo: c };
+      const b = res.parsed_output.busca;
+      const busca: Busca = {
+        ...(b.operacion ? { operacion: b.operacion } : {}),
+        ...(b.tipo ? { tipo: b.tipo } : {}),
+        ...(b.zonas.length ? { zonas: b.zonas } : {}),
+        ...(b.presupuesto_max ? { presupuesto_max: b.presupuesto_max, moneda: b.moneda ?? "USD" } : {}),
+        ...(b.habitaciones ? { habitaciones: b.habitaciones } : {}),
+      };
+      return { intencion: res.parsed_output.intencion, tema: res.parsed_output.tema, busca, consumo: c };
     },
 
     async responder(corredor, propiedades, historial, mensaje, correcciones = []) {

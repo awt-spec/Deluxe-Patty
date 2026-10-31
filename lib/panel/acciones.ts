@@ -58,6 +58,8 @@ export async function aprobarBorrador(
     });
     if (!id) return devolver("Ese horario ya se ocupó. Descarta este borrador y pídele al cliente otro horario.");
     if (accion.reemplaza_cita_id) await repo.cambiarEstadoCita(corredor.id, accion.reemplaza_cita_id, "cancelada");
+    // CRM: con la visita agendada el cliente pasa a "visita" (si todavía estaba antes).
+    await repo.actualizarPerfilCliente(corredor.id, b.contacto_id, { etapa: "visita", soloDesde: ["nuevo", "interesado"] });
   } else if (accion?.tipo === "cancelar_cita") {
     await repo.cambiarEstadoCita(corredor.id, accion.cita_id, "cancelada");
   } else if (accion?.tipo === "confirmar_asistencia") {
