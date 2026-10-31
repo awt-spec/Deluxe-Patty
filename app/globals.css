@@ -1761,7 +1761,7 @@ button[aria-busy="true"] {
   .casa-tarjeta,
   .pendiente,
   .burbuja {
-    animation: aparecer 0.25s ease-out both;
+    animation: aparecer 0.25s ease-out;
   }
 
   .kpi:active,
@@ -1771,9 +1771,9 @@ button[aria-busy="true"] {
   }
 }
 
+/* Solo un pequeño movimiento: nada empieza transparente, así nunca queda apagado si la animación no corre. */
 @keyframes aparecer {
   from {
-    opacity: 0;
     transform: translateY(6px);
   }
 }
@@ -1845,7 +1845,7 @@ button,
    ------------------------------------------------------------------------------------------------ */
 
 .navegacion-marca,
-.solo-escritorio {
+.oscuro .navegacion .solo-escritorio {
   display: none;
 }
 
