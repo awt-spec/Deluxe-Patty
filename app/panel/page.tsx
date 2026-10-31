@@ -1,3 +1,4 @@
+import { IconoAgenda, IconoCasa, IconoChats, IconoCheck, IconoDobleCheck, IconoLapiz, IconoLlave } from "./iconos";
 import Link from "next/link";
 import { conPunto, diaLargo, etiquetaHorario, horaCorta } from "@/lib/agenda/formato";
 import { fechaIso, fechaLocal, limitesDia } from "@/lib/agenda/tiempo";
@@ -156,18 +157,22 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
 
       <section className="kpis" aria-label="Tu día">
         <a href="#te-esperan" className={`kpi${total > 0 ? " urgente" : ""}`}>
+          <IconoChats tamano={26} />
           <strong>{total}</strong>
           <span>{total === 1 ? "cliente te espera" : "clientes te esperan"}</span>
         </a>
         <Link href="/panel/agenda" className="kpi">
+          <IconoAgenda tamano={26} />
           <strong>{visitasHoy ?? 0}</strong>
           <span>{visitasHoy === 1 ? "visita hoy" : "visitas hoy"}</span>
         </Link>
         <Link href="/panel/propiedades" className="kpi">
+          <IconoCasa tamano={26} />
           <strong>{casas.length}</strong>
           <span>{casas.length === 1 ? "casa en oferta" : "casas en oferta"}</span>
         </Link>
         <Link href="/panel/duenos" className="kpi">
+          <IconoLlave tamano={26} />
           <strong>{duenosNuevos ?? 0}</strong>
           <span>{duenosNuevos === 1 ? "dueño nuevo esta semana" : "dueños nuevos esta semana"}</span>
         </Link>
@@ -206,7 +211,7 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
                     <img src={foto} alt="" loading="lazy" />
                   ) : (
                     <span className="sin-foto" aria-hidden>
-                      ⌂
+                      <IconoCasa tamano={44} />
                     </span>
                   )}
                   <span className="casa-tarjeta-texto">
@@ -252,14 +257,14 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
                     <input type="hidden" name="mensaje" value={b.id} />
                     <input type="hidden" name="texto" value={b.contenido ?? ""} />
                     <input type="hidden" name="volver" value="/panel" />
-                    <BotonEnviar texto="✓ Enviar así" pendiente="Enviando…" className="verde grande" />
+                    <BotonEnviar texto={<><IconoCheck tamano={24} /> Enviar así</>} pendiente="Enviando…" className="verde grande" />
                   </form>
                 ) : (
                   <p className="aviso">Pasó más de un día desde que escribió: contéstale desde tu WhatsApp.</p>
                 )}
                 <div className="botones secundarios">
                   <Link href={`/panel/conversaciones/${c.id}#borrador`} className="boton secundario">
-                    ✎ Cambiarla
+                    <IconoLapiz tamano={20} /> Cambiarla
                   </Link>
                   <form action={yoLeEscribo} style={{ flex: "1 1 auto", display: "flex" }}>
                     <input type="hidden" name="conversacion" value={c.id} />
@@ -300,7 +305,7 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
         </section>
       ) : (
         <p className="al-dia">
-          <span aria-hidden>✓</span> Todo al día: ningún cliente te espera.
+          <IconoCheck tamano={24} /> Todo al día: ningún cliente te espera.
         </p>
       )}
 
@@ -323,7 +328,7 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
                   <span className="renglon">
                     <span className="vista">
                       {c.control === "corredor" ? "Le contestas tú · " : ""}
-                      {m?.direccion === "saliente" && <span className="visto" aria-label="enviado">✓✓ </span>}
+                      {m?.direccion === "saliente" && <span className="visto" aria-label="enviado"><IconoDobleCheck tamano={18} /></span>}
                       {m ? (m.contenido ?? "(archivo)") : ""}
                     </span>
                     {marca && (

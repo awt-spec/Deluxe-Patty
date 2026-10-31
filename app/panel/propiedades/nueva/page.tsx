@@ -1,3 +1,4 @@
+import { Volver } from "../../volver";
 import Link from "next/link";
 import { siguienteCodigo } from "@/lib/panel/formularios";
 import { sesionConCorredor } from "@/lib/panel/sesion";
@@ -19,11 +20,7 @@ export default async function NuevaPropiedad({
   if (formulario !== "1") {
     return (
       <>
-        <p>
-          <Link href="/panel/propiedades" className="suave">
-            ← Mis casas
-          </Link>
-        </p>
+        <Volver href="/panel/propiedades" texto="Mis casas" />
         <header className="encabezado">
           <h1>Agregar casa</h1>
         </header>
@@ -39,11 +36,7 @@ export default async function NuevaPropiedad({
 
   return (
     <>
-      <p>
-        <Link href="/panel/propiedades" className="suave">
-          ← Mis casas
-        </Link>
-      </p>
+      <Volver href="/panel/propiedades" texto="Mis casas" />
       <header className="encabezado">
         <h1>Nueva propiedad</h1>
       </header>

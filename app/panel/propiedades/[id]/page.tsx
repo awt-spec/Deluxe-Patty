@@ -1,3 +1,5 @@
+import { IconoAbajo, IconoArriba, IconoDocumento, IconoEstrella, IconoMegafono } from "../../iconos";
+import { Volver } from "../../volver";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Foto } from "@/lib/datos/tipos";
@@ -19,13 +21,27 @@ import { SubirFotos } from "../subir-fotos";
 // La mejora de fotos con IA puede tardar varios minutos.
 export const maxDuration = 300;
 
-function BotonFoto({ id, url, accion, texto, peligro }: { id: string; url: string; accion: string; texto: string; peligro?: boolean }) {
+function BotonFoto({
+  id,
+  url,
+  accion,
+  texto,
+  etiqueta,
+  peligro,
+}: {
+  id: string;
+  url: string;
+  accion: string;
+  texto: React.ReactNode;
+  etiqueta?: string;
+  peligro?: boolean;
+}) {
   return (
     <form action={ordenarFoto}>
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="url" value={url} />
       <input type="hidden" name="accion" value={accion} />
-      <button type="submit" className={`chico ${peligro ? "peligro" : ""}`}>
+      <button type="submit" className={`chico ${peligro ? "peligro" : ""}`} aria-label={etiqueta}>
         {texto}
       </button>
     </form>
@@ -57,11 +73,7 @@ export default async function Propiedad({
 
   return (
     <>
-      <p>
-        <Link href="/panel/propiedades" className="suave">
-          ← Mis casas
-        </Link>
-      </p>
+      <Volver href="/panel/propiedades" texto="Mis casas" />
       <header className="encabezado">
         <div style={{ minWidth: 0 }}>
           <h1>{p.titulo}</h1>
@@ -73,11 +85,11 @@ export default async function Propiedad({
       <section className="pila" style={{ marginBottom: 8 }}>
         <form action={generarFicha}>
           <input type="hidden" name="id" value={p.id} />
-          <BotonEnviar texto="📄 Ficha para mandar a un cliente" pendiente="Armando la ficha…" className="primario grande" />
+          <BotonEnviar texto={<><IconoDocumento tamano={24} /> Ficha para mandar a un cliente</>} pendiente="Armando la ficha…" className="primario grande" />
         </form>
         <form action={prepararAnuncioPanel}>
           <input type="hidden" name="id" value={p.id} />
-          <BotonEnviar texto="📣 Escribir el anuncio de Encuentra24" pendiente="Escribiendo el anuncio…" className="grande" />
+          <BotonEnviar texto={<><IconoMegafono tamano={24} /> Escribir el anuncio de Encuentra24</>} pendiente="Escribiendo el anuncio…" className="grande" />
         </form>
       </section>
 
@@ -94,7 +106,7 @@ export default async function Propiedad({
               <img src={f.url} alt={`Foto ${i + 1}`} loading="lazy" />
             </a>
             <figcaption className="suave">
-              {i === 0 ? "★ Principal" : `Foto ${i + 1}`}
+              {i === 0 ? <><IconoEstrella tamano={16} /> Principal</> : `Foto ${i + 1}`}
               {f.mejorada_url && (
                 <>
                   {" · "}
@@ -105,9 +117,9 @@ export default async function Propiedad({
               )}
             </figcaption>
             <div className="botones">
-              {i > 0 && <BotonFoto id={p.id} url={f.url} accion="principal" texto="★ Principal" />}
-              {i > 0 && <BotonFoto id={p.id} url={f.url} accion="subir" texto="↑" />}
-              {i < fotos.length - 1 && <BotonFoto id={p.id} url={f.url} accion="bajar" texto="↓" />}
+              {i > 0 && <BotonFoto id={p.id} url={f.url} accion="principal" texto={<><IconoEstrella tamano={18} /> Principal</>} />}
+              {i > 0 && <BotonFoto id={p.id} url={f.url} accion="subir" texto={<IconoArriba tamano={20} />} etiqueta="Subir" />}
+              {i < fotos.length - 1 && <BotonFoto id={p.id} url={f.url} accion="bajar" texto={<IconoAbajo tamano={20} />} etiqueta="Bajar" />}
               <BotonFoto id={p.id} url={f.url} accion="quitar" texto="Quitar" peligro />
             </div>
           </figure>

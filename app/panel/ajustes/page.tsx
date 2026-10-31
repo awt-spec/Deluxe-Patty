@@ -1,3 +1,4 @@
+import { Volver } from "../volver";
 import Link from "next/link";
 import { fechaCorta } from "@/lib/formato";
 import { sesionConCorredor } from "@/lib/panel/sesion";
@@ -28,11 +29,7 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
 
   return (
     <>
-      <p>
-        <Link href="/panel/mas" className="suave">
-          ← Más
-        </Link>
-      </p>
+      <Volver href="/panel/mas" texto="Más" />
       <header className="encabezado">
         <h1>Ajustes</h1>
       </header>

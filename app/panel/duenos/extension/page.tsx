@@ -1,14 +1,11 @@
+import { Volver } from "../../volver";
 import Link from "next/link";
 
 // Paso a paso para instalar la extensión sin la tienda de Chrome (piloto). Palabras de todos los días.
 export default function InstalarExtension() {
   return (
     <>
-      <p>
-        <Link href="/panel/duenos" className="suave">
-          ← Dueños directos
-        </Link>
-      </p>
+      <Volver href="/panel/duenos" texto="Dueños directos" />
       <header className="encabezado">
         <h1>Buscar dueños desde Chrome</h1>
       </header>
@@ -49,7 +46,7 @@ export default function InstalarExtension() {
       <h2>3. Conectarla</h2>
       <p>
         Vuelve a <Link href="/panel/duenos">Dueños directos</Link>, toca <strong>Conectar la extensión</strong> y
-        escribe el código en la extensión. Revisa que tus zonas estén en Más → Ajustes.
+        escribe el código en la extensión. Revisa que tus zonas estén en Más, en Ajustes.
       </p>
 
       <h2>4. Buscar</h2>

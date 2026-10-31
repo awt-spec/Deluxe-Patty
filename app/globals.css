@@ -1788,3 +1788,54 @@ body:has(.marco.oscuro) {
   gap: 6px;
   white-space: nowrap;
 }
+
+/* Íconos dibujados dentro de botones, enlaces y marcas (en lugar de emojis) */
+button,
+.boton,
+.volver {
+  gap: 8px;
+}
+
+.volver {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--principal);
+}
+
+.visto {
+  display: inline-flex;
+  vertical-align: -3px;
+  margin-right: 4px;
+}
+
+.burbuja .meta .visto {
+  margin: 0 0 0 4px;
+}
+
+.oscuro .al-dia svg {
+  color: var(--principal);
+  flex: none;
+}
+
+.galeria figcaption svg,
+.insignia svg {
+  vertical-align: -2px;
+}
+
+.kpi svg {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  color: var(--principal);
+  opacity: 0.85;
+}
+
+.kpi.urgente::after {
+  display: none;
+}
+
+.kpi.urgente svg {
+  opacity: 1;
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--principal) 60%, transparent));
+}

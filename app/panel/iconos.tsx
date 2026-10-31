@@ -132,3 +132,68 @@ export const IconoAtras = (p: Props) => (
     <path d="M15 5 8 12l7 7" strokeWidth={2.2} />
   </Icono>
 );
+
+export const IconoCheck = (p: Props) => (
+  <Icono {...p}>
+    <path d="m5 12.5 4.5 4.5L19 7.5" strokeWidth={2.2} />
+  </Icono>
+);
+
+export const IconoDobleCheck = (p: Props) => (
+  <Icono {...p}>
+    <path d="m2.5 12.5 4 4L15 8" strokeWidth={2} />
+    <path d="m11 15.5 1 1L20.5 8" strokeWidth={2} />
+  </Icono>
+);
+
+export const IconoLapiz = (p: Props) => (
+  <Icono {...p}>
+    <path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z" />
+    <path d="m13.5 6.5 4 4" />
+  </Icono>
+);
+
+export const IconoDocumento = (p: Props) => (
+  <Icono {...p}>
+    <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z" />
+    <path d="M14 3v5h5M9 13h6M9 17h6" />
+  </Icono>
+);
+
+export const IconoCamara = (p: Props) => (
+  <Icono {...p}>
+    <path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z" />
+    <circle cx="12" cy="13" r="3.5" />
+  </Icono>
+);
+
+export const IconoMegafono = (p: Props) => (
+  <Icono {...p}>
+    <path d="M4 10v4a1 1 0 0 0 1 1h2l8 4V5L7 9H5a1 1 0 0 0-1 1Z" />
+    <path d="M18 9.5a3.5 3.5 0 0 1 0 5M8 15l1.5 4.5" />
+  </Icono>
+);
+
+export const IconoEstrella = (p: Props) => (
+  <Icono {...p}>
+    <path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9L12 3.5Z" />
+  </Icono>
+);
+
+export const IconoArriba = (p: Props) => (
+  <Icono {...p}>
+    <path d="M12 19V5M6 11l6-6 6 6" strokeWidth={2} />
+  </Icono>
+);
+
+export const IconoAbajo = (p: Props) => (
+  <Icono {...p}>
+    <path d="M12 5v14M6 13l6 6 6-6" strokeWidth={2} />
+  </Icono>
+);
+
+export const IconoAgregar = (p: Props) => (
+  <Icono {...p}>
+    <path d="M12 5v14M5 12h14" strokeWidth={2.2} />
+  </Icono>
+);

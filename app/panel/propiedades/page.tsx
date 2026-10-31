@@ -1,3 +1,4 @@
+import { IconoAgregar, IconoCasa } from "../iconos";
 import Link from "next/link";
 import type { Foto } from "@/lib/datos/tipos";
 import { precio } from "@/lib/formato";
@@ -42,7 +43,7 @@ export default async function Propiedades({
       </header>
       <Aviso texto={aviso} />
       <Link href="/panel/propiedades/nueva" className="boton primario grande" style={{ marginBottom: 14 }}>
-        ＋ Agregar casa
+        <IconoAgregar tamano={24} /> Agregar casa
       </Link>
       {propiedades.length === 0 && (
         <p className="vacio">{todas ? "Todavía no tienes casas cargadas." : "No tienes casas en oferta."}</p>
@@ -56,7 +57,7 @@ export default async function Propiedades({
               <img src={principal.url} alt="" loading="lazy" />
             ) : (
               <span className="sin-foto" aria-hidden>
-                ⌂
+                <IconoCasa tamano={36} />
               </span>
             )}
             <div className="pila" style={{ gap: 2, minWidth: 0 }}>

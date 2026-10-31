@@ -1,3 +1,4 @@
+import { Volver } from "../volver";
 import Link from "next/link";
 import { diaLargo, horaCorta } from "@/lib/agenda/formato";
 import { fechaIso, fechaLocal, limitesDia, sumarDias } from "@/lib/agenda/tiempo";
@@ -30,11 +31,7 @@ export default async function Resumen() {
 
   return (
     <>
-      <p>
-        <Link href="/panel/mas" className="suave">
-          ← Más
-        </Link>
-      </p>
+      <Volver href="/panel/mas" texto="Más" />
       <header className="encabezado">
         <div>
           <p className="etiqueta">{diaLargo(ahora, zona)}</p>

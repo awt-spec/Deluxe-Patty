@@ -1,3 +1,4 @@
+import { IconoCamara, IconoCheck, IconoDocumento, IconoDobleCheck } from "../../iconos";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { conPunto, diaLargo, etiquetaHorario, horaCorta } from "@/lib/agenda/formato";
@@ -146,7 +147,7 @@ export default async function Conversacion({
                 />
                 <div className="botones">
                   <button type="submit" className="verde grande" disabled={!ventanaAbierta}>
-                    ✓ Enviar
+                    <IconoCheck tamano={24} /> Enviar
                   </button>
                   <button type="submit" formAction={descartar} className="peligro">
                     No enviar
@@ -165,7 +166,8 @@ export default async function Conversacion({
                 // Lo que manda el cliente con una foto es su pie de foto: se muestra como texto, nunca
                 // como enlace (podría ser una página falsa). La foto se ve en el WhatsApp del corredor.
                 <>
-                  {m.tipo === "documento" ? "📄 Mandó un documento" : "📷 Mandó una foto"}
+                  {m.tipo === "documento" ? <IconoDocumento tamano={20} /> : <IconoCamara tamano={20} />}{" "}
+                  {m.tipo === "documento" ? "Mandó un documento" : "Mandó una foto"}
                   {m.contenido ? `: ${m.contenido}` : ""}
                 </>
               ) : (m.tipo === "documento" || m.tipo === "imagen") && m.contenido?.startsWith("https://") ? (
@@ -181,8 +183,7 @@ export default async function Conversacion({
                 {hora}
                 {m.direccion === "saliente" && m.estado_entrega !== "fallido" && (
                   <span className={`visto${m.estado_entrega === "leido" ? " leido" : ""}`} aria-label={m.estado_entrega === "leido" ? "leído" : "enviado"}>
-                    {" "}
-                    ✓✓
+                    <IconoDobleCheck tamano={18} />
                   </span>
                 )}
               </span>
