@@ -1,6 +1,19 @@
-import { IconoAgenda, IconoCasa, IconoChats, IconoCheck, IconoDobleCheck, IconoLapiz, IconoLlave } from "./iconos";
+import {
+  IconoAgenda,
+  IconoCasa,
+  IconoChats,
+  IconoCheck,
+  IconoDobleCheck,
+  IconoLapiz,
+  IconoLlave,
+} from "./iconos";
 import Link from "next/link";
-import { conPunto, diaLargo, etiquetaHorario, horaCorta } from "@/lib/agenda/formato";
+import {
+  conPunto,
+  diaLargo,
+  etiquetaHorario,
+  horaCorta,
+} from "@/lib/agenda/formato";
 import { fechaIso, fechaLocal, limitesDia } from "@/lib/agenda/tiempo";
 import { semanaDe } from "@/lib/encuentra24/busqueda";
 import { precio } from "@/lib/formato";
@@ -26,27 +39,53 @@ type Conv = {
   updated_at: string;
   contactos: Contacto | Contacto[];
 };
-type Casa = { id: string; titulo: string; precio: number | null; moneda: string; operacion: string; zona: string | null; fotos: Foto[] };
+type Casa = {
+  id: string;
+  titulo: string;
+  precio: number | null;
+  moneda: string;
+  operacion: string;
+  zona: string | null;
+  fotos: Foto[];
+};
 type Visita = {
   inicio: string;
   contactos: Contacto | Contacto[] | null;
   propiedades: Casa | Casa[] | null;
 };
-type Msj = { conversacion_id: string; direccion: string; contenido: string | null; created_at: string };
-type Borrador = { id: string; conversacion_id: string; contenido: string | null; accion: AccionPendiente | null };
+type Msj = {
+  conversacion_id: string;
+  direccion: string;
+  contenido: string | null;
+  created_at: string;
+};
+type Borrador = {
+  id: string;
+  conversacion_id: string;
+  contenido: string | null;
+  accion: AccionPendiente | null;
+};
 
 const uno = <T,>(v: T | T[]): T => (Array.isArray(v) ? v[0] : v);
 const DIA = 24 * 60 * 60_000;
 const nombre = (c: Contacto) => c.nombre ?? c.telefono;
-const whatsapp = (telefono: string) => `https://wa.me/${telefono.replace(/\D/g, "")}`;
+const whatsapp = (telefono: string) =>
+  `https://wa.me/${telefono.replace(/\D/g, "")}`;
 
 function queHace(a: AccionPendiente, zona: string): string {
-  if (a.tipo === "crear_cita") return conPunto(`Al enviarla queda agendada la visita del ${etiquetaHorario(new Date(a.inicio), zona)}`);
+  if (a.tipo === "crear_cita")
+    return conPunto(
+      `Al enviarla queda agendada la visita del ${etiquetaHorario(new Date(a.inicio), zona)}`,
+    );
   if (a.tipo === "cancelar_cita") return "Al enviarla se cancela la visita.";
   return "Al enviarla la visita queda confirmada.";
 }
 
-export default async function Chats({ searchParams }: { searchParams: Promise<{ aviso?: string }> }) {
+export default async function Chats({
+  searchParams,
+}: {
+  searchParams: Promise<{ aviso?: string }>;
+}) {
   const { aviso } = await searchParams;
   const { supabase, corredor } = await sesionConCorredor();
   const zona = corredor.zona_horaria;
@@ -55,7 +94,9 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
   const [{ data: convs }, { data: borradores }] = await Promise.all([
     supabase
       .from("conversaciones")
-      .select("id, estado, control, ultimo_mensaje_cliente_at, updated_at, contactos!inner(nombre, telefono, es_corredor)")
+      .select(
+        "id, estado, control, ultimo_mensaje_cliente_at, updated_at, contactos!inner(nombre, telefono, es_corredor)",
+      )
       .eq("corredor_id", corredor.id)
       .eq("contactos.es_corredor", false)
       .neq("estado", "cerrada")
@@ -69,10 +110,17 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
       .order("created_at"),
   ]);
   const hoy = limitesDia(ahora, zona);
-  const [{ data: visitas }, { count: visitasHoy }, { data: casasData }, { count: duenosNuevos }] = await Promise.all([
+  const [
+    { data: visitas },
+    { count: visitasHoy },
+    { data: casasData },
+    { count: duenosNuevos },
+  ] = await Promise.all([
     supabase
       .from("citas")
-      .select("inicio, contactos(nombre, telefono), propiedades(id, titulo, precio, moneda, operacion, zona, fotos)")
+      .select(
+        "inicio, contactos(nombre, telefono), propiedades(id, titulo, precio, moneda, operacion, zona, fotos)",
+      )
       .eq("corredor_id", corredor.id)
       .in("estado", ["agendada", "confirmada"])
       .gte("inicio", ahora.toISOString())
@@ -102,9 +150,17 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
   ]);
   const casas = (casasData ?? []) as Casa[];
   const proxima = ((visitas ?? []) as Visita[])[0];
-  const fotoDe = (c: Casa | null | undefined) => (c ? ordenarFotos(c.fotos ?? [])[0]?.url : undefined);
-  const hora = Number(new Intl.DateTimeFormat("es-CR", { hour: "numeric", hourCycle: "h23", timeZone: zona }).format(ahora));
-  const saludo = hora < 12 ? "Buenos días" : hora < 19 ? "Buenas tardes" : "Buenas noches";
+  const fotoDe = (c: Casa | null | undefined) =>
+    c ? ordenarFotos(c.fotos ?? [])[0]?.url : undefined;
+  const hora = Number(
+    new Intl.DateTimeFormat("es-CR", {
+      hour: "numeric",
+      hourCycle: "h23",
+      timeZone: zona,
+    }).format(ahora),
+  );
+  const saludo =
+    hora < 12 ? "Buenos días" : hora < 19 ? "Buenas tardes" : "Buenas noches";
 
   const conversaciones = (convs ?? []) as Conv[];
   const ids = conversaciones.map((c) => c.id);
@@ -123,19 +179,28 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
   const delCliente = new Map<string, Msj>();
   for (const m of (recientes ?? []) as Msj[]) {
     if (!ultimo.has(m.conversacion_id)) ultimo.set(m.conversacion_id, m);
-    if (m.direccion === "entrante" && !delCliente.has(m.conversacion_id)) delCliente.set(m.conversacion_id, m);
+    if (m.direccion === "entrante" && !delCliente.has(m.conversacion_id))
+      delCliente.set(m.conversacion_id, m);
   }
 
   const porId = new Map(conversaciones.map((c) => [c.id, c]));
-  const pendientes = ((borradores ?? []) as Borrador[]).filter((b) => porId.has(b.conversacion_id));
+  const pendientes = ((borradores ?? []) as Borrador[]).filter((b) =>
+    porId.has(b.conversacion_id),
+  );
   const conBorrador = new Set(pendientes.map((b) => b.conversacion_id));
-  const esperan = conversaciones.filter((c) => c.estado === "escalada" && !conBorrador.has(c.id));
+  const esperan = conversaciones.filter(
+    (c) => c.estado === "escalada" && !conBorrador.has(c.id),
+  );
   const total = pendientes.length + esperan.length;
-  const abierta = (c: Conv) => !!c.ultimo_mensaje_cliente_at && ahora.getTime() - Date.parse(c.ultimo_mensaje_cliente_at) < DIA;
+  const abierta = (c: Conv) =>
+    !!c.ultimo_mensaje_cliente_at &&
+    ahora.getTime() - Date.parse(c.ultimo_mensaje_cliente_at) < DIA;
 
   const cuando = (iso: string) => {
     const d = new Date(iso);
-    return fechaIso(fechaLocal(d, zona)) === fechaIso(fechaLocal(ahora, zona)) ? horaCorta(d, zona) : etiquetaHorario(d, zona).split(",")[0];
+    return fechaIso(fechaLocal(d, zona)) === fechaIso(fechaLocal(ahora, zona))
+      ? horaCorta(d, zona)
+      : etiquetaHorario(d, zona).split(",")[0];
   };
 
   return (
@@ -159,7 +224,9 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
         <a href="#te-esperan" className={`kpi${total > 0 ? " urgente" : ""}`}>
           <IconoChats tamano={26} />
           <strong>{total}</strong>
-          <span>{total === 1 ? "cliente te espera" : "clientes te esperan"}</span>
+          <span>
+            {total === 1 ? "cliente te espera" : "clientes te esperan"}
+          </span>
         </a>
         <Link href="/panel/agenda" className="kpi">
           <IconoAgenda tamano={26} />
@@ -169,70 +236,102 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
         <Link href="/panel/propiedades" className="kpi">
           <IconoCasa tamano={26} />
           <strong>{casas.length}</strong>
-          <span>{casas.length === 1 ? "casa en oferta" : "casas en oferta"}</span>
+          <span>
+            {casas.length === 1 ? "casa en oferta" : "casas en oferta"}
+          </span>
         </Link>
         <Link href="/panel/duenos" className="kpi">
           <IconoLlave tamano={26} />
           <strong>{duenosNuevos ?? 0}</strong>
-          <span>{duenosNuevos === 1 ? "dueño nuevo esta semana" : "dueños nuevos esta semana"}</span>
+          <span>
+            {duenosNuevos === 1
+              ? "dueño nuevo esta semana"
+              : "dueños nuevos esta semana"}
+          </span>
         </Link>
       </section>
 
-      {proxima && (
-        <>
-          <h2>Próxima visita</h2>
-          <Link
-            href="/panel/agenda"
-            className="proxima"
-            style={fotoDe(uno(proxima.propiedades)) ? { backgroundImage: `url("${fotoDe(uno(proxima.propiedades))}")` } : undefined}
-          >
-            <span className="proxima-texto">
-              <span className="etiqueta">{proxima.contactos ? nombre(uno(proxima.contactos)) : "Visita"}</span>
-              <span className="proxima-cuando">{etiquetaHorario(new Date(proxima.inicio), zona)}</span>
-              <span>{uno(proxima.propiedades)?.titulo ?? ""}</span>
-            </span>
-          </Link>
-        </>
-      )}
-
-      {casas.length > 0 && (
-        <>
-          <div className="titulo-seccion">
-            <h2>Tus casas</h2>
-            <Link href="/panel/propiedades">Ver todas</Link>
+      <div className="destacados">
+        {proxima && (
+          <div>
+            <h2>Próxima visita</h2>
+            <Link
+              href="/panel/agenda"
+              className="proxima"
+              style={
+                fotoDe(uno(proxima.propiedades))
+                  ? {
+                      backgroundImage: `url("${fotoDe(uno(proxima.propiedades))}")`,
+                    }
+                  : undefined
+              }
+            >
+              <span className="proxima-texto">
+                <span className="etiqueta">
+                  {proxima.contactos
+                    ? nombre(uno(proxima.contactos))
+                    : "Visita"}
+                </span>
+                <span className="proxima-cuando">
+                  {etiquetaHorario(new Date(proxima.inicio), zona)}
+                </span>
+                <span>{uno(proxima.propiedades)?.titulo ?? ""}</span>
+              </span>
+            </Link>
           </div>
-          <div className="carrusel">
-            {casas.map((c) => {
-              const foto = fotoDe(c);
-              return (
-                <Link key={c.id} href={`/panel/propiedades/${c.id}`} className="casa-tarjeta">
-                  {foto ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={foto} alt="" loading="lazy" />
-                  ) : (
-                    <span className="sin-foto" aria-hidden>
-                      <IconoCasa tamano={44} />
-                    </span>
-                  )}
-                  <span className="casa-tarjeta-texto">
-                    <strong>{c.titulo}</strong>
-                    {c.precio !== null && (
-                      <span>
-                        {precio(c.precio, c.moneda)}
-                        {c.operacion === "alquiler" ? " al mes" : ""}
+        )}
+
+        {casas.length > 0 && (
+          <div className="destacado-casas">
+            <div className="titulo-seccion">
+              <h2>Tus casas</h2>
+              <Link href="/panel/propiedades">Ver todas</Link>
+            </div>
+            <div className="carrusel">
+              {casas.map((c) => {
+                const foto = fotoDe(c);
+                return (
+                  <Link
+                    key={c.id}
+                    href={`/panel/propiedades/${c.id}`}
+                    className="casa-tarjeta"
+                  >
+                    {foto ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={foto} alt="" loading="lazy" />
+                    ) : (
+                      <span className="sin-foto" aria-hidden>
+                        <IconoCasa tamano={44} />
                       </span>
                     )}
-                  </span>
-                </Link>
-              );
-            })}
+                    <span className="casa-tarjeta-texto">
+                      <strong>{c.titulo}</strong>
+                      {c.precio !== null && (
+                        <span>
+                          {precio(c.precio, c.moneda)}
+                          {c.operacion === "alquiler" ? " al mes" : ""}
+                        </span>
+                      )}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
-        </>
-      )}
+        )}
+      </div>
 
       {total > 0 ? (
-        <section className="te-necesitan" id="te-esperan" aria-label="Te necesitan">
-          <h2>{total === 1 ? "1 cliente te espera" : `${total} clientes te esperan`}</h2>
+        <section
+          className="te-necesitan"
+          id="te-esperan"
+          aria-label="Te necesitan"
+        >
+          <h2>
+            {total === 1
+              ? "1 cliente te espera"
+              : `${total} clientes te esperan`}
+          </h2>
 
           {pendientes.map((b) => {
             const c = porId.get(b.conversacion_id)!;
@@ -240,14 +339,24 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
             const dijo = delCliente.get(c.id);
             return (
               <article key={b.id} className="pendiente">
-                <Link href={`/panel/conversaciones/${c.id}`} className="pendiente-quien">
-                  <Avatar nombre={contacto.nombre} telefono={contacto.telefono} />
+                <Link
+                  href={`/panel/conversaciones/${c.id}`}
+                  className="pendiente-quien"
+                >
+                  <Avatar
+                    nombre={contacto.nombre}
+                    telefono={contacto.telefono}
+                  />
                   <strong>{nombre(contacto)}</strong>
                 </Link>
                 <div className="mini-hilo">
-                  {dijo?.contenido && <p className="burbuja cliente">{dijo.contenido}</p>}
+                  {dijo?.contenido && (
+                    <p className="burbuja cliente">{dijo.contenido}</p>
+                  )}
                   <p className="burbuja saliente propuesta">
-                    <span className="propuesta-titulo">La asistente le contestaría:</span>
+                    <span className="propuesta-titulo">
+                      La asistente le contestaría:
+                    </span>
                     {b.contenido}
                   </p>
                 </div>
@@ -255,20 +364,45 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
                 {abierta(c) ? (
                   <form action={aprobar}>
                     <input type="hidden" name="mensaje" value={b.id} />
-                    <input type="hidden" name="texto" value={b.contenido ?? ""} />
+                    <input
+                      type="hidden"
+                      name="texto"
+                      value={b.contenido ?? ""}
+                    />
                     <input type="hidden" name="volver" value="/panel" />
-                    <BotonEnviar texto={<><IconoCheck tamano={24} /> Enviar así</>} pendiente="Enviando…" className="verde grande" />
+                    <BotonEnviar
+                      texto={
+                        <>
+                          <IconoCheck tamano={24} /> Enviar así
+                        </>
+                      }
+                      pendiente="Enviando…"
+                      className="verde grande"
+                    />
                   </form>
                 ) : (
-                  <p className="aviso">Pasó más de un día desde que escribió: contéstale desde tu WhatsApp.</p>
+                  <p className="aviso">
+                    Pasó más de un día desde que escribió: contéstale desde tu
+                    WhatsApp.
+                  </p>
                 )}
                 <div className="botones secundarios">
-                  <Link href={`/panel/conversaciones/${c.id}#borrador`} className="boton secundario">
+                  <Link
+                    href={`/panel/conversaciones/${c.id}#borrador`}
+                    className="boton secundario"
+                  >
                     <IconoLapiz tamano={20} /> Cambiarla
                   </Link>
-                  <form action={yoLeEscribo} style={{ flex: "1 1 auto", display: "flex" }}>
+                  <form
+                    action={yoLeEscribo}
+                    style={{ flex: "1 1 auto", display: "flex" }}
+                  >
                     <input type="hidden" name="conversacion" value={c.id} />
-                    <button type="submit" className="secundario" style={{ flex: 1 }}>
+                    <button
+                      type="submit"
+                      className="secundario"
+                      style={{ flex: 1 }}
+                    >
                       Le escribo yo
                     </button>
                   </form>
@@ -282,8 +416,14 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
             const dijo = delCliente.get(c.id);
             return (
               <article key={c.id} className="pendiente">
-                <Link href={`/panel/conversaciones/${c.id}`} className="pendiente-quien">
-                  <Avatar nombre={contacto.nombre} telefono={contacto.telefono} />
+                <Link
+                  href={`/panel/conversaciones/${c.id}`}
+                  className="pendiente-quien"
+                >
+                  <Avatar
+                    nombre={contacto.nombre}
+                    telefono={contacto.telefono}
+                  />
                   <strong>{nombre(contacto)} quiere hablar contigo</strong>
                 </Link>
                 {dijo?.contenido && (
@@ -291,13 +431,22 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
                     <p className="burbuja cliente">{dijo.contenido}</p>
                   </div>
                 )}
-                <a href={whatsapp(contacto.telefono)} className="boton verde grande" target="_blank" rel="noreferrer">
+                <a
+                  href={whatsapp(contacto.telefono)}
+                  className="boton verde grande"
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   Escribirle por WhatsApp
                 </a>
                 <form action={devolver}>
                   <input type="hidden" name="conversacion" value={c.id} />
                   <input type="hidden" name="volver" value="/panel" />
-                  <BotonEnviar texto="Ya lo atendí" pendiente="Un momento…" className="grande secundario" />
+                  <BotonEnviar
+                    texto="Ya lo atendí"
+                    pendiente="Un momento…"
+                    className="grande secundario"
+                  />
                 </form>
               </article>
             );
@@ -310,7 +459,9 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
       )}
 
       <h2>Chats</h2>
-      {conversaciones.length === 0 && <p className="vacio">Todavía no te ha escrito ningún cliente.</p>}
+      {conversaciones.length === 0 && (
+        <p className="vacio">Todavía no te ha escrito ningún cliente.</p>
+      )}
       <ul className="chat-lista" aria-label="Todos los chats">
         {conversaciones.map((c) => {
           const contacto = uno(c.contactos);
@@ -323,12 +474,20 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
                 <span className="texto">
                   <span className="renglon">
                     <strong>{nombre(contacto)}</strong>
-                    {m && <span className={`hora${marca ? " nueva" : ""}`}>{cuando(m.created_at)}</span>}
+                    {m && (
+                      <span className={`hora${marca ? " nueva" : ""}`}>
+                        {cuando(m.created_at)}
+                      </span>
+                    )}
                   </span>
                   <span className="renglon">
                     <span className="vista">
                       {c.control === "corredor" ? "Le contestas tú · " : ""}
-                      {m?.direccion === "saliente" && <span className="visto" aria-label="enviado"><IconoDobleCheck tamano={18} /></span>}
+                      {m?.direccion === "saliente" && (
+                        <span className="visto" aria-label="enviado">
+                          <IconoDobleCheck tamano={18} />
+                        </span>
+                      )}
                       {m ? (m.contenido ?? "(archivo)") : ""}
                     </span>
                     {marca && (

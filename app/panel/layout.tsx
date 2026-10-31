@@ -48,7 +48,7 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
         </p>
       )}
       <main className="panel">{children}</main>
-      <Navegacion teNecesitan={teNecesitan} />
+      <Navegacion teNecesitan={teNecesitan} marca={corredor.nombre} />
     </div>
   );
 }
