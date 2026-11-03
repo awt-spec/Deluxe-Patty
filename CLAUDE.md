@@ -84,7 +84,7 @@ traen contactos (`lib/anuncios/reporte.ts`); "fotos <código>" mejora hasta 12 f
 marca del corredor (`corredores.marca`), la sube al bucket público `fichas` y se la manda como documento.
 
 ## Panel del corredor (`app/panel`)
-Para el teléfono y para alguien que no usa tecnología: **solo tres botones** (Chats, Agenda, Mis casas),
+Para el teléfono y para alguien que no usa tecnología: **cuatro botones** (Chats, Clientes, Agenda, Mis casas),
 letra y botones grandes, palabras de todos los días (nada de "borrador" ni "escalada"). Chats (`/panel`)
 es el inicio, como WhatsApp: arriba "Te necesitan" con lo que espera al corredor (✓ Enviar así,
 Cambiarla, Le escribo yo; "Escribirle por WhatsApp" y "Ya lo atendí" si el cliente pidió hablar con él),
@@ -116,6 +116,13 @@ pide las fotos; el formulario completo queda en `?formulario=1`. En la casa: fic
 leen y validan en `lib/panel/formularios.ts`. Las fotos suben directo del teléfono al bucket `fotos`
 (`<corredor>/<propiedad>/originales/…`) con un permiso de subida por archivo (`createSignedUploadUrl`),
 achicadas a 2400 px, para no pasar por el límite de tamaño de las funciones de Vercel.
+CRM (`app/panel/clientes`, `lib/crm/perfil.ts`): cada cliente tiene etapa (nuevo, interesado, visita,
+negociando, cerrado, perdido), lo que busca (`contactos.busca`), notas y seguimiento con fecha. La
+asistente llena `busca` con lo que el cliente dice (sale de la misma clasificación de Haiku, sin otra
+llamada) y la etapa solo avanza sola (nuevo → interesado → visita al agendar), nunca retrocede ni toca un
+cliente cerrado o perdido. En el teléfono, lista por etapa; en computadora, tablero. La ficha muestra las
+casas que le encajan; el inicio, "Para hoy" (seguimientos que vencen y clientes que no contestan hace 3
+días). El corredor edita esos campos con su sesión (permiso por columna; el teléfono no).
 "Probar la asistente" (`app/panel/probar`, desde Chats): el corredor le escribe como si fuera un cliente y
 `lib/simulador/simulador.ts` corre `procesarMensaje` real con un repositorio que solo lee propiedades,
 agenda y correcciones; la conversación, las citas de prueba y los avisos viven en el estado que guarda el
@@ -158,7 +165,7 @@ dueño o corredor. Un cambio de tono o de instrucciones se prueba con el set de 
 | corredores | Datos del corredor, números de WhatsApp, zonas, tono, escalamiento, plan y topes |
 | miembros | Qué usuario de Supabase Auth ve qué corredor (Patricia y soporte) |
 | propiedades | Propiedades activas: ficha, precio, zona, fotos, enlace de Encuentra24 |
-| contactos | Clientes y prospectos, con origen y anuncio que los trajo |
+| contactos | Clientes y prospectos, con origen y anuncio que los trajo; CRM: etapa, qué busca, notas y seguimiento |
 | conversaciones / mensajes | Historial de WhatsApp, quién respondió, intención, borradores |
 | citas | Visitas agendadas; una restricción de exclusión impide citas encimadas |
 | horarios_visitas | Franjas semanales en que el corredor acepta visitas |

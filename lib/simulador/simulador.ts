@@ -85,6 +85,8 @@ function repoSimulado(real: Repositorio, corredor: Corredor, estado: EstadoSimul
         created_at: "",
       })),
     atribuirContacto: async () => false,
+    // La prueba no toca el CRM de nadie.
+    actualizarPerfilCliente: async () => {},
     // Solo el costo de Claude es real; los mensajes de prueba no cuentan contra el tope de WhatsApp.
     registrarUso: async (corredorId, d) => {
       if (d.llamadasClaude) {

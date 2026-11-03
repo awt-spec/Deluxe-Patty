@@ -197,3 +197,18 @@ export const IconoAgregar = (p: Props) => (
     <path d="M12 5v14M5 12h14" strokeWidth={2.2} />
   </Icono>
 );
+
+export const IconoPersonas = (p: Props) => (
+  <Icono {...p}>
+    <circle cx="9" cy="8" r="3.2" />
+    <path d="M3 19.5c.6-3.3 3-5.2 6-5.2s5.4 1.9 6 5.2" />
+    <path d="M15.5 5.2a3 3 0 0 1 0 5.6M17.5 14.6c1.8.6 3 2.3 3.4 4.9" />
+  </Icono>
+);
+
+export const IconoCampana = (p: Props) => (
+  <Icono {...p}>
+    <path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15L6 16Z" />
+    <path d="M10 20.5a2 2 0 0 0 4 0" />
+  </Icono>
+);

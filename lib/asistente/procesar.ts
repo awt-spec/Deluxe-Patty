@@ -1,4 +1,5 @@
 import { extraerReferencia } from "../anuncios/atribucion";
+import { avanzarEtapa, buscaVacia, fusionarBusca, type Etapa } from "../crm/perfil";
 import type { Intencion } from "../datos/tipos";
 import type { EstadoEntrega, MensajeEntrante } from "../whatsapp/parsear";
 import { flujoAgenda } from "./agenda";
@@ -113,6 +114,15 @@ export async function procesarMensaje(deps: Dependencias, entrante: MensajeEntra
     intencion = clasificacion.intencion;
     await repo.actualizarMensaje(corredor.id, mensajeId, { intencion });
 
+    // CRM: lo que el cliente dice que busca queda en su ficha y su etapa avanza (nunca retrocede).
+    const busca = clasificacion.busca && !buscaVacia(clasificacion.busca) ? fusionarBusca(contacto.busca ?? {}, clasificacion.busca) : null;
+    const sugerida: Etapa | null = intencion === "consulta_propiedad" || intencion === "agendar_visita" || busca ? "interesado" : null;
+    const etapa = avanzarEtapa(contacto.etapa ?? "nuevo", sugerida);
+    if (busca || etapa) {
+      await repo.actualizarPerfilCliente(corredor.id, contacto.id, { ...(busca ? { busca } : {}), ...(etapa ? { etapa } : {}) });
+      if (etapa) contacto.etapa = etapa;
+    }
+
     if (intencion === "pasar_a_corredor") {
       await ctx.usoClaude(llamadas, consumo);
       [llamadas, consumo] = [0, SIN_CONSUMO]; // ya registrado; el catch no lo vuelve a contar
@@ -138,6 +148,9 @@ export async function procesarMensaje(deps: Dependencias, entrante: MensajeEntra
         await ctx.escalar(intencion, r.aviso);
         return { tipo: "escalado", intencion };
       }
+      // Visita agendada (sin borrador de por medio): el cliente pasa a "visita".
+      const visita = r.tipo === "agendado" && !r.borrador ? avanzarEtapa(contacto.etapa ?? "nuevo", "visita") : null;
+      if (visita) await repo.actualizarPerfilCliente(corredor.id, contacto.id, { etapa: visita });
       return { tipo: "agenda", accion: r.tipo, borrador: r.borrador };
     }
 

@@ -1,3 +1,4 @@
+import type { Busca, Etapa } from "../crm/perfil";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   AnuncioPorVencer,
@@ -91,6 +92,8 @@ export interface Repositorio {
   // Anuncios de Encuentra24
   /** Enlaza un contacto sin origen al anuncio con esa referencia. true si lo enlazó. */
   atribuirContacto(corredorId: string, contactoId: string, referencia: string): Promise<boolean>;
+  /** CRM: lo que busca el cliente y su etapa, según lo que dijo en el chat. */
+  actualizarPerfilCliente(corredorId: string, contactoId: string, cambios: { busca?: Busca; etapa?: Etapa; soloDesde?: Etapa[] }): Promise<void>;
   propiedadPorCodigo(corredorId: string, codigo: string): Promise<PropiedadConFotos | null>;
   /** Crea o reescribe el borrador de anuncio de la propiedad; devuelve su referencia. */
   guardarBorradorAnuncio(
@@ -175,7 +178,7 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
       verificar(error, "contacto (insertar)");
       const { data, error: e2 } = await db
         .from("contactos")
-        .select("id, corredor_id, telefono, nombre")
+        .select("id, corredor_id, telefono, nombre, etapa, busca")
         .eq("corredor_id", corredorId)
         .eq("telefono", telefono)
         .single();
@@ -594,6 +597,18 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
         .eq("corredor_id", corredorId)
         .eq("fecha", fecha);
       verificar(error, "marcarPlanEnviado");
+    },
+
+    async actualizarPerfilCliente(corredorId, contactoId, cambios) {
+      const fila: Record<string, unknown> = {};
+      if (cambios.busca) fila.busca = cambios.busca;
+      if (cambios.etapa) Object.assign(fila, { etapa: cambios.etapa, etapa_at: new Date().toISOString() });
+      if (Object.keys(fila).length === 0) return;
+      let q = db.from("contactos").update(fila).eq("corredor_id", corredorId).eq("id", contactoId);
+      // Para avanzar sin saber la etapa actual: solo si está en una de estas.
+      if (cambios.soloDesde) q = q.in("etapa", cambios.soloDesde);
+      const { error } = await q;
+      verificar(error, "actualizarPerfilCliente");
     },
 
     async atribuirContacto(corredorId, contactoId, referencia) {

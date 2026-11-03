@@ -1,4 +1,5 @@
 // Filas de la base que usa el backend. Reflejan supabase/migrations.
+import type { Busca, Etapa } from "../crm/perfil";
 import type { Marca } from "../fichas/marca";
 
 export interface Corredor {
@@ -31,6 +32,9 @@ export interface Contacto {
   corredor_id: string;
   telefono: string;
   nombre: string | null;
+  /** CRM: etapa del embudo y lo que busca (lo llena la asistente). */
+  etapa?: Etapa;
+  busca?: Busca;
 }
 
 export interface Conversacion {
