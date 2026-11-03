@@ -22,7 +22,7 @@ type Cliente = {
 export default async function Clientes({ searchParams }: { searchParams: Promise<{ etapa?: string }> }) {
   const { etapa: pedida } = await searchParams;
   const { supabase, corredor } = await sesionConCorredor();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("contactos")
     .select("id, nombre, telefono, etapa, busca, seguimiento_fecha, seguimiento_nota, updated_at")
     .eq("corredor_id", corredor.id)
@@ -76,7 +76,12 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
         ))}
       </nav>
 
-      {clientes.length === 0 && <p className="vacio">Cuando un cliente te escriba por WhatsApp, aparece aquí.</p>}
+      {error && (
+        <p className="aviso">
+          No se pudieron cargar los clientes. Avísale a soporte con este código: {error.code ?? "sin código"}.
+        </p>
+      )}
+      {!error && clientes.length === 0 && <p className="vacio">Cuando un cliente te escriba por WhatsApp, aparece aquí.</p>}
 
       {/* Teléfono: lista */}
       <div className="clientes-lista">{visibles.map((c) => tarjeta(c))}</div>
