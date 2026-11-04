@@ -8,24 +8,18 @@ import {
   IconoFlecha,
   IconoLlave,
   IconoProbar,
-  IconoReloj,
-  IconoResumen,
   IconoSalir,
 } from "../iconos";
 
-// Lo que no se usa todos los días: detrás de un solo botón, para que el menú quede en tres.
+// Lo que no se usa todos los días. Lo que ya tiene su pestaña (agenda, horario, clientes) no se repite aquí.
 const GRUPOS = [
   [
-    { ruta: "/panel/probar", Icono: IconoProbar, nombre: "Probar la asistente", detalle: "Escríbele como si fueras un cliente" },
-    { ruta: "/panel/resumen", Icono: IconoResumen, nombre: "Resumen del día", detalle: "Visitas, clientes nuevos y avisos" },
+    { ruta: "/panel/duenos", Icono: IconoLlave, nombre: "Dueños directos", detalle: "Casas que venden sus dueños" },
+    { ruta: "/panel/anuncios", Icono: IconoAnuncio, nombre: "Anuncios", detalle: "Tus anuncios de Encuentra24" },
   ],
   [
-    { ruta: "/panel/duenos", Icono: IconoLlave, nombre: "Dueños directos", detalle: "La lista de cada lunes" },
-    { ruta: "/panel/anuncios", Icono: IconoAnuncio, nombre: "Anuncios", detalle: "Textos listos y contactos que traen" },
-  ],
-  [
-    { ruta: "/panel/agenda/horario", Icono: IconoReloj, nombre: "Mi horario", detalle: "Días y horas para enseñar casas" },
-    { ruta: "/panel/ajustes", Icono: IconoAjustes, nombre: "Ajustes", detalle: "Tono, temas que te pasa y uso del mes" },
+    { ruta: "/panel/probar", Icono: IconoProbar, nombre: "Probar la asistente", detalle: "Escríbele como un cliente" },
+    { ruta: "/panel/ajustes", Icono: IconoAjustes, nombre: "Ajustes", detalle: "Cómo contesta la asistente" },
   ],
 ];
 

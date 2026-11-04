@@ -84,10 +84,7 @@ export default async function Agenda({ searchParams }: { searchParams: Promise<{
       {enlace && (
         <details className="tarjeta pila" style={{ marginTop: 20 }}>
           <summary>Ver las visitas en el calendario de tu teléfono</summary>
-          <p className="suave">
-            Suscríbete una vez y las visitas aparecen solas en el calendario de tu teléfono. El enlace es privado: no lo
-            compartas.
-          </p>
+          <p className="suave">Agrégalo una vez y tus visitas salen solas en tu calendario. No lo compartas.</p>
           <a href={`webcal://${enlace}`} className="boton primario">
             Suscribirme desde el iPhone
           </a>

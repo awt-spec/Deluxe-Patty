@@ -85,11 +85,13 @@ marca del corredor (`corredores.marca`), la sube al bucket público `fichas` y s
 
 ## Panel del corredor (`app/panel`)
 Para el teléfono y para alguien que no usa tecnología: **cuatro botones** (Chats, Clientes, Agenda, Mis casas),
-letra y botones grandes, palabras de todos los días (nada de "borrador" ni "escalada"). Chats (`/panel`)
-es el inicio, como WhatsApp: arriba "Te necesitan" con lo que espera al corredor (✓ Enviar así,
-Cambiarla, Le escribo yo; "Escribirle por WhatsApp" y "Ya lo atendí" si el cliente pidió hablar con él),
-abajo todos los chats. Lo de poco uso (Probar la asistente, Resumen del día, Dueños, Anuncios, Mi horario,
-Ajustes, Salir) está detrás de un botón "Más" (`/panel/mas`). Íconos dibujados en `app/panel/iconos.tsx`
+letra y botones grandes, palabras de todos los días (nada de "borrador" ni "escalada"), tema claro como
+WhatsApp (letra del sistema, verde de WhatsApp para enviar). Chats (`/panel`) es el inicio: arriba solo lo
+urgente (un botón "Revisar" con lo que espera al corredor, y "Hoy": visitas, seguimientos y clientes que no
+contestan), abajo todos los chats. Revisar (`/panel/revisar`, `lib/panel/pendientes.ts`) muestra uno a la
+vez lo que dijo el cliente y la respuesta propuesta, editable, con Enviar, Yo le escribo y No enviar (o
+"Escribirle por WhatsApp" y "Ya lo atendí" si pidió hablar con el corredor) y pasa al siguiente. Lo de
+poco uso (Dueños, Anuncios, Probar la asistente, Ajustes, Salir) está detrás de "Más" (`/panel/mas`). Íconos dibujados en `app/panel/iconos.tsx`
 (nada de emojis en la navegación); sobre Chats, el número de clientes que esperan. Entrada por enlace
 mágico de Supabase Auth (`/entrar`, sin crear usuarios: el acceso lo da `scripts/dar-acceso.mts`), con la
 marca del corredor (`lib/panel/marca.ts`): la de `?c=<slug>` o la del único corredor si hay uno solo; el

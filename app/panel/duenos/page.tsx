@@ -58,10 +58,7 @@ export default async function Duenos() {
           Corredores
         </Link>
       </header>
-      <p className="suave">
-        Lista semanal de Encuentra24. Escríbeles desde el botón de WhatsApp del anuncio; la asistente nunca les
-        escribe.
-      </p>
+      <p className="suave">Casas que venden sus dueños en Encuentra24. Les escribes tú.</p>
       <section className="tarjeta pila">
         <h2>Buscar desde Chrome</h2>
         {corredor.activo === false ? (
