@@ -1,4 +1,3 @@
-import type { CSSProperties } from "react";
 import { PantallaEntrada } from "@/app/entrar/pantalla";
 import { marcaDeEntrada } from "@/lib/panel/marca";
 import { sesionCorredor } from "@/lib/panel/sesion";
@@ -34,14 +33,10 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
     ...(escaladas ?? []).map((c) => c.id as string),
   ]).size;
 
-  // El panel es oscuro, como una app de banca privada, con los colores de la marca del corredor: su
-  // acento (dorado en Deluxe) y su color profundo de fondo. Los textos claros salen de su color base.
-  const c = corredor.marca?.colores;
-  const estilo = c
-    ? ({ "--principal": c.principal, "--soporte": c.soporte, "--onyx": c.profundo, "--crema": c.base } as CSSProperties)
-    : undefined;
+  // El panel se ve como WhatsApp (claro, con su verde): lo que la corredora ya usa todos los días. La
+  // marca del corredor queda en la entrada, el logo y las fichas.
   return (
-    <div style={estilo} className="marco oscuro">
+    <div className="marco tema">
       {corredor.activo === false && (
         <p className="banda-demo" role="note">
           Estás en la demo: casas y clientes de prueba. Nada se manda por WhatsApp.
