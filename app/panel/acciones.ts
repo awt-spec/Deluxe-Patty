@@ -19,8 +19,9 @@ import { clienteConSesion } from "@/lib/supabase/servidor";
 // del usuario (RLS) que el mensaje o la conversación son de su corredor.
 
 const texto = (f: FormData, k: string) => String(f.get(k) ?? "");
-// Desde el inicio (Chats) las acciones vuelven al inicio; si no, a la conversación.
-const destino = (f: FormData, ruta: string) => (texto(f, "volver") === "/panel" ? "/panel" : ruta);
+// Desde el inicio o desde "Revisar" las acciones vuelven ahí; si no, a la conversación.
+const destino = (f: FormData, ruta: string) =>
+  ["/panel", "/panel/revisar"].includes(texto(f, "volver")) ? texto(f, "volver") : ruta;
 
 function volver(ruta: string, r: Resultado, ok: string): never {
   revalidatePath(ruta);

@@ -45,10 +45,7 @@ export default async function Anuncios({ searchParams }: { searchParams: Promise
         <h1>Anuncios</h1>
       </header>
       <Aviso texto={aviso} />
-      <p className="suave">
-        Contactos que llegaron por el enlace de WhatsApp de cada anuncio en los últimos {DIAS_REPORTE} días. Para preparar
-        uno nuevo, abre la propiedad en <Link href="/panel/propiedades">Propiedades</Link> y toca “Preparar anuncio”.
-      </p>
+      <p className="suave">Clientes que llegaron por cada anuncio en los últimos {DIAS_REPORTE} días.</p>
       {anuncios.length === 0 && <p className="vacio">Todavía no hay anuncios.</p>}
       {anuncios.map((a) => {
         const vence = a.vence_en && a.estado === "activo" ? a.vence_en : null;

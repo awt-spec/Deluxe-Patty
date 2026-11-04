@@ -154,11 +154,12 @@ export async function procesarMensaje(deps: Dependencias, entrante: MensajeEntra
       return { tipo: "agenda", accion: r.tipo, borrador: r.borrador };
     }
 
-    const [propiedades, correcciones] = await Promise.all([
+    const [propiedades, correcciones, conocimiento] = await Promise.all([
       repo.propiedadesActivas(corredor.id),
       repo.correccionesRecientes(corredor.id, 8),
+      repo.conocimientoActivo(corredor.id, 60),
     ]);
-    const respuesta = await deps.cerebro.responder(corredor, propiedades, historial, entrante.texto, correcciones);
+    const respuesta = await deps.cerebro.responder(corredor, propiedades, historial, entrante.texto, correcciones, conocimiento);
     consumo = sumar(consumo, respuesta.consumo);
     llamadas++;
     await ctx.usoClaude(llamadas, consumo);
@@ -166,6 +167,8 @@ export async function procesarMensaje(deps: Dependencias, entrante: MensajeEntra
 
     const borrador = await ctx.responderCliente(respuesta.texto, intencion);
     if (respuesta.avisarCorredor) {
+      // Lo que la asistente no supo queda como duda en su cerebro: el corredor la contesta una vez.
+      await repo.registrarDuda(corredor.id, respuesta.avisarCorredor, conversacion.id);
       await ctx.avisarCorredor(
         `${nombreCliente} (${contacto.telefono}): ${respuesta.avisarCorredor}. Mensaje del cliente: "${entrante.texto}"`,
       );

@@ -2893,3 +2893,497 @@ body:has(.marco.tema) {
     font-size: 1.15rem;
   }
 }
+
+/* ------------------------------------------------------------------------------------------------
+   Inicio simple: un botón para revisar lo que espera, "Hoy" en una lista corta y los chats.
+   Revisar: una respuesta a la vez.
+   ------------------------------------------------------------------------------------------------ */
+
+.tema .saludo h1 {
+  font-size: 1.45rem;
+}
+
+.tema .boton-mas {
+  width: 48px;
+  height: 48px;
+  min-height: 48px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.revisar-boton {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--principal);
+  color: #ffffff;
+  text-decoration: none;
+  margin-bottom: 18px;
+}
+
+.revisar-numero {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: var(--principal-oscuro);
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.revisar-texto {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.revisar-texto strong {
+  font-size: 1.1rem;
+}
+
+.revisar-texto span {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.revisar-ir {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-weight: 700;
+}
+
+.tema .al-dia {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  font-weight: 600;
+}
+
+.tema .al-dia svg {
+  color: var(--principal);
+}
+
+.hoy h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 0;
+}
+
+.hoy h2 svg {
+  color: var(--principal);
+}
+
+.hoy-lista {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  background: #ffffff;
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+}
+
+.hoy-lista li + li {
+  border-top: 1px solid var(--borde);
+}
+
+.hoy-lista a {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 14px 16px;
+  text-decoration: none;
+  line-height: 1.35;
+}
+
+.hoy-hora {
+  flex: none;
+  min-width: 64px;
+  font-weight: 700;
+  color: var(--principal-oscuro);
+}
+
+/* Revisar */
+.revisar-arriba {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.revisar {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+}
+
+.revisar-quien {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+}
+
+.revisar-quien > span {
+  display: flex;
+  flex-direction: column;
+}
+
+.revisar-quien strong {
+  font-size: 1.15rem;
+}
+
+.revisar-etiqueta {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--suave);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+
+.revisar textarea {
+  font-size: 1.05rem;
+  line-height: 1.45;
+  background: var(--chat-saliente);
+  border-color: #b9ecc2;
+}
+
+.revisar .botones > * {
+  flex: 1 1 0;
+}
+
+.revisar-vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  padding: 48px 16px;
+}
+
+.revisar-vacio svg {
+  color: var(--principal);
+}
+
+@media (min-width: 900px) {
+  .tema .saludo .boton-mas {
+    display: none;
+  }
+
+  .revisar {
+    max-width: 640px;
+  }
+
+  .revisar-boton {
+    max-width: 640px;
+  }
+}
+
+/* Menos redondo: esquinas más rectas en tarjetas, botones, etiquetas y campos. Las fotos de los
+   clientes siguen redondas, como en WhatsApp. */
+.marco.tema {
+  --radio: 6px;
+}
+
+.tema button,
+.tema .boton,
+.tema input[type="text"],
+.tema input[type="email"],
+.tema input[type="time"],
+.tema input[type="number"],
+.tema input[type="url"],
+.tema input[type="date"],
+.tema textarea,
+.tema select,
+.tema .filtro-etapas a,
+.tema .etapa,
+.tema button.rapida,
+.tema .quien-contesta button,
+.tema .insignia,
+.tema .dia-separador,
+.tema .revisar-boton,
+.tema .revisar,
+.tema .hoy-lista,
+.tema .chat-lista,
+.tema .cliente-tarjeta,
+.tema .tablero-columna,
+.tema .pendiente,
+.tema .mini-hilo,
+.tema .borrador,
+.tema .tarjeta,
+.tema .kpi,
+.tema .cifra,
+.tema .opciones,
+.tema .al-dia,
+.tema .proxima,
+.tema .casa-tarjeta,
+.tema .aviso,
+.tema .navegacion a,
+.tema .navegacion .icono {
+  border-radius: 6px;
+}
+
+.tema .burbuja {
+  border-radius: 7px;
+}
+
+.tema .escribir-wa textarea {
+  border-radius: 8px;
+}
+
+.tema .boton-mas,
+.tema .enviar-redondo,
+.tema .avatar,
+.tema .revisar-numero,
+.tema .punto,
+.tema .navegacion .contador,
+.tema .barra-chat .llamar {
+  border-radius: 50%;
+}
+
+/* Cerebro de la asistente */
+.saber summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.saber summary::-webkit-details-marker {
+  display: none;
+}
+
+.saber[open] summary {
+  margin-bottom: 12px;
+}
+
+.correccion .antes {
+  margin: 0;
+  padding: 8px 10px;
+  border-left: 3px solid #e2a3a5;
+  background: #fdf3f3;
+  color: #6b4446;
+  text-decoration: line-through;
+  text-decoration-color: rgb(107 68 70 / 40%);
+}
+
+.correccion .despues {
+  margin: 0;
+  padding: 8px 10px;
+  border-left: 3px solid #8fd9b4;
+  background: #f1fbf4;
+}
+
+.fuentes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: #ffffff;
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+}
+
+.fuentes li + li {
+  border-top: 1px solid var(--borde);
+}
+
+.fuentes a {
+  display: block;
+  padding: 14px 16px;
+  text-decoration: none;
+  line-height: 1.4;
+}
+
+.fuentes strong {
+  font-size: 1.15rem;
+  margin-right: 4px;
+}
+
+.fuentes .suave {
+  display: block;
+}
+
+/* Mapa del cerebro: grafo interactivo en SVG */
+.mapa-cerebro {
+  margin: 0;
+  background: #ffffff;
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.mapa-controles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+  padding: 10px;
+  border-bottom: 1px solid var(--borde);
+}
+
+.mapa-filtros,
+.mapa-zoom {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tema button.mapa-filtro,
+.tema .mapa-zoom button {
+  min-height: 38px;
+  padding: 6px 12px;
+  font-size: 0.88rem;
+}
+
+.tema .mapa-zoom button {
+  min-width: 42px;
+  font-size: 1rem;
+}
+
+.mapa-filtro span {
+  color: var(--suave);
+  font-weight: 500;
+}
+
+.tema button.mapa-filtro[aria-pressed="true"] {
+  background: var(--c-claro);
+  border-color: var(--c);
+  color: var(--c);
+}
+
+.tema button.mapa-filtro[aria-pressed="false"] {
+  color: var(--suave);
+  text-decoration: line-through;
+}
+
+.mapa-cerebro svg {
+  display: block;
+  width: 100%;
+  height: min(70vh, 640px);
+  touch-action: none;
+  cursor: grab;
+  font-family: var(--sans);
+  user-select: none;
+}
+
+.mapa-cerebro svg:active {
+  cursor: grabbing;
+}
+
+.mapa-cerebro figcaption {
+  padding: 8px 12px 10px;
+  border-top: 1px solid var(--borde);
+}
+
+.mapa-cerebro .tono-verde,
+.mapa-filtro.tono-verde { --c: #00a884; --c-claro: #e7f8f3; }
+.mapa-cerebro .tono-azul,
+.mapa-filtro.tono-azul { --c: #1f6fd1; --c-claro: #e8f0fc; }
+.mapa-cerebro .tono-morado,
+.mapa-filtro.tono-morado { --c: #7a4fc9; --c-claro: #f1ebfb; }
+.mapa-cerebro .tono-gris,
+.mapa-filtro.tono-gris { --c: #667781; --c-claro: #eef1f3; }
+.mapa-cerebro .tono-ambar,
+.mapa-filtro.tono-ambar { --c: #c46a00; --c-claro: #fdf1e2; }
+
+.mapa-cerebro .arista {
+  stroke: var(--c);
+  stroke-width: 1.5;
+  opacity: 0.35;
+  transition: opacity 0.15s;
+}
+
+.mapa-cerebro .arista.fuerte {
+  stroke-width: 3;
+  opacity: 0.5;
+}
+
+.mapa-cerebro .apagada {
+  opacity: 0.15;
+}
+
+.mapa-cerebro .nodo {
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.mapa-cerebro .nodo,
+.mapa-cerebro .nodo:focus {
+  outline: none;
+}
+
+.mapa-cerebro .nodo:focus-visible circle {
+  stroke-width: 4;
+}
+
+.mapa-cerebro .nodo-centro circle {
+  fill: #00a884;
+}
+
+.mapa-cerebro .centro-texto {
+  fill: #ffffff;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.mapa-cerebro .nodo-rama circle {
+  fill: var(--c-claro);
+  stroke: var(--c);
+  stroke-width: 2;
+}
+
+.mapa-cerebro .rama-numero {
+  fill: var(--c);
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.mapa-cerebro .rama-nombre {
+  fill: #111b21;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.mapa-cerebro .nodo-hoja circle {
+  fill: #ffffff;
+  stroke: var(--c);
+  stroke-width: 2;
+}
+
+.mapa-cerebro .hoja-texto {
+  fill: #3b4a54;
+  font-size: 14px;
+  paint-order: stroke;
+  stroke: #ffffff;
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+.mapa-cerebro .nodo:hover .hoja-texto {
+  fill: #111b21;
+  font-weight: 600;
+}
+
+.mapa-cerebro .nodo-hoja:hover circle,
+.mapa-cerebro .nodo-rama:hover circle {
+  fill: var(--c);
+}
+
+.mapa-cerebro .nodo-rama:hover text {
+  fill: #ffffff;
+}

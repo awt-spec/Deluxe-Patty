@@ -105,6 +105,9 @@ function repoSimulado(real: Repositorio, corredor: Corredor, estado: EstadoSimul
     entrantesDesde: async () => estado.mensajes.filter((m) => m.direccion === "entrante").length,
     propiedadesActivas: (corredorId) => real.propiedadesActivas(corredorId),
     correccionesRecientes: (corredorId, limite) => real.correccionesRecientes(corredorId, limite),
+    conocimientoActivo: (corredorId, limite) => real.conocimientoActivo(corredorId, limite),
+    // En la prueba, lo que la asistente no sabe se muestra como aviso; no se anota en su cerebro.
+    registrarDuda: async () => {},
     // La agenda real ocupa los horarios; las citas de la prueba también, para que la conversación sea coherente.
     datosAgenda: async (corredorId, desde, hasta) => {
       const datos = await real.datosAgenda(corredorId, desde, hasta);

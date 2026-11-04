@@ -41,9 +41,7 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
           <input type="checkbox" name="respuesta_automatica" defaultChecked={corredor.respuesta_automatica} />
           La asistente contesta sola
         </label>
-        <p className="suave">
-          Apagado = piloto en sombra: cada respuesta queda como borrador hasta que la apruebes.
-        </p>
+        <p className="suave">Si está apagado, revisas cada respuesta antes de que salga.</p>
 
         <label htmlFor="tono">Cómo escribe la asistente</label>
         <textarea
@@ -52,7 +50,6 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
           defaultValue={corredor.tono}
           placeholder="Ejemplo: cordial y profesional, trato de usted, mensajes cortos, sin emojis."
         />
-        <p className="suave">Las correcciones que haces a los borradores también le enseñan tu tono.</p>
 
         <label htmlFor="reglas">Temas que siempre te pasa a ti (uno por línea)</label>
         <textarea id="reglas" name="reglas" rows={5} defaultValue={corredor.reglas_escalamiento.join("\n")} />

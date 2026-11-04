@@ -14,10 +14,7 @@ export default async function Probar() {
       <header className="encabezado">
         <h1>Probar la asistente</h1>
       </header>
-      <p className="suave">
-        Escríbele como si fueras un cliente. Contesta con tus propiedades, tu horario y tu tono, pero nada sale por
-        WhatsApp, las visitas que agende son de prueba y no cuenta en tus mensajes del mes.
-      </p>
+      <p className="suave">Escríbele como si fueras un cliente. Nada se envía de verdad.</p>
       <Chat nombreCorredor={corredor.nombre_contacto} />
     </>
   );

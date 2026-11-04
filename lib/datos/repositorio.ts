@@ -23,6 +23,7 @@ import type {
   PropiedadConFotos,
   UsoDelta,
   UsoMensual,
+  Conocimiento,
 } from "./tipos";
 import { ErrorDatos } from "../monitoreo/errores";
 
@@ -135,6 +136,10 @@ export interface Repositorio {
   ): Promise<boolean>;
   guardarCorreccion(corredorId: string, mensajeId: string, original: string, corregido: string): Promise<void>;
   correccionesRecientes(corredorId: string, limite: number): Promise<Correccion[]>;
+  /** Segundo cerebro: lo que el corredor le enseñó a la asistente. */
+  conocimientoActivo(corredorId: string, limite: number): Promise<Conocimiento[]>;
+  /** Algo que la asistente no supo contestar: queda para que el corredor lo responda una vez. */
+  registrarDuda(corredorId: string, tema: string, conversacionId: string): Promise<void>;
   conversacionConContacto(corredorId: string, conversacionId: string): Promise<ConversacionConContacto | null>;
 }
 
@@ -830,6 +835,46 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
         .from("correcciones")
         .insert({ corredor_id: corredorId, mensaje_id: mensajeId, original, corregido });
       verificar(error, "guardarCorreccion");
+    },
+
+    async conocimientoActivo(corredorId, limite) {
+      const { data, error } = await db
+        .from("conocimiento")
+        .select("tema, respuesta")
+        .eq("corredor_id", corredorId)
+        .eq("estado", "activo")
+        .order("updated_at", { ascending: false })
+        .limit(limite);
+      verificar(error, "conocimientoActivo");
+      return (data ?? []) as Conocimiento[];
+    },
+
+    async registrarDuda(corredorId, tema, conversacionId) {
+      const limpio = tema.trim().slice(0, 300);
+      if (!limpio) return;
+      // La misma duda pendiente no se repite: suma una vez más.
+      const { data: igual, error: e1 } = await db
+        .from("conocimiento")
+        .select("id, veces")
+        .eq("corredor_id", corredorId)
+        .eq("estado", "pendiente")
+        .ilike("tema", limpio.replace(/[\\%_]/g, "\\$&"))
+        .maybeSingle();
+      verificar(e1, "registrarDuda (buscar)");
+      const { error } = igual
+        ? await db
+            .from("conocimiento")
+            .update({ veces: (igual.veces as number) + 1, updated_at: new Date().toISOString() })
+            .eq("corredor_id", corredorId)
+            .eq("id", igual.id)
+        : await db.from("conocimiento").insert({
+            corredor_id: corredorId,
+            tema: limpio,
+            estado: "pendiente",
+            origen: "duda",
+            conversacion_id: conversacionId,
+          });
+      verificar(error, "registrarDuda");
     },
 
     async correccionesRecientes(corredorId, limite) {

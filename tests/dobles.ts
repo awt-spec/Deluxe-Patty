@@ -9,6 +9,7 @@ import type {
   NuevaCita,
   NuevoMensaje,
   PropiedadConFotos,
+  Conocimiento,
 } from "../lib/datos/tipos";
 import type { MensajeEntrante } from "../lib/whatsapp/parsear";
 
@@ -53,6 +54,7 @@ export function repoEnMemoria(corredor: Corredor) {
   const envios: { id: string; contenido: string; entregado: boolean }[] = [];
   const subidas: { bucket: string; ruta: string; datos: Buffer }[] = [];
   const correcciones: { original: string; corregido: string }[] = [];
+  const conocimiento: { tema: string; respuesta: string | null; veces: number }[] = [];
   let fotosMejoradas = 0;
   const planes = new Map<string, { contenido: string; enviado: boolean }>();
   const citas: (NuevaCita & { id: string; estado: EstadoCita; recordatorio: boolean; creada: Date })[] = [];
@@ -288,6 +290,12 @@ export function repoEnMemoria(corredor: Corredor) {
       correcciones.unshift({ original, corregido });
     },
     correccionesRecientes: async (_c, limite) => correcciones.slice(0, limite),
+    conocimientoActivo: async (_c, limite) => conocimiento.filter((k) => k.respuesta).slice(0, limite) as Conocimiento[],
+    registrarDuda: async (_c, tema) => {
+      const igual = conocimiento.find((k) => !k.respuesta && k.tema.toLowerCase() === tema.toLowerCase());
+      if (igual) igual.veces++;
+      else conocimiento.push({ tema, respuesta: null, veces: 1 });
+    },
     conversacionConContacto: async (_c, id) => {
       const conv = conversaciones.find((c) => c.id === id);
       if (!conv) return null;
@@ -315,6 +323,7 @@ export function repoEnMemoria(corredor: Corredor) {
     envios,
     subidas,
     correcciones,
+    conocimiento,
     fotosMejoradas: () => fotosMejoradas,
   };
 }

@@ -85,11 +85,13 @@ marca del corredor (`corredores.marca`), la sube al bucket público `fichas` y s
 
 ## Panel del corredor (`app/panel`)
 Para el teléfono y para alguien que no usa tecnología: **cuatro botones** (Chats, Clientes, Agenda, Mis casas),
-letra y botones grandes, palabras de todos los días (nada de "borrador" ni "escalada"). Chats (`/panel`)
-es el inicio, como WhatsApp: arriba "Te necesitan" con lo que espera al corredor (✓ Enviar así,
-Cambiarla, Le escribo yo; "Escribirle por WhatsApp" y "Ya lo atendí" si el cliente pidió hablar con él),
-abajo todos los chats. Lo de poco uso (Probar la asistente, Resumen del día, Dueños, Anuncios, Mi horario,
-Ajustes, Salir) está detrás de un botón "Más" (`/panel/mas`). Íconos dibujados en `app/panel/iconos.tsx`
+letra y botones grandes, palabras de todos los días (nada de "borrador" ni "escalada"), tema claro como
+WhatsApp (letra del sistema, verde de WhatsApp para enviar). Chats (`/panel`) es el inicio: arriba solo lo
+urgente (un botón "Revisar" con lo que espera al corredor, y "Hoy": visitas, seguimientos y clientes que no
+contestan), abajo todos los chats. Revisar (`/panel/revisar`, `lib/panel/pendientes.ts`) muestra uno a la
+vez lo que dijo el cliente y la respuesta propuesta, editable, con Enviar, Yo le escribo y No enviar (o
+"Escribirle por WhatsApp" y "Ya lo atendí" si pidió hablar con el corredor) y pasa al siguiente. Lo de
+poco uso (Dueños, Anuncios, Probar la asistente, Ajustes, Salir) está detrás de "Más" (`/panel/mas`). Íconos dibujados en `app/panel/iconos.tsx`
 (nada de emojis en la navegación); sobre Chats, el número de clientes que esperan. Entrada por enlace
 mágico de Supabase Auth (`/entrar`, sin crear usuarios: el acceso lo da `scripts/dar-acceso.mts`), con la
 marca del corredor (`lib/panel/marca.ts`): la de `?c=<slug>` o la del único corredor si hay uno solo; el
@@ -123,6 +125,13 @@ llamada) y la etapa solo avanza sola (nuevo → interesado → visita al agendar
 cliente cerrado o perdido. En el teléfono, lista por etapa; en computadora, tablero. La ficha muestra las
 casas que le encajan; el inicio, "Para hoy" (seguimientos que vencen y clientes que no contestan hace 3
 días). El corredor edita esos campos con su sesión (permiso por columna; el teléfono no).
+Cerebro de la asistente (`app/panel/cerebro`, desde Más): lo que el corredor le enseña (`conocimiento`,
+tema y respuesta) entra en `responder` como datos suyos; lo que la asistente no supo (`avisar_corredor`)
+queda como duda pendiente (`registrarDuda`, sin repetirse) y al responderla pasa a lo que sabe. Tiene un
+mapa interactivo (grafo en SVG con simulación de fuerzas propia, `app/panel/cerebro/mapa.tsx`): la asistente
+al centro y cada fuente con sus elementos; se arrastra, se acerca, se filtra por fuente y cada fuente se abre. Muestra
+también las correcciones del corredor (antes y después) y de dónde aprende (casas, lo enseñado,
+correcciones, horario, tono y temas que van al corredor).
 "Probar la asistente" (`app/panel/probar`, desde Chats): el corredor le escribe como si fuera un cliente y
 `lib/simulador/simulador.ts` corre `procesarMensaje` real con un repositorio que solo lee propiedades,
 agenda y correcciones; la conversación, las citas de prueba y los avisos viven en el estado que guarda el
@@ -179,6 +188,7 @@ dueño o corredor. Un cambio de tono o de instrucciones se prueba con el set de 
 | correcciones | Correcciones del corredor a borradores: ejemplos de tono |
 | uso_diario | Mensajes, llamadas y costo de IA por corredor y día |
 | alertas | Última vez que se mandó cada alerta de monitoreo (sin ráfagas) |
+| conocimiento | Cerebro de la asistente: lo que el corredor le enseñó y las dudas que no supo contestar |
 | extension_conexiones | Extensión de Chrome conectada a un corredor: huellas del código y del permiso, último uso |
 | busquedas_extension / busquedas_extension_anuncios | Búsqueda de dueños en curso desde la extensión y anuncios leídos (se borran al terminar) |
 
