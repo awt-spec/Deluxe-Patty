@@ -3217,3 +3217,103 @@ body:has(.marco.tema) {
 .fuentes .suave {
   display: block;
 }
+
+/* Mapa del cerebro (grafo radial en SVG) */
+.mapa-cerebro {
+  margin: 0;
+  background: #ffffff;
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  padding: 8px;
+  overflow-x: auto;
+}
+
+.mapa-cerebro svg {
+  display: block;
+  width: 100%;
+  min-width: 680px;
+  height: auto;
+  font-family: var(--sans);
+}
+
+.mapa-cerebro figcaption {
+  padding: 4px 8px 6px;
+}
+
+.mapa-cerebro .arista {
+  stroke: #d5dbdf;
+  stroke-width: 1.5;
+}
+
+.mapa-cerebro .arista.fuerte {
+  stroke-width: 3;
+}
+
+.mapa-cerebro .nodo-centro {
+  fill: #00a884;
+}
+
+.mapa-cerebro .centro-texto {
+  fill: #ffffff;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.mapa-cerebro .rama {
+  --c: #00a884;
+  --c-claro: #e7f8f3;
+}
+
+.mapa-cerebro .tono-azul { --c: #1f6fd1; --c-claro: #e8f0fc; }
+.mapa-cerebro .tono-morado { --c: #7a4fc9; --c-claro: #f1ebfb; }
+.mapa-cerebro .tono-gris { --c: #667781; --c-claro: #eef1f3; }
+.mapa-cerebro .tono-ambar { --c: #c46a00; --c-claro: #fdf1e2; }
+
+.mapa-cerebro .rama .arista.fuerte {
+  stroke: var(--c);
+  opacity: 0.45;
+}
+
+.mapa-cerebro .nodo-rama {
+  fill: var(--c-claro);
+  stroke: var(--c);
+  stroke-width: 2;
+}
+
+.mapa-cerebro .rama-numero {
+  fill: var(--c);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.mapa-cerebro .rama-nombre {
+  fill: #111b21;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.mapa-cerebro .hoja {
+  fill: #ffffff;
+  stroke: var(--c);
+  stroke-width: 2;
+}
+
+.mapa-cerebro .hoja-texto {
+  fill: #3b4a54;
+  font-size: 15px;
+}
+
+.mapa-cerebro a:hover .hoja,
+.mapa-cerebro a:hover .nodo-rama {
+  fill: var(--c);
+}
+
+.mapa-cerebro a:hover .rama-numero,
+.mapa-cerebro a:hover .rama-nombre {
+  fill: #ffffff;
+}
+
+.mapa-cerebro a:hover .hoja-texto {
+  fill: #111b21;
+  text-decoration: underline;
+}

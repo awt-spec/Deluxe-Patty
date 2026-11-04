@@ -127,7 +127,8 @@ casas que le encajan; el inicio, "Para hoy" (seguimientos que vencen y clientes 
 días). El corredor edita esos campos con su sesión (permiso por columna; el teléfono no).
 Cerebro de la asistente (`app/panel/cerebro`, desde Más): lo que el corredor le enseña (`conocimiento`,
 tema y respuesta) entra en `responder` como datos suyos; lo que la asistente no supo (`avisar_corredor`)
-queda como duda pendiente (`registrarDuda`, sin repetirse) y al responderla pasa a lo que sabe. Muestra
+queda como duda pendiente (`registrarDuda`, sin repetirse) y al responderla pasa a lo que sabe. Tiene un
+mapa (grafo radial en SVG, `app/panel/cerebro/mapa.tsx`) con la asistente al centro y cada fuente. Muestra
 también las correcciones del corredor (antes y después) y de dónde aprende (casas, lo enseñado,
 correcciones, horario, tono y temas que van al corredor).
 "Probar la asistente" (`app/panel/probar`, desde Chats): el corredor le escribe como si fuera un cliente y

@@ -4,17 +4,18 @@ import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Aviso } from "../aviso";
 import { Volver } from "../volver";
 import { archivar, ensenar, responderDuda } from "./acciones";
+import { MapaCerebro, type Rama } from "./mapa";
 
 // Segundo cerebro de la asistente: qué sabe, de dónde aprende y qué no supo contestar. Cada duda que el
 // corredor responde pasa a ser algo que la asistente ya sabe y usa al contestar.
 
 type Item = { id: string; tema: string; respuesta: string | null; origen: string; veces: number; updated_at: string };
-type Ver = "dudas" | "sabe" | "errores" | "fuentes";
+type Ver = "mapa" | "dudas" | "sabe" | "errores" | "fuentes";
 
 export default async function Cerebro({ searchParams }: { searchParams: Promise<{ ver?: string; aviso?: string }> }) {
   const { ver: pedido, aviso } = await searchParams;
   const { supabase, corredor } = await sesionConCorredor();
-  const [{ data: items }, { data: correcciones }, { count: casas }, { count: franjas }] = await Promise.all([
+  const [{ data: items }, { data: correcciones }, { data: casasData }, { data: franjasData }] = await Promise.all([
     supabase
       .from("conocimiento")
       .select("id, tema, respuesta, origen, veces, updated_at, estado")
@@ -28,14 +29,32 @@ export default async function Cerebro({ searchParams }: { searchParams: Promise<
       .eq("corredor_id", corredor.id)
       .order("created_at", { ascending: false })
       .limit(20),
-    supabase.from("propiedades").select("id", { count: "exact", head: true }).eq("corredor_id", corredor.id).eq("estado", "activa"),
-    supabase.from("horarios_visitas").select("id", { count: "exact", head: true }).eq("corredor_id", corredor.id),
+    supabase.from("propiedades").select("id, titulo").eq("corredor_id", corredor.id).eq("estado", "activa").limit(100),
+    supabase.from("horarios_visitas").select("dia_semana, hora_inicio, hora_fin").eq("corredor_id", corredor.id).order("dia_semana"),
   ]);
   const todos = (items ?? []) as (Item & { estado: string })[];
   const dudas = todos.filter((i) => i.estado === "pendiente");
   const sabe = todos.filter((i) => i.estado === "activo");
   const errores = (correcciones ?? []) as { id: string; original: string; corregido: string; created_at: string }[];
-  const ver: Ver = (["dudas", "sabe", "errores", "fuentes"] as const).find((v) => v === pedido) ?? (dudas.length ? "dudas" : "sabe");
+  const casasLista = (casasData ?? []) as { id: string; titulo: string }[];
+  const franjas = (franjasData ?? []) as { dia_semana: number; hora_inicio: string; hora_fin: string }[];
+  const casas = casasLista.length;
+  const DIAS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+  const ver: Ver = (["mapa", "dudas", "sabe", "errores", "fuentes"] as const).find((v) => v === pedido) ?? (dudas.length ? "dudas" : "mapa");
+  const ramas: Rama[] = [
+    { clave: "casas", nombre: "Casas", href: "/panel/propiedades", tono: "verde", hojas: casasLista.map((c) => ({ texto: c.titulo, href: `/panel/propiedades/${c.id}` })) },
+    { clave: "sabe", nombre: "Lo que sabe", href: "/panel/cerebro?ver=sabe", tono: "azul", hojas: sabe.map((k) => ({ texto: k.tema, href: "/panel/cerebro?ver=sabe" })) },
+    { clave: "dudas", nombre: "Dudas", href: "/panel/cerebro?ver=dudas", tono: "ambar", hojas: dudas.map((d) => ({ texto: d.tema, href: "/panel/cerebro?ver=dudas" })) },
+    { clave: "correcciones", nombre: "Correcciones", href: "/panel/cerebro?ver=errores", tono: "morado", hojas: errores.slice(0, 8).map((e) => ({ texto: e.corregido, href: "/panel/cerebro?ver=errores" })) },
+    {
+      clave: "horario",
+      nombre: "Horario",
+      href: "/panel/agenda/horario",
+      tono: "gris",
+      hojas: franjas.map((f) => ({ texto: `${DIAS[f.dia_semana]} ${f.hora_inicio.slice(0, 5)}–${f.hora_fin.slice(0, 5)}`, href: "/panel/agenda/horario" })),
+    },
+    { clave: "temas", nombre: "Te los pasa", href: "/panel/ajustes", tono: "gris", hojas: corredor.reglas_escalamiento.map((t) => ({ texto: t, href: "/panel/ajustes" })) },
+  ];
 
   const pestana = (v: Ver, nombre: string, n?: number) => (
     <Link href={`/panel/cerebro?ver=${v}`} aria-current={ver === v ? "page" : undefined}>
@@ -56,11 +75,14 @@ export default async function Cerebro({ searchParams }: { searchParams: Promise<
       <Aviso texto={aviso} />
 
       <nav className="filtro-etapas" aria-label="Secciones del cerebro">
+        {pestana("mapa", "Mapa")}
         {pestana("dudas", "Dudas", dudas.length)}
         {pestana("sabe", "Lo que sabe", sabe.length)}
         {pestana("errores", "Correcciones", errores.length)}
         {pestana("fuentes", "De dónde aprende")}
       </nav>
+
+      {ver === "mapa" && <MapaCerebro ramas={ramas} />}
 
       {ver === "dudas" && (
         <section className="pila">
@@ -151,7 +173,7 @@ export default async function Cerebro({ searchParams }: { searchParams: Promise<
         <ul className="fuentes">
           <li>
             <Link href="/panel/propiedades">
-              <strong>{casas ?? 0}</strong> casas en oferta <span className="suave">precios, zonas y datos de cada ficha</span>
+              <strong>{casas}</strong> casas en oferta <span className="suave">precios, zonas y datos de cada ficha</span>
             </Link>
           </li>
           <li>
@@ -166,7 +188,7 @@ export default async function Cerebro({ searchParams }: { searchParams: Promise<
           </li>
           <li>
             <Link href="/panel/agenda/horario">
-              <strong>{franjas ?? 0}</strong> horarios de visita <span className="suave">cuándo puede ofrecer citas</span>
+              <strong>{franjas.length}</strong> horarios de visita <span className="suave">cuándo puede ofrecer citas</span>
             </Link>
           </li>
           <li>
