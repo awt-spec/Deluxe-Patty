@@ -3218,38 +3218,120 @@ body:has(.marco.tema) {
   display: block;
 }
 
-/* Mapa del cerebro (grafo radial en SVG) */
+/* Mapa del cerebro: grafo interactivo en SVG */
 .mapa-cerebro {
   margin: 0;
   background: #ffffff;
   border: 1px solid var(--borde);
   border-radius: 6px;
-  padding: 8px;
-  overflow-x: auto;
+  overflow: hidden;
+}
+
+.mapa-controles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+  padding: 10px;
+  border-bottom: 1px solid var(--borde);
+}
+
+.mapa-filtros,
+.mapa-zoom {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tema button.mapa-filtro,
+.tema .mapa-zoom button {
+  min-height: 38px;
+  padding: 6px 12px;
+  font-size: 0.88rem;
+}
+
+.tema .mapa-zoom button {
+  min-width: 42px;
+  font-size: 1rem;
+}
+
+.mapa-filtro span {
+  color: var(--suave);
+  font-weight: 500;
+}
+
+.tema button.mapa-filtro[aria-pressed="true"] {
+  background: var(--c-claro);
+  border-color: var(--c);
+  color: var(--c);
+}
+
+.tema button.mapa-filtro[aria-pressed="false"] {
+  color: var(--suave);
+  text-decoration: line-through;
 }
 
 .mapa-cerebro svg {
   display: block;
   width: 100%;
-  min-width: 680px;
-  height: auto;
+  height: min(70vh, 640px);
+  touch-action: none;
+  cursor: grab;
   font-family: var(--sans);
+  user-select: none;
+}
+
+.mapa-cerebro svg:active {
+  cursor: grabbing;
 }
 
 .mapa-cerebro figcaption {
-  padding: 4px 8px 6px;
+  padding: 8px 12px 10px;
+  border-top: 1px solid var(--borde);
 }
 
+.mapa-cerebro .tono-verde,
+.mapa-filtro.tono-verde { --c: #00a884; --c-claro: #e7f8f3; }
+.mapa-cerebro .tono-azul,
+.mapa-filtro.tono-azul { --c: #1f6fd1; --c-claro: #e8f0fc; }
+.mapa-cerebro .tono-morado,
+.mapa-filtro.tono-morado { --c: #7a4fc9; --c-claro: #f1ebfb; }
+.mapa-cerebro .tono-gris,
+.mapa-filtro.tono-gris { --c: #667781; --c-claro: #eef1f3; }
+.mapa-cerebro .tono-ambar,
+.mapa-filtro.tono-ambar { --c: #c46a00; --c-claro: #fdf1e2; }
+
 .mapa-cerebro .arista {
-  stroke: #d5dbdf;
+  stroke: var(--c);
   stroke-width: 1.5;
+  opacity: 0.35;
+  transition: opacity 0.15s;
 }
 
 .mapa-cerebro .arista.fuerte {
   stroke-width: 3;
+  opacity: 0.5;
 }
 
-.mapa-cerebro .nodo-centro {
+.mapa-cerebro .apagada {
+  opacity: 0.15;
+}
+
+.mapa-cerebro .nodo {
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.mapa-cerebro .nodo,
+.mapa-cerebro .nodo:focus {
+  outline: none;
+}
+
+.mapa-cerebro .nodo:focus-visible circle {
+  stroke-width: 4;
+}
+
+.mapa-cerebro .nodo-centro circle {
   fill: #00a884;
 }
 
@@ -3259,22 +3341,7 @@ body:has(.marco.tema) {
   font-weight: 700;
 }
 
-.mapa-cerebro .rama {
-  --c: #00a884;
-  --c-claro: #e7f8f3;
-}
-
-.mapa-cerebro .tono-azul { --c: #1f6fd1; --c-claro: #e8f0fc; }
-.mapa-cerebro .tono-morado { --c: #7a4fc9; --c-claro: #f1ebfb; }
-.mapa-cerebro .tono-gris { --c: #667781; --c-claro: #eef1f3; }
-.mapa-cerebro .tono-ambar { --c: #c46a00; --c-claro: #fdf1e2; }
-
-.mapa-cerebro .rama .arista.fuerte {
-  stroke: var(--c);
-  opacity: 0.45;
-}
-
-.mapa-cerebro .nodo-rama {
+.mapa-cerebro .nodo-rama circle {
   fill: var(--c-claro);
   stroke: var(--c);
   stroke-width: 2;
@@ -3282,7 +3349,7 @@ body:has(.marco.tema) {
 
 .mapa-cerebro .rama-numero {
   fill: var(--c);
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 800;
 }
 
@@ -3292,7 +3359,7 @@ body:has(.marco.tema) {
   font-weight: 700;
 }
 
-.mapa-cerebro .hoja {
+.mapa-cerebro .nodo-hoja circle {
   fill: #ffffff;
   stroke: var(--c);
   stroke-width: 2;
@@ -3300,20 +3367,23 @@ body:has(.marco.tema) {
 
 .mapa-cerebro .hoja-texto {
   fill: #3b4a54;
-  font-size: 15px;
+  font-size: 14px;
+  paint-order: stroke;
+  stroke: #ffffff;
+  stroke-width: 4px;
+  stroke-linejoin: round;
 }
 
-.mapa-cerebro a:hover .hoja,
-.mapa-cerebro a:hover .nodo-rama {
+.mapa-cerebro .nodo:hover .hoja-texto {
+  fill: #111b21;
+  font-weight: 600;
+}
+
+.mapa-cerebro .nodo-hoja:hover circle,
+.mapa-cerebro .nodo-rama:hover circle {
   fill: var(--c);
 }
 
-.mapa-cerebro a:hover .rama-numero,
-.mapa-cerebro a:hover .rama-nombre {
+.mapa-cerebro .nodo-rama:hover text {
   fill: #ffffff;
-}
-
-.mapa-cerebro a:hover .hoja-texto {
-  fill: #111b21;
-  text-decoration: underline;
 }
