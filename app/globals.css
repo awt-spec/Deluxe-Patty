@@ -1046,7 +1046,7 @@ button[aria-busy="true"] {
    Entradas desde app/panel/layout.tsx: --principal, --soporte, --onyx y --crema de la marca.
    ------------------------------------------------------------------------------------------------ */
 
-.marco.oscuro {
+.marco.tema {
   --onyx: #1a1308;
   --crema: #f5f0e8;
   --base: color-mix(in srgb, var(--onyx) 70%, #000);
@@ -1070,47 +1070,47 @@ button[aria-busy="true"] {
   font-size: 17px;
 }
 
-.oscuro ::selection {
+.tema ::selection {
   background: color-mix(in srgb, var(--principal) 40%, transparent);
 }
 
-.oscuro h1 {
+.tema h1 {
   font-size: 2rem;
   letter-spacing: -0.01em;
 }
 
-.oscuro h2 {
+.tema h2 {
   font-size: 1.25rem;
   margin: 1.8rem 0 0.8rem;
 }
 
-.oscuro .etiqueta {
+.tema .etiqueta {
   color: var(--principal);
 }
 
-.oscuro a {
+.tema a {
   color: inherit;
 }
 
-.oscuro .tarjeta,
-.oscuro .cifra,
-.oscuro .pendiente,
-.oscuro .opciones,
-.oscuro .entrada-tarjeta {
+.tema .tarjeta,
+.tema .cifra,
+.tema .pendiente,
+.tema .opciones,
+.tema .entrada-tarjeta {
   background: var(--brillo), var(--superficie);
   border: 1px solid var(--borde);
   border-radius: var(--radio);
   box-shadow: var(--sombra);
 }
 
-.oscuro input[type="text"],
-.oscuro input[type="email"],
-.oscuro input[type="time"],
-.oscuro input[type="number"],
-.oscuro input[type="url"],
-.oscuro input[type="date"],
-.oscuro textarea,
-.oscuro select {
+.tema input[type="text"],
+.tema input[type="email"],
+.tema input[type="time"],
+.tema input[type="number"],
+.tema input[type="url"],
+.tema input[type="date"],
+.tema textarea,
+.tema select {
   background: var(--superficie-alta);
   color: var(--profundo);
   border: 1px solid var(--borde);
@@ -1118,15 +1118,15 @@ button[aria-busy="true"] {
   color-scheme: dark;
 }
 
-.oscuro input:focus,
-.oscuro textarea:focus,
-.oscuro select:focus {
+.tema input:focus,
+.tema textarea:focus,
+.tema select:focus {
   outline: 2px solid var(--principal);
   outline-offset: 1px;
 }
 
-.oscuro button,
-.oscuro .boton {
+.tema button,
+.tema .boton {
   background: var(--superficie-alta);
   color: var(--profundo);
   border: 1px solid var(--borde);
@@ -1134,10 +1134,10 @@ button[aria-busy="true"] {
 }
 
 /* Botón principal: dorado, como un botón de pago */
-.oscuro button.primario,
-.oscuro .boton.primario,
-.oscuro button.verde,
-.oscuro .boton.verde {
+.tema button.primario,
+.tema .boton.primario,
+.tema button.verde,
+.tema .boton.verde {
   background: linear-gradient(180deg, color-mix(in srgb, var(--principal) 100%, #fff 18%), var(--principal));
   border: none;
   color: var(--onyx);
@@ -1145,54 +1145,54 @@ button[aria-busy="true"] {
   box-shadow: 0 8px 20px color-mix(in srgb, var(--principal) 28%, transparent);
 }
 
-.oscuro button.primario:disabled,
-.oscuro button.verde:disabled {
+.tema button.primario:disabled,
+.tema button.verde:disabled {
   opacity: 0.45;
   box-shadow: none;
 }
 
-.oscuro button.peligro {
+.tema button.peligro {
   color: var(--peligro);
 }
 
-.oscuro .aviso {
+.tema .aviso {
   background: color-mix(in srgb, var(--principal) 12%, var(--superficie));
   border-color: var(--borde);
   color: var(--profundo);
 }
 
-.oscuro .insignia {
+.tema .insignia {
   background: color-mix(in srgb, var(--principal) 18%, transparent);
   color: var(--principal);
 }
 
-.oscuro .banda-demo {
+.tema .banda-demo {
   background: color-mix(in srgb, var(--principal) 85%, #000);
   color: var(--onyx);
 }
 
 /* Pestañas de abajo: vidrio oscuro con el dorado en la activa */
-.oscuro .navegacion {
+.tema .navegacion {
   background: color-mix(in srgb, var(--onyx) 82%, transparent);
   backdrop-filter: blur(16px) saturate(140%);
   -webkit-backdrop-filter: blur(16px) saturate(140%);
   border-top: 1px solid var(--borde);
 }
 
-.oscuro .navegacion a {
+.tema .navegacion a {
   color: var(--suave);
   font-size: 0.95rem;
 }
 
-.oscuro .navegacion a[aria-current="page"] {
+.tema .navegacion a[aria-current="page"] {
   color: var(--principal);
 }
 
-.oscuro .navegacion a[aria-current="page"] .icono {
+.tema .navegacion a[aria-current="page"] .icono {
   background: color-mix(in srgb, var(--principal) 18%, transparent);
 }
 
-.oscuro .navegacion .contador {
+.tema .navegacion .contador {
   background: var(--principal);
   color: var(--onyx);
   box-shadow: 0 0 0 2px var(--onyx);
@@ -1218,7 +1218,7 @@ button[aria-busy="true"] {
   text-transform: uppercase;
 }
 
-.oscuro .boton-mas {
+.tema .boton-mas {
   border-radius: 999px;
   padding: 10px 18px;
 }
@@ -1405,7 +1405,7 @@ button[aria-busy="true"] {
   white-space: nowrap;
 }
 
-.oscuro .al-dia {
+.tema .al-dia {
   background: var(--brillo), var(--superficie);
   border: 1px solid var(--borde);
   border-radius: var(--radio);
@@ -1420,7 +1420,7 @@ button[aria-busy="true"] {
   padding: 0;
 }
 
-.oscuro .pendiente {
+.tema .pendiente {
   padding: 16px;
   gap: 12px;
   margin-bottom: 14px;
@@ -1624,7 +1624,7 @@ button[aria-busy="true"] {
   background: color-mix(in srgb, var(--principal) 24%, var(--base));
 }
 
-.oscuro .quien-contesta button {
+.tema .quien-contesta button {
   min-height: 46px;
   padding: 8px 16px;
   font-size: 0.95rem;
@@ -1650,13 +1650,13 @@ button[aria-busy="true"] {
   box-shadow: 0 1px 2px rgb(0 0 0 / 30%);
 }
 
-.oscuro .burbuja.cliente {
+.tema .burbuja.cliente {
   background: var(--chat-entrante);
   border: none;
   border-top-left-radius: 4px;
 }
 
-.oscuro .burbuja.saliente {
+.tema .burbuja.saliente {
   background: var(--chat-saliente);
   border-top-right-radius: 4px;
 }
@@ -1688,7 +1688,7 @@ button[aria-busy="true"] {
   text-transform: uppercase;
 }
 
-.oscuro .borrador {
+.tema .borrador {
   border: 1.5px dashed var(--principal);
   background: color-mix(in srgb, var(--principal) 10%, var(--superficie));
   border-radius: 16px;
@@ -1712,7 +1712,7 @@ button[aria-busy="true"] {
   border-top: 1px solid var(--borde);
 }
 
-.oscuro .escribir-wa textarea {
+.tema .escribir-wa textarea {
   flex: 1;
   min-height: 54px;
   max-height: 160px;
@@ -1724,7 +1724,7 @@ button[aria-busy="true"] {
   field-sizing: content;
 }
 
-.oscuro .enviar-redondo {
+.tema .enviar-redondo {
   flex: none;
   width: 54px;
   height: 54px;
@@ -1750,8 +1750,8 @@ button[aria-busy="true"] {
 }
 
 /* Mis casas y propiedades: la foto manda */
-.oscuro .tarjeta.propiedad img,
-.oscuro .tarjeta.propiedad .sin-foto {
+.tema .tarjeta.propiedad img,
+.tema .tarjeta.propiedad .sin-foto {
   border-radius: 14px;
 }
 
@@ -1778,11 +1778,11 @@ button[aria-busy="true"] {
   }
 }
 
-body:has(.marco.oscuro) {
+body:has(.marco.tema) {
   background: #0f0b06;
 }
 
-.oscuro .boton-mas {
+.tema .boton-mas {
   flex: none;
   flex-direction: row;
   gap: 6px;
@@ -1813,7 +1813,7 @@ button,
   margin: 0 0 0 4px;
 }
 
-.oscuro .al-dia svg {
+.tema .al-dia svg {
   color: var(--principal);
   flex: none;
 }
@@ -1845,7 +1845,7 @@ button,
    ------------------------------------------------------------------------------------------------ */
 
 .navegacion-marca,
-.oscuro .navegacion .solo-escritorio {
+.tema .navegacion .solo-escritorio {
   display: none;
 }
 
@@ -1857,12 +1857,12 @@ button,
 }
 
 @media (min-width: 900px) {
-  .marco.oscuro {
+  .marco.tema {
     --lateral: 248px;
     padding-left: var(--lateral);
   }
 
-  .oscuro .navegacion {
+  .tema .navegacion {
     top: 0;
     right: auto;
     bottom: 0;
@@ -1886,8 +1886,8 @@ button,
     border-bottom: 1px solid var(--borde);
   }
 
-  .oscuro .navegacion a,
-  .oscuro .navegacion .solo-escritorio {
+  .tema .navegacion a,
+  .tema .navegacion .solo-escritorio {
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -1897,16 +1897,16 @@ button,
     font-size: 1.05rem;
   }
 
-  .oscuro .navegacion a:hover {
+  .tema .navegacion a:hover {
     background: color-mix(in srgb, var(--principal) 8%, transparent);
     color: var(--profundo);
   }
 
-  .oscuro .navegacion a[aria-current="page"] {
+  .tema .navegacion a[aria-current="page"] {
     background: color-mix(in srgb, var(--principal) 14%, transparent);
   }
 
-  .oscuro .navegacion a[aria-current="page"] .icono {
+  .tema .navegacion a[aria-current="page"] .icono {
     background: none;
   }
 
@@ -1914,7 +1914,7 @@ button,
     width: 32px;
   }
 
-  .oscuro .panel {
+  .tema .panel {
     max-width: 1120px;
     padding: 32px 40px 48px;
   }
@@ -1964,7 +1964,7 @@ button,
     margin-bottom: 0;
   }
 
-  .oscuro .pendiente {
+  .tema .pendiente {
     margin-bottom: 0;
   }
 
@@ -1999,7 +1999,7 @@ button,
     max-width: min(560px, 70%);
   }
 
-  .oscuro .borrador {
+  .tema .borrador {
     max-width: 640px;
     align-self: flex-end;
   }
@@ -2011,23 +2011,23 @@ button,
   }
 
   /* Mis casas en cuadrícula */
-  .oscuro .panel:has(.tarjeta.propiedad) {
+  .tema .panel:has(.tarjeta.propiedad) {
     max-width: 1120px;
   }
 }
 
 @media (min-width: 1280px) {
-  .marco.oscuro {
+  .marco.tema {
     --lateral: 280px;
   }
 }
 
 /* Mis casas: tarjetas con la foto; resumen del día con cifras grandes; botones de la ficha parejos */
-.oscuro .cifras {
+.tema .cifras {
   gap: 12px;
 }
 
-.oscuro .cifra {
+.tema .cifra {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -2035,28 +2035,28 @@ button,
   padding: 16px;
 }
 
-.oscuro .cifra strong {
+.tema .cifra strong {
   font-size: 2.4rem;
   line-height: 1;
   color: var(--principal);
 }
 
-.oscuro .cifra .suave {
+.tema .cifra .suave {
   color: var(--profundo);
   font-size: 0.98rem;
 }
 
-.oscuro .tarjeta.propiedad .sin-foto {
+.tema .tarjeta.propiedad .sin-foto {
   background: color-mix(in srgb, var(--principal) 10%, var(--superficie-alta));
   color: var(--principal);
 }
 
-.oscuro form:has(> button.grande) {
+.tema form:has(> button.grande) {
   flex: 1 1 0;
   display: flex;
 }
 
-.oscuro form > button.grande {
+.tema form > button.grande {
   flex: 1;
 }
 
@@ -2292,7 +2292,7 @@ button,
   gap: 8px;
 }
 
-.oscuro .etapas-selector .etapa {
+.tema .etapas-selector .etapa {
   min-height: 44px;
   padding: 8px 16px;
   font-size: 0.95rem;
@@ -2302,7 +2302,7 @@ button,
   border-color: var(--borde);
 }
 
-.oscuro .etapas-selector .etapa[aria-pressed="true"] {
+.tema .etapas-selector .etapa[aria-pressed="true"] {
   color: var(--onyx);
   background: var(--tono);
   border-color: var(--tono);
@@ -2371,7 +2371,7 @@ button,
   display: none;
 }
 
-.oscuro button.rapida {
+.tema button.rapida {
   flex: none;
   min-height: 40px;
   padding: 8px 14px;
@@ -2452,7 +2452,7 @@ button,
     display: none;
   }
 
-  .oscuro .panel:has(.tablero) {
+  .tema .panel:has(.tablero) {
     max-width: none;
   }
 
@@ -2473,5 +2473,423 @@ button,
 
   .tablero .cliente-texto strong {
     white-space: normal;
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------
+   Un poco menos de lujo: más sobrio y práctico. Fondo plano sin resplandor, tarjetas sin degradado ni
+   sombras marcadas, botón principal dorado liso, menos brillo y títulos en letra normal (el Playfair queda
+   para el saludo y la marca).
+   ------------------------------------------------------------------------------------------------ */
+
+.marco.tema {
+  --base: color-mix(in srgb, var(--onyx) 55%, #111);
+  --superficie: color-mix(in srgb, var(--onyx) 60%, #2a2a2a);
+  --superficie-alta: color-mix(in srgb, var(--onyx) 50%, #363636);
+  --borde: rgb(255 255 255 / 9%);
+  --radio: 14px;
+  --sombra: none;
+  --brillo: linear-gradient(transparent, transparent);
+  background: var(--base);
+}
+
+.tema h2,
+.tema .titulo-seccion h2,
+.tema .tablero-columna h2,
+.tema .cliente-columnas h2 {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 0;
+}
+
+.tema .panel h1 {
+  font-size: 1.7rem;
+}
+
+.tema .kpi strong,
+.tema .cifra strong,
+.tema .casa-tarjeta-texto span,
+.tema .proxima-cuando {
+  font-family: var(--sans);
+  font-weight: 700;
+}
+
+.tema .kpi strong {
+  font-size: 2.1rem;
+}
+
+.tema .kpi.urgente {
+  background: color-mix(in srgb, var(--principal) 14%, var(--superficie));
+  border-color: color-mix(in srgb, var(--principal) 45%, transparent);
+}
+
+.tema .kpi.urgente svg {
+  filter: none;
+}
+
+.tema button.primario,
+.tema .boton.primario,
+.tema button.verde,
+.tema .boton.verde {
+  background: var(--principal);
+  box-shadow: none;
+}
+
+.tema .enviar-redondo {
+  box-shadow: none;
+}
+
+.tema .navegacion,
+.tema .barra-chat,
+.tema .escribir-wa {
+  background: var(--superficie);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.tema .etiqueta {
+  letter-spacing: 0.06em;
+}
+
+.proxima,
+.casa-tarjeta {
+  border-radius: var(--radio);
+}
+
+.hilo.fondo-wa {
+  background: var(--chat-fondo);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .kpi,
+  .proxima,
+  .casa-tarjeta,
+  .pendiente,
+  .burbuja {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------
+   Tema claro como WhatsApp: lo que la corredora ya usa todos los días. Blanco y gris muy claro, letra del
+   sistema, líneas finas, el verde de WhatsApp para enviar y burbujas verde claro y blancas.
+   Va al final para mandar sobre las capas anteriores.
+   ------------------------------------------------------------------------------------------------ */
+
+.marco.tema {
+  --principal: #00a884;
+  --principal-oscuro: #008069;
+  --soporte: #667781;
+  --onyx: #111b21;
+  --crema: #ffffff;
+  --base: #f0f2f5;
+  --superficie: #ffffff;
+  --superficie-alta: #f0f2f5;
+  --profundo: #111b21;
+  --suave: #667781;
+  --borde: #e2e6e9;
+  --peligro: #d1393f;
+  --ok: #00a884;
+  --radio: 12px;
+  --sombra: none;
+  --brillo: linear-gradient(transparent, transparent);
+  --chat-fondo: #efeae2;
+  --chat-entrante: #ffffff;
+  --chat-saliente: #d9fdd3;
+  --serif: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--base);
+  color: var(--profundo);
+  font-family: var(--sans);
+}
+
+body:has(.marco.tema) {
+  background: #f0f2f5;
+}
+
+.tema h1,
+.tema h2,
+.tema h3 {
+  font-family: var(--sans);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.tema .panel h1,
+.tema h1 {
+  font-size: 1.6rem;
+}
+
+.tema .etiqueta {
+  color: var(--suave);
+  letter-spacing: 0.04em;
+}
+
+.tema .kpi strong,
+.tema .cifra strong {
+  color: var(--profundo);
+}
+
+.tema .kpi svg {
+  color: var(--principal);
+}
+
+.tema .kpi.urgente {
+  background: #e7f8f3;
+  border-color: #a6e3d2;
+}
+
+.tema .kpi.urgente strong {
+  color: var(--principal-oscuro);
+}
+
+/* Botones: verde de WhatsApp con texto blanco; los demás, blancos con borde fino */
+.tema button,
+.tema .boton {
+  background: #ffffff;
+  color: var(--profundo);
+  border: 1px solid var(--borde);
+}
+
+.tema button.primario,
+.tema .boton.primario,
+.tema button.verde,
+.tema .boton.verde,
+.tema .enviar-redondo {
+  background: var(--principal);
+  border-color: var(--principal);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.tema button.primario:hover,
+.tema .boton.primario:hover,
+.tema button.verde:hover,
+.tema .boton.verde:hover {
+  background: var(--principal-oscuro);
+}
+
+.tema button.peligro {
+  color: var(--peligro);
+}
+
+.tema .aviso {
+  background: #fff8e1;
+  border-color: #f3e2a8;
+  color: var(--profundo);
+}
+
+.tema .banda-demo {
+  background: #fff3c4;
+  color: #5c4a00;
+}
+
+.tema .insignia {
+  background: #e9edef;
+  color: #3b4a54;
+}
+
+/* Pestañas de abajo y menú lateral */
+.tema .navegacion {
+  background: #ffffff;
+  border-top: 1px solid var(--borde);
+}
+
+.tema .navegacion a {
+  color: var(--suave);
+}
+
+.tema .navegacion a[aria-current="page"] {
+  color: var(--profundo);
+}
+
+.tema .navegacion a[aria-current="page"] .icono {
+  background: #d8fdd2;
+  color: var(--principal-oscuro);
+}
+
+.tema .navegacion .contador,
+.tema .punto {
+  background: #25d366;
+  color: #ffffff;
+  box-shadow: 0 0 0 2px #ffffff;
+}
+
+.navegacion-marca {
+  color: var(--profundo);
+}
+
+/* Chat */
+.tema .barra-chat {
+  background: #f0f2f5;
+  border-bottom: 1px solid var(--borde);
+  color: var(--profundo);
+}
+
+.tema .barra-chat .atras,
+.tema .barra-chat .llamar {
+  color: var(--suave);
+  background: none;
+}
+
+.tema .quien-contesta {
+  background: #ffffff;
+}
+
+.tema .quien-contesta.espera {
+  background: #fff8e1;
+}
+
+.tema .hilo.fondo-wa {
+  background: var(--chat-fondo);
+}
+
+.tema .burbuja {
+  box-shadow: 0 1px 0.5px rgb(11 20 26 / 13%);
+  color: var(--profundo);
+}
+
+.tema .burbuja .meta {
+  color: var(--suave);
+}
+
+.tema .burbuja .autor,
+.tema .propuesta-titulo {
+  color: var(--principal-oscuro);
+}
+
+.tema .dia-separador {
+  background: #ffffff;
+  color: var(--suave);
+  box-shadow: 0 1px 0.5px rgb(11 20 26 / 13%);
+}
+
+.tema .borrador {
+  background: #f7fff5;
+  border-color: #8fd9b4;
+}
+
+.tema .escribir-wa {
+  background: #f0f2f5;
+  border-top: 1px solid var(--borde);
+}
+
+.tema .escribir-wa textarea {
+  background: #ffffff;
+  border-color: transparent;
+}
+
+.tema button.rapida {
+  background: #ffffff;
+  border-color: var(--borde);
+  color: var(--profundo);
+}
+
+.tema .mini-hilo {
+  background: var(--chat-fondo);
+}
+
+/* Lista de chats y clientes: filas con línea fina, como WhatsApp */
+.tema .chat-lista,
+.tema .pendiente,
+.tema .cliente-tarjeta,
+.tema .tarjeta,
+.tema .kpi,
+.tema .cifra,
+.tema .opciones,
+.tema .al-dia {
+  background: #ffffff;
+  border: 1px solid var(--borde);
+  box-shadow: none;
+}
+
+.tema .chat-lista .hora.nueva {
+  color: #1fa855;
+}
+
+.tema .visto.leido {
+  color: #53bdeb;
+}
+
+/* Etapas del CRM con tonos que se leen sobre blanco */
+.tema .etapa-nuevo { --tono: #1f6fd1; }
+.tema .etapa-interesado { --tono: #008069; }
+.tema .etapa-visita { --tono: #7a4fc9; }
+.tema .etapa-negociando { --tono: #c46a00; }
+.tema .etapa-cerrado { --tono: #1c8a3c; }
+.tema .etapa-perdido { --tono: #667781; }
+
+.tema .etapas-selector .etapa[aria-pressed="true"] {
+  color: #ffffff;
+}
+
+.tema .filtro-etapas a {
+  background: #ffffff;
+}
+
+.tema .filtro-etapas a[aria-current="page"] {
+  background: #d8fdd2;
+  border-color: #a6e3d2;
+  color: var(--principal-oscuro);
+}
+
+.tema .seguimiento.vence {
+  color: #c46a00;
+}
+
+.tema .tablero-columna {
+  background: #f7f8fa;
+}
+
+/* Fotos: el texto sobre la foto sigue en blanco */
+.tema .casa-tarjeta-texto span,
+.tema .proxima-texto .etiqueta {
+  color: #ffffff;
+}
+
+.tema .tarjeta.propiedad .sin-foto,
+.tema .casa-tarjeta .sin-foto {
+  background: #e9edef;
+  color: var(--suave);
+}
+
+.tema input[type="text"],
+.tema input[type="email"],
+.tema input[type="time"],
+.tema input[type="number"],
+.tema input[type="url"],
+.tema input[type="date"],
+.tema textarea,
+.tema select {
+  background: #ffffff;
+  color: var(--profundo);
+  color-scheme: light;
+}
+
+.tema .volver,
+.tema .titulo-seccion a,
+.tema .por-que a {
+  color: var(--principal-oscuro);
+}
+
+@media (min-width: 900px) {
+  .tema .navegacion {
+    border-top: none;
+    border-right: 1px solid var(--borde);
+  }
+
+  .tema .navegacion a[aria-current="page"] {
+    background: #f0f2f5;
+  }
+
+  .tema .navegacion a[aria-current="page"] .icono {
+    background: none;
+  }
+
+  .navegacion-marca {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 1.15rem;
   }
 }
