@@ -170,6 +170,18 @@ export async function rehacerDemo(db: SupabaseClient, correo: string, ahora = Da
     ).error,
   );
 
+  // 4b. Lo que sabe la asistente y una duda que no supo contestar.
+  revisar(
+    "cerebro",
+    (
+      await db.from("conocimiento").insert([
+        { corredor_id: ID, tema: "¿Aceptan mascotas en los alquileres?", respuesta: "Sí, perros pequeños, con un depósito extra de un mes.", estado: "activo", origen: "manual", conversacion_id: null, veces: 1 },
+        { corredor_id: ID, tema: "Gastos de traspaso", respuesta: "En Costa Rica rondan el 3,5 % del valor; los pagan comprador y vendedor según acuerden.", estado: "activo", origen: "manual", conversacion_id: null, veces: 1 },
+        { corredor_id: ID, tema: "¿El apartamento de Santa Ana acepta mascotas?", respuesta: null, estado: "pendiente", origen: "duda", conversacion_id: chat(3), veces: 2 },
+      ])
+    ).error,
+  );
+
   // 5. Visitas agendadas.
   revisar(
     "citas",

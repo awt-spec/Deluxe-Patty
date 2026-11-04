@@ -125,6 +125,11 @@ llamada) y la etapa solo avanza sola (nuevo → interesado → visita al agendar
 cliente cerrado o perdido. En el teléfono, lista por etapa; en computadora, tablero. La ficha muestra las
 casas que le encajan; el inicio, "Para hoy" (seguimientos que vencen y clientes que no contestan hace 3
 días). El corredor edita esos campos con su sesión (permiso por columna; el teléfono no).
+Cerebro de la asistente (`app/panel/cerebro`, desde Más): lo que el corredor le enseña (`conocimiento`,
+tema y respuesta) entra en `responder` como datos suyos; lo que la asistente no supo (`avisar_corredor`)
+queda como duda pendiente (`registrarDuda`, sin repetirse) y al responderla pasa a lo que sabe. Muestra
+también las correcciones del corredor (antes y después) y de dónde aprende (casas, lo enseñado,
+correcciones, horario, tono y temas que van al corredor).
 "Probar la asistente" (`app/panel/probar`, desde Chats): el corredor le escribe como si fuera un cliente y
 `lib/simulador/simulador.ts` corre `procesarMensaje` real con un repositorio que solo lee propiedades,
 agenda y correcciones; la conversación, las citas de prueba y los avisos viven en el estado que guarda el
@@ -181,6 +186,7 @@ dueño o corredor. Un cambio de tono o de instrucciones se prueba con el set de 
 | correcciones | Correcciones del corredor a borradores: ejemplos de tono |
 | uso_diario | Mensajes, llamadas y costo de IA por corredor y día |
 | alertas | Última vez que se mandó cada alerta de monitoreo (sin ráfagas) |
+| conocimiento | Cerebro de la asistente: lo que el corredor le enseñó y las dudas que no supo contestar |
 | extension_conexiones | Extensión de Chrome conectada a un corredor: huellas del código y del permiso, último uso |
 | busquedas_extension / busquedas_extension_anuncios | Búsqueda de dueños en curso desde la extensión y anuncios leídos (se borran al terminar) |
 

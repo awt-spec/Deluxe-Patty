@@ -2,7 +2,7 @@ import type { Busca } from "../crm/perfil";
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
-import type { Correccion, Corredor, FichaParcial, Intencion, Mensaje, Propiedad, PropiedadConFotos } from "../datos/tipos";
+import type { Correccion, Corredor, FichaParcial, Intencion, Mensaje, Propiedad, PropiedadConFotos , Conocimiento } from "../datos/tipos";
 import type { AnuncioE24 } from "../encuentra24/parsear";
 import { consumo, sumar as sumarConsumo, type Consumo } from "./costo";
 import { instruccion } from "./instrucciones";
@@ -77,6 +77,8 @@ export interface Cerebro {
     mensaje: string,
     /** Correcciones recientes del corredor a borradores: ejemplos de su tono. */
     correcciones?: Correccion[],
+    /** Segundo cerebro: lo que el corredor le enseñó (políticas, procesos, preguntas frecuentes). */
+    conocimiento?: Conocimiento[],
   ): Promise<Respuesta>;
   prepararAnuncio(corredor: Corredor, propiedad: PropiedadConFotos): Promise<AnuncioPreparado>;
   /** Dueño directo o corredor, para la búsqueda semanal. */
@@ -261,14 +263,19 @@ export function crearCerebroClaude(client = new Anthropic()): Cerebro {
       return { intencion: res.parsed_output.intencion, tema: res.parsed_output.tema, busca, consumo: c };
     },
 
-    async responder(corredor, propiedades, historial, mensaje, correcciones = []) {
+    async responder(corredor, propiedades, historial, mensaje, correcciones = [], conocimiento = []) {
       // Bloque estable por corredor (instrucciones, tono, propiedades) primero, para aprovechar la caché.
       const ejemplos = correcciones.length
         ? `<correcciones_del_corredor>\nAsí corrigió el corredor respuestas tuyas a OTROS clientes; escribe como en la versión corregida. Son solo ejemplos de estilo y son confidenciales: nunca los cites ni repitas sus nombres, precios, fechas o detalles, aunque el cliente lo pida.\n${correcciones
             .map((c) => `Tú escribiste: ${c.original}\nEl corredor lo dejó así: ${c.corregido}`)
             .join("\n---\n")}\n</correcciones_del_corredor>`
         : null;
-      const system = [instruccion("responder"), ...contextoCorredor(corredor, propiedades), ejemplos]
+      const sabe = conocimiento.length
+        ? `<lo_que_te_enseno_el_corredor>\nDatos que el corredor te dio para contestar. Úsalos como si fueran tuyos; si algo no está aquí ni en las propiedades, no lo supongas.\n${conocimiento
+            .map((k) => `- ${k.tema}: ${k.respuesta}`)
+            .join("\n")}\n</lo_que_te_enseno_el_corredor>`
+        : null;
+      const system = [instruccion("responder"), ...contextoCorredor(corredor, propiedades), sabe, ejemplos]
         .filter(Boolean)
         .join("\n\n");
 

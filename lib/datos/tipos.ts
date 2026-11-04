@@ -37,6 +37,12 @@ export interface Contacto {
   busca?: Busca;
 }
 
+/** Algo que el corredor le enseñó a su asistente (segundo cerebro). */
+export interface Conocimiento {
+  tema: string;
+  respuesta: string;
+}
+
 export interface Conversacion {
   id: string;
   corredor_id: string;
