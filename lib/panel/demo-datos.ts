@@ -68,6 +68,19 @@ export async function rehacerDemo(db: SupabaseClient, correo: string, ahora = Da
     ).error,
   );
 
+  // 1b. Usuario de demo, enlazado solo a este corredor. Va antes de los datos: si algún paso de abajo
+  // falla, la demo igual abre (con lo que alcanzó a cargarse) en vez de quedar sin acceso hasta mañana.
+  const creado = await db.auth.admin.createUser({ email: correo, email_confirm: true });
+  let usuario = creado.data.user?.id;
+  if (!usuario) {
+    const { data } = await db.auth.admin.listUsers({ perPage: 1000 });
+    usuario = data.users.find((u) => u.email?.toLowerCase() === correo)?.id;
+  }
+  if (!usuario) throw new Error("No se pudo crear ni encontrar el usuario de demo.");
+  const { data: otros } = await db.from("miembros").select("corredor_id").eq("user_id", usuario).neq("corredor_id", ID);
+  if (otros?.length) throw new Error("Ese correo ya tiene acceso a un corredor real: usa otro DEMO_CORREO.");
+  revisar("acceso", (await db.from("miembros").upsert({ corredor_id: ID, user_id: usuario, rol: "corredor" })).error);
+
   // 2. Horario: lunes a viernes, mañana y tarde; sábado en la mañana.
   const franjas = [1, 2, 3, 4, 5].flatMap((d) => [
     { corredor_id: ID, dia_semana: d, hora_inicio: "08:00", hora_fin: "12:00" },
@@ -203,18 +216,6 @@ export async function rehacerDemo(db: SupabaseClient, correo: string, ahora = Da
       ])
     ).error,
   );
-
-  // 7. Usuario de demo, enlazado solo a este corredor.
-  const creado = await db.auth.admin.createUser({ email: correo, email_confirm: true });
-  let usuario = creado.data.user?.id;
-  if (!usuario) {
-    const { data } = await db.auth.admin.listUsers({ perPage: 1000 });
-    usuario = data.users.find((u) => u.email?.toLowerCase() === correo)?.id;
-  }
-  if (!usuario) throw new Error("No se pudo crear ni encontrar el usuario de demo.");
-  const { data: otros } = await db.from("miembros").select("corredor_id").eq("user_id", usuario).neq("corredor_id", ID);
-  if (otros?.length) throw new Error("Ese correo ya tiene acceso a un corredor real: usa otro DEMO_CORREO.");
-  revisar("acceso", (await db.from("miembros").upsert({ corredor_id: ID, user_id: usuario, rol: "corredor" })).error);
 
   return { casas: 4, chats: 4, visitas: 2, duenos: 2 };
 }
