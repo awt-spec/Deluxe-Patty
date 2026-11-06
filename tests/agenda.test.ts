@@ -57,7 +57,7 @@ describe("agenda por WhatsApp", () => {
     const r = await procesarMensaje(deps, entrante("Quiero ver la casa"));
     expect(r).toEqual({ tipo: "agenda", accion: "propuesto", borrador: false });
     expect(textoEnviado()).toBe(
-      "Con gusto, tengo estos espacios:\n\n1. Lunes 19 de octubre, 11:00 a. m.\n2. Martes 20 de octubre, 8:00 a. m.\n\n¿Cuál te queda mejor?",
+      "Con gusto, tengo estos espacios:\n\n1. Lunes 19 de octubre, 11:00 a. m.\n2. Martes 20 de octubre, 8:00 a. m.\n\n¿Cuál le queda mejor?",
     );
     const contexto = cerebro.agendar.mock.calls[0][2];
     expect(contexto.libres[0]).toEqual({ id: "H1", etiqueta: "lunes 19 de octubre, 11:00 a. m." });
@@ -75,7 +75,7 @@ describe("agenda por WhatsApp", () => {
     expect(r).toEqual({ tipo: "agenda", accion: "agendado", borrador: false });
     expect(db.citas).toHaveLength(1);
     expect(db.citas[0]).toMatchObject({ inicio: local("2026-10-19T11:00"), fin: local("2026-10-19T12:00"), estado: "agendada" });
-    expect(textoEnviado()).toContain("quedó agendada tu visita el lunes 19 de octubre, 11:00 a. m.");
+    expect(textoEnviado()).toContain("quedó agendada su visita el lunes 19 de octubre, 11:00 a. m.");
     expect(textoEnviado()).not.toContain("recordatorio"); // es hoy: no se promete recordatorio
     expect(whatsapp.plantilla).toHaveBeenCalledWith("PNID", PATRICIA, "aviso_corredor", [
       expect.stringContaining("Nueva visita"),

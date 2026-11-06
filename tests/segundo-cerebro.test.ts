@@ -40,4 +40,14 @@ describe("segundo cerebro de la asistente", () => {
     await procesarMensaje(deps, entrante("¿Y gatos?", { waMessageId: "wamid.2" }));
     expect(db.conocimiento).toEqual([{ tema: "Confirmar si el apartamento acepta mascotas", respuesta: null, veces: 2 }]);
   });
+
+  it("si el cerebro no se puede leer, la asistente contesta igual", async () => {
+    const { db, deps, cerebro } = preparar(null);
+    db.repo.conocimientoActivo = async () => {
+      throw new Error("tabla no existe");
+    };
+    const r = await procesarMensaje(deps, entrante("¿Sigue disponible?"));
+    expect(r).toMatchObject({ tipo: "respondido" });
+    expect(cerebro.responder.mock.calls[0][5]).toEqual([]);
+  });
 });

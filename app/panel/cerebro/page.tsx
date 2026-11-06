@@ -15,7 +15,7 @@ type Ver = "mapa" | "dudas" | "sabe" | "errores" | "fuentes";
 export default async function Cerebro({ searchParams }: { searchParams: Promise<{ ver?: string; aviso?: string }> }) {
   const { ver: pedido, aviso } = await searchParams;
   const { supabase, corredor } = await sesionConCorredor();
-  const [{ data: items }, { data: correcciones }, { data: casasData }, { data: franjasData }] = await Promise.all([
+  const [{ data: items, error: errorCerebro }, { data: correcciones }, { data: casasData }, { data: franjasData }] = await Promise.all([
     supabase
       .from("conocimiento")
       .select("id, tema, respuesta, origen, veces, updated_at, estado")
@@ -73,6 +73,9 @@ export default async function Cerebro({ searchParams }: { searchParams: Promise<
         </div>
       </header>
       <Aviso texto={aviso} />
+      {errorCerebro && (
+        <p className="aviso">No se pudo leer lo que sabe la asistente. Avísale a soporte con este código: {errorCerebro.code ?? "sin código"}.</p>
+      )}
 
       <nav className="filtro-etapas" aria-label="Secciones del cerebro">
         {pestana("mapa", "Mapa")}
