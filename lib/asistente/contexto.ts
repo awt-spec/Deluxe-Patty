@@ -92,7 +92,7 @@ export class Contexto {
     await this.deps.repo.actualizarConversacion(this.corredor.id, this.conversacion.id, { estado: "escalada" });
     await this.avisarCorredor(aviso);
     await this.responderCliente(
-      `Gracias por escribir. Esto lo ve ${this.corredor.nombre_contacto} personalmente y te escribe en cuanto pueda.`,
+      `Gracias por escribir. Esto lo ve ${this.corredor.nombre_contacto} personalmente y le escribe en cuanto pueda.`,
       intencion,
     );
   }

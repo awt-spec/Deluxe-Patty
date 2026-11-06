@@ -76,7 +76,7 @@ export async function flujoAgenda(
       return { tipo: "escalar" as const, aviso: `${cliente} quiere agendar una visita y no hay horarios libres en la agenda.` };
     }
     const lista = opciones.map((o, i) => `${i + 1}. ${capitalizar(etiqueta(o.inicio))}`).join("\n");
-    const pregunta = opciones.length > 1 ? "¿Cuál te queda mejor?" : "¿Te queda bien?";
+    const pregunta = opciones.length > 1 ? "¿Cuál le queda mejor?" : "¿Le queda bien?";
     const borrador = await ctx.responderCliente(`${intro}\n\n${lista}\n\n${pregunta}`, "agendar_visita");
     return { tipo: "propuesto" as const, borrador };
   };
@@ -110,7 +110,7 @@ export async function flujoAgenda(
         resultado = { tipo: "escalar", aviso: `${cliente} quiere cancelar una visita y no se identificó cuál. Mensaje: "${entrada.texto}"` };
         break;
       }
-      const texto = `${conPunto(`Listo, cancelé tu visita del ${etiqueta(cita.inicio)}`)} Si quieres buscamos otro día.`;
+      const texto = `${conPunto(`Listo, cancelé su visita del ${etiqueta(cita.inicio)}`)} Si gusta, buscamos otro día.`;
       if (!corredor.respuesta_automatica) {
         resultado = { tipo: "cancelado", borrador: await ctx.responderCliente(texto, "agendar_visita", { tipo: "cancelar_cita", cita_id: cita.id }) };
         break;
@@ -170,10 +170,10 @@ async function agendar(
 ): Promise<ResultadoAgenda> {
   const { corredor, deps } = ctx;
   const etiqueta = etiquetaHorario(p.horario.inicio, corredor.zona_horaria);
-  const recordatorio = p.horario.inicio.getTime() - p.ahora.getTime() > 1.5 * DIA ? " Un día antes te mando un recordatorio." : "";
+  const recordatorio = p.horario.inicio.getTime() - p.ahora.getTime() > 1.5 * DIA ? " Un día antes le mando un recordatorio." : "";
   const texto =
-    `${conPunto(`Listo, quedó agendada tu visita${p.propiedad ? ` para ver ${p.propiedad.titulo}` : ""} el ${etiqueta}`)} ` +
-    `${corredor.nombre_contacto} te va a estar esperando.${recordatorio}`;
+    `${conPunto(`Listo, quedó agendada su visita${p.propiedad ? ` para ver ${p.propiedad.titulo}` : ""} el ${etiqueta}`)} ` +
+    `${corredor.nombre_contacto} le estará esperando.${recordatorio}`;
 
   if (!corredor.respuesta_automatica) {
     const borrador = await ctx.responderCliente(texto, "agendar_visita", {

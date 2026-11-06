@@ -119,8 +119,13 @@ export async function procesarMensaje(deps: Dependencias, entrante: MensajeEntra
     const sugerida: Etapa | null = intencion === "consulta_propiedad" || intencion === "agendar_visita" || busca ? "interesado" : null;
     const etapa = avanzarEtapa(contacto.etapa ?? "nuevo", sugerida);
     if (busca || etapa) {
-      await repo.actualizarPerfilCliente(corredor.id, contacto.id, { ...(busca ? { busca } : {}), ...(etapa ? { etapa } : {}) });
-      if (etapa) contacto.etapa = etapa;
+      // El CRM es un extra: si falla, el cliente igual recibe su respuesta.
+      try {
+        await repo.actualizarPerfilCliente(corredor.id, contacto.id, { ...(busca ? { busca } : {}), ...(etapa ? { etapa } : {}) });
+        if (etapa) contacto.etapa = etapa;
+      } catch (e) {
+        log("error_crm", { corredorId: corredor.id, error: e instanceof Error ? e.name : "desconocido" });
+      }
     }
 
     if (intencion === "pasar_a_corredor") {
@@ -157,7 +162,11 @@ export async function procesarMensaje(deps: Dependencias, entrante: MensajeEntra
     const [propiedades, correcciones, conocimiento] = await Promise.all([
       repo.propiedadesActivas(corredor.id),
       repo.correccionesRecientes(corredor.id, 8),
-      repo.conocimientoActivo(corredor.id, 60),
+      // El cerebro es un extra: si no se puede leer, la asistente contesta igual con las casas.
+      repo.conocimientoActivo(corredor.id, 60).catch((e: unknown) => {
+        log("error_conocimiento", { corredorId: corredor.id, error: e instanceof Error ? e.name : "desconocido" });
+        return [];
+      }),
     ]);
     const respuesta = await deps.cerebro.responder(corredor, propiedades, historial, entrante.texto, correcciones, conocimiento);
     consumo = sumar(consumo, respuesta.consumo);
@@ -168,7 +177,9 @@ export async function procesarMensaje(deps: Dependencias, entrante: MensajeEntra
     const borrador = await ctx.responderCliente(respuesta.texto, intencion);
     if (respuesta.avisarCorredor) {
       // Lo que la asistente no supo queda como duda en su cerebro: el corredor la contesta una vez.
-      await repo.registrarDuda(corredor.id, respuesta.avisarCorredor, conversacion.id);
+      await repo.registrarDuda(corredor.id, respuesta.avisarCorredor, conversacion.id).catch((e: unknown) =>
+        log("error_conocimiento", { corredorId: corredor.id, error: e instanceof Error ? e.name : "desconocido" }),
+      );
       await ctx.avisarCorredor(
         `${nombreCliente} (${contacto.telefono}): ${respuesta.avisarCorredor}. Mensaje del cliente: "${entrante.texto}"`,
       );
