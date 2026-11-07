@@ -6,6 +6,7 @@ import type { Foto } from "@/lib/datos/tipos";
 import { MAX_FOTOS_PROPIEDAD, ordenarFotos } from "@/lib/panel/formularios";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Aviso } from "../../aviso";
+import { PreguntarPatty } from "../../preguntar-patty";
 import { BotonEnviar } from "../../boton-enviar";
 import {
   cambiarEstado,
@@ -81,6 +82,10 @@ export default async function Propiedad({
         </div>
       </header>
       <Aviso texto={aviso} />
+      <div className="preguntas-patty">
+        <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="¿A qué clientes les sirve esta casa?" />
+        <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="Escríbeme un texto para ofrecerla" />
+      </div>
 
       <section className="pila" style={{ marginBottom: 8 }}>
         <form action={generarFicha}>

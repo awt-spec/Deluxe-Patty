@@ -5,6 +5,7 @@ import { fechaIso, fechaLocal, minutosLocales } from "@/lib/agenda/tiempo";
 import { telefonoBonito } from "@/lib/crm/perfil";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Aviso } from "../../../aviso";
+import { PreguntarPatty } from "../../../preguntar-patty";
 import { ComoLlegar } from "../../../como-llegar";
 import { Volver } from "../../../volver";
 import { cambiarLaVisita, moverLaVisita } from "../../acciones";
@@ -65,6 +66,9 @@ export default async function Visita({ params, searchParams }: { params: Promise
         <span className={`insignia${v.estado === "confirmada" ? " dorada" : ""}`}>{ESTADO[v.estado as string] ?? (v.estado as string)}</span>
       </header>
       <Aviso texto={aviso} />
+      <div className="preguntas-patty">
+        <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="Prepárame para esta visita" />
+      </div>
 
       <section className="tarjeta pila">
         {casa ? (

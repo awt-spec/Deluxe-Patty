@@ -8,6 +8,7 @@ import { precio } from "@/lib/formato";
 import { ordenarFotos } from "@/lib/panel/formularios";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Aviso } from "../../aviso";
+import { PreguntarPatty } from "../../preguntar-patty";
 import { Avatar } from "../../avatar";
 import { IconoAgenda, IconoCasa, IconoChats, IconoTelefono } from "../../iconos";
 import { Volver } from "../../volver";
@@ -106,6 +107,10 @@ export default async function Cliente({
         </div>
       </header>
       <Aviso texto={aviso} />
+      <div className="preguntas-patty">
+        <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="¿Qué le digo a este cliente?" />
+        <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="¿Qué casa le ofrezco?" />
+      </div>
 
       <div className="cliente-acciones">
         {conv && (
