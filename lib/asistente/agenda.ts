@@ -1,4 +1,4 @@
-import { dosOpciones, horariosLibres, type Intervalo } from "../agenda/disponibilidad";
+import { dosOpcionesPorZona, horariosLibres, visitaCercana, type Intervalo, type ParametrosAgenda } from "../agenda/disponibilidad";
 import { conPunto, etiquetaHorario } from "../agenda/formato";
 import type { Cita, Mensaje, Propiedad } from "../datos/tipos";
 import type { ContextoAgenda } from "./cerebro";
@@ -42,7 +42,11 @@ export async function flujoAgenda(
     repo.citasProximasContacto(corredor.id, entrada.contactoId, ahora),
     repo.propiedadesActivas(corredor.id),
   ]);
-  const libres = horariosLibres({
+  // La zona de la casa que quiere ver (si se nota en la conversación) define el traslado desde y hacia
+  // las otras visitas del día; así no se agendan dos visitas seguidas en lados opuestos del Valle Central.
+  const zonaDe = (p: Propiedad | null) => (p ? (p.zona ?? p.canton ?? null) : null);
+  const probable = propiedadMencionada(propiedades, [...entrada.historial.slice(-6).map((m) => m.contenido ?? ""), entrada.texto]);
+  const parametros = (zonaVisita: string | null): ParametrosAgenda => ({
     ahora,
     zona,
     horarios: datos.horarios,
@@ -52,7 +56,12 @@ export async function flujoAgenda(
     margenMin: corredor.margen_visitas_min,
     anticipacionHoras: corredor.anticipacion_min_horas,
     horizonteDias: corredor.horizonte_agenda_dias,
-  }).slice(0, MAX_LIBRES);
+    zonaVisita,
+    zonaBase: corredor.zona_base ?? null,
+  });
+  let zonaVisita = zonaDe(probable);
+  let libres = horariosLibres(parametros(zonaVisita)).slice(0, MAX_LIBRES);
+  const dosOpciones = (l: Intervalo[]) => dosOpcionesPorZona(l, datos.citas, zonaVisita, zona);
 
   if (libres.length === 0 && citasCliente.length === 0) {
     return { tipo: "escalar", aviso: `${cliente} quiere agendar una visita y no hay horarios libres en la agenda.` };
@@ -61,7 +70,10 @@ export async function flujoAgenda(
   const idsLibres = new Map(libres.map((l, i) => [`H${i + 1}`, l]));
   const idsCitas = new Map(citasCliente.map((c, i) => [`C${i + 1}`, c]));
   const contexto: ContextoAgenda = {
-    libres: [...idsLibres].map(([id, l]) => ({ id, etiqueta: etiqueta(l.inicio) })),
+    libres: [...idsLibres].map(([id, l]) => {
+      const junto = visitaCercana(l, datos.citas, zonaVisita, zona);
+      return { id, etiqueta: etiqueta(l.inicio) + (junto ? ` (ese día ya hay otra visita cerca, en ${junto})` : "") };
+    }),
     citasCliente: [...idsCitas].map(([id, c]) => ({ id, etiqueta: etiqueta(c.inicio), propiedad: c.propiedad_titulo })),
   };
 
@@ -69,6 +81,14 @@ export async function flujoAgenda(
   alConsumir(d.consumo);
 
   const propiedad = d.propiedadCodigo ? (propiedades.find((p) => p.codigo === d.propiedadCodigo) ?? null) : null;
+  // Si al final es otra casa (otra zona), los horarios se recalculan con su traslado y solo valen los
+  // que siguen libres.
+  if (propiedad && zonaDe(propiedad) !== zonaVisita) {
+    zonaVisita = zonaDe(propiedad);
+    const validos = new Set(horariosLibres(parametros(zonaVisita)).map((l) => l.inicio.getTime()));
+    for (const [id, l] of idsLibres) if (!validos.has(l.inicio.getTime())) idsLibres.delete(id);
+    libres = libres.filter((l) => validos.has(l.inicio.getTime()));
+  }
   const cita = d.citaId ? (idsCitas.get(d.citaId) ?? null) : null;
 
   const proponer = async (intro: string, opciones: Intervalo[]) => {
@@ -85,7 +105,7 @@ export async function flujoAgenda(
   switch (d.accion) {
     case "proponer": {
       const elegidas = d.horarios.map((id) => idsLibres.get(id)).filter((x): x is Intervalo => !!x);
-      const opciones = elegidas.length >= 2 ? elegidas.slice(0, 2) : dosOpciones(libres, zona);
+      const opciones = elegidas.length >= 2 ? elegidas.slice(0, 2) : dosOpciones(libres);
       resultado = await proponer(d.mensaje || "Con gusto, tengo estos espacios:", opciones);
       break;
     }
@@ -93,14 +113,14 @@ export async function flujoAgenda(
     case "confirmar": {
       const horario = idsLibres.get(d.horarios[0] ?? "");
       if (!horario) {
-        resultado = await proponer("Ese horario no lo tengo libre. Te propongo estos:", dosOpciones(libres, zona));
+        resultado = await proponer("Ese horario no lo tengo libre. Le propongo estos:", dosOpciones(libres));
         break;
       }
       resultado = await agendar(ctx, { horario, propiedad, reemplaza: cita, cliente, ahora, contactoId: entrada.contactoId });
       if (resultado.tipo === "escalar") {
         // El horario se ocupó entre el cálculo y la inserción: se proponen otros.
         const otros = libres.filter((l) => l.inicio.getTime() !== horario.inicio.getTime());
-        resultado = await proponer("Ese espacio se acaba de ocupar. Te propongo estos:", dosOpciones(otros, zona));
+        resultado = await proponer("Ese espacio se acaba de ocupar. Le propongo estos:", dosOpciones(otros));
       }
       break;
     }
@@ -205,6 +225,18 @@ async function agendar(
     conPunto(`${p.reemplaza ? "Visita reprogramada" : "Nueva visita"}: ${p.cliente}, ${etiqueta}${antes}${conPropiedad(p.propiedad?.titulo ?? null)}`),
   );
   return { tipo: "agendado", borrador: false };
+}
+
+/** La casa de la que se habla en los últimos mensajes (por código, título o zona), si es una sola. */
+export function propiedadMencionada(propiedades: Propiedad[], textos: string[]): Propiedad | null {
+  const norm = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const texto = norm(textos.join(" \n "));
+  const porCodigo = propiedades.filter((p) => p.codigo && texto.includes(norm(p.codigo)));
+  if (porCodigo.length === 1) return porCodigo[0];
+  const porTitulo = propiedades.filter((p) => p.titulo && texto.includes(norm(p.titulo)));
+  if (porTitulo.length === 1) return porTitulo[0];
+  const porZona = propiedades.filter((p) => p.zona && texto.includes(norm(p.zona)));
+  return porZona.length === 1 ? porZona[0] : null;
 }
 
 function conPropiedad(titulo: string | null): string {

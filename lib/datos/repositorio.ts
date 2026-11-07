@@ -158,7 +158,7 @@ function verificar(error: { message: string; code?: string } | null, que: string
 }
 
 export const COLUMNAS_CORREDOR =
-  "id, nombre, nombre_contacto, whatsapp_numero, whatsapp_phone_number_id, whatsapp_corredor, zona_horaria, tono, reglas_escalamiento, tope_mensajes_mes, aviso_mensajes_mes, respuesta_automatica, duracion_visita_min, margen_visitas_min, anticipacion_min_horas, horizonte_agenda_dias, hora_plan_dia, marca, activo";
+  "id, nombre, nombre_contacto, whatsapp_numero, whatsapp_phone_number_id, whatsapp_corredor, zona_horaria, tono, reglas_escalamiento, tope_mensajes_mes, aviso_mensajes_mes, respuesta_automatica, duracion_visita_min, margen_visitas_min, anticipacion_min_horas, horizonte_agenda_dias, hora_plan_dia, marca, activo, zona_base";
 
 export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
   return {
@@ -330,7 +330,7 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
           .gt("fin", desde.toISOString()),
         db
           .from("citas")
-          .select("inicio, fin")
+          .select("inicio, fin, propiedades(zona, canton)")
           .eq("corredor_id", corredorId)
           .in("estado", CITA_ACTIVA)
           .lt("inicio", hasta.toISOString())
@@ -344,7 +344,11 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
       return {
         horarios: horarios.data ?? [],
         bloqueos: fechas(bloqueos.data),
-        citas: fechas(citas.data),
+        // Cada cita con la zona de su propiedad, para calcular el traslado a la siguiente visita.
+        citas: (citas.data ?? []).map((f) => {
+          const p = (Array.isArray(f.propiedades) ? f.propiedades[0] : f.propiedades) as { zona: string | null; canton: string | null } | null;
+          return { inicio: new Date(f.inicio), fin: new Date(f.fin), zona: p?.zona ?? p?.canton ?? null };
+        }),
       };
     },
 

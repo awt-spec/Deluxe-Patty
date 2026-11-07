@@ -2,14 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { IconoAgenda, IconoCasa, IconoChats, IconoMas, IconoPersonas } from "./iconos";
+import { useEffect, useState } from "react";
+import { IconoAbajo, IconoAgenda, IconoCasa, IconoMas, IconoInicio, IconoPersonas } from "./iconos";
+
+const CLAVE_PLEGADO = "menu-plegado";
 
 // Cuatro botones, grandes: lo demás está en "Más", dentro de Chats.
 const SECCIONES = [
   {
     ruta: "/panel",
-    nombre: "Chats",
-    Icono: IconoChats,
+    nombre: "Inicio",
+    Icono: IconoInicio,
     tambien: ["/panel/conversaciones"],
   },
   { ruta: "/panel/clientes", nombre: "Clientes", Icono: IconoPersonas, tambien: [] },
@@ -22,7 +25,7 @@ const SECCIONES = [
   },
 ];
 
-/** `teNecesitan`: clientes que esperan a la corredora; se ven como un número sobre Chats. */
+/** `teNecesitan`: clientes que esperan a la corredora; se ven como un número sobre Inicio. */
 export function Navegacion({
   teNecesitan,
   marca,
@@ -31,6 +34,24 @@ export function Navegacion({
   marca: string;
 }) {
   const ruta = usePathname();
+  // En computadora el menú de la izquierda se puede contraer para dejar más espacio; se recuerda en este
+  // navegador.
+  const [plegado, setPlegado] = useState(false);
+  useEffect(() => {
+    try {
+      setPlegado(localStorage.getItem(CLAVE_PLEGADO) === "1");
+    } catch {}
+  }, []);
+  useEffect(() => {
+    document.querySelector(".marco")?.classList.toggle("plegado", plegado);
+  }, [plegado]);
+  const alternar = () => {
+    const nuevo = !plegado;
+    setPlegado(nuevo);
+    try {
+      localStorage.setItem(CLAVE_PLEGADO, nuevo ? "1" : "0");
+    } catch {}
+  };
   const activa = (s: (typeof SECCIONES)[number]) =>
     s.ruta === "/panel"
       ? ruta === "/panel" || s.tambien.some((r) => ruta.startsWith(r))
@@ -43,6 +64,18 @@ export function Navegacion({
     >
       {/* En computadora la navegación va a la izquierda, con el nombre de la marca arriba. */}
       <span className="navegacion-marca">{marca}</span>
+      <button
+        type="button"
+        className="plegar solo-escritorio"
+        onClick={alternar}
+        aria-expanded={!plegado}
+        title={plegado ? "Abrir el menú" : "Contraer el menú"}
+      >
+        <span className="icono" aria-hidden>
+          <IconoAbajo tamano={22} />
+        </span>
+        <span className="nombre">{plegado ? "Abrir el menú" : "Contraer el menú"}</span>
+      </button>
       {SECCIONES.map((s) => {
         const numero = s.ruta === "/panel" ? teNecesitan : 0;
         return (
@@ -50,6 +83,7 @@ export function Navegacion({
             key={s.ruta}
             href={s.ruta}
             aria-current={activa(s) ? "page" : undefined}
+            title={s.nombre}
           >
             <span className="icono">
               <s.Icono tamano={26} />
@@ -62,7 +96,7 @@ export function Navegacion({
                 </span>
               )}
             </span>
-            {s.nombre}
+            <span className="nombre">{s.nombre}</span>
           </Link>
         );
       })}
@@ -70,11 +104,12 @@ export function Navegacion({
         href="/panel/mas"
         className="solo-escritorio"
         aria-current={ruta.startsWith("/panel/mas") ? "page" : undefined}
+        title="Más"
       >
         <span className="icono">
           <IconoMas tamano={26} />
         </span>
-        Más
+        <span className="nombre">Más</span>
       </Link>
     </nav>
   );

@@ -69,3 +69,6 @@ update public.corredores set marca = '{
   "firma": { "nombre": "Patricia Quintanilla", "cargo": "CEO · Deluxe Properties" }
 }'::jsonb
 where id = '00000000-0000-4000-8000-000000000001' and marca is null;
+
+-- Patricia sale de Lindora (agenda por zona).
+update public.corredores set zona_base = 'Lindora' where slug = 'deluxe-properties';

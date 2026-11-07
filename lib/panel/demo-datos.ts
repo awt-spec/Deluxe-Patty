@@ -61,6 +61,7 @@ export async function rehacerDemo(db: SupabaseClient, correo: string, ahora = Da
         tono: "Cercana y profesional, de usted, sin emojis.",
         reglas_escalamiento: ["negociación de precio", "comisiones", "ofertas formales", "quejas"],
         marca: { ...MARCA_DELUXE, firma: null },
+        zona_base: "Lindora",
         zonas_e24: ["san-jose-provincia-escazu", "san-jose-provincia-santa-ana"],
         precio_busqueda_min: 250000,
         precio_busqueda_max: 2000000,

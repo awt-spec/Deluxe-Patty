@@ -1,14 +1,16 @@
 import Link from "next/link";
 import { diaLargo, etiquetaHorario, horaCorta } from "@/lib/agenda/formato";
 import { fechaIso, fechaLocal, limitesDia } from "@/lib/agenda/tiempo";
+import { minutosEntre } from "@/lib/agenda/zonas";
 import { pendientesDe } from "@/lib/panel/pendientes";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Aviso } from "./aviso";
 import { Avatar } from "./avatar";
 import { IconoCampana, IconoCheck, IconoDobleCheck, IconoFlecha, IconoMas } from "./iconos";
 
-// Inicio, como WhatsApp: arriba solo lo urgente (un botón para revisar lo que espera, las visitas de
-// hoy y los seguimientos), abajo todos los chats. Lo demás vive en su pestaña.
+// Inicio: arriba lo urgente (un botón para revisar lo que espera), el resumen de lo que hizo la
+// asistente en las últimas 24 horas y lo que hay que hacer hoy (visitas con su hora de salida,
+// recordatorios y clientes que no contestan); abajo todos los chats, como en WhatsApp.
 
 type Contacto = { id: string; nombre: string | null; telefono: string; etapa: string };
 type Conv = {
@@ -19,18 +21,48 @@ type Conv = {
   contactos: Contacto | Contacto[];
 };
 type Msj = { conversacion_id: string; direccion: string; contenido: string | null; created_at: string };
-type Visita = { id: string; inicio: string; contactos: { nombre: string | null; telefono: string } | null; propiedades: { titulo: string } | null };
+type Visita = {
+  id: string;
+  inicio: string;
+  fin: string;
+  contactos: { nombre: string | null; telefono: string } | null;
+  propiedades: { titulo: string; zona: string | null; canton: string | null } | null;
+};
 
 const uno = <T,>(v: T | T[]): T => (Array.isArray(v) ? v[0] : v);
 const DIA = 24 * 60 * 60_000;
 const nombre = (c: { nombre: string | null; telefono: string }) => c.nombre ?? c.telefono;
 
-export default async function Chats({ searchParams }: { searchParams: Promise<{ aviso?: string }> }) {
+export default async function Inicio({ searchParams }: { searchParams: Promise<{ aviso?: string }> }) {
   const { aviso } = await searchParams;
   const { supabase, corredor } = await sesionConCorredor();
   const zona = corredor.zona_horaria;
   const ahora = new Date();
   const hoy = limitesDia(ahora, zona);
+
+  const desde24 = new Date(ahora.getTime() - DIA).toISOString();
+  const cuenta = (q: PromiseLike<{ count: number | null }>) => Promise.resolve(q).then((r) => r.count ?? 0);
+  const [contestados, agendadas, nuevos, dudas] = await Promise.all([
+    cuenta(
+      supabase
+        .from("mensajes")
+        .select("id", { count: "exact", head: true })
+        .eq("corredor_id", corredor.id)
+        .eq("autor", "asistente")
+        .eq("direccion", "saliente")
+        .gte("created_at", desde24),
+    ),
+    cuenta(supabase.from("citas").select("id", { count: "exact", head: true }).eq("corredor_id", corredor.id).gte("created_at", desde24)),
+    cuenta(
+      supabase
+        .from("contactos")
+        .select("id", { count: "exact", head: true })
+        .eq("corredor_id", corredor.id)
+        .eq("es_corredor", false)
+        .gte("created_at", desde24),
+    ),
+    cuenta(supabase.from("conocimiento").select("id", { count: "exact", head: true }).eq("corredor_id", corredor.id).eq("estado", "pendiente")),
+  ]);
 
   const [pendientes, { data: convs }, { data: visitasData }, { data: seguimientosData }] = await Promise.all([
     pendientesDe(supabase, corredor.id, ahora),
@@ -44,7 +76,7 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
       .limit(60),
     supabase
       .from("citas")
-      .select("id, inicio, contactos(nombre, telefono), propiedades(titulo)")
+      .select("id, inicio, fin, contactos(nombre, telefono), propiedades(titulo, zona, canton)")
       .eq("corredor_id", corredor.id)
       .in("estado", ["agendada", "confirmada"])
       .gte("inicio", hoy.desde.toISOString())
@@ -87,6 +119,18 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
       return m?.direccion === "saliente" && ahora.getTime() - Date.parse(m.created_at) > 3 * DIA && etapa !== "cerrado" && etapa !== "perdido";
     })
     .slice(0, 3);
+
+  // Hora de salida a cada visita: desde la casa del corredor (la primera) o desde la visita anterior.
+  const salida = (i: number): string | null => {
+    const v = visitas[i];
+    const zonaV = v.propiedades?.zona ?? v.propiedades?.canton ?? null;
+    const antes = visitas[i - 1];
+    const desde = antes ? (antes.propiedades?.zona ?? antes.propiedades?.canton ?? null) : (corredor.zona_base ?? null);
+    const min = minutosEntre(desde, zonaV);
+    if (min === null || !desde) return null;
+    const hora = horaCorta(new Date(Date.parse(v.inicio) - min * 60_000), zona);
+    return antes ? `Salir a las ${hora} (${min} min desde la visita anterior)` : `Salir de ${desde} a las ${hora} (${min} min)`;
+  };
 
   const cuando = (iso: string) => {
     const d = new Date(iso);
@@ -131,23 +175,52 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
         </p>
       )}
 
+      <section className="resumen-asistente" aria-label="Lo que hizo la asistente">
+        <h2>Lo que hizo la asistente en las últimas 24 horas</h2>
+        <div className="cifras">
+          <Link href="/panel#chats" className="tarjeta cifra">
+            <strong>{contestados}</strong>
+            <span className="suave">{contestados === 1 ? "mensaje contestado" : "mensajes contestados"}</span>
+          </Link>
+          <Link href="/panel/agenda" className="tarjeta cifra">
+            <strong>{agendadas}</strong>
+            <span className="suave">{agendadas === 1 ? "visita agendada" : "visitas agendadas"}</span>
+          </Link>
+          <Link href="/panel/clientes" className="tarjeta cifra">
+            <strong>{nuevos}</strong>
+            <span className="suave">{nuevos === 1 ? "cliente nuevo" : "clientes nuevos"}</span>
+          </Link>
+          <Link href="/panel/cerebro?ver=dudas" className="tarjeta cifra">
+            <strong>{dudas}</strong>
+            <span className="suave">{dudas === 1 ? "pregunta que no supo" : "preguntas que no supo"}</span>
+          </Link>
+        </div>
+      </section>
+
+      {visitas.length === 0 && seguimientos.length === 0 && sinRespuesta.length === 0 && (
+        <p className="suave">Hoy no tienes visitas ni recordatorios.</p>
+      )}
       {(visitas.length > 0 || seguimientos.length > 0 || sinRespuesta.length > 0) && (
         <section className="hoy" aria-label="Hoy">
           <h2>
-            <IconoCampana tamano={20} /> Hoy
+            <IconoCampana tamano={20} /> Qué hacer hoy
           </h2>
           <ul className="hoy-lista">
-            {visitas.map((v) => (
-              <li key={`v-${v.id}`}>
-                <Link href="/panel/agenda">
-                  <span className="hoy-hora">{horaCorta(new Date(v.inicio), zona)}</span>
-                  <span>
-                    Visita con <strong>{v.contactos ? nombre(v.contactos) : "un cliente"}</strong>
-                    {v.propiedades && <span className="suave"> · {v.propiedades.titulo}</span>}
-                  </span>
-                </Link>
-              </li>
-            ))}
+            {visitas.map((v, i) => {
+              const sale = salida(i);
+              return (
+                <li key={`v-${v.id}`}>
+                  <Link href="/panel/agenda?vista=dia">
+                    <span className="hoy-hora">{horaCorta(new Date(v.inicio), zona)}</span>
+                    <span>
+                      Visita con <strong>{v.contactos ? nombre(v.contactos) : "un cliente"}</strong>
+                      {v.propiedades && <span className="suave"> · {v.propiedades.titulo}</span>}
+                      {sale && <span className="salida">{sale}</span>}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
             {seguimientos.map((s) => (
               <li key={`s-${s.id}`}>
                 <Link href={`/panel/clientes/${s.id}`}>
@@ -174,7 +247,7 @@ export default async function Chats({ searchParams }: { searchParams: Promise<{ 
         </section>
       )}
 
-      <h2>Chats</h2>
+      <h2 id="chats">Chats</h2>
       {conversaciones.length === 0 && <p className="vacio">Todavía no te ha escrito ningún cliente.</p>}
       <ul className="chat-lista" aria-label="Todos los chats">
         {conversaciones.map((c) => {

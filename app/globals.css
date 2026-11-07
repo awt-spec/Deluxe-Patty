@@ -3453,3 +3453,376 @@ fieldset.opciones label {
   align-items: center;
   min-height: 44px;
 }
+
+/* Menú de la izquierda que se contrae (solo computadora) */
+.navegacion .plegar {
+  display: none;
+}
+@media (min-width: 900px) {
+  .tema .navegacion .plegar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 12px;
+    margin-bottom: 4px;
+    background: none;
+    border: 0;
+    color: var(--suave);
+    font: inherit;
+    font-size: 0.95rem;
+    cursor: pointer;
+    border-radius: 6px;
+    min-height: 0;
+  }
+  .tema .navegacion .plegar .icono {
+    transform: rotate(90deg);
+    transition: transform 0.2s;
+  }
+  .marco.tema.plegado {
+    --lateral: 76px;
+  }
+  .marco.tema.plegado .navegacion {
+    padding: 20px 10px;
+  }
+  .marco.tema.plegado .navegacion-marca,
+  .marco.tema.plegado .navegacion .nombre {
+    display: none;
+  }
+  .marco.tema.plegado .navegacion a,
+  .marco.tema.plegado .navegacion .plegar {
+    justify-content: center;
+    padding: 12px 0;
+  }
+  .marco.tema.plegado .navegacion .plegar .icono {
+    transform: rotate(-90deg);
+  }
+  .marco.tema .navegacion,
+  .marco.tema {
+    transition: padding-left 0.2s, width 0.2s;
+  }
+}
+@media (min-width: 1280px) {
+  .marco.tema.plegado {
+    --lateral: 76px;
+  }
+}
+
+/* Inicio: resumen de la asistente y hora de salida a cada visita */
+.resumen-asistente h2 {
+  font-size: 1.05rem;
+}
+.resumen-asistente .cifras {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+@media (min-width: 900px) {
+  .resumen-asistente .cifras {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+.resumen-asistente .cifra {
+  text-decoration: none;
+  color: inherit;
+  min-height: 92px;
+}
+.hoy-lista .salida {
+  display: block;
+  font-size: 0.88rem;
+  color: var(--principal);
+  margin-top: 2px;
+}
+
+/* Agenda en calendario: día, semana y mes */
+.cal-vistas {
+  display: flex;
+  gap: 6px;
+  margin: 4px 0 12px;
+}
+.cal-vistas a {
+  flex: 1;
+  text-align: center;
+  padding: 10px 6px;
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  background: var(--superficie, #fff);
+  color: var(--texto, inherit);
+  text-decoration: none;
+  font-weight: 600;
+}
+.cal-vistas a[aria-current="page"] {
+  background: color-mix(in srgb, var(--principal) 16%, #fff);
+  border-color: var(--principal);
+  color: var(--profundo, inherit);
+}
+.cal-barra {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.cal-barra .boton {
+  min-height: 40px;
+  padding: 6px 14px;
+}
+.cal-barra h2 {
+  margin: 0 0 0 6px;
+  font-size: 1.1rem;
+}
+.cal {
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  background: #fff;
+  overflow-x: auto;
+}
+.cal-cabecera,
+.cal-cuerpo {
+  display: grid;
+  grid-template-columns: 56px repeat(var(--columnas), minmax(0, 1fr));
+}
+.cal-dia {
+  --columnas: 1;
+}
+.cal-semana {
+  --columnas: 7;
+}
+.cal-semana .cal-cabecera,
+.cal-semana .cal-cuerpo {
+  min-width: 700px;
+}
+.cal-cabecera {
+  border-bottom: 1px solid var(--borde);
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 2;
+}
+.cal-cabecera a {
+  padding: 8px 4px;
+  text-align: center;
+  text-decoration: none;
+  color: inherit;
+}
+.cal-cabecera a small {
+  color: var(--suave);
+}
+.cal-cabecera a.hoy strong {
+  background: var(--principal);
+  color: #fff;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.cal-horas span {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--suave);
+  text-align: right;
+  padding-right: 6px;
+  transform: translateY(-0.5em);
+}
+.cal-columna {
+  position: relative;
+  border-left: 1px solid var(--borde);
+  background-image: linear-gradient(to bottom, var(--borde) 1px, transparent 1px);
+  background-size: 100% 56px;
+  background-color: #f4f5f6;
+}
+.cal-columna.hoy {
+  background-color: color-mix(in srgb, var(--principal) 5%, #f4f5f6);
+}
+.cal-libre {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: #fff;
+}
+.cal-bloqueo {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: repeating-linear-gradient(45deg, #e6e3de, #e6e3de 6px, #f1eee9 6px, #f1eee9 12px);
+}
+.cal-libre,
+.cal-bloqueo {
+  border-top: 1px solid var(--borde);
+}
+.cal-cita {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  z-index: 1;
+  padding: 4px 6px;
+  border-radius: 4px;
+  border-left: 4px solid #f0a868;
+  background: #fdf1e4;
+  color: inherit;
+  text-decoration: none;
+  overflow: hidden;
+  font-size: 0.82rem;
+  line-height: 1.25;
+  display: flex;
+  flex-direction: column;
+}
+.cal-cita.confirmada {
+  border-left-color: var(--principal);
+  background: color-mix(in srgb, var(--principal) 12%, #fff);
+}
+.cal-cita span {
+  color: var(--suave);
+}
+.cal-dia .cal-cita {
+  font-size: 0.95rem;
+}
+.cal .vacio {
+  margin: 12px;
+}
+.cal-leyenda {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  margin: 0;
+  font-size: 0.85rem;
+}
+.muestra {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--borde);
+  border-radius: 3px;
+}
+.muestra.libre {
+  background: #fff;
+}
+.muestra.bloqueo {
+  margin-left: 10px;
+  background: repeating-linear-gradient(45deg, #e6e3de, #e6e3de 3px, #f1eee9 3px, #f1eee9 6px);
+}
+.cal-mes {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fff;
+}
+.cal-mes-dia-semana {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--suave);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--borde);
+}
+.cal-mes-celda {
+  min-height: 74px;
+  padding: 4px;
+  border-right: 1px solid var(--borde);
+  border-bottom: 1px solid var(--borde);
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.75rem;
+  overflow: hidden;
+}
+.cal-mes-celda.otro-mes {
+  background: #f6f7f8;
+  color: var(--suave);
+}
+.cal-mes-celda.hoy strong {
+  background: var(--principal);
+  color: #fff;
+  border-radius: 999px;
+  padding: 0 6px;
+  align-self: flex-start;
+}
+.cal-mes-cita {
+  background: #fdf1e4;
+  border-radius: 3px;
+  padding: 1px 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (min-width: 900px) {
+  .cal-mes-celda {
+    min-height: 110px;
+    font-size: 0.85rem;
+  }
+}
+
+/* Embudo de clientes: cifras, días en la etapa, tablero con arrastre */
+.embudo-cifras {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.embudo-cifras .cifra {
+  text-decoration: none;
+  color: inherit;
+  min-height: 88px;
+}
+.embudo-cifras .cifra strong {
+  font-size: 1.8rem;
+}
+.embudo-cifras .cifra.alerta strong {
+  color: #c2410c;
+}
+.embudo-nota {
+  margin: 4px 0 12px;
+}
+.dias-etapa {
+  font-size: 0.8rem;
+  color: var(--suave);
+}
+.dias-etapa.estancado {
+  color: #c2410c;
+  font-weight: 600;
+}
+.filtro-etapas a.filtro-atencion {
+  border-color: #f0a868;
+}
+.lista-escritorio,
+.tablero-ayuda {
+  display: none;
+}
+.tablero-valor {
+  margin: -4px 0 10px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--profundo, inherit);
+}
+@media (min-width: 900px) {
+  .embudo-cifras {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .lista-escritorio {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 10px;
+  }
+  .tablero-ayuda {
+    display: block;
+    margin: 0 0 8px;
+  }
+  .tablero-columna {
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .tablero-columna.encima {
+    background: color-mix(in srgb, var(--principal) 10%, #fff);
+    border-color: var(--principal);
+    border-style: dashed;
+  }
+  .tablero .cliente-tarjeta {
+    cursor: grab;
+  }
+  .tablero .cliente-tarjeta.arrastrando {
+    opacity: 0.4;
+  }
+  .tablero-columna > .suave {
+    margin: -8px 0 8px;
+  }
+}

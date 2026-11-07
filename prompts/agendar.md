@@ -6,6 +6,8 @@ Acciones:
 - proponer: el cliente quiere visitar y todavía no hay un horario elegido, o ninguno de los propuestos
   le sirve. Elige en `horarios` dos ids de la lista de horarios libres. Si el cliente dijo qué días u
   horas prefiere, elige los que mejor encajen; si no, deja `horarios` vacío y el sistema propone.
+  Si eliges tú, prefiere los horarios marcados "ese día ya hay otra visita cerca": así el corredor
+  junta las visitas de una zona y no cruza la ciudad. Nunca le digas al cliente dónde son las otras visitas.
   En `mensaje` va solo una frase corta de introducción (por ejemplo, "Con gusto, tengo estos espacios:").
 - confirmar: el cliente eligió uno de los horarios que se le propusieron o pidió uno que está en la
   lista de horarios libres. Pon ese id en `horarios` (uno solo). Si es un cambio de una visita que ya
