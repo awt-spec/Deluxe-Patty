@@ -11,6 +11,16 @@ type Turno = { autor: "corredor" | "asistente"; texto: string };
 const CLAVE = "chat-patty";
 const SUGERENCIAS = ["¿Qué tengo hoy?", "¿A quién debería llamar?", "Escríbele a un cliente para confirmar su visita", "¿Cómo va el mes?"];
 
+/** Negritas (**así**) y separadores (---) del texto de Patty, sin interpretar HTML. */
+function conFormato(texto: string) {
+  return texto
+    .replace(/^\s*-{3,}\s*$/gm, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+    .split(/(\*\*[^*\n]+\*\*)/g)
+    .map((parte, i) => (/^\*\*[^*]+\*\*$/.test(parte) ? <strong key={i}>{parte.slice(2, -2)}</strong> : parte));
+}
+
 export function Patty({ nombre, corredor }: { nombre: string; corredor: string }) {
   const ruta = usePathname();
   const [abierto, setAbierto] = useState(false);
@@ -102,7 +112,7 @@ export function Patty({ nombre, corredor }: { nombre: string; corredor: string }
             )}
             {turnos.map((t, i) => (
               <p key={i} className={`patty-burbuja ${t.autor === "corredor" ? "mia" : "suya"}`}>
-                {t.texto}
+                {t.autor === "asistente" ? conFormato(t.texto) : t.texto}
               </p>
             ))}
             {pensando && <p className="patty-burbuja suya pensando">{nombre} está escribiendo…</p>}
