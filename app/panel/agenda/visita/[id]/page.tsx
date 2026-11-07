@@ -5,6 +5,7 @@ import { fechaIso, fechaLocal, minutosLocales } from "@/lib/agenda/tiempo";
 import { telefonoBonito } from "@/lib/crm/perfil";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Aviso } from "../../../aviso";
+import { ComoLlegar } from "../../../como-llegar";
 import { Volver } from "../../../volver";
 import { cambiarLaVisita, moverLaVisita } from "../../acciones";
 
@@ -81,12 +82,13 @@ export default async function Visita({ params, searchParams }: { params: Promise
           <Link href={`/panel/clientes/${v.contacto_id as string}`} className="boton">
             Ver el cliente
           </Link>
-          {casa?.zona && (
-            <a className="boton" target="_blank" rel="noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${casa.zona}${casa.canton ? `, ${casa.canton}` : ""}, Costa Rica`)}`}>
-              Cómo llegar
-            </a>
-          )}
         </div>
+        {casa && (
+          <>
+            <p className="suave">Cómo llegar:</p>
+            <ComoLlegar casa={casa} />
+          </>
+        )}
       </section>
 
       {activa && !paso && (

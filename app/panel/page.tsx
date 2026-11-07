@@ -5,6 +5,7 @@ import { minutosEntre } from "@/lib/agenda/zonas";
 import { pendientesDe } from "@/lib/panel/pendientes";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Aviso } from "./aviso";
+import { ComoLlegar } from "./como-llegar";
 import { Avatar } from "./avatar";
 import { IconoCampana, IconoCheck, IconoDobleCheck, IconoFlecha, IconoMas } from "./iconos";
 
@@ -240,8 +241,8 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
             {visitas.map((v, i) => {
               const sale = salida(i);
               return (
-                <li key={`v-${v.id}`}>
-                  <Link href="/panel/agenda?vista=dia">
+                <li key={`v-${v.id}`} className="hoy-visita">
+                  <Link href={`/panel/agenda/visita/${v.id}`}>
                     <span className="hoy-hora">{horaCorta(new Date(v.inicio), zona)}</span>
                     <span>
                       Visita con <strong>{v.contactos ? nombre(v.contactos) : "un cliente"}</strong>
@@ -249,6 +250,7 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
                       {sale && <span className="salida">{sale}</span>}
                     </span>
                   </Link>
+                  {v.propiedades && <ComoLlegar casa={v.propiedades} chico />}
                 </li>
               );
             })}

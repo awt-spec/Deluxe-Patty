@@ -3,6 +3,7 @@ import Link from "next/link";
 import { diaLargo, horaCorta } from "@/lib/agenda/formato";
 import { aUtc, fechaIso, fechaLocal, minutosDe, minutosLocales, sumarDias, type FechaLocal } from "@/lib/agenda/tiempo";
 import { minutosEntre } from "@/lib/agenda/zonas";
+import { telefonoBonito } from "@/lib/crm/perfil";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Aviso } from "../aviso";
@@ -149,7 +150,7 @@ export default async function Agenda({
         title={c.estado === "confirmada" ? "Confirmada" : "Por confirmar"}
       >
         <strong>
-          {horaCorta(new Date(c.inicio), zona)} · {contacto?.nombre ?? contacto?.telefono}
+          {horaCorta(new Date(c.inicio), zona)} · {contacto?.nombre ?? (contacto ? telefonoBonito(contacto.telefono) : "")}
         </strong>
         {propiedad && (
           <span>
@@ -329,7 +330,7 @@ export default async function Agenda({
               return (
                 <Link key={c.id} href={`/panel/agenda/visita/${c.id}`} className="tarjeta acento fila">
                   <div>
-                    <strong>{horaCorta(new Date(c.inicio), zona)}</strong> · {contacto?.nombre ?? contacto?.telefono}
+                    <strong>{horaCorta(new Date(c.inicio), zona)}</strong> · {contacto?.nombre ?? (contacto ? telefonoBonito(contacto.telefono) : "")}
                     {propiedad && <p className="suave">{propiedad.titulo}</p>}
                   </div>
                   <span className={`insignia ${c.estado === "confirmada" ? "dorada" : ""}`}>

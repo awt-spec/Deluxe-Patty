@@ -3914,3 +3914,35 @@ label.casilla {
   align-items: center;
   min-height: 44px;
 }
+
+/* Cómo llegar: Waze y Google Maps */
+.como-llegar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.como-llegar .boton {
+  flex: 1;
+  min-width: 120px;
+  justify-content: center;
+  font-weight: 600;
+}
+.como-llegar .waze {
+  background: #33ccff;
+  border-color: #33ccff;
+  color: #062b3a;
+}
+.como-llegar .maps {
+  background: #fff;
+  color: #1a73e8;
+  border-color: #c6dafc;
+}
+.como-llegar.chico {
+  padding: 0 12px 10px 76px;
+}
+.como-llegar.chico .boton {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 4px 14px;
+  font-size: 0.9rem;
+}
