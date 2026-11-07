@@ -4,6 +4,7 @@ import { etiquetaHorario } from "@/lib/agenda/formato";
 import { fechaIso, fechaLocal, sumarDias } from "@/lib/agenda/tiempo";
 import { AYUDA_ETAPA, ETAPAS, MOTIVOS_PERDIDA, NOMBRE_ETAPA, encaja, resumenBusca, telefonoBonito, type Busca, type Etapa } from "@/lib/crm/perfil";
 import type { Foto } from "@/lib/datos/tipos";
+import { comisionEstimada, monedaDe, reglaComision } from "@/lib/crm/dinero";
 import { precio } from "@/lib/formato";
 import { ordenarFotos } from "@/lib/panel/formularios";
 import { sesionConCorredor } from "@/lib/panel/sesion";
@@ -62,7 +63,7 @@ export default async function Cliente({
   const [{ data: c }, { data: conv }, { data: citas }, { data: casasData }] = await Promise.all([
     supabase
       .from("contactos")
-      .select("id, nombre, telefono, email, origen, notas, etapa, etapa_at, busca, seguimiento_fecha, seguimiento_nota, motivo_perdida, created_at, propiedad_interes_id, oferta_monto, cierre_propiedad_id, cierre_precio, cierre_comision, cierre_at")
+      .select("id, nombre, telefono, email, origen, notas, etapa, etapa_at, busca, seguimiento_fecha, seguimiento_nota, motivo_perdida, created_at, propiedad_interes_id, oferta_monto, oferta_moneda, cierre_propiedad_id, cierre_precio, cierre_comision, cierre_moneda, cierre_at")
       .eq("corredor_id", corredor.id)
       .eq("id", id)
       .maybeSingle(),
@@ -95,11 +96,11 @@ export default async function Cliente({
   // Para la casa que le interesa y el cierre: todas las casas del corredor (también las vendidas).
   const { data: todasData } = await supabase
     .from("propiedades")
-    .select("id, titulo, precio, moneda, estado")
+    .select("id, titulo, precio, moneda, estado, operacion")
     .eq("corredor_id", corredor.id)
     .order("titulo")
     .limit(300);
-  const todas = (todasData ?? []) as { id: string; titulo: string; precio: number | null; moneda: string; estado: string }[];
+  const todas = (todasData ?? []) as { id: string; titulo: string; precio: number | null; moneda: string; estado: string; operacion: string }[];
   const casaInteres = todas.find((p) => p.id === c.propiedad_interes_id) ?? null;
   const casaCierre = todas.find((p) => p.id === c.cierre_propiedad_id) ?? null;
   const pct = corredor.comision_pct ?? 5;
@@ -124,9 +125,14 @@ export default async function Cliente({
 
   const diasEnEtapa = Math.max(0, Math.floor((Date.now() - Date.parse(c.etapa_at as string)) / 86_400_000));
   const venceRecordatorio = !!c.seguimiento_fecha && (c.seguimiento_fecha as string) <= fechaIso(fechaLocal(new Date(), zona));
-  // La oferta se anota en dólares; si no hay, cuenta el precio de la casa en su moneda.
+  // Lo que vale el negocio: la oferta en su moneda o, si no hay, el precio de la casa que le interesa.
   const valorEnJuego = Number(c.oferta_monto ?? 0) || casaInteres?.precio || 0;
-  const monedaEnJuego = c.oferta_monto ? "USD" : (casaInteres?.moneda ?? "USD");
+  const monedaEnJuego = c.oferta_monto ? monedaDe(c.oferta_moneda) : monedaDe(casaInteres?.moneda);
+  // Venta o alquiler: lo dice la casa; si no hay casa, lo que el cliente busca.
+  const operacion = casaInteres?.operacion ?? busca?.operacion ?? null;
+  const comisionEnJuego = valorEnJuego ? comisionEstimada(valorEnJuego, pct, operacion) : 0;
+  const monedaCierre = monedaDe(c.cierre_moneda);
+  const alquiler = operacion === "alquiler";
   const visitas = (citas ?? []) as { id: string; inicio: string; estado: string; propiedades: { titulo: string } | { titulo: string }[] | null }[];
 
   return (
@@ -159,12 +165,12 @@ export default async function Cliente({
             <span>
               {etapa === "cerrado" ? (
                 c.cierre_precio ? (
-                  `${precio(Number(c.cierre_precio), "USD")} · comisión ${precio(Number(c.cierre_comision ?? 0), "USD")}`
+                  `${precio(Number(c.cierre_precio), monedaCierre)} · comisión ${precio(Number(c.cierre_comision ?? 0), monedaCierre)}`
                 ) : (
                   <a href="#cierre">Falta anotar el precio</a>
                 )
               ) : valorEnJuego ? (
-                `${precio(valorEnJuego, monedaEnJuego)} · comisión ${precio(Math.round((valorEnJuego * pct) / 100), monedaEnJuego)}`
+                `${precio(valorEnJuego, monedaEnJuego)}${alquiler ? " al mes" : ""} · comisión ${precio(comisionEnJuego, monedaEnJuego)}`
               ) : (
                 "Sin casa elegida"
               )}
@@ -305,8 +311,8 @@ export default async function Cliente({
               <>
                 <h2>Cerró</h2>
                 <p className="cierre-resumen">
-                  {casaCierre ? <strong>{casaCierre.titulo}</strong> : "Sin casa anotada"} · {precio(Number(c.cierre_precio), "USD")}
-                  <span className="cierre-comision">Comisión {precio(Number(c.cierre_comision ?? 0), "USD")}</span>
+                  {casaCierre ? <strong>{casaCierre.titulo}</strong> : "Sin casa anotada"} · {precio(Number(c.cierre_precio), monedaCierre)}
+                  <span className="cierre-comision">Comisión {precio(Number(c.cierre_comision ?? 0), monedaCierre)}</span>
                   {c.cierre_at && <span className="suave"> · {etiquetaHorario(new Date(c.cierre_at as string), zona).split(",")[0]}</span>}
                 </p>
               </>
@@ -323,10 +329,16 @@ export default async function Cliente({
                     </option>
                   ))}
                 </select>
-                <label htmlFor="cierre-precio">Precio final (dólares)</label>
-                <input id="cierre-precio" name="precio" type="text" inputMode="numeric" required defaultValue={c.oferta_monto ?? casaInteres?.precio ?? ""} />
-                <label htmlFor="cierre-comision">Tu comisión (vacía: {pct}%)</label>
-                <input id="cierre-comision" name="comision" type="text" inputMode="numeric" placeholder={`${pct}% del precio`} />
+                <label htmlFor="cierre-precio">{alquiler ? "Renta mensual" : "Precio final"}</label>
+                <div className="monto-moneda">
+                  <input id="cierre-precio" name="precio" type="text" inputMode="numeric" required defaultValue={c.oferta_monto ?? casaInteres?.precio ?? ""} />
+                  <select name="moneda" aria-label="Moneda" defaultValue={monedaEnJuego}>
+                    <option value="USD">Dólares</option>
+                    <option value="CRC">Colones</option>
+                  </select>
+                </div>
+                <label htmlFor="cierre-comision">Tu comisión (vacía: {reglaComision(pct, operacion)})</label>
+                <input id="cierre-comision" name="comision" type="text" inputMode="numeric" placeholder={alquiler ? "Un mes de renta" : `${pct}% del precio`} />
                 <button type="submit" className="primario">
                   Guardar el cierre
                 </button>
@@ -347,11 +359,17 @@ export default async function Cliente({
                       </option>
                     ))}
                 </select>
-                <label htmlFor="op-oferta">Oferta del cliente (dólares)</label>
-                <input id="op-oferta" name="oferta" type="text" inputMode="numeric" defaultValue={c.oferta_monto ?? ""} placeholder="Si hizo una" />
+                <label htmlFor="op-oferta">{alquiler ? "Renta que ofrece (al mes)" : "Oferta del cliente"}</label>
+                <div className="monto-moneda">
+                  <input id="op-oferta" name="oferta" type="text" inputMode="numeric" defaultValue={c.oferta_monto ?? ""} placeholder="Si hizo una" />
+                  <select name="oferta_moneda" aria-label="Moneda" defaultValue={monedaEnJuego}>
+                    <option value="USD">Dólares</option>
+                    <option value="CRC">Colones</option>
+                  </select>
+                </div>
                 {valorEnJuego > 0 && (
                   <p className="comision-estimada">
-                    Tu comisión: <strong>{precio(Math.round((valorEnJuego * pct) / 100), monedaEnJuego)}</strong> <span className="suave">({pct}%)</span>
+                    Tu comisión: <strong>{precio(comisionEnJuego, monedaEnJuego)}</strong> <span className="suave">({reglaComision(pct, operacion)})</span>
                   </p>
                 )}
                 <button type="submit" className="primario chico">

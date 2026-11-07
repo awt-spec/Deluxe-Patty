@@ -40,7 +40,4 @@ export async function anotar(
   return !error;
 }
 
-/** Comisión estimada: precio por el porcentaje del corredor, redondeada. */
-export function comisionEstimada(precio: number, porcentaje: number | null | undefined): number {
-  return Math.round((precio * (porcentaje ?? 5)) / 100);
-}
+export { comisionEstimada } from "./dinero";

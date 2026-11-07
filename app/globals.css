@@ -6360,3 +6360,13 @@ body:has(.marco.tema) {
 .cal-mes-celda:has(.cal-mes-bloqueo.todo) {
   background: repeating-linear-gradient(45deg, #f4f2ee, #f4f2ee 6px, #faf9f7 6px, #faf9f7 12px);
 }
+
+/* Monto con su moneda (ofertas y cierres) */
+.monto-moneda {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+.monto-moneda select {
+  width: auto;
+}

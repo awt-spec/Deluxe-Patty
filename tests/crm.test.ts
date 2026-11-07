@@ -114,3 +114,27 @@ describe("zonas de una lista", () => {
     expect(fusionarBusca({ zonas: ["Escazú"] }, { zonas: ["escazu", "santa  ana", "Santa Ana"] }).zonas).toEqual(["Escazú", "Santa Ana"]);
   });
 });
+
+describe("dinero del CRM: monedas y comisión por operación", () => {
+  it("en alquiler la comisión es un mes de renta; en venta, el porcentaje", async () => {
+    const { comisionEstimada, reglaComision } = await import("../lib/crm/dinero");
+    expect(comisionEstimada(450_000, 5, "alquiler")).toBe(450_000);
+    expect(comisionEstimada(1_250_000, 5, "venta")).toBe(62_500);
+    expect(comisionEstimada(1_250_000, 5)).toBe(62_500);
+    expect(reglaComision(5, "alquiler")).toBe("un mes de renta");
+    expect(reglaComision(3.5, "venta")).toBe("3.5%");
+  });
+
+  it("dólares y colones nunca se suman entre sí", async () => {
+    const { plataMontos, sumar, hayMonto } = await import("../lib/crm/dinero");
+    const m = sumar([
+      { monto: 1_100_000, moneda: "USD" },
+      { monto: 850_000, moneda: "CRC" },
+      { monto: 50_000, moneda: "USD" },
+    ]);
+    expect(m).toEqual({ USD: 1_150_000, CRC: 850_000 });
+    expect(plataMontos(m)).toBe("$1,1 millón + ₡850 mil");
+    expect(plataMontos({ USD: 0, CRC: 2_500_000 })).toBe("₡2,5 millones");
+    expect(hayMonto({ USD: 0, CRC: 0 })).toBe(false);
+  });
+});

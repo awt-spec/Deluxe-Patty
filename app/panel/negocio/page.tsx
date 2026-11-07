@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { hayMonto, monedaDe, plataMontos, sumar, type Montos } from "@/lib/crm/dinero";
 import { fechaIso, fechaLocal } from "@/lib/agenda/tiempo";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { PreguntarPatty } from "../preguntar-patty";
@@ -14,6 +15,7 @@ type Cliente = {
   created_at: string;
   cierre_at: string | null;
   cierre_comision: number | null;
+  cierre_moneda: string;
   cierre_precio: number | null;
   motivo_perdida: string | null;
 };
@@ -29,8 +31,6 @@ const ORIGEN: Record<string, string> = {
 };
 const ORDEN: Record<string, number> = { nuevo: 0, interesado: 1, visita: 2, negociando: 3, cerrado: 4, perdido: -1 };
 
-const plata = (n: number) =>
-  n >= 1_000_000 ? `$${(n / 1_000_000).toFixed(1).replace(".", ",").replace(",0", "")} M` : n >= 1000 ? `$${Math.round(n / 1000)} mil` : `$${Math.round(n)}`;
 
 export default async function Negocio() {
   const { supabase, corredor } = await sesionConCorredor();
@@ -39,7 +39,7 @@ export default async function Negocio() {
   const [{ data }, { data: duenos }, { data: uso }] = await Promise.all([
     supabase
       .from("contactos")
-      .select("etapa, origen, created_at, cierre_at, cierre_comision, cierre_precio, motivo_perdida")
+      .select("etapa, origen, created_at, cierre_at, cierre_comision, cierre_precio, cierre_moneda, motivo_perdida")
       .eq("corredor_id", corredor.id)
       .eq("es_corredor", false)
       .limit(2000),
@@ -48,6 +48,10 @@ export default async function Negocio() {
   ]);
   const clientes = (data ?? []) as Cliente[];
   const cerrados = clientes.filter((c) => c.etapa === "cerrado");
+  // Dólares y colones van por separado; las barras se miden en la moneda en que más cierra.
+  const comisiones = (lista: Cliente[]): Montos =>
+    sumar(lista.map((c) => ({ monto: Number(c.cierre_comision ?? 0), moneda: monedaDe(c.cierre_moneda) })));
+  const plata = (m: Montos) => (hayMonto(m) ? plataMontos(m) : "$0");
 
   // Últimos 6 meses: comisiones y cierres.
   const meses = Array.from({ length: 6 }, (_, i) => {
@@ -58,14 +62,15 @@ export default async function Negocio() {
       clave,
       nombre: MESES[d.getUTCMonth()],
       cierres: delMes.length,
-      ganado: delMes.reduce((s, c) => s + Number(c.cierre_comision ?? 0), 0),
+      ganado: comisiones(delMes),
       nuevos: clientes.filter((c) => c.created_at.slice(0, 7) === clave).length,
     };
   });
-  const maxGanado = Math.max(1, ...meses.map((m) => m.ganado));
+  const principal = cerrados.filter((c) => monedaDe(c.cierre_moneda) === "CRC").length > cerrados.length / 2 ? "CRC" : "USD";
+  const maxGanado = Math.max(1, ...meses.map((m) => m.ganado[principal]));
   const esteMes = meses[5];
   const mesPasado = meses[4];
-  const ganadoAnio = cerrados.filter((c) => (c.cierre_at ?? "").slice(0, 4) === String(hoy.anio)).reduce((s, c) => s + Number(c.cierre_comision ?? 0), 0);
+  const ganadoAnio = comisiones(cerrados.filter((c) => (c.cierre_at ?? "").slice(0, 4) === String(hoy.anio)));
 
   // Hasta dónde llegan: de cada 10 clientes que escriben.
   const llego = (k: number) => clientes.filter((c) => ORDEN[c.etapa] >= k).length;
@@ -114,7 +119,7 @@ export default async function Negocio() {
         <div className="tarjeta cifra">
           <strong>{plata(esteMes.ganado)}</strong>
           <span className="suave">
-            ganado este mes{mesPasado.ganado > 0 ? ` (el pasado: ${plata(mesPasado.ganado)})` : ""}
+            ganado este mes{hayMonto(mesPasado.ganado) ? ` (el pasado: ${plata(mesPasado.ganado)})` : ""}
           </span>
         </div>
         <div className="tarjeta cifra">
@@ -136,8 +141,8 @@ export default async function Negocio() {
         <div className="barras-mes" role="img" aria-label="Comisiones de los últimos seis meses">
           {meses.map((m) => (
             <div key={m.clave} className="barra-mes">
-              <span className="barra-valor">{m.ganado > 0 ? plata(m.ganado) : ""}</span>
-              <span className="barra" style={{ height: `${Math.max(2, (m.ganado / maxGanado) * 100)}%` }} />
+              <span className="barra-valor">{hayMonto(m.ganado) ? plata(m.ganado) : ""}</span>
+              <span className="barra" style={{ height: `${Math.max(2, (m.ganado[principal] / maxGanado) * 100)}%` }} />
               <span className="barra-nombre">{m.nombre}</span>
               <span className="suave barra-cierres">{m.cierres ? `${m.cierres} ${m.cierres === 1 ? "cierre" : "cierres"}` : "—"}</span>
             </div>

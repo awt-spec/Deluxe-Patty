@@ -8,10 +8,10 @@ begin;
 \set user_patricia '10000000-0000-4000-8000-000000000001'
 insert into public.corredores (id, slug, nombre, nombre_contacto) values (:'otro', 'otro-corredor', 'Otro Corredor', 'Otro');
 insert into public.miembros (corredor_id, user_id) values (:'deluxe', :'user_patricia');
-insert into public.contactos (id, corredor_id, telefono, nombre, email, etapa, busca) values
-  ('40000000-0000-4000-8000-000000000001', :'deluxe', '+50688880301', null, null, 'interesado', '{"zonas":["Escazú"]}'),
-  ('40000000-0000-4000-8000-000000000002', :'deluxe', '+50688880302', 'Ana', 'ana@correo.com', 'visita', '{"presupuesto_max":500000}'),
-  ('40000000-0000-4000-8000-000000000003', :'otro', '+50688880303', 'Otro', null, 'nuevo', '{}');
+insert into public.contactos (id, corredor_id, telefono, nombre, email, etapa, busca, oferta_monto, oferta_moneda) values
+  ('40000000-0000-4000-8000-000000000001', :'deluxe', '+50688880301', null, null, 'interesado', '{"zonas":["Escazú"]}', null, 'USD'),
+  ('40000000-0000-4000-8000-000000000002', :'deluxe', '+50688880302', 'Ana', 'ana@correo.com', 'visita', '{"presupuesto_max":500000}', 450000, 'CRC'),
+  ('40000000-0000-4000-8000-000000000003', :'otro', '+50688880303', 'Otro', null, 'nuevo', '{}', null, 'USD');
 insert into public.conversaciones (corredor_id, contacto_id, estado) values
   (:'deluxe', '40000000-0000-4000-8000-000000000001', 'abierta'),
   (:'deluxe', '40000000-0000-4000-8000-000000000002', 'abierta');
@@ -31,6 +31,9 @@ begin
   if c.nombre is distinct from 'Ana' or c.email is distinct from 'ana@correo.com' or c.etapa <> 'visita'
      or c.busca ->> 'presupuesto_max' is null or c.busca -> 'zonas' is null or c.notas not like '%+50688880302%' then
     raise exception 'FALLA: no completó los datos del que queda';
+  end if;
+  if c.oferta_monto is distinct from 450000 or c.oferta_moneda <> 'CRC' then
+    raise exception 'FALLA: la oferta no pasó con su moneda';
   end if;
   if exists (select 1 from public.contactos where id = '40000000-0000-4000-8000-000000000002') then
     raise exception 'FALLA: el que sale no se borró';
