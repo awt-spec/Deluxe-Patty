@@ -31,16 +31,37 @@ async function guardar(id: string, cambios: Record<string, unknown>, aviso: stri
 }
 
 export async function cambiarEtapa(f: FormData) {
+  const id = texto(f, "id");
   const etapa = texto(f, "etapa") as Etapa;
   if (!ETAPAS.includes(etapa)) redirect("/panel/clientes");
+  const corredor = await clientePropio(id);
   // Si el cliente se pierde, se guarda por qué (uno de los botones); si vuelve, se borra el motivo.
   const motivo = texto(f, "motivo");
   const motivo_perdida = etapa === "perdido" && (MOTIVOS_PERDIDA as readonly string[]).includes(motivo) ? motivo : null;
-  await registrarEtapa(texto(f, "id"), etapa, motivo_perdida);
-  await guardar(
-    texto(f, "id"),
-    { etapa, etapa_at: new Date().toISOString(), motivo_perdida },
-    etapa === "perdido" && !motivo_perdida ? "Listo. Si quieres, dinos por qué se perdió." : "Listo, guardado.",
+  const db = createAdminClient();
+  const { data: antes } = await db.from("contactos").select("etapa, cierre_at").eq("corredor_id", corredor.id).eq("id", id).single();
+  if (antes?.etapa === etapa) {
+    // Tocar la etapa en la que ya está no cuenta como cambio (ni reinicia los días ni ensucia la historia).
+    if (etapa !== "perdido" || !motivo_perdida) volverA(id, `Ya está en ${NOMBRE_ETAPA[etapa]}.`);
+    const { error } = await db.from("contactos").update({ motivo_perdida }).eq("corredor_id", corredor.id).eq("id", id);
+    if (!error) await anotar(db, corredor.id, id, "etapa", `Se perdió: ${motivo_perdida}`);
+    volverA(id, error ? "No se pudo guardar. Vuelve a intentarlo." : "Listo, guardado.");
+  }
+  const ahora = new Date().toISOString();
+  const { error } = await db
+    .from("contactos")
+    .update({ etapa, etapa_at: ahora, motivo_perdida, ...(etapa === "cerrado" && !antes?.cierre_at ? { cierre_at: ahora } : {}) })
+    .eq("corredor_id", corredor.id)
+    .eq("id", id);
+  if (error) volverA(id, "No se pudo guardar. Vuelve a intentarlo.");
+  await anotar(db, corredor.id, id, "etapa", `Pasó a ${NOMBRE_ETAPA[etapa]}${motivo_perdida ? `: ${motivo_perdida}` : ""}`);
+  volverA(
+    id,
+    etapa === "perdido" && !motivo_perdida
+      ? "Listo. Dinos por qué se perdió: así sabes qué mejorar."
+      : etapa === "cerrado"
+        ? "¡Felicidades! Anota abajo el precio y tu comisión."
+        : "Listo, guardado.",
   );
 }
 
@@ -118,9 +139,18 @@ export async function agregarCliente(f: FormData) {
 export async function moverEtapa(id: string, etapa: string): Promise<boolean> {
   if (!idValido(id) || !(ETAPAS as readonly string[]).includes(etapa)) return false;
   const { supabase, corredor } = await sesionConCorredor();
+  const { data: antes } = await supabase.from("contactos").select("etapa, cierre_at").eq("corredor_id", corredor.id).eq("id", id).maybeSingle();
+  if (!antes) return false;
+  if (antes.etapa === etapa) return true; // soltó en la misma columna
+  const ahora = new Date().toISOString();
   const { error } = await supabase
     .from("contactos")
-    .update({ etapa, etapa_at: new Date().toISOString(), ...(etapa === "perdido" ? {} : { motivo_perdida: null }) })
+    .update({
+      etapa,
+      etapa_at: ahora,
+      ...(etapa === "perdido" ? {} : { motivo_perdida: null }),
+      ...(etapa === "cerrado" && !antes.cierre_at ? { cierre_at: ahora } : {}),
+    })
     .eq("corredor_id", corredor.id)
     .eq("id", id);
   if (!error) await anotar(createAdminClient(), corredor.id, id, "etapa", `Pasó a ${NOMBRE_ETAPA[etapa as Etapa]}`);
@@ -135,11 +165,6 @@ async function clientePropio(id: string) {
   const { data } = await supabase.from("contactos").select("id").eq("corredor_id", corredor.id).eq("id", id).maybeSingle();
   if (!data) redirect("/panel/clientes");
   return corredor;
-}
-
-async function registrarEtapa(id: string, etapa: Etapa, motivo: string | null) {
-  const corredor = await clientePropio(id);
-  await anotar(createAdminClient(), corredor.id, id, "etapa", `Pasó a ${NOMBRE_ETAPA[etapa]}${motivo ? `: ${motivo}` : ""}`);
 }
 
 function volverA(id: string, aviso: string): never {
