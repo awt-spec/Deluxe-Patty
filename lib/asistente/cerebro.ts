@@ -4,6 +4,7 @@ import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
 import type { Correccion, Corredor, FichaParcial, Intencion, Mensaje, Propiedad, PropiedadConFotos , Conocimiento } from "../datos/tipos";
 import type { AnuncioE24 } from "../encuentra24/parsear";
+import { crearClienteClaude } from "./cliente-claude";
 import { consumo, sumar as sumarConsumo, type Consumo } from "./costo";
 import { instruccion } from "./instrucciones";
 
@@ -273,7 +274,7 @@ function contextoCorredor(corredor: Corredor, propiedades: Propiedad[]): string[
   ];
 }
 
-export function crearCerebroClaude(client = new Anthropic()): Cerebro {
+export function crearCerebroClaude(client: Anthropic = crearClienteClaude()): Cerebro {
   return {
     async clasificar(corredor, historial, mensaje) {
       const reglas = corredor.reglas_escalamiento.length

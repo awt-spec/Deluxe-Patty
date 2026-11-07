@@ -67,7 +67,9 @@ export function costoImagen(uso: Uso): number {
 
 const extensionDe = (tipo: string) => (tipo.includes("png") ? "png" : tipo.includes("webp") ? "webp" : "jpg");
 
-export function crearEditorOpenAI(client = new OpenAI()): EditorFotos {
+// Una imagen en alta calidad tarda hasta ~1-2 min: 120 s y un reintento (lo peor, ~4 min) caben en los
+// 300 s de las funciones de Vercel; el valor de fábrica (10 min) dejaba cortar la función sin aviso.
+export function crearEditorOpenAI(client = new OpenAI({ timeout: 120_000, maxRetries: 1 })): EditorFotos {
   const editar = async (imagen: Buffer, tipo: string, prompt: string): Promise<ImagenIA> => {
     const res = await client.images.edit({
       model: MODELO_FOTOS,

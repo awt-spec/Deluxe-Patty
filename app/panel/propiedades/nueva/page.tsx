@@ -8,7 +8,7 @@ import { FormularioPropiedad } from "../formulario";
 import { ChatCasa } from "./chat-casa";
 
 // Cada turno del chat llama a Claude.
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 export default async function NuevaPropiedad({
   searchParams,
