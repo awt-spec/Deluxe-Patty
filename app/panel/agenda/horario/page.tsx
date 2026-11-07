@@ -259,8 +259,13 @@ export default async function Horario({
       </details>
 
       <details>
-        <summary>Duración de las visitas</summary>
+        <summary>Visitas y traslados</summary>
         <form action={guardarReglasVisitas} className="pila tarjeta">
+          <label htmlFor="zona_base">¿De dónde sales cada día?</label>
+          <input id="zona_base" name="zona_base" type="text" defaultValue={corredor.zona_base ?? ""} placeholder="Lindora" />
+          <p className="suave">
+            Con esto la asistente calcula cuánto tardas en llegar a cada casa y junta las visitas de una misma zona el mismo día.
+          </p>
           <div className="fila campos">
             <div className="pila" style={{ flex: 1 }}>
               <label htmlFor="duracion">Duración de la visita (min)</label>

@@ -111,7 +111,10 @@ function repoSimulado(real: Repositorio, corredor: Corredor, estado: EstadoSimul
     // La agenda real ocupa los horarios; las citas de la prueba también, para que la conversación sea coherente.
     datosAgenda: async (corredorId, desde, hasta) => {
       const datos = await real.datosAgenda(corredorId, desde, hasta);
-      const propias = estado.citas.filter(activa).map((c) => ({ inicio: new Date(c.inicio), fin: new Date(c.fin) }));
+      const zonas = new Map((await real.propiedadesActivas(corredorId)).map((p) => [p.id, p.zona ?? p.canton ?? null]));
+      const propias = estado.citas
+        .filter(activa)
+        .map((c) => ({ inicio: new Date(c.inicio), fin: new Date(c.fin), zona: c.propiedad_id ? (zonas.get(c.propiedad_id) ?? null) : null }));
       return { ...datos, citas: [...datos.citas, ...propias] };
     },
     citasProximasContacto: async (corredorId, _contacto, desde) => {

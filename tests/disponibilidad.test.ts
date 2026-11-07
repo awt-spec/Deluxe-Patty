@@ -77,3 +77,34 @@ describe("etiquetaHorario", () => {
     expect(etiquetaHorario(local("2026-10-21T10:00"), CR)).toBe("miércoles 21 de octubre, 10:00 a. m.");
   });
 });
+
+describe("agenda por zona", () => {
+  it("estima traslados entre zonas del Valle Central", async () => {
+    const { minutosEntre, cerca } = await import("../lib/agenda/zonas");
+    expect(minutosEntre("Lindora", "Santa Ana")).toBeLessThanOrEqual(15);
+    expect(minutosEntre("Santa Ana", "Heredia")!).toBeGreaterThanOrEqual(30);
+    expect(minutosEntre("Lindora", "Marte")).toBeNull();
+    expect(cerca("Escazú", "Guachipelín")).toBe(true);
+    expect(cerca("Escazú", "Cartago")).toBe(false);
+  });
+
+  it("deja el traslado real entre una visita en Heredia y otra en Ciudad Colón", () => {
+    // Visita en Heredia de 9:00 a 10:00 del lunes (hora de Costa Rica = UTC-6).
+    const heredia = { inicio: new Date("2026-10-19T15:00:00Z"), fin: new Date("2026-10-19T16:00:00Z"), zona: "Heredia" };
+    const comun = { horizonteDias: 0, citas: [heredia], margenMin: 15, pasoMin: 30, anticipacionHoras: 0 };
+    const conZona = horariosLibres(base({ ...comun, zonaVisita: "Ciudad Colón" }));
+    const sinZona = horariosLibres(base(comun));
+    const hora = (l: { inicio: Date }) => l.inicio.toISOString().slice(11, 16);
+    // Sin zona basta el margen fijo (10:30 sirve); con zona, Heredia → Escazú pide más tiempo.
+    expect(sinZona.map(hora)).toContain("16:30");
+    expect(conZona.map(hora)).not.toContain("16:30");
+  });
+
+  it("propone primero el día que ya tiene otra visita cerca", async () => {
+    const { dosOpcionesPorZona } = await import("../lib/agenda/disponibilidad");
+    const santaAna = { inicio: new Date("2026-10-21T15:00:00Z"), fin: new Date("2026-10-21T16:00:00Z"), zona: "Santa Ana" };
+    const libres = horariosLibres(base({ horizonteDias: 5, citas: [santaAna], zonaVisita: "Lindora" }));
+    const [primera] = dosOpcionesPorZona(libres, [santaAna], "Lindora", CR);
+    expect(primera.inicio.toISOString().slice(0, 10)).toBe("2026-10-21");
+  });
+});

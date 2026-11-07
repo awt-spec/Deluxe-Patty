@@ -18,6 +18,8 @@ export interface Corredor {
   respuesta_automatica: boolean;
   duracion_visita_min: number;
   margen_visitas_min: number;
+  /** De dónde sale el corredor cada día (por ejemplo, Lindora), para calcular traslados. */
+  zona_base?: string | null;
   anticipacion_min_horas: number;
   horizonte_agenda_dias: number;
   hora_plan_dia: string;

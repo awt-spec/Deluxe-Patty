@@ -88,7 +88,8 @@ export async function guardarReglasVisitas(f: FormData) {
     horizonte_agenda_dias: entero(f, "horizonte", 1, 60),
   };
   if (Object.values(cambios).some((v) => v === null)) volver("Revisa los números de las visitas.");
-  const { error } = await supabase.from("corredores").update(cambios).eq("id", corredor.id);
+  const zonaBase = String(f.get("zona_base") ?? "").trim().slice(0, 80) || null;
+  const { error } = await supabase.from("corredores").update({ ...cambios, zona_base: zonaBase }).eq("id", corredor.id);
   volver(error ? "No se pudo guardar." : "Guardado.");
 }
 
