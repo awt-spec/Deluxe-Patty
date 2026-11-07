@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { fechaIso, fechaLocal, sumarDias } from "@/lib/agenda/tiempo";
+import { normalizarZona } from "@/lib/agenda/zonas";
 import { anotar, comisionEstimada, type TipoActividad } from "@/lib/crm/actividades";
 import { ETAPAS, MOTIVOS_PERDIDA, NOMBRE_ETAPA, type Busca, type Etapa } from "@/lib/crm/perfil";
 import { leerNumero, normalizarTelefono } from "@/lib/panel/formularios";
@@ -47,8 +48,9 @@ export async function guardarBusca(f: FormData) {
   const operacion = texto(f, "operacion");
   const zonas = texto(f, "zonas")
     .split(",")
-    .map((z) => z.trim())
+    .map((z) => normalizarZona(z))
     .filter(Boolean)
+    .filter((z, i, todas) => todas.findIndex((x) => x.toLowerCase() === z.toLowerCase()) === i)
     .slice(0, 6);
   const presupuesto = numeroDe(texto(f, "presupuesto"));
   const habitaciones = numeroDe(texto(f, "habitaciones"));
@@ -229,4 +231,14 @@ export async function guardarCierre(f: FormData) {
   if (error) volverA(id, "No se pudo guardar. Vuelve a intentarlo.");
   await anotar(db, corredor.id, id, "cierre", `Cerró${casa ? ` ${casa.titulo}` : ""} en ${dolares(precio)} · comisión ${dolares(comision)}`);
   volverA(id, "¡Felicidades! Cierre guardado.");
+}
+
+/** Une dos clientes que son la misma persona: el de la ficha queda y el elegido se le une. */
+export async function unirCliente(f: FormData) {
+  const queda = texto(f, "id");
+  const sale = texto(f, "otro");
+  const corredor = await clientePropio(queda);
+  await clientePropio(sale);
+  const { data, error } = await createAdminClient().rpc("unir_contactos", { p_corredor: corredor.id, p_queda: queda, p_sale: sale });
+  volverA(queda, !error && data ? "Listo, quedaron unidos en este cliente." : "No se pudieron unir. Vuelve a intentarlo.");
 }

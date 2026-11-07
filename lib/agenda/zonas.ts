@@ -102,3 +102,23 @@ export function cerca(a: string | null | undefined, b: string | null | undefined
   const m = minutosEntre(a, b);
   return m !== null && m <= 20;
 }
+
+/** Nombres de las zonas como se escriben, para elegirlas de una lista (mismo orden que el mapa). */
+export const ZONAS_CONOCIDAS = [
+  "Lindora", "Santa Ana", "Pozos", "Piedades", "Río Oro", "Ciudad Colón", "Brasil de Mora", "La Guácima",
+  "Escazú", "San Rafael de Escazú", "Guachipelín", "Bello Horizonte", "San Antonio de Escazú", "Rohrmoser",
+  "Pavas", "Sabana", "San José", "Los Yoses", "Barrio Escalante", "Curridabat", "San Pedro", "Tres Ríos",
+  "Moravia", "Santo Domingo", "Heredia", "Santa Bárbara", "Belén", "La Ribera", "San Antonio de Belén",
+  "Cariari", "La Asunción", "Alajuela", "El Coyol", "Atenas", "Grecia", "San Ramón", "Puriscal",
+  "Desamparados", "Coronado", "Cartago",
+];
+
+/**
+ * La zona escrita de muchas formas ("escazu", "ESCAZÚ ") queda con su nombre de la lista ("Escazú").
+ * Si no está en la lista, queda como la escribieron, sin espacios de más.
+ */
+export function normalizarZona(zona: string): string {
+  const sinTildes = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+  const buscada = sinTildes(zona);
+  return ZONAS_CONOCIDAS.find((z) => sinTildes(z) === buscada) ?? zona.replace(/\s+/g, " ").trim();
+}

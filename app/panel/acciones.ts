@@ -126,7 +126,7 @@ export async function yoLeEscribo(f: FormData) {
   redirect(`https://wa.me/${contacto.telefono.replace(/\D/g, "")}`);
 }
 
-const ESTADOS_LEAD = new Set(["contactado", "respondio", "captado", "descartado"]);
+const ESTADOS_LEAD = new Set(["contactado", "respondio", "visitada", "captado", "descartado"]);
 
 export async function marcarLead(f: FormData) {
   const { supabase, corredor } = await sesionConCorredor();
@@ -153,10 +153,16 @@ export async function marcarLead(f: FormData) {
         .eq("id", id);
     }
   } else if (ESTADOS_LEAD.has(estado)) {
-    await supabase.from("leads_duenos").update({ estado_contacto: estado }).eq("corredor_id", corredor.id).eq("id", id);
+    await supabase
+      .from("leads_duenos")
+      .update({ estado_contacto: estado, estado_at: new Date().toISOString() })
+      .eq("corredor_id", corredor.id)
+      .eq("id", id);
   }
   revalidatePath("/panel/duenos");
-  redirect("/panel/duenos");
+  // Se queda en la etapa en que estaba, para seguir con el siguiente dueño.
+  const volverA = texto(f, "volver");
+  redirect(/^[a-z]+$/.test(volverA) ? `/panel/duenos?etapa=${volverA}` : "/panel/duenos");
 }
 
 export async function guardarAjustes(f: FormData) {
