@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { etiquetaHorario } from "@/lib/agenda/formato";
 import { fechaIso, fechaLocal, sumarDias } from "@/lib/agenda/tiempo";
-import { ETAPAS, NOMBRE_ETAPA, encaja, resumenBusca, type Busca, type Etapa } from "@/lib/crm/perfil";
+import { AYUDA_ETAPA, ETAPAS, MOTIVOS_PERDIDA, NOMBRE_ETAPA, encaja, resumenBusca, telefonoBonito, type Busca, type Etapa } from "@/lib/crm/perfil";
 import type { Foto } from "@/lib/datos/tipos";
 import { precio } from "@/lib/formato";
 import { ordenarFotos } from "@/lib/panel/formularios";
@@ -58,7 +58,7 @@ export default async function Cliente({
   const [{ data: c }, { data: conv }, { data: citas }, { data: casasData }] = await Promise.all([
     supabase
       .from("contactos")
-      .select("id, nombre, telefono, origen, notas, etapa, etapa_at, busca, seguimiento_fecha, seguimiento_nota, created_at")
+      .select("id, nombre, telefono, origen, notas, etapa, etapa_at, busca, seguimiento_fecha, seguimiento_nota, motivo_perdida, created_at")
       .eq("corredor_id", corredor.id)
       .eq("id", id)
       .maybeSingle(),
@@ -88,7 +88,7 @@ export default async function Cliente({
   const busca = (c.busca ?? {}) as Busca;
   const etapa = c.etapa as Etapa;
   const casas = ((casasData ?? []) as Casa[]).filter((p) => encaja(busca, p)).slice(0, 6);
-  const nombre = (c.nombre as string | null) ?? (c.telefono as string);
+  const nombre = (c.nombre as string | null) ?? telefonoBonito(c.telefono as string);
   const manana = fechaIso(sumarDias(fechaLocal(new Date(), zona), 1));
   const resumen = resumenBusca(busca);
 
@@ -100,7 +100,7 @@ export default async function Cliente({
         <div>
           <h1>{nombre}</h1>
           <p className="suave">
-            {c.telefono as string} · llegó por {ORIGEN[c.origen as string] ?? c.origen}
+            {telefonoBonito(c.telefono as string)} · llegó por {ORIGEN[c.origen as string] ?? c.origen}
           </p>
         </div>
       </header>
@@ -120,22 +120,40 @@ export default async function Cliente({
         </a>
       </div>
 
-      <h2>Etapa</h2>
+      <h2>¿En qué va?</h2>
       <form action={cambiarEtapa} className="etapas-selector">
         <input type="hidden" name="id" value={id} />
         {ETAPAS.map((e) => (
           <button key={e} type="submit" name="etapa" value={e} aria-pressed={e === etapa} className={`etapa etapa-${e}`}>
-            {NOMBRE_ETAPA[e]}
+            <strong>{NOMBRE_ETAPA[e]}</strong>
+            <small>{AYUDA_ETAPA[e]}</small>
           </button>
         ))}
       </form>
+      {etapa === "perdido" && (
+        <form action={cambiarEtapa} className="tarjeta pila motivo-perdida">
+          <input type="hidden" name="id" value={id} />
+          <input type="hidden" name="etapa" value="perdido" />
+          <p>
+            <strong>¿Por qué se perdió?</strong>
+            {c.motivo_perdida ? <span className="suave"> Ahora dice: {c.motivo_perdida as string}</span> : null}
+          </p>
+          <div className="botones-motivo">
+            {MOTIVOS_PERDIDA.map((m) => (
+              <button key={m} type="submit" name="motivo" value={m} aria-pressed={m === c.motivo_perdida}>
+                {m}
+              </button>
+            ))}
+          </div>
+        </form>
+      )}
 
       <div className="cliente-columnas">
         <section className="tarjeta pila">
           <h2>Qué busca</h2>
           <p>{resumen || "Todavía no lo dijo. La asistente lo anota sola cuando el cliente lo cuenta en el chat."}</p>
           <details>
-            <summary>Cambiarlo</summary>
+            <summary>Corregirlo</summary>
             <form action={guardarBusca} className="pila">
               <input type="hidden" name="id" value={id} />
               <label htmlFor="operacion">Para</label>
@@ -171,21 +189,27 @@ export default async function Cliente({
         </section>
 
         <section className="tarjeta pila">
-          <h2>Seguimiento</h2>
+          <h2>Recordatorio</h2>
           {c.seguimiento_fecha ? (
             <p>
               <strong>{etiquetaHorario(new Date(`${c.seguimiento_fecha as string}T12:00:00`), zona).split(",")[0]}</strong>
               {c.seguimiento_nota ? `: ${c.seguimiento_nota as string}` : ""}
             </p>
           ) : (
-            <p className="suave">Sin seguimiento pendiente.</p>
+            <p className="suave">Nada pendiente con este cliente.</p>
           )}
           <form action={guardarSeguimiento} className="pila">
             <input type="hidden" name="id" value={id} />
-            <label htmlFor="fecha">Recordarme el</label>
-            <input id="fecha" name="fecha" type="date" defaultValue={(c.seguimiento_fecha as string | null) ?? manana} />
-            <label htmlFor="nota">Para</label>
+            <label htmlFor="nota">¿Qué tienes que hacer?</label>
             <input id="nota" name="nota" type="text" defaultValue={(c.seguimiento_nota as string | null) ?? ""} placeholder="Llamarla para ver si le gustó la casa" />
+            <p className="suave">Recordármelo:</p>
+            <div className="botones atajos">
+              <button type="submit" name="dias" value="1">Mañana</button>
+              <button type="submit" name="dias" value="3">En 3 días</button>
+              <button type="submit" name="dias" value="7">En una semana</button>
+            </div>
+            <label htmlFor="fecha">U otro día</label>
+            <input id="fecha" name="fecha" type="date" defaultValue={(c.seguimiento_fecha as string | null) ?? manana} />
             <div className="botones">
               <button type="submit" className="primario">
                 Guardar
