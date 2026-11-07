@@ -12,7 +12,8 @@ import { PreguntarPatty } from "../../preguntar-patty";
 import { Avatar } from "../../avatar";
 import { IconoAgenda, IconoCasa, IconoChats, IconoTelefono } from "../../iconos";
 import { Volver } from "../../volver";
-import { cambiarEtapa, guardarBusca, guardarCierre, guardarNotas, guardarOportunidad, guardarSeguimiento } from "../acciones";
+import { cambiarEtapa, guardarBusca, guardarCierre, guardarNotas, guardarOportunidad, guardarSeguimiento, unirCliente } from "../acciones";
+import { ZONAS_CONOCIDAS } from "@/lib/agenda/zonas";
 import { Historia } from "./historia";
 
 type Casa = {
@@ -61,7 +62,7 @@ export default async function Cliente({
   const [{ data: c }, { data: conv }, { data: citas }, { data: casasData }] = await Promise.all([
     supabase
       .from("contactos")
-      .select("id, nombre, telefono, origen, notas, etapa, etapa_at, busca, seguimiento_fecha, seguimiento_nota, motivo_perdida, created_at, propiedad_interes_id, oferta_monto, cierre_propiedad_id, cierre_precio, cierre_comision, cierre_at")
+      .select("id, nombre, telefono, email, origen, notas, etapa, etapa_at, busca, seguimiento_fecha, seguimiento_nota, motivo_perdida, created_at, propiedad_interes_id, oferta_monto, cierre_propiedad_id, cierre_precio, cierre_comision, cierre_at")
       .eq("corredor_id", corredor.id)
       .eq("id", id)
       .maybeSingle(),
@@ -102,6 +103,21 @@ export default async function Cliente({
   const casaInteres = todas.find((p) => p.id === c.propiedad_interes_id) ?? null;
   const casaCierre = todas.find((p) => p.id === c.cierre_propiedad_id) ?? null;
   const pct = corredor.comision_pct ?? 5;
+  // Otros clientes, para unir si son la misma persona; los que parecen la misma (mismo nombre o correo)
+  // se avisan arriba.
+  const { data: otrosData } = await supabase
+    .from("contactos")
+    .select("id, nombre, telefono, email")
+    .eq("corredor_id", corredor.id)
+    .eq("es_corredor", false)
+    .neq("id", id)
+    .order("nombre")
+    .limit(500);
+  const otros = (otrosData ?? []) as { id: string; nombre: string | null; telefono: string; email: string | null }[];
+  const norm = (t: string | null) => (t ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  const parecidos = otros.filter(
+    (o) => (c.nombre && norm(o.nombre) === norm(c.nombre as string)) || (c.email && o.email && norm(o.email) === norm(c.email as string)),
+  );
   const nombre = (c.nombre as string | null) ?? telefonoBonito(c.telefono as string);
   const manana = fechaIso(sumarDias(fechaLocal(new Date(), zona), 1));
   const resumen = resumenBusca(busca);
@@ -260,7 +276,12 @@ export default async function Cliente({
               <label htmlFor="tipo">Tipo</label>
               <input id="tipo" name="tipo" type="text" defaultValue={busca.tipo ?? ""} placeholder="casa, apartamento, lote…" />
               <label htmlFor="zonas">Zonas (separadas por coma)</label>
-              <input id="zonas" name="zonas" type="text" defaultValue={(busca.zonas ?? []).join(", ")} placeholder="Escazú, Santa Ana" />
+              <input id="zonas" name="zonas" type="text" list="zonas-conocidas" defaultValue={(busca.zonas ?? []).join(", ")} placeholder="Escazú, Santa Ana" />
+              <datalist id="zonas-conocidas">
+                {ZONAS_CONOCIDAS.map((z) => (
+                  <option key={z} value={z} />
+                ))}
+              </datalist>
               <div className="fila campos">
                 <div className="pila">
                   <label htmlFor="presupuesto">Presupuesto máximo</label>
@@ -364,7 +385,39 @@ export default async function Cliente({
         })
       )}
 
+      {parecidos.length > 0 && (
+        <form action={unirCliente} className="aviso parecido">
+          <input type="hidden" name="id" value={id} />
+          <input type="hidden" name="otro" value={parecidos[0].id} />
+          <span>
+            Parece la misma persona que <strong>{parecidos[0].nombre ?? telefonoBonito(parecidos[0].telefono)}</strong> (
+            {telefonoBonito(parecidos[0].telefono)}).
+          </span>
+          <button type="submit">Unirlos</button>
+        </form>
+      )}
+
       <Historia supabase={supabase} corredorId={corredor.id} contactoId={id} zona={zona} nombreAsistente={corredor.nombre_asistente ?? "Patty"} />
+
+      <details className="tarjeta pila unir">
+        <summary>¿Es la misma persona que otro cliente?</summary>
+        <form action={unirCliente} className="pila">
+          <input type="hidden" name="id" value={id} />
+          <label htmlFor="otro">Unir con</label>
+          <select id="otro" name="otro" required defaultValue="">
+            <option value="" disabled>
+              Elige el otro cliente
+            </option>
+            {otros.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.nombre ?? telefonoBonito(o.telefono)} · {telefonoBonito(o.telefono)}
+              </option>
+            ))}
+          </select>
+          <p className="suave">Sus chats, visitas e historia pasan a este cliente y se completan los datos que falten. Su teléfono queda en las notas.</p>
+          <button type="submit">Unir</button>
+        </form>
+      </details>
 
       <h2 data-patty="cliente-notas">Notas</h2>
       <form action={guardarNotas} className="tarjeta pila">

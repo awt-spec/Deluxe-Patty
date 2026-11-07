@@ -32,6 +32,8 @@ type Cliente = {
 const DIA = 24 * 60 * 60_000;
 // Días sin movimiento a partir de los cuales un cliente "necesita atención", por etapa.
 const ESTANCADO: Partial<Record<Etapa, number>> = { nuevo: 2, interesado: 7, visita: 5, negociando: 7 };
+// Un alquiler se decide en días: se avisa antes.
+const ESTANCADO_ALQUILER: Partial<Record<Etapa, number>> = { nuevo: 1, interesado: 3, visita: 2, negociando: 3 };
 
 /** "$1,2 millones" o "$850 mil": cifras redondas, fáciles de leer. */
 function plata(n: number): string {
@@ -40,8 +42,18 @@ function plata(n: number): string {
   return `$${Math.round(n)}`;
 }
 
-export default async function Clientes({ searchParams }: { searchParams: Promise<{ etapa?: string; q?: string; ver?: string }> }) {
-  const { etapa: pedida, q, ver } = await searchParams;
+export default async function Clientes({
+  searchParams,
+}: {
+  searchParams: Promise<{ etapa?: string; q?: string; ver?: string; tipo?: string }>;
+}) {
+  const { etapa: pedida, q, ver, tipo: tipoPedido } = await searchParams;
+  // Compras y alquileres se ven por separado (o todos): sus tiempos son distintos.
+  const tipo = tipoPedido === "compras" || tipoPedido === "alquileres" ? tipoPedido : null;
+  const enlace = (extra: Record<string, string>) => {
+    const p = new URLSearchParams({ ...(tipo ? { tipo } : {}), ...extra });
+    return `/panel/clientes${p.toString() ? `?${p}` : ""}`;
+  };
   const buscar = (q ?? "").trim().toLowerCase();
   const digitos = buscar.replace(/\D/g, "");
   const { supabase, corredor } = await sesionConCorredor();
@@ -60,7 +72,13 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
       .order("inicio", { ascending: false })
       .limit(500),
   ]);
-  const todos = (data ?? []) as Cliente[];
+  const { data: preciosData } = await supabase.from("propiedades").select("id, precio, operacion").eq("corredor_id", corredor.id);
+  const casasPorId = new Map(((preciosData ?? []) as { id: string; precio: number | null; operacion: string }[]).map((p) => [p.id, p]));
+  // Compra o alquiler: lo que dijo que busca o, si no, la operación de la casa que le interesa.
+  const operacion = (c: Cliente) => c.busca?.operacion ?? (c.propiedad_interes_id ? casasPorId.get(c.propiedad_interes_id)?.operacion : undefined);
+  const todos = ((data ?? []) as Cliente[]).filter(
+    (c) => !tipo || (tipo === "alquileres" ? operacion(c) === "alquiler" : operacion(c) !== "alquiler"),
+  );
   // La última casa que fue (o va) a ver cada cliente.
   const casaDe = new Map<string, string>();
   for (const c of (citasData ?? []) as { contacto_id: string; propiedades: { titulo: string } | { titulo: string }[] | null }[]) {
@@ -78,14 +96,13 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
   const activo = (c: Cliente) => c.etapa !== "cerrado" && c.etapa !== "perdido";
   // Necesita atención: lleva mucho en su etapa y no tiene un recordatorio a futuro.
   const estancado = (c: Cliente) =>
-    activo(c) && quieto(c) >= (ESTANCADO[c.etapa] ?? 99) && !(c.seguimiento_fecha && c.seguimiento_fecha > hoy);
+    activo(c) && quieto(c) >= ((operacion(c) === "alquiler" ? ESTANCADO_ALQUILER : ESTANCADO)[c.etapa] ?? 99) && !(c.seguimiento_fecha && c.seguimiento_fecha > hoy);
   const vence = (c: Cliente) => !!c.seguimiento_fecha && c.seguimiento_fecha <= hoy;
 
   const activos = todos.filter(activo);
   // Dinero real: lo que vale lo que se está negociando (la oferta, o el precio de la casa que le
   // interesa) y lo que ya se ganó este mes en comisiones.
-  const { data: preciosData } = await supabase.from("propiedades").select("id, precio").eq("corredor_id", corredor.id);
-  const precioDe = new Map(((preciosData ?? []) as { id: string; precio: number | null }[]).map((p) => [p.id, p.precio ?? 0]));
+  const precioDe = new Map([...casasPorId].map(([id, p]) => [id, p.precio ?? 0]));
   const valorDe = (c: Cliente) => Number(c.oferta_monto ?? 0) || (c.propiedad_interes_id ? (precioDe.get(c.propiedad_interes_id) ?? 0) : 0);
   const negociando = activos.filter((c) => c.etapa === "negociando");
   const enNegociacion = negociando.reduce((s, c) => s + valorDe(c), 0);
@@ -166,6 +183,9 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
           <h1>Clientes</h1>
           <p className="suave">{todos.length === 1 ? "1 cliente" : `${todos.length} clientes`}</p>
         </div>
+        <Link href="/panel/negocio" className="boton" data-patty="clientes-negocio">
+          Cómo va el negocio
+        </Link>
         <Link data-patty="clientes-agregar" href="/panel/clientes/nuevo" className="boton primario">
           <IconoAgregar tamano={20} /> Agregar
         </Link>
@@ -207,22 +227,35 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
         </p>
       )}
 
+      <nav className="tipo-clientes" aria-label="Compras o alquileres">
+        <Link href="/panel/clientes" aria-current={!tipo ? "page" : undefined}>
+          Todos
+        </Link>
+        <Link href={`/panel/clientes?tipo=compras`} aria-current={tipo === "compras" ? "page" : undefined}>
+          Compras
+        </Link>
+        <Link href={`/panel/clientes?tipo=alquileres`} aria-current={tipo === "alquileres" ? "page" : undefined}>
+          Alquileres
+        </Link>
+      </nav>
+
       <form className="buscar-clientes" role="search">
         {elegida && <input type="hidden" name="etapa" value={elegida} />}
+        {tipo && <input type="hidden" name="tipo" value={tipo} />}
         <input data-patty="clientes-buscar" type="search" name="q" defaultValue={q ?? ""} placeholder="Buscar por nombre o teléfono" aria-label="Buscar por nombre o teléfono" />
       </form>
 
       <nav className="filtro-etapas" aria-label="Etapas">
-        <Link href="/panel/clientes" aria-current={!elegida && !verAtencion ? "page" : undefined}>
+        <Link href={enlace({})} aria-current={!elegida && !verAtencion ? "page" : undefined}>
           Activos <span>{clientes.filter(activo).length}</span>
         </Link>
         {atencion.length > 0 && (
-          <Link href="/panel/clientes?ver=atencion" aria-current={verAtencion ? "page" : undefined} className="filtro-atencion" data-patty="clientes-llamar">
+          <Link href={enlace({ ver: "atencion" })} aria-current={verAtencion ? "page" : undefined} className="filtro-atencion" data-patty="clientes-llamar">
             Llamar <span>{atencion.length}</span>
           </Link>
         )}
         {ETAPAS.map((e) => (
-          <Link key={e} href={`/panel/clientes?etapa=${e}`} aria-current={elegida === e ? "page" : undefined}>
+          <Link key={e} href={enlace({ etapa: e })} aria-current={elegida === e ? "page" : undefined}>
             {NOMBRE_ETAPA[e]} <span>{cuantos(e)}</span>
           </Link>
         ))}

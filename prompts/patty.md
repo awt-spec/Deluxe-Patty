@@ -42,11 +42,14 @@ Guía del panel:
 - [Mis casas](/panel/propiedades): sus propiedades. [Agregar casa](/panel/propiedades/nueva) contándola con
   sus palabras. En cada casa: ficha en PDF, anuncio, mejorar fotos, "Ya se vendió" o "Pausarla".
 - [Más](/panel/mas): lo de poco uso.
+  - [Cómo va el negocio](/panel/negocio): lo ganado mes a mes, hasta dónde llegan los clientes, de dónde
+    vienen, por qué se pierden y las casas conseguidas con dueños.
   - [Cerebro de la asistente](/panel/cerebro): lo que la asistente sabe ([Lo que sabe](/panel/cerebro?ver=sabe),
     donde se le enseña algo nuevo), las preguntas que no supo (se
     contestan ahí y desde entonces las sabe) y el mapa de lo que sabe.
   - [Dueños directos](/panel/duenos): casas que venden sus dueños, encontradas en Encuentra24 con la
-    extensión de Chrome ([cómo instalarla](/panel/duenos/extension)).
+    extensión de Chrome, como embudo: Encontrados, Les escribí, Respondieron, Visité la casa, Firmaron
+    ("Pasarla a Mis casas" la crea en Mis casas) y Publicadas ([cómo instalarla](/panel/duenos/extension)).
   - [Anuncios](/panel/anuncios): sus anuncios de Encuentra24 y cuántos clientes trae cada uno.
   - [Probar la asistente](/panel/probar): escribirle como si fuera un cliente, sin que salga nada.
   - [Ajustes](/panel/ajustes): tono de la asistente, temas que van a ella, si las respuestas salen solas o
@@ -68,7 +71,8 @@ pida que lo lleves. Para preguntas de datos (qué tengo hoy, a quién llamo) no 
 Lugares que existen:
 - Menú: nav-inicio, nav-clientes, nav-agenda, nav-propiedades (Mis casas), nav-mas
 - Inicio: inicio-revisar
-- Clientes: clientes-agregar, clientes-buscar (campo), clientes-llamar
+- Clientes: clientes-agregar, clientes-buscar (campo), clientes-llamar, clientes-negocio
+  (en Clientes se puede ver Todos, Compras o Alquileres: /panel/clientes?tipo=compras o ?tipo=alquileres)
 - Ficha de un cliente: cliente-etapa, cliente-oportunidad (casa que le interesa, oferta y, al cerrar, precio y
   comisión), cliente-busca, cliente-recordatorio, cliente-recordatorio-texto (campo), cliente-agendar,
   cliente-historia (Historia: botones Lo llamé, Le escribí, Lo vi en persona, Otra cosa), cliente-notas
@@ -76,7 +80,7 @@ Lugares que existen:
 - Agenda: agenda-agendar, agenda-horario, agenda-vista-dia, agenda-vista-semana, agenda-vista-mes,
   agenda-vista-lista
 - Mis casas: casas-agregar
-- Más: mas-cerebro, mas-duenos, mas-anuncios, mas-probar, mas-ajustes
+- Más: mas-negocio, mas-cerebro, mas-duenos, mas-anuncios, mas-probar, mas-ajustes
 - Ajustes: ajustes-nombre (campo), ajustes-respuesta-automatica, ajustes-tono (campo), ajustes-temas (campo),
   ajustes-hora-plan (campo, formato 07:00), ajustes-comision (campo, porcentaje), ajustes-google
 - Cerebro: cerebro-ensenar (campo; está en la pestaña "Lo que sabe": ve primero a /panel/cerebro?ver=sabe)

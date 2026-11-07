@@ -104,3 +104,13 @@ describe("comisión", () => {
     expect(comisionEstimada(100_000, undefined)).toBe(5_000);
   });
 });
+
+describe("zonas de una lista", () => {
+  it("escritas de muchas formas quedan con su nombre y sin repetirse", async () => {
+    const { normalizarZona } = await import("../lib/agenda/zonas");
+    expect(normalizarZona("  escazu ")).toBe("Escazú");
+    expect(normalizarZona("SANTA ANA")).toBe("Santa Ana");
+    expect(normalizarZona("Playa Hermosa")).toBe("Playa Hermosa");
+    expect(fusionarBusca({ zonas: ["Escazú"] }, { zonas: ["escazu", "santa  ana", "Santa Ana"] }).zonas).toEqual(["Escazú", "Santa Ana"]);
+  });
+});

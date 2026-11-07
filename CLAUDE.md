@@ -152,7 +152,12 @@ agregar un cliente a mano y, al perderlo, anotar el motivo (`motivo_perdida`). C
 ofertas, visitas, correos y los días de WhatsApp; anotar algo reinicia el "sin movimiento" (`ultima_actividad_at`).
 "Lo que está en juego": casa que le interesa y oferta (con oferta pasa a Negociando); al cerrar, casa, precio y
 comisión (`corredores.comision_pct`, 5% por defecto). Las cifras usan ese dinero real (en negociación, ganado del
-mes). Al marcar una visita como hecha queda un recordatorio para mañana; Inicio pide cómo salieron las visitas
+mes). Clientes se ve por Todos, Compras o Alquileres (`?tipo=`; los alquileres avisan antes). Dos clientes que son la
+misma persona se unen desde la ficha (`unir_contactos`, una sola transacción en la base; se avisa si coinciden
+nombre o correo) y las zonas se eligen de una lista (`ZONAS_CONOCIDAS`, `normalizarZona`). "Cómo va el negocio"
+(`app/panel/negocio`, desde Más y Clientes): lo ganado mes a mes, hasta dónde llegan los clientes, de dónde vienen,
+por qué se pierden y las casas conseguidas con dueños.
+Al marcar una visita como hecha queda un recordatorio para mañana; Inicio pide cómo salieron las visitas
 pasadas y avisa de casas nuevas que le sirven a algún cliente, y la ficha de cada casa lista a esos clientes. La ficha muestra las
 casas que le encajan; el inicio, "Para hoy" (seguimientos que vencen y clientes que no contestan hace 3
 días). El corredor edita esos campos con su sesión (permiso por columna; el teléfono no).
@@ -189,7 +194,9 @@ Cloudflare: hace falta un navegador real (`worker/navegador.ts`), volumen bajo y
 `lib/encuentra24/busqueda.ts` recorre las zonas (`corredores.zonas_e24`, slugs de la URL) por turnos,
 descarta agentes, ya vistos, fuera de rango y corredores bloqueados, y Haiku confirma dueño o corredor.
 Si Encuentra24 bloquea o no trae anuncios, la búsqueda avisa a soporte (extensión) o falla el workflow. Los dueños quedan en
-`leads_duenos` y el corredor los ve en el panel (Más → Dueños directos); si hay WhatsApp
+`leads_duenos` y el corredor los ve en el panel (Más → Dueños directos) como embudo de captación: Encontrados, Les
+escribí, Respondieron, Visité la casa, Firmaron y Publicadas ("Pasarla a Mis casas" crea la casa con los datos del
+anuncio y la enlaza en `leads_duenos.propiedad_id`); si hay WhatsApp
 (`WHATSAPP_ACCESS_TOKEN` y números del corredor), además le llega la lista, y si su ventana de 24 horas
 está cerrada, queda en `envios_pendientes` y sale cuando escribe. Sin WhatsApp la búsqueda corre igual.
 Probar la lectura sin tocar datos: `npm run duenos:prueba -- <zona> [páginas]`. El acceso a datos va por `lib/datos/repositorio.ts`

@@ -5100,3 +5100,126 @@ body:has(.marco.tema) {
   color: #00876a;
   border-color: #bfe6d9;
 }
+
+/* Clientes: compras o alquileres */
+.tema .tipo-clientes {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  margin: 4px 0 12px;
+  border-radius: 12px;
+  background: #e9edf1;
+}
+.tema .tipo-clientes a {
+  padding: 8px 16px;
+  border-radius: 9px;
+  color: #46525c;
+  font-weight: 600;
+  text-decoration: none;
+}
+.tema .tipo-clientes a[aria-current="page"] {
+  background: #fff;
+  color: #111b21;
+  box-shadow: var(--sombra-1);
+}
+.tema .duenos-lista {
+  display: grid;
+  gap: 12px;
+}
+@media (min-width: 900px) {
+  .tema .duenos-lista {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.tema .dueno-otros button {
+  min-height: 38px;
+  font-size: 0.88rem;
+}
+
+/* Cómo va el negocio */
+.tema .negocio-columnas {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+}
+@media (min-width: 900px) {
+  .tema .negocio-columnas {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.tema .negocio-seccion h2 {
+  margin-top: 0;
+}
+.tema .barras-mes {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  height: 220px;
+  align-items: end;
+}
+.tema .barra-mes {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+}
+.tema .barra-mes .barra {
+  width: 70%;
+  max-width: 56px;
+  border-radius: 6px 6px 2px 2px;
+  background: linear-gradient(180deg, #00a884, #00876a);
+  min-height: 3px;
+}
+.tema .barra-valor {
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: #00876a;
+}
+.tema .barra-nombre {
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.tema .barra-cierres {
+  font-size: 0.75rem;
+}
+.tema .fila-barra {
+  display: grid;
+  grid-template-columns: minmax(120px, 1.2fr) 2fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+.tema .barra-h {
+  height: 10px;
+  border-radius: 999px;
+  background: #eef1f4;
+  overflow: hidden;
+}
+.tema .barra-h > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #00a884;
+}
+.tema .barra-h.perdida > span {
+  background: #e2702f;
+}
+
+/* Clientes: posible duplicado y unir */
+.tema .aviso.parecido {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.tema .aviso.parecido button {
+  min-height: 38px;
+}
+.tema details.unir summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #46525c;
+}

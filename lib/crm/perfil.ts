@@ -1,3 +1,5 @@
+import { normalizarZona } from "../agenda/zonas";
+
 // Perfil de un cliente en el CRM: en qué etapa va y qué busca. La asistente lo llena con lo que el
 // cliente dice en el chat; el corredor lo corrige desde su panel.
 
@@ -70,8 +72,11 @@ export function fusionarBusca(actual: Busca, nuevo: Busca): Busca {
   }
   if (nuevo.habitaciones && nuevo.habitaciones > 0) r.habitaciones = nuevo.habitaciones;
   if (nuevo.zonas?.length) {
-    const vistas = new Set((r.zonas ?? []).map((z) => z.toLowerCase()));
-    r.zonas = [...(r.zonas ?? []), ...nuevo.zonas.filter((z) => z.trim() && !vistas.has(z.toLowerCase()))].slice(0, 6);
+    // Las zonas con su nombre de la lista ("escazu" → "Escazú") para que no se repitan escritas distinto.
+    const actuales = (r.zonas ?? []).map(normalizarZona);
+    const vistas = new Set(actuales.map((z) => z.toLowerCase()));
+    const nuevas = nuevo.zonas.map(normalizarZona).filter((z) => z && !vistas.has(z.toLowerCase()));
+    r.zonas = [...actuales, ...new Set(nuevas)].slice(0, 6);
   }
   return r;
 }

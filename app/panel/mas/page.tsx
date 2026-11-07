@@ -9,12 +9,16 @@ import {
   IconoIdea,
   IconoLlave,
   IconoProbar,
+  IconoResumen,
   IconoSalir,
 } from "../iconos";
 
 // Lo que no se usa todos los días. Lo que ya tiene su pestaña (agenda, horario, clientes) no se repite aquí.
 const GRUPOS = [
-  [{ ruta: "/panel/cerebro", Icono: IconoIdea, nombre: "Cerebro de la asistente", detalle: "Lo que sabe y lo que te pregunta" }],
+  [
+    { ruta: "/panel/negocio", Icono: IconoResumen, nombre: "Cómo va el negocio", detalle: "Lo ganado, de dónde vienen y por qué se pierden" },
+    { ruta: "/panel/cerebro", Icono: IconoIdea, nombre: "Cerebro de la asistente", detalle: "Lo que sabe y lo que te pregunta" },
+  ],
   [
     { ruta: "/panel/duenos", Icono: IconoLlave, nombre: "Dueños directos", detalle: "Casas que venden sus dueños" },
     { ruta: "/panel/anuncios", Icono: IconoAnuncio, nombre: "Anuncios", detalle: "Tus anuncios de Encuentra24" },
