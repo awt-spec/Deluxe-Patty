@@ -7299,3 +7299,25 @@ body:has(.marco.tema) {
     font-size: 0.85rem;
   }
 }
+@media (max-width: 899px) {
+  /* Algunas reglas fijan la altura (botones "chicos" 40 px, Waze/Maps 36 px): ganarles. */
+  .tema main button,
+  .tema main .boton,
+  .tema main .como-llegar .boton,
+  .tema .patty-sugerencias button,
+  .tema .patty-chat .preguntas-patty button {
+    height: auto !important;
+    min-height: 44px !important;
+  }
+  .tema main input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
+  .tema main select {
+    min-height: 44px;
+  }
+  /* Las flechas de cada foto (ahora de 44 px) bajan de renglón en vez de sacar la foto de la pantalla. */
+  .tema .casa-foto {
+    min-width: 0;
+  }
+  .tema .casa-foto-botones {
+    flex-wrap: wrap;
+  }
+}
