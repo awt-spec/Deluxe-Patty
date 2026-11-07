@@ -69,7 +69,8 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
 `lib/asistente/procesar.ts`: guarda el mensaje (idempotente por `wa_message_id`), suma uso, y si la
 conversación no está escalada ni tomada por el corredor, Haiku clasifica y Sonnet responde con las
 propiedades activas; si la intención es agendar, `lib/asistente/agenda.ts` calcula horarios libres
-(`lib/agenda/disponibilidad.ts`), Sonnet elige la acción con ids cortos y el código arma las fechas y
+(`lib/agenda/disponibilidad.ts`; por zona: traslado estimado entre visitas con `lib/agenda/zonas.ts`, salida desde
+`corredores.zona_base` —Patricia, Lindora— y primero los días con otra visita cerca), Sonnet elige la acción con ids cortos y el código arma las fechas y
 crea la cita. El modelo nunca escribe una fecha que llegue al cliente. Escalamientos, audios/imágenes, fallas de Claude y datos por confirmar se avisan al
 corredor con la plantilla `WHATSAPP_PLANTILLA_AVISO`.
 Si quien escribe es el propio corredor (`corredores.whatsapp_corredor`), no se trata como cliente:
@@ -84,11 +85,13 @@ traen contactos (`lib/anuncios/reporte.ts`); "fotos <código>" mejora hasta 12 f
 marca del corredor (`corredores.marca`), la sube al bucket público `fichas` y se la manda como documento.
 
 ## Panel del corredor (`app/panel`)
-Para el teléfono y para alguien que no usa tecnología: **cuatro botones** (Chats, Clientes, Agenda, Mis casas),
+Para el teléfono y para alguien que no usa tecnología: **cuatro botones** (Inicio, Clientes, Agenda, Mis casas;
+en computadora, menú a la izquierda que se contrae),
 letra y botones grandes, palabras de todos los días (nada de "borrador" ni "escalada"), tema claro como
-WhatsApp (letra del sistema, verde de WhatsApp para enviar). Chats (`/panel`) es el inicio: arriba solo lo
-urgente (un botón "Revisar" con lo que espera al corredor, y "Hoy": visitas, seguimientos y clientes que no
-contestan), abajo todos los chats. Revisar (`/panel/revisar`, `lib/panel/pendientes.ts`) muestra uno a la
+WhatsApp (letra del sistema, verde de WhatsApp para enviar). Inicio (`/panel`): arriba lo
+urgente (un botón "Revisar" con lo que espera al corredor), lo que hizo la asistente en 24 horas y "Qué hacer
+hoy" (visitas con hora de salida, recordatorios y clientes que no contestan), abajo todos los chats.
+Agenda en calendario: día, semana, mes o lista (`?vista=`). Revisar (`/panel/revisar`, `lib/panel/pendientes.ts`) muestra uno a la
 vez lo que dijo el cliente y la respuesta propuesta, editable, con Enviar, Yo le escribo y No enviar (o
 "Escribirle por WhatsApp" y "Ya lo atendí" si pidió hablar con el corredor) y pasa al siguiente. Lo de
 poco uso (Dueños, Anuncios, Probar la asistente, Ajustes, Salir) está detrás de "Más" (`/panel/mas`). Íconos dibujados en `app/panel/iconos.tsx`
@@ -122,7 +125,9 @@ CRM (`app/panel/clientes`, `lib/crm/perfil.ts`): cada cliente tiene etapa (nuevo
 negociando, cerrado, perdido), lo que busca (`contactos.busca`), notas y seguimiento con fecha. La
 asistente llena `busca` con lo que el cliente dice (sale de la misma clasificación de Haiku, sin otra
 llamada) y la etapa solo avanza sola (nuevo → interesado → visita al agendar), nunca retrocede ni toca un
-cliente cerrado o perdido. En el teléfono, lista por etapa; en computadora, tablero. La ficha muestra las
+cliente cerrado o perdido. Arriba, cifras del embudo (activos, compras en juego, cerrados del mes, a quién llamar); en el teléfono, lista por
+etapa; en computadora, tablero donde cada cliente se arrastra de etapa (`app/panel/clientes/tablero.tsx`). Se puede
+agregar un cliente a mano y, al perderlo, anotar el motivo (`motivo_perdida`). La ficha muestra las
 casas que le encajan; el inicio, "Para hoy" (seguimientos que vencen y clientes que no contestan hace 3
 días). El corredor edita esos campos con su sesión (permiso por columna; el teléfono no).
 Cerebro de la asistente (`app/panel/cerebro`, desde Más): lo que el corredor le enseña (`conocimiento`,
