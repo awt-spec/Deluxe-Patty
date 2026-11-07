@@ -7591,3 +7591,14 @@ body:has(.marco.tema) {
     color: #0e7f42 !important; /* antes #1daa61: 2,9 → 4,8 */
   }
 }
+@media (max-width: 899px) {
+  /* Hora de los chats con mensajes nuevos y los números en verde: el verde brillante de WhatsApp con
+     letra blanca da 2 a 1; con #0e7f42, 5,1. */
+  .tema .chat-lista .hora.nueva {
+    color: #0e7f42 !important;
+  }
+  .tema .chat-lista .punto,
+  .tema .navegacion .contador {
+    background: #0e7f42 !important;
+  }
+}
