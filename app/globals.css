@@ -5417,3 +5417,21 @@ body:has(.marco.tema) {
 .tema .ficha-cabecera {
   --tono-defecto: var(--principal);
 }
+@media (max-width: 699px) {
+  .tema .ficha-etapa {
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+    gap: 10px;
+  }
+  .tema .ficha-cabecera {
+    padding: 16px;
+  }
+  .tema .ficha-cabecera .cliente-acciones .boton {
+    min-height: 48px;
+    font-size: 0.95rem;
+  }
+  .tema .anotar-botones button {
+    flex: 1 1 45%;
+  }
+}
