@@ -4,7 +4,7 @@ import type { Marca } from "@/lib/fichas/marca";
 import { fotosPropias } from "@/lib/fotos/origen";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { telefonoBonito } from "@/lib/crm/perfil";
-import { opcionesDeFoto } from "@/lib/redes/fotos";
+import { fotosParaRedes, opcionesDeFoto } from "@/lib/redes/fotos";
 import { imagenRedes } from "@/lib/redes/imagen";
 import type { Formato } from "@/lib/redes/texto";
 
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     .maybeSingle();
   if (!data) return new NextResponse(null, { status: 404 });
   const p = data as Propiedad & { fotos: Foto[] };
-  const opciones = opcionesDeFoto(fotosPropias(p.fotos ?? [], corredor.id));
+  const opciones = opcionesDeFoto(fotosParaRedes(p.fotos ?? [], corredor, fotosPropias));
   if (opciones.length === 0) return new NextResponse("La casa no tiene fotos.", { status: 404 });
   const pedida = req.nextUrl.searchParams.get("img");
   const elegida = opciones.find((o) => o.url === pedida) ?? opciones[0];

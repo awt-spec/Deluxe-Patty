@@ -154,3 +154,13 @@ describe("imágenes desde el chat de Patty", () => {
     vi.unstubAllEnvs();
   });
 });
+
+describe("fotos que puede leer la imagen para redes", () => {
+  it("un corredor activo solo usa su bucket; la demo, además, las fotos de ejemplo de Unsplash", async () => {
+    const { fotosParaRedes } = await import("../lib/redes/fotos");
+    const propias = (f: { url: string }[]) => f.filter((x) => x.url.startsWith("https://propio/")) as never;
+    const fotos = [{ url: "https://propio/a.jpg" }, { url: "https://images.unsplash.com/photo-1?w=1" }, { url: "http://169.254.169.254/x" }];
+    expect(fotosParaRedes(fotos, { id: "c", activo: true }, propias).map((f) => f.url)).toEqual(["https://propio/a.jpg"]);
+    expect(fotosParaRedes(fotos, { id: "c", activo: false }, propias).map((f) => f.url)).toEqual(["https://images.unsplash.com/photo-1?w=1"]);
+  });
+});

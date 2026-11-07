@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import type { Foto, Propiedad } from "@/lib/datos/tipos";
 import { fotosPropias } from "@/lib/fotos/origen";
 import { sesionConCorredor } from "@/lib/panel/sesion";
-import { opcionesDeFoto } from "@/lib/redes/fotos";
+import { fotosParaRedes, opcionesDeFoto } from "@/lib/redes/fotos";
 import { TAMANOS, textoPublicacion, type Formato } from "@/lib/redes/texto";
 import { Volver } from "../../../volver";
 import { CopiarTexto } from "./copiar";
@@ -23,7 +23,7 @@ export default async function Redes({ params, searchParams }: { params: Promise<
     .maybeSingle();
   if (!data) notFound();
   const p = data as Propiedad & { fotos: Foto[] };
-  const opciones = opcionesDeFoto(fotosPropias(p.fotos ?? [], corredor.id));
+  const opciones = opcionesDeFoto(fotosParaRedes(p.fotos ?? [], corredor, fotosPropias));
   const elegida = opciones.find((o) => o.url === img) ?? opciones[0];
   const enlace = (formato: Formato, descargar = false) =>
     `/panel/propiedades/${p.id}/redes/imagen?formato=${formato}${elegida ? `&img=${encodeURIComponent(elegida.url)}` : ""}${descargar ? "&descargar=1" : ""}`;
