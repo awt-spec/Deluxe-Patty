@@ -5,6 +5,7 @@ import { precio } from "@/lib/formato";
 import { ETIQUETA_ESTADO, ordenarFotos } from "@/lib/panel/formularios";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Aviso } from "../aviso";
+import { PreguntarPatty } from "../preguntar-patty";
 
 type Fila = {
   id: string;
@@ -42,6 +43,9 @@ export default async function Propiedades({
         <h1>Mis casas</h1>
       </header>
       <Aviso texto={aviso} />
+      <div className="preguntas-patty">
+        <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="¿Cómo agrego una casa?" />
+      </div>
       <Link href="/panel/propiedades/nueva" className="boton primario grande" style={{ marginBottom: 14 }}>
         <IconoAgregar tamano={24} /> Agregar casa
       </Link>

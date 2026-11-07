@@ -4632,3 +4632,68 @@ body:has(.marco.tema) {
 .tema .panel {
   padding-bottom: 120px;
 }
+
+/* Patty en cada pantalla: botones de pregunta, atajos y enlaces del chat */
+.preguntas-patty {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 14px;
+}
+.tema .preguntar-patty {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 4px 14px 4px 4px;
+  border-radius: 999px;
+  border: 1px solid #cfe9e0;
+  background: #f0faf6;
+  color: #00876a;
+  font-weight: 600;
+  font-size: 0.92rem;
+  box-shadow: none;
+}
+.tema .preguntar-patty:hover {
+  background: #e3f5ee;
+  border-color: #a6e3d2;
+}
+.patty-avatar.mini {
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  font-size: 0.9rem;
+  background: linear-gradient(135deg, #00a884, #00876a);
+  color: #fff;
+  box-shadow: none;
+}
+.patty-atajos {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 8px 12px 0;
+  background: #fff;
+  border-top: 1px solid #e6e9ee;
+  scrollbar-width: none;
+}
+.patty-atajos button {
+  flex: 0 0 auto;
+  min-height: 34px !important;
+  padding: 4px 12px !important;
+  border-radius: 999px !important;
+  font-size: 0.85rem !important;
+  font-weight: 500 !important;
+  color: #00876a !important;
+  border-color: #cfe9e0 !important;
+  background: #f0faf6 !important;
+  box-shadow: none !important;
+}
+.patty-atajos + .patty-escribir {
+  border-top: 0;
+}
+.patty-enlace {
+  color: #00876a;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

@@ -5,6 +5,7 @@ import { minutosEntre } from "@/lib/agenda/zonas";
 import { pendientesDe } from "@/lib/panel/pendientes";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Aviso } from "./aviso";
+import { PreguntarPatty } from "./preguntar-patty";
 import { ComoLlegar } from "./como-llegar";
 import { Avatar } from "./avatar";
 import { IconoCampana, IconoCheck, IconoDobleCheck, IconoFlecha, IconoMas } from "./iconos";
@@ -163,6 +164,10 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
         </Link>
       </header>
       <Aviso texto={aviso} />
+      <div className="preguntas-patty">
+        <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="¿Por dónde empiezo hoy?" />
+        <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="¿A quién debería llamar?" />
+      </div>
 
       {pendientes.length > 0 ? (
         <Link href="/panel/revisar" className="revisar-boton">

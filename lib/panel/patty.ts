@@ -93,12 +93,87 @@ export async function contextoPatty(deps: Dependencias, db: SupabaseClient, corr
     .join("\n\n");
 }
 
+const PANTALLAS: [RegExp, string][] = [
+  [/^\/panel\/?$/, "Inicio"],
+  [/^\/panel\/revisar/, "Revisar respuestas"],
+  [/^\/panel\/clientes\/nuevo/, "Agregar cliente"],
+  [/^\/panel\/clientes\/[0-9a-f-]{36}/, "Ficha de un cliente"],
+  [/^\/panel\/clientes/, "Clientes"],
+  [/^\/panel\/agenda\/horario/, "Mi horario"],
+  [/^\/panel\/agenda\/nueva/, "Agendar una visita"],
+  [/^\/panel\/agenda\/visita\//, "Una visita"],
+  [/^\/panel\/agenda/, "Agenda"],
+  [/^\/panel\/propiedades\/nueva/, "Agregar casa"],
+  [/^\/panel\/propiedades\/[0-9a-f-]{36}/, "Ficha de una casa"],
+  [/^\/panel\/propiedades/, "Mis casas"],
+  [/^\/panel\/cerebro/, "Cerebro de la asistente"],
+  [/^\/panel\/duenos/, "Dueños directos"],
+  [/^\/panel\/anuncios/, "Anuncios"],
+  [/^\/panel\/ajustes/, "Ajustes"],
+  [/^\/panel\/mas/, "Más"],
+];
+
+/** Qué pantalla está viendo el corredor y, si es la ficha de un cliente, una visita o una casa, sus datos. */
+export async function contextoPantalla(db: SupabaseClient, corredor: Corredor, ruta: string): Promise<string> {
+  const camino = ruta.split("?")[0];
+  const nombre = PANTALLAS.find(([r]) => r.test(camino))?.[1] ?? "Panel";
+  const id = /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/.exec(camino)?.[1];
+  const zona = corredor.zona_horaria;
+  const lineas = [`Pantalla: ${nombre}.`];
+  if (id && camino.startsWith("/panel/clientes/")) {
+    const [{ data: c }, { data: citas }, { data: conv }] = await Promise.all([
+      db.from("contactos").select("nombre, telefono, email, origen, etapa, busca, notas, seguimiento_fecha, seguimiento_nota, motivo_perdida, created_at").eq("corredor_id", corredor.id).eq("id", id).maybeSingle(),
+      db.from("citas").select("inicio, estado, propiedades(titulo)").eq("corredor_id", corredor.id).eq("contacto_id", id).order("inicio", { ascending: false }).limit(5),
+      db.from("conversaciones").select("id").eq("corredor_id", corredor.id).eq("contacto_id", id).order("updated_at", { ascending: false }).limit(1).maybeSingle(),
+    ]);
+    if (c) {
+      lineas.push(
+        `Cliente: ${c.nombre ?? c.telefono}. Etapa: ${NOMBRE_ETAPA[c.etapa as Etapa]}. Llegó por ${c.origen}.`,
+        `Busca: ${resumenBusca((c.busca ?? {}) as Busca) || "todavía no lo dijo"}.`,
+        c.seguimiento_fecha ? `Recordatorio ${c.seguimiento_fecha}: ${c.seguimiento_nota ?? "escribirle"}.` : "Sin recordatorio.",
+        c.notas ? `Notas del corredor: ${String(c.notas).slice(0, 800)}` : "Sin notas.",
+        c.motivo_perdida ? `Se perdió: ${c.motivo_perdida}.` : "",
+        `Visitas: ${(citas ?? [])
+          .map((v) => {
+            const casa = uno(v.propiedades as unknown as { titulo: string } | null);
+            return `${etiquetaHorario(new Date(v.inicio as string), zona)} (${v.estado}${casa ? `, ${casa.titulo}` : ""})`;
+          })
+          .join("; ") || "ninguna"}.`,
+      );
+      if (conv) {
+        const { data: msjs } = await db
+          .from("mensajes")
+          .select("autor, contenido")
+          .eq("corredor_id", corredor.id)
+          .eq("conversacion_id", conv.id)
+          .neq("estado_borrador", "descartado")
+          .order("created_at", { ascending: false })
+          .limit(10);
+        const chat = (msjs ?? []).reverse().map((m) => `${m.autor === "cliente" ? "Cliente" : m.autor === "corredor" ? corredor.nombre_contacto : "Asistente"}: ${String(m.contenido ?? "(archivo)").slice(0, 300)}`);
+        if (chat.length) lineas.push(`Últimos mensajes del chat de WhatsApp:\n${chat.join("\n")}`);
+      }
+    }
+  } else if (id && camino.startsWith("/panel/agenda/visita/")) {
+    const { data: v } = await db.from("citas").select("inicio, estado, contactos(nombre, telefono, busca), propiedades(titulo, zona)").eq("corredor_id", corredor.id).eq("id", id).maybeSingle();
+    if (v) {
+      const cl = uno(v.contactos as never) as { nombre: string | null; telefono: string; busca: Busca } | null;
+      const casa = uno(v.propiedades as never) as { titulo: string; zona: string | null } | null;
+      lineas.push(`Visita: ${etiquetaHorario(new Date(v.inicio as string), zona)}, ${v.estado}, con ${cl?.nombre ?? cl?.telefono ?? "un cliente"}${casa ? `, para ver ${casa.titulo}${casa.zona ? ` en ${casa.zona}` : ""}` : ""}. El cliente busca: ${resumenBusca(cl?.busca ?? {}) || "no lo dijo"}.`);
+    }
+  } else if (id && camino.startsWith("/panel/propiedades/")) {
+    const { data: p } = await db.from("propiedades").select("codigo, titulo, estado, operacion, tipo, precio, moneda, zona, habitaciones, banos, descripcion").eq("corredor_id", corredor.id).eq("id", id).maybeSingle();
+    if (p) lineas.push(`Casa: ${JSON.stringify(p).slice(0, 1500)}`);
+  }
+  return lineas.filter(Boolean).join("\n");
+}
+
 export async function hablarConPatty(
   deps: Dependencias,
   db: SupabaseClient,
   corredor: Corredor,
   historial: TurnoPatty[],
   mensaje: string,
+  ruta = "/panel",
 ): Promise<{ ok: true; texto: string } | { ok: false; motivo: string }> {
   const limpio = mensaje.trim().slice(0, 4000);
   if (!limpio) return { ok: false, motivo: "Escribe algo para Patty." };
@@ -108,7 +183,8 @@ export async function hablarConPatty(
   const registrarCosto = (c: { tokensEntrada: number; tokensSalida: number; costoUsd: number }) =>
     deps.repo.registrarUso(corredor.id, { llamadasClaude: 1, tokensEntrada: c.tokensEntrada, tokensSalida: c.tokensSalida, costoClaudeUsd: c.costoUsd });
   try {
-    const contexto = await contextoPatty(deps, db, corredor);
+    const [negocio, pantalla] = await Promise.all([contextoPatty(deps, db, corredor), contextoPantalla(db, corredor, ruta)]);
+    const contexto = `<pantalla_actual>\n${pantalla}\n</pantalla_actual>\n\n${negocio}`;
     const r = await deps.cerebro.conversarConCorredor(corredor, contexto, historial.slice(-12), limpio);
     await registrarCosto(r.consumo);
     return { ok: true, texto: r.texto };

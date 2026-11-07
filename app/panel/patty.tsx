@@ -1,6 +1,7 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { preguntarAPatty } from "./patty-acciones";
 
@@ -9,24 +10,61 @@ import { preguntarAPatty } from "./patty-acciones";
 
 type Turno = { autor: "corredor" | "asistente"; texto: string };
 const CLAVE = "chat-patty";
-const SUGERENCIAS = ["¿Qué tengo hoy?", "¿A quién debería llamar?", "Escríbele a un cliente para confirmar su visita", "¿Cómo va el mes?"];
+// Lo que se le puede pedir en cada pantalla (la primera que calce).
+const SUGERENCIAS: [RegExp, string, string[]][] = [
+  [/^\/panel\/clientes\/[0-9a-f-]{36}/, "Estás en la ficha de un cliente.", ["¿Qué le digo a este cliente?", "¿Qué casa le ofrezco?", "Escríbele un mensaje de seguimiento", "¿Cómo le pongo un recordatorio?"]],
+  [/^\/panel\/clientes/, "Estás en Clientes.", ["¿A quién debería llamar?", "¿Cómo muevo un cliente de etapa?", "¿Cómo agrego un cliente?", "¿Cómo va el mes?"]],
+  [/^\/panel\/agenda\/visita/, "Estás en una visita.", ["¿Qué le digo al confirmar?", "¿Cómo la muevo a otro día?", "Prepárame para esta visita"]],
+  [/^\/panel\/agenda\/horario/, "Estás en Mi horario.", ["¿Cómo bloqueo un día?", "¿Para qué sirve desde dónde salgo?"]],
+  [/^\/panel\/agenda/, "Estás en la Agenda.", ["¿Qué visitas tengo esta semana?", "¿Cómo agendo una visita?", "¿Cómo cancelo una visita?"]],
+  [/^\/panel\/propiedades\/[0-9a-f-]{36}/, "Estás en la ficha de una casa.", ["¿A qué clientes les sirve esta casa?", "¿Cómo hago la ficha en PDF?", "Escríbeme un texto para ofrecerla"]],
+  [/^\/panel\/propiedades/, "Estás en Mis casas.", ["¿Cómo agrego una casa?", "¿Qué casa se mueve más?", "¿Cómo mejoro las fotos?"]],
+  [/^\/panel\/cerebro/, "Estás en el Cerebro de la asistente.", ["¿Cómo le enseño algo?", "¿Qué preguntas no supo contestar?"]],
+  [/^\/panel\/duenos/, "Estás en Dueños directos.", ["¿Cómo funciona la búsqueda de dueños?", "¿Cómo instalo la extensión?"]],
+  [/^\/panel\/ajustes/, "Estás en Ajustes.", ["¿Qué hace cada ajuste?", "¿Cómo conecto mi Gmail?"]],
+  [/^\/panel\/revisar/, "Estás revisando respuestas.", ["¿Cómo corrijo una respuesta?", "¿Qué pasa si le doy No enviar?"]],
+  [/.*/, "", ["¿Qué tengo hoy?", "¿A quién debería llamar?", "¿Dónde veo mis visitas?", "¿Cómo va el mes?"]],
+];
 
-/** Negritas (**así**) y separadores (---) del texto de Patty, sin interpretar HTML. */
-function conFormato(texto: string) {
+/** Abre el chat de Patty desde cualquier botón de la página, con una pregunta lista. */
+export function abrirPatty(pregunta?: string) {
+  window.dispatchEvent(new CustomEvent("abrir-patty", { detail: pregunta ?? null }));
+}
+
+/**
+ * Negritas (**así**), enlaces del panel ([Agenda](/panel/agenda)) y sin separadores (---). Solo se
+ * vuelven enlace las rutas del propio panel; lo demás queda como texto. Nunca se interpreta HTML.
+ */
+function conFormato(texto: string, alIr: () => void) {
   return texto
     .replace(/^\s*-{3,}\s*$/gm, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim()
-    .split(/(\*\*[^*\n]+\*\*)/g)
-    .map((parte, i) => (/^\*\*[^*]+\*\*$/.test(parte) ? <strong key={i}>{parte.slice(2, -2)}</strong> : parte));
+    .split(/(\*\*[^*\n]+\*\*|\[[^\]\n]+\]\([^)\s]+\))/g)
+    .map((parte, i) => {
+      if (/^\*\*[^*]+\*\*$/.test(parte)) return <strong key={i}>{parte.slice(2, -2)}</strong>;
+      const enlace = /^\[([^\]]+)\]\(([^)\s]+)\)$/.exec(parte);
+      if (enlace) {
+        return /^\/panel(\/[\w\-/?=&.]*)?$/.test(enlace[2]) ? (
+          <Link key={i} href={enlace[2]} className="patty-enlace" onClick={alIr}>
+            {enlace[1]}
+          </Link>
+        ) : (
+          enlace[1]
+        );
+      }
+      return parte;
+    });
 }
 
 export function Patty({ nombre, corredor }: { nombre: string; corredor: string }) {
   const ruta = usePathname();
+  const busqueda = useSearchParams();
   const [abierto, setAbierto] = useState(false);
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const [texto, setTexto] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [pendiente, setPendiente] = useState<string | null>(null);
   const [pensando, empezar] = useTransition();
   const fin = useRef<HTMLDivElement>(null);
   const clave = `${CLAVE}:${corredor}`;
@@ -44,27 +82,48 @@ export function Patty({ nombre, corredor }: { nombre: string; corredor: string }
     fin.current?.scrollIntoView({ block: "end" });
   }, [turnos, clave, abierto]);
   useEffect(() => {
+    const abrir = (e: Event) => {
+      setAbierto(true);
+      const pregunta = (e as CustomEvent<string | null>).detail;
+      if (pregunta) setPendiente(pregunta);
+    };
+    window.addEventListener("abrir-patty", abrir);
+    return () => window.removeEventListener("abrir-patty", abrir);
+  }, []);
+  useEffect(() => {
     const cerrar = (e: KeyboardEvent) => e.key === "Escape" && setAbierto(false);
     window.addEventListener("keydown", cerrar);
     return () => window.removeEventListener("keydown", cerrar);
   }, []);
 
+  // Una pregunta que llegó desde un botón de la página se manda en cuanto el chat está abierto.
+  useEffect(() => {
+    if (pendiente && abierto) {
+      enviar(pendiente);
+      setPendiente(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendiente, abierto]);
+
   // En un chat con un cliente y en "Probar la asistente" abajo va otra caja de texto: ahí no se muestra.
   if (ruta.startsWith("/panel/conversaciones/") || ruta.startsWith("/panel/probar")) return null;
 
-  const enviar = (mensaje: string) => {
+  const [, aviso, sugerencias] = SUGERENCIAS.find(([r]) => r.test(ruta))!;
+
+  function enviar(mensaje: string) {
     const limpio = mensaje.trim();
     if (!limpio || pensando) return;
     const previos = turnos;
     setTurnos([...previos, { autor: "corredor", texto: limpio }]);
     setTexto("");
     setError(null);
+    const dondeEsta = `${ruta}${busqueda.toString() ? `?${busqueda}` : ""}`;
     empezar(async () => {
-      const r = await preguntarAPatty(previos, limpio);
+      const r = await preguntarAPatty(previos, limpio, dondeEsta);
       if (r.ok) setTurnos((t) => [...t, { autor: "asistente", texto: r.texto }]);
       else setError(r.motivo);
     });
-  };
+  }
 
   return (
     <>
@@ -99,10 +158,11 @@ export function Patty({ nombre, corredor }: { nombre: string; corredor: string }
             {turnos.length === 0 && (
               <div className="patty-bienvenida">
                 <p>
-                  Hola, soy <strong>{nombre}</strong>. ¿En qué te ayudo?
+                  Hola, soy <strong>{nombre}</strong>. {aviso} ¿En qué te ayudo? Si no sabes dónde está algo, pregúntame y
+                  te llevo.
                 </p>
                 <div className="patty-sugerencias">
-                  {SUGERENCIAS.map((s) => (
+                  {sugerencias.map((s) => (
                     <button key={s} type="button" onClick={() => enviar(s)}>
                       {s}
                     </button>
@@ -112,13 +172,22 @@ export function Patty({ nombre, corredor }: { nombre: string; corredor: string }
             )}
             {turnos.map((t, i) => (
               <p key={i} className={`patty-burbuja ${t.autor === "corredor" ? "mia" : "suya"}`}>
-                {t.autor === "asistente" ? conFormato(t.texto) : t.texto}
+                {t.autor === "asistente" ? conFormato(t.texto, () => window.innerWidth < 900 && setAbierto(false)) : t.texto}
               </p>
             ))}
             {pensando && <p className="patty-burbuja suya pensando">{nombre} está escribiendo…</p>}
             {error && <p className="aviso">{error}</p>}
             <div ref={fin} />
           </div>
+          {turnos.length > 0 && !pensando && (
+            <div className="patty-atajos">
+              {sugerencias.slice(0, 3).map((s) => (
+                <button key={s} type="button" onClick={() => enviar(s)}>
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
           <form
             className="patty-escribir"
             onSubmit={(e) => {

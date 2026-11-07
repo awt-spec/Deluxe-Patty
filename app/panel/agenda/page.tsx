@@ -7,6 +7,7 @@ import { telefonoBonito } from "@/lib/crm/perfil";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Aviso } from "../aviso";
+import { PreguntarPatty } from "../preguntar-patty";
 import { cambiarEnlaceCalendario } from "./acciones";
 
 type Cita = {
@@ -236,6 +237,10 @@ export default async function Agenda({
         </div>
       </header>
       <Aviso texto={aviso} />
+      <div className="preguntas-patty">
+        <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="¿Qué visitas tengo esta semana?" />
+        <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="¿Cómo agendo una visita?" />
+      </div>
 
       <nav className="cal-vistas" aria-label="Cómo ver la agenda">
         {(Object.keys(VISTAS) as Vista[]).map((v) => (
