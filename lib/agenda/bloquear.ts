@@ -22,14 +22,32 @@ export interface PedidoBloqueo {
   fin: Date;
   /** "jueves 12 de noviembre en la tarde" (para confirmarle al corredor). */
   dia: FechaLocal;
+  /** Último día, si son varios ("del 20 al 25"). */
+  hastaDia?: FechaLocal;
   parte: Parte | null;
   horas: { desde: number; hasta: number } | null;
   motivo: string | null;
 }
 
-/** ¿El mensaje pide bloquear algo? (empieza con "bloquea", "bloquear", "bloquéame"…) */
+/**
+ * ¿El mensaje pide bloquear algo de la agenda? (empieza con "bloquea", "bloquear", "bloquéame"…)
+ * "Bloquea a Juan" o "bloquea al cliente" no son de la agenda.
+ */
 export function pideBloqueo(texto: string): boolean {
-  return /^\s*bloque(a|ar|ame|en)\b/i.test(sinTildes(texto));
+  const t = sinTildes(texto);
+  return /^\s*bloque(a|ar|ame|en)\b/i.test(t) && !/^\s*bloque\w*\s+(?:a|al)\s+(?!las?\b)/i.test(t);
+}
+
+const MESES_SIN = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+
+/** El próximo día N (del mes M si lo dice), desde hoy. */
+function proximoDia(hoy: FechaLocal, n: number, mes?: number): FechaLocal | null {
+  for (let i = 0; i < 400; i++) {
+    const d = sumarDias(hoy, i);
+    if (d.dia === n && (mes === undefined || d.mes === mes)) return d;
+    if (mes === undefined && i > 62) return null;
+  }
+  return null;
 }
 
 /** Hora escrita ("2", "2:30", "14", "9am", "3 pm") a minutos; sin a. m./p. m., de 1 a 6 se toma de la tarde. */
@@ -50,14 +68,33 @@ function hora(h: string, m: string | undefined, sufijo: string | undefined): num
  * Lo que va después de "por" o "porque" queda como motivo. null si no se entiende el día.
  */
 export function entenderBloqueo(texto: string, ahora: Date, zona: string): PedidoBloqueo | null {
-  const t = sinTildes(texto).replace(/^\s*bloque\w*\s*/, " ");
-  const motivoCrudo = /\b(?:por|porque|para)\s+(.+)$/.exec(texto.normalize("NFC"))?.[1];
+  // "por la tarde" es un rato, no un motivo; "para mañana" es un día.
+  const original = texto
+    .normalize("NFC")
+    .replace(/\bpor la (ma[nñ]ana|tarde|noche)\b/gi, "en la $1")
+    .replace(/\bpara (?=(?:hoy|ma[nñ]ana|pasado|el|este|lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b)/gi, "");
+  const t = sinTildes(original).replace(/^\s*bloque\w*\s*/, " ");
+  const motivoCrudo = /\b(?:por|porque|para)\s+(.+)$/.exec(original)?.[1];
   const sinMotivo = t.replace(/\b(?:por|porque|para)\s+.+$/, " ");
   const hoy = fechaLocal(ahora, zona);
 
   let dia: FechaLocal | null = null;
+  let hastaDia: FechaLocal | undefined;
   let resto = ` ${sinMotivo} `;
-  if (/\bpasado manana\b/.test(resto)) {
+  const mesDe = (txt: string | undefined) => (txt ? MESES_SIN.indexOf(txt) + 1 || undefined : undefined);
+  const MES = `(?:\\s+de\\s+(${MESES_SIN.join("|")}))?`;
+  const varios = new RegExp(`\\b(?:del?|desde el)\\s+(\\d{1,2})${MES}\\s+(?:al|hasta el)\\s+(\\d{1,2})${MES}`).exec(resto);
+  const conMes = new RegExp(`\\bel\\s+(\\d{1,2})${MES}\\b`).exec(resto);
+  if (varios) {
+    const mesFin = mesDe(varios[4]);
+    const a = proximoDia(hoy, Number(varios[1]), mesDe(varios[2]) ?? mesFin);
+    const b = a ? proximoDia(a, Number(varios[3]), mesFin) : null;
+    if (a && b) {
+      dia = a;
+      hastaDia = b;
+      resto = resto.replace(varios[0], " ");
+    }
+  } else if (/\bpasado manana\b/.test(resto)) {
     dia = sumarDias(hoy, 2);
     resto = resto.replace(/\bpasado manana\b/, " ");
   } else if (/\bhoy\b/.test(resto)) {
@@ -73,27 +110,36 @@ export function entenderBloqueo(texto: string, ahora: Date, zona: string): Pedid
       dia = sumarDias(hoy, faltan);
       resto = resto.replace(new RegExp(`\\b${DIAS[nombre]}\\b`), " ");
     } else {
-      const numero = /\bel (\d{1,2})\b/.exec(resto);
-      if (numero) {
-        const n = Number(numero[1]);
-        for (let i = 0; i < 62 && !dia; i++) {
-          const d = sumarDias(hoy, i);
-          if (d.dia === n) dia = d;
-        }
-        resto = resto.replace(numero[0], " ");
+      if (conMes) {
+        dia = proximoDia(hoy, Number(conMes[1]), mesDe(conMes[2]));
+        resto = resto.replace(conMes[0], " ");
       }
     }
   }
-  if (!dia) return null;
 
   let parte: Parte | null = null;
   let horas: { desde: number; hasta: number } | null = null;
   const rango = /\b(?:de|desde)\s+(?:las\s+)?(\d{1,2})(?::(\d{2}))?\s*(a\.?\s?m\.?|p\.?\s?m\.?|am|pm)?\s*(?:a|hasta)\s+(?:las\s+)?(\d{1,2})(?::(\d{2}))?\s*(a\.?\s?m\.?|p\.?\s?m\.?|am|pm)?/.exec(resto);
   if (rango) {
     const desde = hora(rango[1], rango[2], rango[3]);
-    const hasta = hora(rango[4], rango[5], rango[6] ?? rango[3]);
-    if (desde !== null && hasta !== null && hasta > desde) horas = { desde, hasta };
+    let hasta = hora(rango[4], rango[5], rango[6] ?? rango[3]);
+    // "de 5 a 7" o "de 6 a 8": la segunda hora también es de la tarde.
+    if (desde !== null && hasta !== null && hasta <= desde && !rango[6] && hasta < 12 * 60) hasta += 12 * 60;
+    if (desde === null || hasta === null || hasta <= desde || hasta > 24 * 60) return null; // horas que no cuadran: mejor preguntar
+    horas = { desde, hasta };
+  } else {
+    // "a las 3": una hora.
+    const una = /\ba las\s+(\d{1,2})(?::(\d{2}))?\s*(a\.?\s?m\.?|p\.?\s?m\.?|am|pm)?/.exec(resto);
+    if (una) {
+      const desde = hora(una[1], una[2], una[3]);
+      if (desde === null) return null;
+      horas = { desde, hasta: Math.min(desde + 60, 24 * 60) };
+    }
   }
+  // Sin día pero con un rato ("bloquear de 2 a 4", "bloquear en la tarde"): es hoy.
+  if (!dia && (horas || /\b(?:manana|tarde|noche)\b/.test(resto))) dia = hoy;
+  if (!dia) return null;
+  if (hastaDia) horas = null;
   if (!horas) {
     if (/\btodo el dia\b/.test(resto)) parte = "todo";
     else if (/\b(?:en|por|de) la manana\b|\bmanana\b/.test(resto)) parte = "manana";
@@ -101,11 +147,12 @@ export function entenderBloqueo(texto: string, ahora: Date, zona: string): Pedid
     else if (/\bnoche\b/.test(resto)) parte = "noche";
     else parte = "todo";
   }
-  const rato = horas ?? PARTES[parte!];
+  const rato = horas ?? PARTES[hastaDia ? "todo" : parte!];
   return {
     inicio: aUtc(dia, rato.desde, zona),
-    fin: aUtc(dia, rato.hasta, zona),
+    fin: aUtc(hastaDia ?? dia, rato.hasta, zona),
     dia,
+    ...(hastaDia ? { hastaDia, parte: "todo" as Parte } : {}),
     parte,
     horas,
     motivo: motivoCrudo ? motivoCrudo.trim().slice(0, 120) : null,
@@ -121,10 +168,14 @@ function hhmm(min: number): string {
 }
 
 /** "el jueves 12 de noviembre en la tarde" / "… de 2 p. m. a 4 p. m." */
-export function describirBloqueo(p: Pick<PedidoBloqueo, "dia" | "parte" | "horas">): string {
+export function describirBloqueo(p: Pick<PedidoBloqueo, "dia" | "parte" | "horas" | "hastaDia">): string {
   const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
   const DIA = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
   const fecha = `el ${DIA[p.dia.diaSemana]} ${p.dia.dia} de ${MESES[p.dia.mes - 1]}`;
+  if (p.hastaDia) {
+    const fin = `${DIA[p.hastaDia.diaSemana]} ${p.hastaDia.dia} de ${MESES[p.hastaDia.mes - 1]}`;
+    return `del ${DIA[p.dia.diaSemana]} ${p.dia.dia}${p.dia.mes !== p.hastaDia.mes ? ` de ${MESES[p.dia.mes - 1]}` : ""} al ${fin}, días enteros`;
+  }
   return p.horas ? `${fecha}, de ${hhmm(p.horas.desde)} a ${hhmm(p.horas.hasta)}` : `${fecha} ${PARTES[p.parte ?? "todo"].nombre}`;
 }
 
