@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { diaLargo, etiquetaHorario, horaCorta, rangoBloqueo } from "@/lib/agenda/formato";
 import { aUtc, fechaIso, fechaLocal, minutosDe, minutosLocales, sumarDias, type FechaLocal } from "@/lib/agenda/tiempo";
+import { ratosLibres } from "@/lib/agenda/libres";
 import { minutosEntre } from "@/lib/agenda/zonas";
 import { telefonoBonito } from "@/lib/crm/perfil";
 import { sesionConCorredor } from "@/lib/panel/sesion";
@@ -289,22 +290,13 @@ export default async function Agenda({
       ...visitasDia.map((c) => ({ desde: aMin(c.inicio, "ini"), hasta: aMin(c.fin, "fin") })),
       ...bloqueosDia.map(({ desde, hasta }) => ({ desde, hasta })),
     ];
-    // Ratos libres: el horario de visitas del día menos visitas y bloqueos (de 30 min para arriba).
-    const libres: Rato[] = [];
-    for (const h of horarios.filter((x) => x.dia_semana === f.diaSemana)) {
-      let tramos: Rato[] = [{ desde: minutosDe(h.hora_inicio), hasta: minutosDe(h.hora_fin) }];
-      for (const o of ocupado) {
-        tramos = tramos.flatMap((t) =>
-          o.hasta <= t.desde || o.desde >= t.hasta
-            ? [t]
-            : [
-                ...(o.desde > t.desde ? [{ desde: t.desde, hasta: o.desde }] : []),
-                ...(o.hasta < t.hasta ? [{ desde: o.hasta, hasta: t.hasta }] : []),
-              ],
-        );
-      }
-      libres.push(...tramos.filter((t) => t.hasta - t.desde >= 30 && aUtc(f, t.hasta, zona).getTime() > Date.now()));
-    }
+    // Ratos libres: el horario de visitas menos visitas y bloqueos; si es hoy, desde la próxima media hora.
+    const esHoyDia = fechaIso(f) === fechaIso(hoy);
+    const libres = ratosLibres(
+      horarios.filter((x) => x.dia_semana === f.diaSemana).map((h) => ({ desde: minutosDe(h.hora_inicio), hasta: minutosDe(h.hora_fin) })),
+      ocupado,
+      esHoyDia ? minutosLocales(new Date(), zona) : fechaIso(f) < fechaIso(hoy) ? 24 * 60 : null,
+    );
     return [
       ...visitasDia.map((c) => ({ tipo: "visita" as const, desde: aMin(c.inicio, "ini"), c })),
       ...libres.map((r) => ({ tipo: "libre" as const, desde: r.desde, r })),
