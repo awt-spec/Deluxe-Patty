@@ -25,6 +25,7 @@ type Cliente = {
   ultima_actividad_at: string | null;
   oferta_monto: number | null;
   propiedad_interes_id: string | null;
+  cierre_precio: number | null;
   cierre_comision: number | null;
   cierre_at: string | null;
 };
@@ -60,7 +61,7 @@ export default async function Clientes({
   const [{ data, error }, { data: citasData }] = await Promise.all([
     supabase
       .from("contactos")
-      .select("id, nombre, telefono, etapa, etapa_at, busca, seguimiento_fecha, seguimiento_nota, motivo_perdida, updated_at, ultima_actividad_at, oferta_monto, propiedad_interes_id, cierre_comision, cierre_at")
+      .select("id, nombre, telefono, etapa, etapa_at, busca, seguimiento_fecha, seguimiento_nota, motivo_perdida, updated_at, ultima_actividad_at, oferta_monto, propiedad_interes_id, cierre_precio, cierre_comision, cierre_at")
       .eq("corredor_id", corredor.id)
       .eq("es_corredor", false)
       .order("updated_at", { ascending: false })
@@ -72,8 +73,8 @@ export default async function Clientes({
       .order("inicio", { ascending: false })
       .limit(500),
   ]);
-  const { data: preciosData } = await supabase.from("propiedades").select("id, precio, operacion").eq("corredor_id", corredor.id);
-  const casasPorId = new Map(((preciosData ?? []) as { id: string; precio: number | null; operacion: string }[]).map((p) => [p.id, p]));
+  const { data: preciosData } = await supabase.from("propiedades").select("id, precio, moneda, operacion").eq("corredor_id", corredor.id);
+  const casasPorId = new Map(((preciosData ?? []) as { id: string; precio: number | null; moneda: string; operacion: string }[]).map((p) => [p.id, p]));
   // Compra o alquiler: lo que dijo que busca o, si no, la operación de la casa que le interesa.
   const operacion = (c: Cliente) => c.busca?.operacion ?? (c.propiedad_interes_id ? casasPorId.get(c.propiedad_interes_id)?.operacion : undefined);
   const todos = ((data ?? []) as Cliente[]).filter(
@@ -102,7 +103,8 @@ export default async function Clientes({
   const activos = todos.filter(activo);
   // Dinero real: lo que vale lo que se está negociando (la oferta, o el precio de la casa que le
   // interesa) y lo que ya se ganó este mes en comisiones.
-  const precioDe = new Map([...casasPorId].map(([id, p]) => [id, p.precio ?? 0]));
+  // Las cifras son en dólares: una casa en colones no se suma (se ve en la ficha del cliente).
+  const precioDe = new Map([...casasPorId].map(([id, p]) => [id, p.moneda === "USD" ? (p.precio ?? 0) : 0]));
   const valorDe = (c: Cliente) => Number(c.oferta_monto ?? 0) || (c.propiedad_interes_id ? (precioDe.get(c.propiedad_interes_id) ?? 0) : 0);
   const negociando = activos.filter((c) => c.etapa === "negociando");
   const enNegociacion = negociando.reduce((s, c) => s + valorDe(c), 0);
@@ -157,7 +159,7 @@ export default async function Clientes({
   // Tablero de la computadora: valor por columna (compras en dólares) y tarjetas listas para arrastrar.
   const columnas: ColumnaTablero[] = ETAPAS.filter((e) => e !== "perdido").map((e) => {
     const lista = clientes.filter((c) => c.etapa === e);
-    const suma = lista.reduce((s, c) => s + valorDe(c), 0);
+    const suma = lista.reduce((s, c) => s + (e === "cerrado" ? Number(c.cierre_precio ?? 0) : valorDe(c)), 0);
     return {
       etapa: e,
       nombre: NOMBRE_ETAPA[e],

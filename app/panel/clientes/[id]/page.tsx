@@ -124,7 +124,9 @@ export default async function Cliente({
 
   const diasEnEtapa = Math.max(0, Math.floor((Date.now() - Date.parse(c.etapa_at as string)) / 86_400_000));
   const venceRecordatorio = !!c.seguimiento_fecha && (c.seguimiento_fecha as string) <= fechaIso(fechaLocal(new Date(), zona));
+  // La oferta se anota en dólares; si no hay, cuenta el precio de la casa en su moneda.
   const valorEnJuego = Number(c.oferta_monto ?? 0) || casaInteres?.precio || 0;
+  const monedaEnJuego = c.oferta_monto ? "USD" : (casaInteres?.moneda ?? "USD");
   const visitas = (citas ?? []) as { id: string; inicio: string; estado: string; propiedades: { titulo: string } | { titulo: string }[] | null }[];
 
   return (
@@ -155,11 +157,17 @@ export default async function Cliente({
           <div>
             <span className="ficha-dato-titulo">{etapa === "cerrado" ? "Cerró en" : c.oferta_monto ? "Ofreció" : "En juego"}</span>
             <span>
-              {etapa === "cerrado" && c.cierre_precio
-                ? precio(Number(c.cierre_precio), "USD")
-                : valorEnJuego
-                  ? `${precio(valorEnJuego, "USD")} · comisión ${precio(Math.round((valorEnJuego * pct) / 100), "USD")}`
-                  : "Sin casa elegida"}
+              {etapa === "cerrado" ? (
+                c.cierre_precio ? (
+                  `${precio(Number(c.cierre_precio), "USD")} · comisión ${precio(Number(c.cierre_comision ?? 0), "USD")}`
+                ) : (
+                  <a href="#cierre">Falta anotar el precio</a>
+                )
+              ) : valorEnJuego ? (
+                `${precio(valorEnJuego, monedaEnJuego)} · comisión ${precio(Math.round((valorEnJuego * pct) / 100), monedaEnJuego)}`
+              ) : (
+                "Sin casa elegida"
+              )}
             </span>
           </div>
           <div className={venceRecordatorio ? "vence" : undefined}>
@@ -303,7 +311,7 @@ export default async function Cliente({
                 </p>
               </>
             ) : etapa === "cerrado" ? (
-              <form action={guardarCierre} className="pila">
+              <form action={guardarCierre} className="pila" id="cierre">
                 <h2>¡Cerró! Anota cómo fue</h2>
                 <input type="hidden" name="id" value={id} />
                 <label htmlFor="cierre-casa">Casa</label>
@@ -343,7 +351,7 @@ export default async function Cliente({
                 <input id="op-oferta" name="oferta" type="text" inputMode="numeric" defaultValue={c.oferta_monto ?? ""} placeholder="Si hizo una" />
                 {valorEnJuego > 0 && (
                   <p className="comision-estimada">
-                    Tu comisión: <strong>{precio(Math.round((valorEnJuego * pct) / 100), "USD")}</strong> <span className="suave">({pct}%)</span>
+                    Tu comisión: <strong>{precio(Math.round((valorEnJuego * pct) / 100), monedaEnJuego)}</strong> <span className="suave">({pct}%)</span>
                   </p>
                 )}
                 <button type="submit" className="primario chico">
