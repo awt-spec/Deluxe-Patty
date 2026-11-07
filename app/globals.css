@@ -5703,3 +5703,15 @@ body:has(.marco.tema) {
   gap: 10px;
   flex-wrap: wrap;
 }
+@media (max-width: 699px) {
+  .tema .casa-galeria {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .tema .casa-foto-botones button {
+    padding: 4px 8px;
+  }
+  .tema .casa-precio {
+    font-size: 1.7rem;
+  }
+}
