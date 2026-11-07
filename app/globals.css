@@ -6236,3 +6236,8 @@ body:has(.marco.tema) {
 .tema .dia-lista .como-llegar.chico {
   padding: 0;
 }
+.tema .cal .cal-columna {
+  background-size: 100% var(--alto-hora, 56px), 100% var(--alto-hora, 56px);
+  background-image: linear-gradient(to bottom, #e9ecef 1px, transparent 1px),
+    linear-gradient(to bottom, transparent calc(var(--alto-hora, 56px) / 2 - 1px), #f3f5f7 calc(var(--alto-hora, 56px) / 2 - 1px), #f3f5f7 calc(var(--alto-hora, 56px) / 2), transparent calc(var(--alto-hora, 56px) / 2));
+}
