@@ -192,8 +192,8 @@ export default async function Propiedades({
             !p.precio ? "Sin precio" : null,
           ].filter(Boolean);
           return (
-            <Link key={p.id} href={`/panel/propiedades/${p.id}`} className={`tarjeta casa-tarjeta estado-${p.estado}`}>
-              <span className="casa-tarjeta-foto">
+            <Link key={p.id} href={`/panel/propiedades/${p.id}`} className={`tarjeta casa-item estado-${p.estado}`}>
+              <span className="casa-item-foto">
                 {principal ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={principal.mejorada_url ?? principal.url} alt="" loading="lazy" />
@@ -202,24 +202,24 @@ export default async function Propiedades({
                     <IconoCasa tamano={36} />
                   </span>
                 )}
-                <span className={`casa-tarjeta-operacion ${p.operacion === "alquiler" ? "alquiler" : "venta"}`}>
+                <span className={`casa-item-operacion ${p.operacion === "alquiler" ? "alquiler" : "venta"}`}>
                   {p.operacion === "alquiler" ? "Alquiler" : "Venta"}
                 </span>
-                {p.estado !== "activa" && <span className={`casa-tarjeta-estado ${p.estado}`}>{ETIQUETA_ESTADO[p.estado]}</span>}
-                {fotos.length > 1 && <span className="casa-tarjeta-fotos">{fotos.length} fotos</span>}
+                {p.estado !== "activa" && <span className={`casa-item-estado ${p.estado}`}>{ETIQUETA_ESTADO[p.estado]}</span>}
+                {fotos.length > 1 && <span className="casa-item-fotos">{fotos.length} fotos</span>}
               </span>
-              <span className="casa-tarjeta-cuerpo">
-                <span className="casa-tarjeta-precio">
+              <span className="casa-item-cuerpo">
+                <span className="casa-item-precio">
                   {p.precio !== null ? precio(p.precio, p.moneda) : "Sin precio"}
                   {p.operacion === "alquiler" && p.precio !== null && <small> al mes</small>}
                 </span>
-                <strong className="casa-tarjeta-titulo">{p.titulo}</strong>
-                <span className="suave casa-tarjeta-lugar">
+                <strong className="casa-item-titulo">{p.titulo}</strong>
+                <span className="suave casa-item-lugar">
                   {TIPO[p.tipo] ?? "Propiedad"}
                   {p.zona || p.canton ? ` en ${p.zona ?? p.canton}` : ""} · {p.codigo}
                 </span>
-                {datos.length > 0 && <span className="casa-tarjeta-datos">{datos.join(" · ")}</span>}
-                <span className="casa-tarjeta-pie">
+                {datos.length > 0 && <span className="casa-item-datos">{datos.join(" · ")}</span>}
+                <span className="casa-item-pie">
                   <span className={visitas ? "movimiento activo" : "movimiento"}>
                     {visitas} {visitas === 1 ? "visita" : "visitas"}
                   </span>
