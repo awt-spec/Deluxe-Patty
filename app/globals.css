@@ -7564,3 +7564,18 @@ body:has(.marco.tema) {
     box-shadow: none !important;
   }
 }
+@media (max-width: 899px) {
+  /* Como en iOS: el título grande arriba y los botones en su renglón, sin apretarse ni partirse. */
+  .tema main .encabezado {
+    flex-wrap: wrap;
+    align-items: center;
+    row-gap: 10px;
+  }
+  .tema main .encabezado > :first-child {
+    flex: 1 1 100%;
+  }
+  .tema main .encabezado .boton,
+  .tema main .encabezado a.boton {
+    white-space: nowrap;
+  }
+}
