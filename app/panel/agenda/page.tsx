@@ -263,6 +263,54 @@ export default async function Agenda({
     );
   };
 
+  // "Tu día": lo del día en orden, para leerlo de un vistazo (y en el teléfono, en vez de la cuadrícula).
+  type Rato = { desde: number; hasta: number };
+  const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+  const horaBonita = (m: number) => {
+    const h = Math.floor(m / 60) % 24;
+    const mm = m % 60;
+    return `${h % 12 === 0 ? 12 : h % 12}${mm ? `:${String(mm).padStart(2, "0")}` : ""} ${h < 12 ? "a. m." : "p. m."}`;
+  };
+  const planDia = (f: FechaLocal) => {
+    const inicioDia = aUtc(f, 0, zona).getTime();
+    const finDia = aUtc(sumarDias(f, 1), 0, zona).getTime();
+    const aMin = (iso: string, tope: "ini" | "fin") => {
+      const t = Date.parse(iso);
+      if (t <= inicioDia) return 0;
+      if (t >= finDia) return 24 * 60;
+      return minutosLocales(new Date(iso), zona) || (tope === "fin" ? 24 * 60 : 0);
+    };
+    const visitasDia = porDia.get(fechaIso(f)) ?? [];
+    const bloqueosDia = bloqueos
+      .filter((b) => Date.parse(b.inicio) < finDia && Date.parse(b.fin) > inicioDia)
+      .map((b) => ({ b, desde: aMin(b.inicio, "ini"), hasta: aMin(b.fin, "fin") }));
+    const ocupado: Rato[] = [
+      ...visitasDia.map((c) => ({ desde: aMin(c.inicio, "ini"), hasta: aMin(c.fin, "fin") })),
+      ...bloqueosDia.map(({ desde, hasta }) => ({ desde, hasta })),
+    ];
+    // Ratos libres: el horario de visitas del día menos visitas y bloqueos (de 30 min para arriba).
+    const libres: Rato[] = [];
+    for (const h of horarios.filter((x) => x.dia_semana === f.diaSemana)) {
+      let tramos: Rato[] = [{ desde: minutosDe(h.hora_inicio), hasta: minutosDe(h.hora_fin) }];
+      for (const o of ocupado) {
+        tramos = tramos.flatMap((t) =>
+          o.hasta <= t.desde || o.desde >= t.hasta
+            ? [t]
+            : [
+                ...(o.desde > t.desde ? [{ desde: t.desde, hasta: o.desde }] : []),
+                ...(o.hasta < t.hasta ? [{ desde: o.hasta, hasta: t.hasta }] : []),
+              ],
+        );
+      }
+      libres.push(...tramos.filter((t) => t.hasta - t.desde >= 30 && aUtc(f, t.hasta, zona).getTime() > Date.now()));
+    }
+    return [
+      ...visitasDia.map((c) => ({ tipo: "visita" as const, desde: aMin(c.inicio, "ini"), c })),
+      ...libres.map((r) => ({ tipo: "libre" as const, desde: r.desde, r })),
+      ...bloqueosDia.map((x) => ({ tipo: "bloqueo" as const, desde: x.desde, x })),
+    ].sort((a, b) => a.desde - b.desde);
+  };
+
   return (
     <>
       <header className="encabezado agenda-encabezado">
@@ -280,26 +328,8 @@ export default async function Agenda({
         </div>
       </header>
       <Aviso texto={aviso} />
-      <PreguntaBloqueo
-        nombre={corredor.nombre_asistente ?? "Patty"}
-        fecha={fechaIso(manana)}
-        dia={`mañana ${DIAS_LARGOS[manana.diaSemana]} ${manana.dia}`}
-        hoy={fechaIso(hoy)}
-        volverA="/panel/agenda"
-      />
-      <div className="preguntas-patty">
-        <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="¿Qué visitas tengo esta semana?" />
-        <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="¿Cómo agendo una visita?" />
-      </div>
 
-      <nav className="cal-vistas" aria-label="Cómo ver la agenda">
-        {(Object.keys(VISTAS) as Vista[]).map((v) => (
-          <Link key={v} data-patty={`agenda-vista-${v}`} href={enlaceA(v, base)} aria-current={v === vista ? "page" : undefined}>
-            {VISTAS[v]}
-          </Link>
-        ))}
-      </nav>
-
+      <div className="agenda-controles">
       {vista !== "lista" && (
         <div className="cal-barra">
           <Link href={enlaceA(vista, anterior)} className="boton" aria-label="Anterior">
@@ -314,6 +344,14 @@ export default async function Agenda({
           <h2>{titulo}</h2>
         </div>
       )}
+      <nav className="cal-vistas" aria-label="Cómo ver la agenda">
+        {(Object.keys(VISTAS) as Vista[]).map((v) => (
+          <Link key={v} data-patty={`agenda-vista-${v}`} href={enlaceA(v, base)} aria-current={v === vista ? "page" : undefined}>
+            {VISTAS[v]}
+          </Link>
+        ))}
+      </nav>
+      </div>
 
       {vista !== "lista" && (
         <div className="cal-resumen">
@@ -340,35 +378,86 @@ export default async function Agenda({
         </div>
       )}
 
-      {vista === "dia" && (porDia.get(fechaIso(base)) ?? []).length > 0 && (
-        <ul className="dia-lista">
-          {(porDia.get(fechaIso(base)) ?? []).map((c) => {
-            const cl = uno(c.contactos);
-            const casa = uno(c.propiedades);
+      <div className={vista === "dia" ? "agenda-dia" : undefined}>
+      {vista === "dia" && (
+        <section className="dia-plan" aria-label="Tu día">
+          <h3>Tu día</h3>
+          {(() => {
+            const plan = planDia(base);
+            if (plan.length === 0) {
+              return <p className="suave dia-plan-vacio">No tienes visitas ni horario de visitas este día.</p>;
+            }
             return (
-              <li key={c.id} style={{ ["--zona" as string]: colorZona(casa?.zona) }}>
-                <Link href={`/panel/agenda/visita/${c.id}`} className="dia-visita">
-                  <span className="dia-hora">{horaCorta(new Date(c.inicio), zona)}</span>
-                  <span className="dia-texto">
-                    <strong>{cl?.nombre ?? (cl ? telefonoBonito(cl.telefono) : "Cliente")}</strong>
-                    {casa && (
-                      <span className="suave">
-                        {casa.titulo}
-                        {casa.zona ? ` · ${casa.zona}` : ""}
+              <ul className="dia-lista">
+                {plan.map((e) => {
+                  if (e.tipo === "visita") {
+                    const c = e.c;
+                    const cl = uno(c.contactos);
+                    const casa = uno(c.propiedades);
+                    return (
+                      <li key={c.id} style={{ ["--zona" as string]: colorZona(casa?.zona) }}>
+                        <Link href={`/panel/agenda/visita/${c.id}`} className="dia-visita">
+                          <span className="dia-hora">{horaCorta(new Date(c.inicio), zona)}</span>
+                          <span className="dia-texto">
+                            <strong>{cl?.nombre ?? (cl ? telefonoBonito(cl.telefono) : "Cliente")}</strong>
+                            {casa && (
+                              <span className="suave">
+                                {casa.titulo}
+                                {casa.zona ? ` · ${casa.zona}` : ""}
+                              </span>
+                            )}
+                          </span>
+                          <span className={`cal-cita-estado${c.estado === "confirmada" ? " ok" : ""}`}>{c.estado === "confirmada" ? "Confirmada" : "Por confirmar"}</span>
+                        </Link>
+                        {casa?.zona && <ComoLlegar casa={{ zona: casa.zona }} chico />}
+                      </li>
+                    );
+                  }
+                  if (e.tipo === "libre") {
+                    return (
+                      <li key={`l${e.r.desde}`} className="dia-libre">
+                        <span className="dia-hora">{horaBonita(e.r.desde)}</span>
+                        <span className="dia-texto">
+                          <strong>Libre</strong>
+                          <span className="suave">
+                            de {horaBonita(e.r.desde)} a {horaBonita(e.r.hasta)}
+                          </span>
+                        </span>
+                        <Link href={`/panel/agenda/nueva?fecha=${fechaIso(base)}&hora=${hhmm(e.r.desde)}`} className="boton chico">
+                          + Agendar
+                        </Link>
+                      </li>
+                    );
+                  }
+                  return (
+                    <li key={`b${e.x.b.id}`} className="dia-bloqueado">
+                      <span className="dia-hora">{e.x.desde === 0 && e.x.hasta >= 24 * 60 ? "Todo el día" : horaBonita(e.x.desde)}</span>
+                      <span className="dia-texto">
+                        <strong>Bloqueado</strong>
+                        <span className="suave">
+                          {e.x.desde === 0 && e.x.hasta >= 24 * 60 ? "" : `hasta las ${horaBonita(e.x.hasta)}`}
+                          {e.x.b.motivo ? `${e.x.desde === 0 && e.x.hasta >= 24 * 60 ? "" : " · "}${e.x.b.motivo}` : ""}
+                        </span>
                       </span>
-                    )}
-                  </span>
-                  <span className={`cal-cita-estado${c.estado === "confirmada" ? " ok" : ""}`}>{c.estado === "confirmada" ? "Confirmada" : "Por confirmar"}</span>
-                </Link>
-                {casa?.zona && <ComoLlegar casa={{ zona: casa.zona }} chico />}
-              </li>
+                    </li>
+                  );
+                })}
+              </ul>
             );
-          })}
-        </ul>
+          })()}
+        </section>
       )}
 
       {(vista === "dia" || vista === "semana") && (
         <div className={`cal cal-${vista}`} style={{ ["--alto-hora" as string]: `${ALTO_HORA}px` }}>
+          <p className="suave cal-leyenda">
+            <span className="muestra libre" /> Toca una hora libre para agendar <span className="muestra bloqueo" /> Bloqueado
+            {[...new Set(citas.map((c) => uno(c.propiedades)?.zona).filter((z): z is string => !!z))].map((z) => (
+              <span key={z} className="zona-leyenda">
+                <span className="muestra" style={{ background: colorZona(z) }} /> {z}
+              </span>
+            ))}
+          </p>
           <div className="cal-cabecera">
             <span />
             {diasVista.map((f) => (
@@ -395,16 +484,10 @@ export default async function Agenda({
           {citas.length === 0 && (
             <p className="vacio">{vista === "dia" ? "Este día no tienes visitas." : "Esta semana no tienes visitas."}</p>
           )}
-          <p className="suave cal-leyenda">
-            <span className="muestra libre" /> Toca una hora libre para agendar <span className="muestra bloqueo" /> Bloqueado
-            {[...new Set(citas.map((c) => uno(c.propiedades)?.zona).filter((z): z is string => !!z))].map((z) => (
-              <span key={z} className="zona-leyenda">
-                <span className="muestra" style={{ background: colorZona(z) }} /> {z}
-              </span>
-            ))}
-          </p>
         </div>
       )}
+
+      </div>
 
       {vista === "mes" && (
         <div className="cal-mes">
@@ -486,6 +569,20 @@ export default async function Agenda({
             ))}
         </section>
       )}
+
+      <div className="agenda-patty">
+        <PreguntaBloqueo
+          nombre={corredor.nombre_asistente ?? "Patty"}
+          fecha={fechaIso(manana)}
+          dia={`mañana ${DIAS_LARGOS[manana.diaSemana]} ${manana.dia}`}
+          hoy={fechaIso(hoy)}
+          volverA="/panel/agenda"
+        />
+        <div className="preguntas-patty">
+          <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="¿Qué visitas tengo esta semana?" />
+          <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="¿Qué horas tengo libres esta semana?" />
+        </div>
+      </div>
 
       {enlace && (
         <details className="tarjeta pila" style={{ marginTop: 20 }}>

@@ -7038,3 +7038,115 @@ body:has(.marco.tema) {
     gap: 12px;
   }
 }
+
+/* ------------------------------------------------------------------------------------------------
+   Agenda: arriba compacto (fechas y vistas en una franja) para que el calendario aparezca enseguida;
+   "Tu día" con visitas, ratos libres y bloqueos en orden (en el teléfono, en vez de la cuadrícula).
+   ------------------------------------------------------------------------------------------------ */
+.tema .agenda-encabezado {
+  margin-bottom: 10px;
+}
+.tema .agenda-controles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  margin-bottom: 12px;
+}
+.tema .agenda-controles .cal-barra {
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.tema .agenda-controles .cal-barra h2 {
+  font-size: 1.25rem;
+  margin: 0 0 0 4px;
+}
+.tema .agenda-controles .cal-vistas {
+  margin: 0;
+  flex: 0 0 auto;
+}
+@media (max-width: 699px) {
+  .tema .agenda-controles .cal-vistas {
+    flex: 1 1 100%;
+    order: -1;
+  }
+  .tema .agenda-controles .cal-barra h2 {
+    font-size: 1.05rem;
+  }
+}
+.tema .cal-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--borde);
+  font-size: 0.82rem;
+}
+/* Día: "Tu día" al lado de la cuadrícula en computadora; solo "Tu día" en el teléfono */
+.tema .agenda-dia {
+  display: grid;
+  gap: 16px;
+  align-items: start;
+}
+@media (min-width: 1000px) {
+  .tema .agenda-dia {
+    grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+  }
+  .tema .agenda-dia .dia-plan {
+    position: sticky;
+    top: 16px;
+  }
+}
+@media (max-width: 699px) {
+  .tema .agenda-dia .cal-dia {
+    display: none;
+  }
+}
+.tema .dia-plan {
+  background: var(--superficie, #fff);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio, 12px);
+  padding: 14px;
+}
+.tema .dia-plan h3 {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+}
+.tema .dia-plan .dia-lista {
+  margin: 0;
+}
+.tema .dia-plan-vacio {
+  margin: 0;
+}
+.tema .dia-libre,
+.tema .dia-bloqueado {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+}
+.tema .dia-libre {
+  border: 1px dashed color-mix(in srgb, var(--ok) 45%, transparent);
+  background: color-mix(in srgb, var(--ok) 5%, transparent);
+}
+.tema .dia-libre .dia-texto,
+.tema .dia-bloqueado .dia-texto {
+  flex: 1;
+  display: grid;
+  min-width: 0;
+}
+.tema .dia-libre strong {
+  color: var(--principal-oscuro, #008069);
+}
+.tema .dia-bloqueado {
+  background: repeating-linear-gradient(45deg, #ece9e4, #ece9e4 6px, #f5f3ef 6px, #f5f3ef 12px);
+  color: #5d5850;
+}
+.tema .agenda-patty {
+  margin-top: 20px;
+}
