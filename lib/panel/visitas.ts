@@ -3,6 +3,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { conPunto, etiquetaHorario } from "../agenda/formato";
 import type { Dependencias } from "../asistente/procesar";
 import type { Corredor } from "../datos/tipos";
+import { fechaIso, fechaLocal, sumarDias } from "../agenda/tiempo";
+import { anotar } from "../crm/actividades";
 import { escribirComoCorredor } from "./acciones";
 
 // Visitas que el corredor maneja desde el calendario: crear una a mano, confirmarla, moverla de hora o
@@ -56,6 +58,7 @@ export async function crearVisita(
   // Agendar una visita la lleva a la etapa "visita" si todavía no estaba más adelante.
   await deps.repo.actualizarPerfilCliente(corredor.id, v.contactoId, { etapa: "visita", soloDesde: ["nuevo", "interesado"] });
   const cuando = etiquetaHorario(v.inicio, corredor.zona_horaria);
+  await anotar(db, corredor.id, v.contactoId, "visita", `Visita agendada${casa ? ` a ${casa.titulo as string}` : ""} para el ${cuando}`);
   const extra = v.avisarCliente
     ? await avisar(
         deps,
@@ -106,6 +109,7 @@ export async function moverVisita(
     .eq("id", citaId);
   if (error) return { ok: false, motivo: error.code === "23P01" ? OCUPADO : "No se pudo mover la visita." };
   const zona = corredor.zona_horaria;
+  await anotar(db, corredor.id, cita.contactoId, "visita", `Visita movida del ${etiquetaHorario(cita.inicio, zona)} al ${etiquetaHorario(inicio, zona)}`);
   const extra = avisarCliente
     ? await avisar(
         deps,
@@ -131,6 +135,28 @@ export async function cambiarVisita(
   if (!cita) return { ok: false, motivo: "No encontré la visita." };
   if (!(await deps.repo.cambiarEstadoCita(corredor.id, citaId, estado))) return { ok: false, motivo: "La visita ya cambió." };
   const cuando = etiquetaHorario(cita.inicio, corredor.zona_horaria);
+  // Queda en la historia del cliente y, si la visita se hizo, un recordatorio para mañana: "¿Qué le
+  // pareció la casa?" (si no tenía otro recordatorio puesto).
+  const deLaCasa = cita.casa ? ` a ${cita.casa}` : "";
+  const historia = {
+    confirmada: `Visita${deLaCasa} confirmada para el ${cuando}`,
+    cancelada: `Visita${deLaCasa} del ${cuando} cancelada`,
+    realizada: `Fue a ver la casa${cita.casa ? ` ${cita.casa}` : ""}`,
+    no_asistio: `No llegó a la visita${deLaCasa}`,
+  }[estado];
+  await anotar(db, corredor.id, cita.contactoId, "visita", historia);
+  let recordatorio = "";
+  if (estado === "realizada") {
+    const manana = fechaIso(sumarDias(fechaLocal(new Date(), corredor.zona_horaria), 1));
+    const { data: puesto } = await db
+      .from("contactos")
+      .update({ seguimiento_fecha: manana, seguimiento_nota: `Preguntarle qué le pareció ${cita.casa ?? "la casa"}` })
+      .eq("corredor_id", corredor.id)
+      .eq("id", cita.contactoId)
+      .is("seguimiento_fecha", null)
+      .select("id");
+    if (puesto?.length) recordatorio = " Te dejé un recordatorio para mañana: preguntarle qué le pareció.";
+  }
   const texto =
     estado === "cancelada"
       ? conPunto(`Le escribo para avisarle que la visita del ${cuando} queda cancelada`) + " Con gusto buscamos otro día."
@@ -139,5 +165,5 @@ export async function cambiarVisita(
         : null;
   const extra = avisarCliente && texto ? await avisar(deps, db, corredor, cita.contactoId, texto) : "";
   const listo = { confirmada: "Visita confirmada.", cancelada: "Visita cancelada.", realizada: "Listo, la visita quedó hecha.", no_asistio: "Anotado: no llegó." };
-  return { ok: true, aviso: `${listo[estado]}${extra}` };
+  return { ok: true, aviso: `${listo[estado]}${extra}${recordatorio}` };
 }

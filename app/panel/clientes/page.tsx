@@ -22,6 +22,11 @@ type Cliente = {
   seguimiento_nota: string | null;
   motivo_perdida: string | null;
   updated_at: string;
+  ultima_actividad_at: string | null;
+  oferta_monto: number | null;
+  propiedad_interes_id: string | null;
+  cierre_comision: number | null;
+  cierre_at: string | null;
 };
 
 const DIA = 24 * 60 * 60_000;
@@ -43,7 +48,7 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
   const [{ data, error }, { data: citasData }] = await Promise.all([
     supabase
       .from("contactos")
-      .select("id, nombre, telefono, etapa, etapa_at, busca, seguimiento_fecha, seguimiento_nota, motivo_perdida, updated_at")
+      .select("id, nombre, telefono, etapa, etapa_at, busca, seguimiento_fecha, seguimiento_nota, motivo_perdida, updated_at, ultima_actividad_at, oferta_monto, propiedad_interes_id, cierre_comision, cierre_at")
       .eq("corredor_id", corredor.id)
       .eq("es_corredor", false)
       .order("updated_at", { ascending: false })
@@ -67,17 +72,25 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
   const hoy = fechaIso(fechaLocal(new Date(), corredor.zona_horaria));
   const mes = hoy.slice(0, 7);
   const dias = (c: Cliente) => Math.max(0, Math.floor((ahora - Date.parse(c.etapa_at)) / DIA));
+  // Días sin que pase nada: cuenta lo último entre el cambio de etapa y lo anotado en su historia.
+  const quieto = (c: Cliente) =>
+    Math.max(0, Math.floor((ahora - Math.max(Date.parse(c.etapa_at), c.ultima_actividad_at ? Date.parse(c.ultima_actividad_at) : 0)) / DIA));
   const activo = (c: Cliente) => c.etapa !== "cerrado" && c.etapa !== "perdido";
   // Necesita atención: lleva mucho en su etapa y no tiene un recordatorio a futuro.
   const estancado = (c: Cliente) =>
-    activo(c) && dias(c) >= (ESTANCADO[c.etapa] ?? 99) && !(c.seguimiento_fecha && c.seguimiento_fecha > hoy);
+    activo(c) && quieto(c) >= (ESTANCADO[c.etapa] ?? 99) && !(c.seguimiento_fecha && c.seguimiento_fecha > hoy);
   const vence = (c: Cliente) => !!c.seguimiento_fecha && c.seguimiento_fecha <= hoy;
 
   const activos = todos.filter(activo);
-  const enJuego = activos
-    .filter((c) => c.busca?.operacion !== "alquiler" && (c.busca?.moneda ?? "USD") === "USD" && c.busca?.presupuesto_max)
-    .reduce((s, c) => s + (c.busca.presupuesto_max ?? 0), 0);
-  const cerradosMes = todos.filter((c) => c.etapa === "cerrado" && c.etapa_at.slice(0, 7) === mes).length;
+  // Dinero real: lo que vale lo que se está negociando (la oferta, o el precio de la casa que le
+  // interesa) y lo que ya se ganó este mes en comisiones.
+  const { data: preciosData } = await supabase.from("propiedades").select("id, precio").eq("corredor_id", corredor.id);
+  const precioDe = new Map(((preciosData ?? []) as { id: string; precio: number | null }[]).map((p) => [p.id, p.precio ?? 0]));
+  const valorDe = (c: Cliente) => Number(c.oferta_monto ?? 0) || (c.propiedad_interes_id ? (precioDe.get(c.propiedad_interes_id) ?? 0) : 0);
+  const negociando = activos.filter((c) => c.etapa === "negociando");
+  const enNegociacion = negociando.reduce((s, c) => s + valorDe(c), 0);
+  const cerradosMes = todos.filter((c) => c.etapa === "cerrado" && (c.cierre_at ?? c.etapa_at).slice(0, 7) === mes);
+  const ganadoMes = cerradosMes.reduce((s, c) => s + Number(c.cierre_comision ?? 0), 0);
   const atencion = todos.filter((c) => estancado(c) || vence(c));
   const perdidos = todos.filter((c) => c.etapa === "perdido");
   const motivos = new Map<string, number>();
@@ -104,7 +117,7 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
       ? { texto: `${vence(c) ? "Hoy" : fechaCorta(c.seguimiento_fecha)}: ${c.seguimiento_nota ?? "escribirle"}`, vence: vence(c) }
       : null;
   const textoDias = (c: Cliente) =>
-    estancado(c) ? `Sin movimiento hace ${dias(c)} días` : dias(c) === 0 ? "Llegó a esta etapa hoy" : `En esta etapa hace ${dias(c)} ${dias(c) === 1 ? "día" : "días"}`;
+    estancado(c) ? `Sin movimiento hace ${quieto(c)} días` : dias(c) === 0 ? "Llegó a esta etapa hoy" : `En esta etapa hace ${dias(c)} ${dias(c) === 1 ? "día" : "días"}`;
 
   const tarjeta = (c: Cliente) => {
     const r = recordatorio(c);
@@ -127,14 +140,12 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
   // Tablero de la computadora: valor por columna (compras en dólares) y tarjetas listas para arrastrar.
   const columnas: ColumnaTablero[] = ETAPAS.filter((e) => e !== "perdido").map((e) => {
     const lista = clientes.filter((c) => c.etapa === e);
-    const suma = lista
-      .filter((c) => c.busca?.operacion !== "alquiler" && (c.busca?.moneda ?? "USD") === "USD")
-      .reduce((s, c) => s + (c.busca?.presupuesto_max ?? 0), 0);
+    const suma = lista.reduce((s, c) => s + valorDe(c), 0);
     return {
       etapa: e,
       nombre: NOMBRE_ETAPA[e],
       ayuda: AYUDA_ETAPA[e],
-      valor: suma > 0 ? `Compras hasta ${plata(suma)}` : null,
+      valor: suma > 0 ? `${e === "cerrado" ? "Cerrado en" : "En juego"}: ${plata(suma)}` : null,
       tarjetas: lista.map((c) => ({
         id: c.id,
         nombre: c.nombre ?? telefonoBonito(c.telefono),
@@ -166,13 +177,22 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
             <strong>{activos.length}</strong>
             <span className="suave">{activos.length === 1 ? "cliente activo" : "clientes activos"}</span>
           </Link>
-          <div className="tarjeta cifra">
-            <strong>{enJuego > 0 ? plata(enJuego) : "—"}</strong>
-            <span className="suave">en compras que se están moviendo</span>
-          </div>
+          <Link href="/panel/clientes?etapa=negociando" className="tarjeta cifra">
+            <strong>{enNegociacion > 0 ? plata(enNegociacion) : "—"}</strong>
+            <span className="suave">
+              en negociación{negociando.length ? ` (${negociando.length} ${negociando.length === 1 ? "cliente" : "clientes"})` : ""}
+              {enNegociacion > 0 ? ` · comisión posible ${plata(Math.round((enNegociacion * (corredor.comision_pct ?? 5)) / 100))}` : ""}
+            </span>
+          </Link>
           <Link href="/panel/clientes?etapa=cerrado" className="tarjeta cifra">
-            <strong>{cerradosMes}</strong>
-            <span className="suave">{cerradosMes === 1 ? "cerró este mes" : "cerraron este mes"}</span>
+            <strong>{ganadoMes > 0 ? plata(ganadoMes) : cerradosMes.length}</strong>
+            <span className="suave">
+              {ganadoMes > 0
+                ? `ganado este mes (${cerradosMes.length} ${cerradosMes.length === 1 ? "cierre" : "cierres"})`
+                : cerradosMes.length === 1
+                  ? "cerró este mes"
+                  : "cerraron este mes"}
+            </span>
           </Link>
           <Link href="/panel/clientes?ver=atencion" className={`tarjeta cifra${atencion.length ? " alerta" : ""}`}>
             <strong>{atencion.length}</strong>

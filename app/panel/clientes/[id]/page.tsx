@@ -12,7 +12,8 @@ import { PreguntarPatty } from "../../preguntar-patty";
 import { Avatar } from "../../avatar";
 import { IconoAgenda, IconoCasa, IconoChats, IconoTelefono } from "../../iconos";
 import { Volver } from "../../volver";
-import { cambiarEtapa, guardarBusca, guardarNotas, guardarSeguimiento } from "../acciones";
+import { cambiarEtapa, guardarBusca, guardarCierre, guardarNotas, guardarOportunidad, guardarSeguimiento } from "../acciones";
+import { Historia } from "./historia";
 
 type Casa = {
   id: string;
@@ -60,7 +61,7 @@ export default async function Cliente({
   const [{ data: c }, { data: conv }, { data: citas }, { data: casasData }] = await Promise.all([
     supabase
       .from("contactos")
-      .select("id, nombre, telefono, origen, notas, etapa, etapa_at, busca, seguimiento_fecha, seguimiento_nota, motivo_perdida, created_at")
+      .select("id, nombre, telefono, origen, notas, etapa, etapa_at, busca, seguimiento_fecha, seguimiento_nota, motivo_perdida, created_at, propiedad_interes_id, oferta_monto, cierre_propiedad_id, cierre_precio, cierre_comision, cierre_at")
       .eq("corredor_id", corredor.id)
       .eq("id", id)
       .maybeSingle(),
@@ -90,6 +91,17 @@ export default async function Cliente({
   const busca = (c.busca ?? {}) as Busca;
   const etapa = c.etapa as Etapa;
   const casas = ((casasData ?? []) as Casa[]).filter((p) => encaja(busca, p)).slice(0, 6);
+  // Para la casa que le interesa y el cierre: todas las casas del corredor (también las vendidas).
+  const { data: todasData } = await supabase
+    .from("propiedades")
+    .select("id, titulo, precio, moneda, estado")
+    .eq("corredor_id", corredor.id)
+    .order("titulo")
+    .limit(300);
+  const todas = (todasData ?? []) as { id: string; titulo: string; precio: number | null; moneda: string; estado: string }[];
+  const casaInteres = todas.find((p) => p.id === c.propiedad_interes_id) ?? null;
+  const casaCierre = todas.find((p) => p.id === c.cierre_propiedad_id) ?? null;
+  const pct = corredor.comision_pct ?? 5;
   const nombre = (c.nombre as string | null) ?? telefonoBonito(c.telefono as string);
   const manana = fechaIso(sumarDias(fechaLocal(new Date(), zona), 1));
   const resumen = resumenBusca(busca);
@@ -156,6 +168,80 @@ export default async function Cliente({
           </div>
         </form>
       )}
+
+      <section className="tarjeta pila oportunidad" data-patty="cliente-oportunidad">
+        {etapa === "cerrado" && c.cierre_precio ? (
+          <>
+            <h2>Cerró</h2>
+            <p className="cierre-resumen">
+              {casaCierre ? <strong>{casaCierre.titulo}</strong> : "Sin casa anotada"} · {precio(Number(c.cierre_precio), "USD")}
+              <span className="cierre-comision">Comisión {precio(Number(c.cierre_comision ?? 0), "USD")}</span>
+              {c.cierre_at && <span className="suave"> · {etiquetaHorario(new Date(c.cierre_at as string), zona).split(",")[0]}</span>}
+            </p>
+          </>
+        ) : etapa === "cerrado" ? (
+          <form action={guardarCierre} className="pila">
+            <h2>¡Cerró! Anota cómo fue</h2>
+            <input type="hidden" name="id" value={id} />
+            <label htmlFor="cierre-casa">Casa</label>
+            <select id="cierre-casa" name="casa" defaultValue={casaInteres?.id ?? ""}>
+              <option value="">Ninguna de mis casas</option>
+              {todas.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.titulo}
+                </option>
+              ))}
+            </select>
+            <div className="fila campos">
+              <div className="pila" style={{ flex: 1 }}>
+                <label htmlFor="cierre-precio">Precio final (dólares)</label>
+                <input id="cierre-precio" name="precio" type="text" inputMode="numeric" required defaultValue={c.oferta_monto ?? casaInteres?.precio ?? ""} />
+              </div>
+              <div className="pila" style={{ flex: 1 }}>
+                <label htmlFor="cierre-comision">Tu comisión (si la dejas vacía, {pct}%)</label>
+                <input id="cierre-comision" name="comision" type="text" inputMode="numeric" placeholder={`${pct}% del precio`} />
+              </div>
+            </div>
+            <button type="submit" className="primario">
+              Guardar el cierre
+            </button>
+          </form>
+        ) : (
+          <form action={guardarOportunidad} className="pila">
+            <h2>Lo que está en juego</h2>
+            <input type="hidden" name="id" value={id} />
+            <div className="fila campos">
+              <div className="pila" style={{ flex: 2 }}>
+                <label htmlFor="op-casa">Casa que le interesa</label>
+                <select id="op-casa" name="casa" defaultValue={casaInteres?.id ?? ""}>
+                  <option value="">Todavía ninguna</option>
+                  {todas
+                    .filter((p) => p.estado === "activa" || p.id === casaInteres?.id)
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.titulo}
+                        {p.precio ? ` · ${precio(p.precio, p.moneda)}` : ""}
+                      </option>
+                    ))}
+                </select>
+              </div>
+              <div className="pila" style={{ flex: 1 }}>
+                <label htmlFor="op-oferta">Oferta del cliente (dólares)</label>
+                <input id="op-oferta" name="oferta" type="text" inputMode="numeric" defaultValue={c.oferta_monto ?? ""} placeholder="Si hizo una" />
+              </div>
+            </div>
+            {(c.oferta_monto || casaInteres?.precio) && (
+              <p className="suave">
+                Si cierra en {precio(Number(c.oferta_monto ?? casaInteres?.precio), "USD")}, tu comisión sería de unos{" "}
+                <strong>{precio(Math.round((Number(c.oferta_monto ?? casaInteres?.precio) * pct) / 100), "USD")}</strong> ({pct}%).
+              </p>
+            )}
+            <button type="submit" className="primario">
+              Guardar
+            </button>
+          </form>
+        )}
+      </section>
 
       <div className="cliente-columnas">
         <section className="tarjeta pila">
@@ -277,6 +363,8 @@ export default async function Cliente({
           );
         })
       )}
+
+      <Historia supabase={supabase} corredorId={corredor.id} contactoId={id} zona={zona} nombreAsistente={corredor.nombre_asistente ?? "Patty"} />
 
       <h2 data-patty="cliente-notas">Notas</h2>
       <form action={guardarNotas} className="tarjeta pila">

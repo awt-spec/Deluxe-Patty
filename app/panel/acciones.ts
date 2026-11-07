@@ -181,6 +181,7 @@ export async function guardarAjustes(f: FormData) {
       precio_busqueda_min: numero("precio_min"),
       precio_busqueda_max: numero("precio_max"),
       nombre_asistente: texto(f, "nombre_asistente").trim().slice(0, 40) || "Patty",
+      comision_pct: Math.min(20, Math.max(0, Number(texto(f, "comision_pct").replace(",", ".")) || 5)),
     })
     .eq("id", corredor.id);
   revalidatePath("/panel", "layout");

@@ -7,6 +7,8 @@ import { MAX_FOTOS_PROPIEDAD, ordenarFotos } from "@/lib/panel/formularios";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Aviso } from "../../aviso";
 import { PreguntarPatty } from "../../preguntar-patty";
+import { Avatar } from "../../avatar";
+import { NOMBRE_ETAPA, encaja, resumenBusca, telefonoBonito, type Busca, type Etapa } from "@/lib/crm/perfil";
 import { BotonEnviar } from "../../boton-enviar";
 import {
   cambiarEstado,
@@ -71,6 +73,17 @@ export default async function Propiedad({
   const p = data as PropiedadFormulario & { id: string; fotos: Foto[] };
   const fotos = ordenarFotos(p.fotos);
   const fotosActivas = !!process.env.OPENAI_API_KEY;
+  // Clientes activos a los que les sirve esta casa por lo que dijeron que buscan.
+  const { data: clientesData } = await supabase
+    .from("contactos")
+    .select("id, nombre, telefono, etapa, busca")
+    .eq("corredor_id", corredor.id)
+    .eq("es_corredor", false)
+    .not("etapa", "in", "(cerrado,perdido)")
+    .limit(500);
+  const interesados = ((clientesData ?? []) as { id: string; nombre: string | null; telefono: string; etapa: Etapa; busca: Busca }[])
+    .filter((c) => p.estado === "activa" && encaja(c.busca ?? {}, p as never))
+    .slice(0, 12);
 
   return (
     <>
@@ -86,6 +99,33 @@ export default async function Propiedad({
         <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="¿A qué clientes les sirve esta casa?" />
         <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="Escríbeme un texto para ofrecerla" />
       </div>
+
+      {interesados.length > 0 && (
+        <section className="tarjeta pila encajan" data-patty="casa-clientes">
+          <h2>
+            Le sirve a {interesados.length} {interesados.length === 1 ? "cliente" : "clientes"}
+          </h2>
+          <p className="suave">Por lo que dijeron que buscan. Ofrécesela antes de que se la lleve otro.</p>
+          <ul className="encajan-lista">
+            {interesados.map((c) => (
+              <li key={c.id}>
+                <Link href={`/panel/clientes/${c.id}`}>
+                  <Avatar nombre={c.nombre} telefono={c.telefono} />
+                  <span>
+                    <strong>{c.nombre ?? telefonoBonito(c.telefono)}</strong>
+                    <span className="suave">
+                      {NOMBRE_ETAPA[c.etapa]} · {resumenBusca(c.busca ?? {})}
+                    </span>
+                  </span>
+                </Link>
+                <a className="boton" target="_blank" rel="noreferrer" href={`https://wa.me/${c.telefono.replace(/\D/g, "")}?text=${encodeURIComponent(`Hola${c.nombre ? ` ${c.nombre.split(" ")[0]}` : ""}, le escribe ${corredor.nombre_contacto} de ${corredor.nombre}. Tengo una propiedad que encaja con lo que busca: ${p.titulo}. ¿Le gustaría que le mande fotos o coordinar una visita?`)}`}>
+                  Ofrecérsela
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="pila" style={{ marginBottom: 8 }}>
         <form action={generarFicha}>

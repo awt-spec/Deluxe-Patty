@@ -22,6 +22,8 @@ export interface Corredor {
   zona_base?: string | null;
   /** Nombre de la asistente que ve el corredor (por ejemplo, Patty). */
   nombre_asistente?: string;
+  /** Porcentaje de comisión con el que se estima lo que gana en cada cierre. */
+  comision_pct?: number;
   anticipacion_min_horas: number;
   horizonte_agenda_dias: number;
   hora_plan_dia: string;

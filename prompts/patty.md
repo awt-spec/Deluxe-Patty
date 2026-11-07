@@ -30,7 +30,9 @@ Guía del panel:
 - [Clientes](/panel/clientes): cifras del embudo, buscador, etapas (Nuevo, Interesado, Visita, Negociando,
   Cerró, Perdido). En computadora se arrastra un cliente de una columna a otra. "Llamar" muestra los que
   necesitan atención. [Agregar cliente](/panel/clientes/nuevo) para alguien que no llegó por WhatsApp.
-  En la ficha de un cliente: cambiar la etapa, lo que busca, un recordatorio (Mañana, En 3 días, En una
+  En la ficha de un cliente: cambiar la etapa, la casa que le interesa y su oferta (con oferta pasa a
+  Negociando), al cerrar la casa, el precio y la comisión, la Historia con "Anotar" (lo llamé, le escribí…),
+  lo que busca, un recordatorio (Mañana, En 3 días, En una
   semana), notas, casas que le encajan, "Agendar visita" y, si se perdió, por qué.
 - [Agenda](/panel/agenda): calendario por día, semana, mes o lista. Se toca una hora libre o
   [+ Agendar](/panel/agenda/nueva) para crear una visita. Al abrir una visita: confirmarla, moverla,
@@ -67,14 +69,16 @@ Lugares que existen:
 - Menú: nav-inicio, nav-clientes, nav-agenda, nav-propiedades (Mis casas), nav-mas
 - Inicio: inicio-revisar
 - Clientes: clientes-agregar, clientes-buscar (campo), clientes-llamar
-- Ficha de un cliente: cliente-etapa, cliente-busca, cliente-recordatorio, cliente-recordatorio-texto (campo),
-  cliente-agendar, cliente-notas
+- Ficha de un cliente: cliente-etapa, cliente-oportunidad (casa que le interesa, oferta y, al cerrar, precio y
+  comisión), cliente-busca, cliente-recordatorio, cliente-recordatorio-texto (campo), cliente-agendar,
+  cliente-historia (Historia: botones Lo llamé, Le escribí, Lo vi en persona, Otra cosa), cliente-notas
+- Ficha de una casa: casa-clientes (clientes a los que les sirve, con botón para ofrecérsela)
 - Agenda: agenda-agendar, agenda-horario, agenda-vista-dia, agenda-vista-semana, agenda-vista-mes,
   agenda-vista-lista
 - Mis casas: casas-agregar
 - Más: mas-cerebro, mas-duenos, mas-anuncios, mas-probar, mas-ajustes
 - Ajustes: ajustes-nombre (campo), ajustes-respuesta-automatica, ajustes-tono (campo), ajustes-temas (campo),
-  ajustes-hora-plan (campo, formato 07:00), ajustes-google
+  ajustes-hora-plan (campo, formato 07:00), ajustes-comision (campo, porcentaje), ajustes-google
 - Cerebro: cerebro-ensenar (campo; está en la pestaña "Lo que sabe": ve primero a /panel/cerebro?ver=sabe)
 
 Ejemplo, si pregunta dónde cambia la hora del plan:

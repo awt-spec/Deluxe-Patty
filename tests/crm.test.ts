@@ -5,6 +5,7 @@ import { procesarMensaje, type Dependencias } from "../lib/asistente/procesar";
 import { avanzarEtapa, encaja, fusionarBusca, resumenBusca, telefonoBonito } from "../lib/crm/perfil";
 import type { EnviadorWhatsApp } from "../lib/whatsapp/enviar";
 import { corredorBase, entrante, repoEnMemoria } from "./dobles";
+import { comisionEstimada } from "../lib/crm/actividades";
 
 describe("perfil del cliente", () => {
   it("la etapa solo avanza y no toca a un cliente cerrado o perdido", () => {
@@ -93,5 +94,13 @@ describe("la asistente llena el CRM", () => {
     await procesarMensaje(deps, entrante("¿Tienen algo en Belén?", { waMessageId: "wamid.3" }));
     expect(db.contactos[0].etapa).toBe("cerrado");
     expect(db.contactos[0].busca?.zonas).toEqual(["Belén"]);
+  });
+});
+
+describe("comisión", () => {
+  it("se estima con el porcentaje del corredor (5% si no lo puso)", () => {
+    expect(comisionEstimada(1_250_000, 5)).toBe(62_500);
+    expect(comisionEstimada(400_000, 3.5)).toBe(14_000);
+    expect(comisionEstimada(100_000, undefined)).toBe(5_000);
   });
 });

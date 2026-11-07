@@ -31,7 +31,7 @@ export async function contextoPatty(deps: Dependencias, db: SupabaseClient, corr
     deps.repo.propiedadesActivas(corredor.id),
     db
       .from("contactos")
-      .select("nombre, telefono, etapa, etapa_at, busca, seguimiento_fecha, seguimiento_nota, motivo_perdida, updated_at")
+      .select("id, nombre, telefono, etapa, etapa_at, busca, seguimiento_fecha, seguimiento_nota, motivo_perdida, updated_at, oferta_monto, cierre_precio, cierre_comision, cierre_at, ultima_actividad_at")
       .eq("corredor_id", corredor.id)
       .eq("es_corredor", false)
       .order("updated_at", { ascending: false })
@@ -47,8 +47,25 @@ export async function contextoPatty(deps: Dependencias, db: SupabaseClient, corr
       .limit(40),
     db.from("conocimiento").select("tema").eq("corredor_id", corredor.id).eq("estado", "pendiente").limit(10),
   ]);
+  // Lo último que pasó con cada cliente (para no sugerir llamar a quien ya llamó hoy).
+  const { data: actividades } = await db
+    .from("actividades")
+    .select("contacto_id, tipo, texto, created_at")
+    .eq("corredor_id", corredor.id)
+    .order("created_at", { ascending: false })
+    .limit(200);
+  const ultimas = new Map<string, string[]>();
+  for (const a of (actividades ?? []) as { contacto_id: string; tipo: string; texto: string; created_at: string }[]) {
+    const l = ultimas.get(a.contacto_id) ?? [];
+    if (l.length < 2) l.push(`${a.texto} (${etiquetaHorario(new Date(a.created_at), zona).split(",")[0]})`);
+    ultimas.set(a.contacto_id, l);
+  }
 
   const lineasClientes = ((clientes ?? []) as {
+    id: string;
+    oferta_monto: number | null;
+    cierre_precio: number | null;
+    cierre_comision: number | null;
     nombre: string | null;
     telefono: string;
     etapa: Etapa;
@@ -64,6 +81,9 @@ export async function contextoPatty(deps: Dependencias, db: SupabaseClient, corr
       resumenBusca(c.busca ?? {}) ? `busca ${resumenBusca(c.busca)}` : null,
       c.seguimiento_fecha ? `recordatorio ${c.seguimiento_fecha <= hoy ? "para hoy o vencido" : c.seguimiento_fecha}: ${c.seguimiento_nota ?? "escribirle"}` : null,
       c.motivo_perdida ? `se perdió: ${c.motivo_perdida}` : null,
+      c.oferta_monto ? `ofreció $${Number(c.oferta_monto).toLocaleString("es-CR")}` : null,
+      c.cierre_precio ? `cerró en $${Number(c.cierre_precio).toLocaleString("es-CR")} (comisión $${Number(c.cierre_comision ?? 0).toLocaleString("es-CR")})` : null,
+      ultimas.get(c.id)?.length ? `lo último: ${ultimas.get(c.id)!.join("; ")}` : null,
     ]
       .filter(Boolean)
       .join(" · ");
@@ -87,6 +107,7 @@ export async function contextoPatty(deps: Dependencias, db: SupabaseClient, corr
     `Visitas de los próximos 7 días:\n${lineasCitas.join("\n") || "- ninguna"}`,
     `Clientes (los más recientes primero):\n${lineasClientes.join("\n") || "- todavía no hay"}`,
     `Preguntas de clientes que la asistente no supo contestar: ${(dudas ?? []).map((d) => d.tema as string).join("; ") || "ninguna"}`,
+    `Comisión de ${corredor.nombre_contacto}: ${corredor.comision_pct ?? 5}% del precio.`,
     `Casas activas:\n${fichaPropiedades(propiedades)}`,
   ]
     .filter(Boolean)
