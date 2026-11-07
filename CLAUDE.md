@@ -17,8 +17,14 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
 - Ficha de propiedad en PDF con `@react-pdf/renderer` (`lib/fichas/`): la identidad de cada corredor es
   dato (`corredores.marca`, tipo `Marca`); la de Deluxe sigue su Manual de Identidad Visual (4 colores oficiales, Playfair Display
   e Inter, logo oficial en `marcas/deluxe/`). Ejemplo: `npx tsx scripts/ficha-ejemplo.mts <salida.pdf> <fotos...>`.
-- Agenda propia en Supabase (no se integra Google Calendar): horarios, bloqueos y citas en la base;
-  el corredor ve sus citas en el teléfono suscribiéndose al enlace ICS `/api/calendario/<token>.ics`.
+- Agenda propia en Supabase: horarios, bloqueos y citas en la base; el corredor ve sus citas en el teléfono
+  con el enlace ICS `/api/calendario/<token>.ics` o conectando Google.
+- Google del corredor (`lib/google/`, Ajustes → Conectar Google, OAuth con `GOOGLE_CLIENT_ID`/`SECRET`; el permiso
+  va cifrado con `GOOGLE_TOKEN_KEY` en `google_conexiones`). Cada 15 min (`/api/cron/google`): las visitas van a su
+  Google Calendar (con el cliente invitado si tiene correo; Google le manda la invitación), lo ocupado en Google
+  bloquea la agenda, los correos de clientes se anotan en el CRM y la respuesta queda como **borrador en Gmail**
+  (nunca se manda sola) y a la hora del plan le llega el resumen del día por correo. Del correo solo se guarda
+  remitente, asunto y una frase (`correos_procesados`).
 - Vercel Cron cada hora para recordatorios, plan del día, vencimiento de anuncios y monitoreo, y cada
   noche para rehacer la demo
   (`vercel.json`, protegido con `CRON_SECRET`).
@@ -91,7 +97,9 @@ letra y botones grandes, palabras de todos los días (nada de "borrador" ni "esc
 WhatsApp (letra del sistema, verde de WhatsApp para enviar). Inicio (`/panel`): arriba lo
 urgente (un botón "Revisar" con lo que espera al corredor), lo que hizo la asistente en 24 horas y "Qué hacer
 hoy" (visitas con hora de salida, recordatorios y clientes que no contestan), abajo todos los chats.
-Agenda en calendario: día, semana, mes o lista (`?vista=`). Revisar (`/panel/revisar`, `lib/panel/pendientes.ts`) muestra uno a la
+Agenda en calendario: día, semana, mes o lista (`?vista=`); se toca una hora libre para agendar
+(`/panel/agenda/nueva`), cada visita se abre para confirmarla, moverla o cancelarla con aviso al cliente
+(`/panel/agenda/visita/<id>`, `lib/panel/visitas.ts`), con color por zona y el traslado entre visitas. Revisar (`/panel/revisar`, `lib/panel/pendientes.ts`) muestra uno a la
 vez lo que dijo el cliente y la respuesta propuesta, editable, con Enviar, Yo le escribo y No enviar (o
 "Escribirle por WhatsApp" y "Ya lo atendí" si pidió hablar con el corredor) y pasa al siguiente. Lo de
 poco uso (Dueños, Anuncios, Probar la asistente, Ajustes, Salir) está detrás de "Más" (`/panel/mas`). Íconos dibujados en `app/panel/iconos.tsx`
@@ -195,6 +203,8 @@ dueño o corredor. Un cambio de tono o de instrucciones se prueba con el set de 
 | alertas | Última vez que se mandó cada alerta de monitoreo (sin ráfagas) |
 | conocimiento | Cerebro de la asistente: lo que el corredor le enseñó y las dudas que no supo contestar |
 | extension_conexiones | Extensión de Chrome conectada a un corredor: huellas del código y del permiso, último uso |
+| google_conexiones | Gmail y Google Calendar del corredor: permiso cifrado, correo, hasta dónde leyó, resumen enviado |
+| correos_procesados | Correos que la asistente revisó: cliente u otro, remitente, asunto, resumen y si dejó borrador |
 | busquedas_extension / busquedas_extension_anuncios | Búsqueda de dueños en curso desde la extensión y anuncios leídos (se borran al terminar) |
 
 ## Comandos

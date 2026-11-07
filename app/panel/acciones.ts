@@ -12,7 +12,9 @@ import {
   tomarControl,
   type Resultado,
 } from "@/lib/panel/acciones";
+import { quitarConexion } from "@/lib/google/conexion";
 import { COOKIE_CORREDOR, sesionConCorredor } from "@/lib/panel/sesion";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { clienteConSesion } from "@/lib/supabase/servidor";
 
 // Server actions del panel. Antes de actuar con el backend (service_role) se comprueba con la sesión
@@ -195,4 +197,12 @@ export async function salir() {
   await supabase.auth.signOut();
   (await cookies()).delete(COOKIE_CORREDOR);
   redirect("/entrar");
+}
+
+/** Quita la conexión con Google (el permiso cifrado se borra; en Google puede quitarse también). */
+export async function desconectarGoogle() {
+  const { corredor } = await sesionConCorredor();
+  await quitarConexion(createAdminClient(), corredor.id);
+  revalidatePath("/panel/ajustes");
+  redirect(`/panel/ajustes?aviso=${encodeURIComponent("Google desconectado.")}`);
 }

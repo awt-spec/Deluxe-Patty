@@ -3,6 +3,8 @@
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
+import { sincronizarAhora } from "@/lib/google/tareas";
 import { aUtc, minutosDe } from "@/lib/agenda/tiempo";
 import { dependenciasPara } from "@/lib/asistente/dependencias";
 import { sesionConCorredor } from "@/lib/panel/sesion";
@@ -41,6 +43,11 @@ function instante(fecha: string, hora: string, zona: string): Date | null {
   return aUtc({ anio, mes, dia, diaSemana: new Date(Date.UTC(anio, mes - 1, dia)).getUTCDay() }, minutosDe(hora), zona);
 }
 
+/** Lleva el cambio al Google Calendar del corredor (si lo conectó) después de responder. */
+function alCalendario(corredor: Parameters<typeof sincronizarAhora>[1]) {
+  after(() => sincronizarAhora(createAdminClient(), corredor));
+}
+
 function irA(ruta: string, aviso: string): never {
   revalidatePath("/panel/agenda");
   revalidatePath("/panel");
@@ -68,6 +75,7 @@ export async function agendarVisita(f: FormData) {
     avisarCliente: f.get("avisar") !== null,
   });
   if (!r.ok) irA(volver, r.motivo);
+  alCalendario(corredor);
   irA(`/panel/agenda?vista=dia&fecha=${fecha}`, r.aviso);
 }
 
@@ -85,6 +93,7 @@ export async function moverLaVisita(f: FormData) {
   const inicio = instante(campo(f, "fecha"), campo(f, "hora"), corredor.zona_horaria);
   if (!inicio) irA(`/panel/agenda/visita/${id}`, "Revisa el día y la hora.");
   const r = await moverVisita(dependenciasPara(corredor), createAdminClient(), corredor, id, inicio!, f.get("avisar") !== null);
+  if (r.ok) alCalendario(corredor);
   irA(`/panel/agenda/visita/${id}`, r.ok ? r.aviso : r.motivo);
 }
 
@@ -101,5 +110,6 @@ export async function cambiarLaVisita(f: FormData) {
     estado as "confirmada" | "cancelada" | "realizada" | "no_asistio",
     f.get("avisar") !== null,
   );
+  if (r.ok) alCalendario(corredor);
   irA(estado === "cancelada" ? "/panel/agenda" : `/panel/agenda/visita/${id}`, r.ok ? r.aviso : r.motivo);
 }

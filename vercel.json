@@ -20,6 +20,10 @@
     {
       "path": "/api/cron/demo",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/google",
+      "schedule": "*/15 * * * *"
     }
   ]
 }

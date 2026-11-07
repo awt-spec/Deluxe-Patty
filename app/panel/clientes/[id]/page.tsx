@@ -40,6 +40,7 @@ const ORIGEN: Record<string, string> = {
   busqueda: "la búsqueda de dueños",
   whatsapp: "WhatsApp",
   otro: "otro medio",
+  correo: "correo electrónico",
 };
 
 export default async function Cliente({
