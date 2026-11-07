@@ -9,7 +9,7 @@ import { ordenarFotos } from "@/lib/panel/formularios";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Aviso } from "../../aviso";
 import { Avatar } from "../../avatar";
-import { IconoCasa, IconoChats, IconoTelefono } from "../../iconos";
+import { IconoAgenda, IconoCasa, IconoChats, IconoTelefono } from "../../iconos";
 import { Volver } from "../../volver";
 import { cambiarEtapa, guardarBusca, guardarNotas, guardarSeguimiento } from "../acciones";
 
@@ -115,6 +115,9 @@ export default async function Cliente({
         <a href={`https://wa.me/${(c.telefono as string).replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="boton">
           <IconoChats tamano={22} /> WhatsApp
         </a>
+        <Link href={`/panel/agenda/nueva?cliente=${id}`} className="boton">
+          <IconoAgenda tamano={22} /> Agendar visita
+        </Link>
         <a href={`tel:${c.telefono as string}`} className="boton">
           <IconoTelefono tamano={22} /> Llamar
         </a>
@@ -258,13 +261,13 @@ export default async function Cliente({
         (citas ?? []).map((v) => {
           const casa = (Array.isArray(v.propiedades) ? v.propiedades[0] : v.propiedades) as { titulo: string } | null;
           return (
-            <div key={v.id as string} className="tarjeta fila">
+            <Link key={v.id as string} href={`/panel/agenda/visita/${v.id as string}`} className="tarjeta fila">
               <span>
                 <strong>{etiquetaHorario(new Date(v.inicio as string), zona)}</strong>
                 {casa && <span className="suave"> · {casa.titulo}</span>}
               </span>
               <span className="insignia">{ESTADO_CITA[v.estado as string] ?? (v.estado as string)}</span>
-            </div>
+            </Link>
           );
         })
       )}
