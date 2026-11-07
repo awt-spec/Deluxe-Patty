@@ -288,10 +288,13 @@ export async function guardarCierre(f: FormData) {
   volverA(id, ok ? "¡Felicidades! Cierre guardado." : "No se pudo guardar. Vuelve a intentarlo.");
 }
 
-/** "Cerró" desde el tablero: al soltar al cliente en Cerró se pide el precio; la casa es la que le interesa. */
+/**
+ * "Cerró" desde el tablero: al soltar al cliente en Cerró se pide el precio. La casa es la que le interesa
+ * o, si no tiene, la que propone el tablero (la última que fue a ver); casaPropia comprueba que sea suya.
+ */
 export async function cerrarDesdeTablero(
   id: string,
-  datos: { precio: string; moneda: string; comision: string },
+  datos: { precio: string; moneda: string; comision: string; casa?: string },
 ): Promise<{ ok: true } | { ok: false; motivo: string }> {
   if (!idValido(id)) return { ok: false, motivo: "No se encontró el cliente." };
   const { supabase, corredor } = await sesionConCorredor();
@@ -302,7 +305,7 @@ export async function cerrarDesdeTablero(
   const ok = await registrarCierre(
     corredor,
     id,
-    (propio.propiedad_interes_id as string | null) ?? null,
+    (propio.propiedad_interes_id as string | null) ?? (datos?.casa ? String(datos.casa) : null),
     precio,
     monedaDe(datos?.moneda),
     montoDe(String(datos?.comision ?? "")),

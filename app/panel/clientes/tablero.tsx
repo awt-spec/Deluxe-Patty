@@ -21,7 +21,7 @@ export interface TarjetaTablero {
   recordatorio: { texto: string; vence: boolean } | null;
   casa: string | null;
   /** Para proponer el cierre: la oferta o el precio de la casa que le interesa, y si es venta o alquiler. */
-  cierre: { precio: number | null; moneda: Moneda; operacion: string | null };
+  cierre: { precio: number | null; moneda: Moneda; operacion: string | null; casaId: string | null };
 }
 
 export interface ColumnaTablero {
@@ -181,7 +181,7 @@ function VentanaCierre({
     e.preventDefault();
     setError(null);
     empezar(async () => {
-      const r = await cerrarDesdeTablero(tarjeta.id, { precio, moneda, comision });
+      const r = await cerrarDesdeTablero(tarjeta.id, { precio, moneda, comision, casa: tarjeta.cierre.casaId ?? "" });
       if (r.ok) alGuardar();
       else setError(r.motivo);
     });

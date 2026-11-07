@@ -64,7 +64,7 @@ export default async function Clientes({
       .limit(500),
     supabase
       .from("citas")
-      .select("contacto_id, inicio, propiedades(titulo)")
+      .select("contacto_id, inicio, propiedad_id, propiedades(titulo)")
       .eq("corredor_id", corredor.id)
       .order("inicio", { ascending: false })
       .limit(500),
@@ -78,9 +78,11 @@ export default async function Clientes({
   );
   // La última casa que fue (o va) a ver cada cliente.
   const casaDe = new Map<string, string>();
-  for (const c of (citasData ?? []) as { contacto_id: string; propiedades: { titulo: string } | { titulo: string }[] | null }[]) {
+  const casaVistaDe = new Map<string, string>();
+  for (const c of (citasData ?? []) as { contacto_id: string; propiedad_id: string | null; propiedades: { titulo: string } | { titulo: string }[] | null }[]) {
     const p = Array.isArray(c.propiedades) ? c.propiedades[0] : c.propiedades;
     if (p && !casaDe.has(c.contacto_id)) casaDe.set(c.contacto_id, p.titulo);
+    if (c.propiedad_id && !casaVistaDe.has(c.contacto_id)) casaVistaDe.set(c.contacto_id, c.propiedad_id);
   }
 
   const ahora = Date.now();
@@ -179,9 +181,12 @@ export default async function Clientes({
         estancado: estancado(c),
         recordatorio: recordatorio(c),
         casa: casaDe.get(c.id) ?? null,
+        // Para proponer el cierre: la oferta, la casa que le interesa o, si no, la última que fue a ver.
         cierre: (() => {
-          const v = valorDe(c);
-          return { precio: v.monto || null, moneda: v.moneda, operacion: operacion(c) ?? null };
+          const casaId = c.propiedad_interes_id ?? casaVistaDe.get(c.id) ?? null;
+          const casa = casaId ? casasPorId.get(casaId) : undefined;
+          const v = c.oferta_monto ? valorDe(c) : { monto: Number(casa?.precio ?? 0), moneda: monedaDe(casa?.moneda) };
+          return { precio: v.monto || null, moneda: v.moneda, operacion: operacion(c) ?? casa?.operacion ?? null, casaId };
         })(),
       })),
     };
