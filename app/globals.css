@@ -7192,3 +7192,110 @@ body:has(.marco.tema) {
 .tema .dia-lista li.dia-bloqueado .dia-hora {
   min-width: 64px;
 }
+
+/* ------------------------------------------------------------------------------------------------
+   Teléfono: que todo se pueda tocar con el dedo y leer sin esfuerzo.
+   - Nada que se toque mide menos de 44 px (guía de Apple); antes había botones de 34-40 px y la
+     flecha de volver del chat de Patty medía 24×32.
+   - Los campos van a 16 px: con menos, Safari del iPhone agranda la pantalla al tocarlos.
+   - Patty flotante es un círculo (antes una píldora ancha que tapaba botones de la derecha).
+   - Las etiquetas pequeñas no bajan de 13 px.
+   ------------------------------------------------------------------------------------------------ */
+@media (max-width: 899px) {
+  .tema main button,
+  .tema main .boton,
+  .tema main summary,
+  .tema main .preguntar-patty,
+  .tema main nav a,
+  .tema main .cal-vistas a {
+    min-height: 44px;
+  }
+  .tema main nav a,
+  .tema main .cal-vistas a,
+  .tema main .boton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .tema main summary {
+    display: flex;
+    align-items: center;
+  }
+  .tema .volver {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    padding-right: 8px;
+  }
+  .tema .casa-foto-botones button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .tema .patty-volver {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+  }
+  .tema .patty-sugerencias button,
+  .tema .patty-chat .preguntas-patty button {
+    min-height: 44px;
+  }
+  /* Casillas y opciones: el cuadro más grande y la fila entera se toca */
+  .tema main input[type="checkbox"],
+  .tema main input[type="radio"] {
+    width: 24px;
+    height: 24px;
+    flex: 0 0 24px;
+  }
+  .tema main label:has(> input[type="checkbox"]),
+  .tema main label:has(> input[type="radio"]) {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  /* Sin zoom del iPhone al escribir */
+  .tema input,
+  .tema select,
+  .tema textarea {
+    font-size: 16px !important;
+  }
+  /* Patty flotante: un círculo que tapa poco */
+  .tema .patty-boton {
+    width: 60px;
+    min-height: 60px;
+    height: 60px;
+    padding: 6px !important;
+    justify-content: center;
+    right: 14px;
+  }
+  .tema .patty-boton .patty-boton-texto {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .tema .patty-boton .patty-avatar {
+    width: 48px;
+    height: 48px;
+    flex-basis: 48px;
+    font-size: 1.3rem;
+  }
+  /* Etiquetas pequeñas, legibles */
+  .tema .ficha-dato-titulo,
+  .tema .casa-item-pie > span,
+  .tema .casa-item-operacion,
+  .tema .casa-item-estado,
+  .tema .casa-item-fotos,
+  .tema .casa-variante-etiqueta {
+    font-size: 0.8125rem !important;
+  }
+  .tema .dias-etapa {
+    font-size: 0.85rem;
+  }
+}
