@@ -3,14 +3,23 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { separarPasos, useGuia } from "./guia";
+import { separarPasos, useGuia, type Paso } from "./guia";
+import { IconoClip, IconoDobleCheck, IconoDocumento, IconoEnviar } from "./iconos";
 import { preguntarAPatty } from "./patty-acciones";
 
-// Botón flotante en cada página del panel para abrir el chat con la asistente (Patty). La conversación
-// se guarda en este navegador; Patty lee los datos del negocio en cada pregunta.
+// Chat del corredor con su asistente (Patty), como WhatsApp: burbujas con la hora, fondo de chat, caja
+// para escribir con botón para adjuntar fotos o PDF. Se usa en el botón flotante de cada página y en su
+// propia pantalla (/panel/patty). La conversación se guarda en este navegador (las fotos, solo en
+// miniatura); Patty lee los datos del negocio en cada pregunta.
 
-type Turno = { autor: "corredor" | "asistente"; texto: string };
+type Adjunto = { tipo: "imagen" | "pdf"; nombre: string; miniatura?: string };
+type Turno = { autor: "corredor" | "asistente"; texto: string; hora?: string; adjuntos?: Adjunto[] };
+type ArchivoListo = Adjunto & { mediaType: string; datos: string; tamano: number };
+
 const CLAVE = "chat-patty";
+const MAX_ARCHIVOS = 4;
+const MAX_TOTAL = 3_900_000; // en base64, para no pasar los 4,5 MB de Vercel
+
 // Lo que se le puede pedir en cada pantalla (la primera que calce).
 const SUGERENCIAS: [RegExp, string, string[]][] = [
   [/^\/panel\/clientes\/[0-9a-f-]{36}/, "Estás en la ficha de un cliente.", ["¿Qué le digo a este cliente?", "¿Qué casa le ofrezco?", "Escríbele un mensaje de seguimiento", "¿Cómo le pongo un recordatorio?"]],
@@ -24,7 +33,7 @@ const SUGERENCIAS: [RegExp, string, string[]][] = [
   [/^\/panel\/duenos/, "Estás en Dueños directos.", ["¿Cómo funciona la búsqueda de dueños?", "¿Cómo instalo la extensión?"]],
   [/^\/panel\/ajustes/, "Estás en Ajustes.", ["¿Qué hace cada ajuste?", "¿Cómo conecto mi Gmail?"]],
   [/^\/panel\/revisar/, "Estás revisando respuestas.", ["¿Cómo corrijo una respuesta?", "¿Qué pasa si le doy No enviar?"]],
-  [/.*/, "", ["¿Qué tengo hoy?", "¿A quién debería llamar?", "¿Dónde veo mis visitas?", "¿Cómo va el mes?"]],
+  [/.*/, "", ["¿Qué tengo hoy?", "¿A quién debería llamar?", "Analiza esta casa (adjunta fotos o un PDF)", "¿Cómo va el mes?"]],
 ];
 
 /** Abre el chat de Patty desde cualquier botón de la página, con una pregunta lista. */
@@ -33,8 +42,8 @@ export function abrirPatty(pregunta?: string) {
 }
 
 /**
- * Negritas (**así**), enlaces del panel ([Agenda](/panel/agenda)) y sin separadores (---). Solo se
- * vuelven enlace las rutas del propio panel; lo demás queda como texto. Nunca se interpreta HTML.
+ * Negritas (**así**), cursivas, enlaces del panel ([Agenda](/panel/agenda)) y sin separadores (---).
+ * Solo se vuelven enlace las rutas del propio panel; lo demás queda como texto. Nunca se interpreta HTML.
  */
 function conFormato(texto: string, alIr: () => void) {
   return texto
@@ -59,34 +68,341 @@ function conFormato(texto: string, alIr: () => void) {
     });
 }
 
-export function Patty({ nombre, corredor }: { nombre: string; corredor: string }) {
-  const ruta = usePathname();
+const horaDe = (iso?: string) =>
+  iso ? new Date(iso).toLocaleTimeString("es-CR", { hour: "numeric", minute: "2-digit" }).replace(/[  ]/g, " ") : "";
+
+/** Foto achicada a JPEG (máximo `lado` px) en base64; sirve para mandar y para la miniatura. */
+async function achicar(archivo: File, lado: number, calidad: number): Promise<string> {
+  const url = URL.createObjectURL(archivo);
+  try {
+    const img = await new Promise<HTMLImageElement>((ok, mal) => {
+      const i = new Image();
+      i.onload = () => ok(i);
+      i.onerror = mal;
+      i.src = url;
+    });
+    const escala = Math.min(1, lado / Math.max(img.width, img.height));
+    const lienzo = document.createElement("canvas");
+    lienzo.width = Math.round(img.width * escala);
+    lienzo.height = Math.round(img.height * escala);
+    lienzo.getContext("2d")!.drawImage(img, 0, 0, lienzo.width, lienzo.height);
+    return lienzo.toDataURL("image/jpeg", calidad);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+const aBase64 = (archivo: File) =>
+  new Promise<string>((ok, mal) => {
+    const r = new FileReader();
+    r.onload = () => ok(String(r.result).split(",")[1] ?? "");
+    r.onerror = mal;
+    r.readAsDataURL(archivo);
+  });
+
+export function ChatPatty({
+  nombre,
+  corredor,
+  modo,
+  ruta,
+  alCerrar,
+  guiar,
+  terminar,
+  preguntaInicial,
+  alUsarPregunta,
+}: {
+  nombre: string;
+  corredor: string;
+  modo: "flotante" | "pagina";
+  ruta: string;
+  alCerrar?: () => void;
+  guiar: (pasos: Paso[]) => void;
+  terminar: () => void;
+  preguntaInicial?: string | null;
+  alUsarPregunta?: () => void;
+}) {
   const busqueda = useSearchParams();
-  const [abierto, setAbierto] = useState(false);
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const [texto, setTexto] = useState("");
+  const [archivos, setArchivos] = useState<ArchivoListo[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [pendiente, setPendiente] = useState<string | null>(null);
+  const [preparando, setPreparando] = useState(false);
   const [pensando, empezar] = useTransition();
   const fin = useRef<HTMLDivElement>(null);
+  const entradaArchivo = useRef<HTMLInputElement>(null);
   const clave = `${CLAVE}:${corredor}`;
+  const [, aviso, sugerencias] = SUGERENCIAS.find(([r]) => r.test(ruta))!;
+
+  useEffect(() => {
+    try {
+      const g = JSON.parse(localStorage.getItem(clave) ?? "[]");
+      if (Array.isArray(g)) setTurnos(g.slice(-40));
+    } catch {}
+  }, [clave]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(clave, JSON.stringify(turnos.slice(-40)));
+    } catch {
+      // Si no cabe (miniaturas), se guarda sin ellas.
+      try {
+        localStorage.setItem(clave, JSON.stringify(turnos.slice(-40).map((t) => ({ ...t, adjuntos: t.adjuntos?.map(({ miniatura: _, ...a }) => a) }))));
+      } catch {}
+    }
+    fin.current?.scrollIntoView({ block: "end" });
+  }, [turnos, clave]);
+  useEffect(() => {
+    if (preguntaInicial) {
+      enviar(preguntaInicial);
+      alUsarPregunta?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preguntaInicial]);
+
+  async function elegirArchivos(lista: FileList | null) {
+    if (!lista?.length) return;
+    setError(null);
+    setPreparando(true);
+    const nuevos: ArchivoListo[] = [];
+    try {
+      for (const f of Array.from(lista).slice(0, MAX_ARCHIVOS - archivos.length)) {
+        if (f.type.startsWith("image/")) {
+          const grande = await achicar(f, 1600, 0.85);
+          const mini = await achicar(f, 220, 0.7);
+          const datos = grande.split(",")[1] ?? "";
+          nuevos.push({ tipo: "imagen", nombre: f.name, miniatura: mini, mediaType: "image/jpeg", datos, tamano: datos.length });
+        } else if (f.type === "application/pdf") {
+          if (f.size > 2_800_000) {
+            setError(`"${f.name}" pesa más de 2,8 MB. Manda uno más liviano o solo las páginas que importan.`);
+            continue;
+          }
+          const datos = await aBase64(f);
+          nuevos.push({ tipo: "pdf", nombre: f.name, mediaType: "application/pdf", datos, tamano: datos.length });
+        } else {
+          setError("Solo se pueden adjuntar fotos y PDF.");
+        }
+      }
+    } catch {
+      setError("No pude leer uno de los archivos.");
+    }
+    const todos = [...archivos, ...nuevos];
+    if (todos.reduce((s, a) => s + a.tamano, 0) > MAX_TOTAL) {
+      setError("Entre todos pesan demasiado. Manda menos archivos o más livianos.");
+    } else {
+      setArchivos(todos);
+    }
+    setPreparando(false);
+    if (entradaArchivo.current) entradaArchivo.current.value = "";
+  }
+
+  function enviar(mensaje: string) {
+    const limpio = mensaje.trim();
+    if ((!limpio && archivos.length === 0) || pensando) return;
+    terminar();
+    const previos = turnos;
+    const adjuntos = archivos;
+    setTurnos([
+      ...previos,
+      { autor: "corredor", texto: limpio, hora: new Date().toISOString(), adjuntos: adjuntos.map(({ tipo, nombre, miniatura }) => ({ tipo, nombre, miniatura })) },
+    ]);
+    setTexto("");
+    setArchivos([]);
+    setError(null);
+    const dondeEsta = `${ruta}${busqueda.toString() ? `?${busqueda}` : ""}`;
+    empezar(async () => {
+      try {
+        const r = await preguntarAPatty(
+          previos.map(({ autor, texto: t }) => ({ autor, texto: t })),
+          limpio,
+          dondeEsta,
+          adjuntos.map(({ mediaType, datos, nombre: n }) => ({ mediaType, datos, nombre: n })),
+        );
+        if (r.ok) {
+          const { texto: leible, pasos } = separarPasos(r.texto);
+          setTurnos((t) => [...t, { autor: "asistente", texto: leible, hora: new Date().toISOString() }]);
+          if (pasos.length) void guiar(pasos);
+        } else setError(r.motivo);
+      } catch {
+        setError("No se pudo mandar. Si adjuntaste archivos, prueba con menos o más livianos.");
+      }
+    });
+  }
+
+  const alIr = () => {
+    if (modo === "flotante" && window.innerWidth < 900) alCerrar?.();
+  };
+
+  return (
+    <section className={`patty-chat ${modo}`} aria-label={`Chat con ${nombre}`}>
+      <header className="patty-cabecera">
+        {modo === "pagina" && (
+          <Link href="/panel" className="patty-volver" aria-label="Volver">
+            ‹
+          </Link>
+        )}
+        <span className="patty-avatar" aria-hidden>
+          {nombre.charAt(0).toUpperCase()}
+        </span>
+        <span className="patty-titulo">
+          <strong>{nombre} · IA</strong>
+          <small>{pensando ? "escribiendo…" : "en línea · conoce tu agenda, tus clientes y tus casas"}</small>
+        </span>
+        {turnos.length > 0 && (
+          <button type="button" className="patty-limpiar" onClick={() => setTurnos([])} title="Empezar una conversación nueva">
+            Nueva
+          </button>
+        )}
+        {modo === "flotante" && (
+          <>
+            <Link href="/panel/patty" className="patty-limpiar" title="Abrir en grande" onClick={alCerrar}>
+              Abrir
+            </Link>
+            <button type="button" className="patty-cerrar" onClick={alCerrar} aria-label="Cerrar">
+              ×
+            </button>
+          </>
+        )}
+      </header>
+
+      <div className="patty-mensajes">
+        {turnos.length === 0 && (
+          <div className="patty-bienvenida">
+            <p className="patty-burbuja suya">
+              Hola, soy <strong>{nombre}</strong>. {aviso} ¿En qué te ayudo? Puedes mandarme fotos o un PDF de una casa
+              para analizarla, y si no sabes dónde está algo en el panel, te llevo.
+            </p>
+            <div className="patty-sugerencias">
+              {sugerencias.map((s) => (
+                <button key={s} type="button" onClick={() => (s.includes("adjunta") ? entradaArchivo.current?.click() : enviar(s))}>
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {turnos.map((t, i) => (
+          <div key={i} className={`patty-burbuja ${t.autor === "corredor" ? "mia" : "suya"}`}>
+            {t.adjuntos && t.adjuntos.length > 0 && (
+              <div className="patty-adjuntos-enviados">
+                {t.adjuntos.map((a, j) =>
+                  a.tipo === "imagen" && a.miniatura ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={j} src={a.miniatura} alt={a.nombre} />
+                  ) : (
+                    <span key={j} className="patty-archivo">
+                      <IconoDocumento tamano={18} /> {a.nombre}
+                    </span>
+                  ),
+                )}
+              </div>
+            )}
+            {t.texto && <span className="patty-texto">{t.autor === "asistente" ? conFormato(t.texto, alIr) : t.texto}</span>}
+            <span className="patty-hora">
+              {horaDe(t.hora)}
+              {t.autor === "corredor" && <IconoDobleCheck tamano={16} />}
+            </span>
+          </div>
+        ))}
+        {pensando && (
+          <div className="patty-burbuja suya pensando" aria-label={`${nombre} está escribiendo`}>
+            <span className="puntos">
+              <i />
+              <i />
+              <i />
+            </span>
+          </div>
+        )}
+        {error && <p className="aviso">{error}</p>}
+        <div ref={fin} />
+      </div>
+
+      {turnos.length > 0 && !pensando && archivos.length === 0 && (
+        <div className="patty-atajos">
+          {sugerencias.slice(0, 3).map((s) => (
+            <button key={s} type="button" onClick={() => (s.includes("adjunta") ? entradaArchivo.current?.click() : enviar(s))}>
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {archivos.length > 0 && (
+        <div className="patty-por-enviar">
+          {archivos.map((a, i) => (
+            <span key={i} className="patty-por-enviar-item">
+              {a.miniatura ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={a.miniatura} alt={a.nombre} />
+              ) : (
+                <span className="patty-archivo">
+                  <IconoDocumento tamano={18} /> {a.nombre}
+                </span>
+              )}
+              <button type="button" aria-label={`Quitar ${a.nombre}`} onClick={() => setArchivos((l) => l.filter((_, j) => j !== i))}>
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      <form
+        className="patty-escribir"
+        onSubmit={(e) => {
+          e.preventDefault();
+          enviar(texto);
+        }}
+      >
+        <input
+          ref={entradaArchivo}
+          type="file"
+          accept="image/*,application/pdf"
+          multiple
+          hidden
+          onChange={(e) => void elegirArchivos(e.target.files)}
+        />
+        <div className="patty-caja">
+          <button
+            type="button"
+            className="patty-adjuntar"
+            onClick={() => entradaArchivo.current?.click()}
+            disabled={preparando || archivos.length >= MAX_ARCHIVOS}
+            aria-label="Adjuntar fotos o PDF"
+            title="Adjuntar fotos o PDF"
+          >
+            <IconoClip tamano={22} />
+          </button>
+          <textarea
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                enviar(texto);
+              }
+            }}
+            placeholder={preparando ? "Preparando los archivos…" : "Mensaje"}
+            rows={1}
+            aria-label={`Mensaje para ${nombre}`}
+          />
+        </div>
+        <button type="submit" className="patty-enviar" disabled={pensando || preparando || (!texto.trim() && archivos.length === 0)} aria-label="Enviar">
+          <IconoEnviar tamano={22} />
+        </button>
+      </form>
+    </section>
+  );
+}
+
+/** Botón flotante con el chat, en cada página del panel (menos donde ya hay otra caja de texto). */
+export function Patty({ nombre, corredor }: { nombre: string; corredor: string }) {
+  const ruta = usePathname();
+  const [abierto, setAbierto] = useState(false);
+  const [pendiente, setPendiente] = useState<string | null>(null);
   // En el teléfono el chat tapa la pantalla: mientras Patty guía, se cierra y queda el botón.
   const { guiar, terminar, capa } = useGuia(nombre, () => {
     if (window.innerWidth < 900) setAbierto(false);
   });
 
-  useEffect(() => {
-    try {
-      const g = JSON.parse(localStorage.getItem(clave) ?? "[]");
-      if (Array.isArray(g)) setTurnos(g.slice(-30));
-    } catch {}
-  }, [clave]);
-  useEffect(() => {
-    try {
-      localStorage.setItem(clave, JSON.stringify(turnos.slice(-30)));
-    } catch {}
-    fin.current?.scrollIntoView({ block: "end" });
-  }, [turnos, clave, abierto]);
   useEffect(() => {
     const abrir = (e: Event) => {
       setAbierto(true);
@@ -102,38 +418,8 @@ export function Patty({ nombre, corredor }: { nombre: string; corredor: string }
     return () => window.removeEventListener("keydown", cerrar);
   }, []);
 
-  // Una pregunta que llegó desde un botón de la página se manda en cuanto el chat está abierto.
-  useEffect(() => {
-    if (pendiente && abierto) {
-      enviar(pendiente);
-      setPendiente(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendiente, abierto]);
-
-  // En un chat con un cliente y en "Probar la asistente" abajo va otra caja de texto: ahí no se muestra.
-  if (ruta.startsWith("/panel/conversaciones/") || ruta.startsWith("/panel/probar")) return <>{capa}</>;
-
-  const [, aviso, sugerencias] = SUGERENCIAS.find(([r]) => r.test(ruta))!;
-
-  function enviar(mensaje: string) {
-    const limpio = mensaje.trim();
-    if (!limpio || pensando) return;
-    terminar();
-    const previos = turnos;
-    setTurnos([...previos, { autor: "corredor", texto: limpio }]);
-    setTexto("");
-    setError(null);
-    const dondeEsta = `${ruta}${busqueda.toString() ? `?${busqueda}` : ""}`;
-    empezar(async () => {
-      const r = await preguntarAPatty(previos, limpio, dondeEsta);
-      if (r.ok) {
-        const { texto: leible, pasos } = separarPasos(r.texto);
-        setTurnos((t) => [...t, { autor: "asistente", texto: leible }]);
-        if (pasos.length) void guiar(pasos);
-      } else setError(r.motivo);
-    });
-  }
+  // En su propia pantalla, en un chat con un cliente y en "Probar la asistente" no va el botón flotante.
+  if (ruta.startsWith("/panel/patty") || ruta.startsWith("/panel/conversaciones/") || ruta.startsWith("/panel/probar")) return <>{capa}</>;
 
   return (
     <>
@@ -147,84 +433,32 @@ export function Patty({ nombre, corredor }: { nombre: string; corredor: string }
         </button>
       )}
       {abierto && (
-        <section className="patty-panel" role="dialog" aria-label={`Chat con ${nombre}`}>
-          <header className="patty-cabecera">
-            <span className="patty-avatar" aria-hidden>
-              {nombre.charAt(0).toUpperCase()}
-            </span>
-            <span>
-              <strong>{nombre} · IA</strong>
-              <small>Tu asistente. Conoce tu agenda, tus clientes y tus casas.</small>
-            </span>
-            {turnos.length > 0 && (
-              <button type="button" className="patty-limpiar" onClick={() => setTurnos([])} title="Empezar de nuevo">
-                Nueva
-              </button>
-            )}
-            <button type="button" className="patty-cerrar" onClick={() => setAbierto(false)} aria-label="Cerrar">
-              ×
-            </button>
-          </header>
-          <div className="patty-mensajes">
-            {turnos.length === 0 && (
-              <div className="patty-bienvenida">
-                <p>
-                  Hola, soy <strong>{nombre}</strong>. {aviso} ¿En qué te ayudo? Si no sabes dónde está algo, pregúntame y
-                  te llevo.
-                </p>
-                <div className="patty-sugerencias">
-                  {sugerencias.map((s) => (
-                    <button key={s} type="button" onClick={() => enviar(s)}>
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            {turnos.map((t, i) => (
-              <p key={i} className={`patty-burbuja ${t.autor === "corredor" ? "mia" : "suya"}`}>
-                {t.autor === "asistente" ? conFormato(t.texto, () => window.innerWidth < 900 && setAbierto(false)) : t.texto}
-              </p>
-            ))}
-            {pensando && <p className="patty-burbuja suya pensando">{nombre} está escribiendo…</p>}
-            {error && <p className="aviso">{error}</p>}
-            <div ref={fin} />
-          </div>
-          {turnos.length > 0 && !pensando && (
-            <div className="patty-atajos">
-              {sugerencias.slice(0, 3).map((s) => (
-                <button key={s} type="button" onClick={() => enviar(s)}>
-                  {s}
-                </button>
-              ))}
-            </div>
-          )}
-          <form
-            className="patty-escribir"
-            onSubmit={(e) => {
-              e.preventDefault();
-              enviar(texto);
-            }}
-          >
-            <textarea
-              value={texto}
-              onChange={(e) => setTexto(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  enviar(texto);
-                }
-              }}
-              placeholder={`Escríbele a ${nombre}…`}
-              rows={1}
-              aria-label={`Mensaje para ${nombre}`}
-            />
-            <button type="submit" className="primario" disabled={pensando || !texto.trim()}>
-              Enviar
-            </button>
-          </form>
-        </section>
+        <div className="patty-panel" role="dialog" aria-label={`Chat con ${nombre}`}>
+          <ChatPatty
+            nombre={nombre}
+            corredor={corredor}
+            modo="flotante"
+            ruta={ruta}
+            alCerrar={() => setAbierto(false)}
+            guiar={guiar}
+            terminar={terminar}
+            preguntaInicial={pendiente}
+            alUsarPregunta={() => setPendiente(null)}
+          />
+        </div>
       )}
+    </>
+  );
+}
+
+/** Patty en su propia pantalla, a todo lo alto (como abrir un chat en WhatsApp). */
+export function PattyPagina({ nombre, corredor }: { nombre: string; corredor: string }) {
+  const ruta = usePathname();
+  const { guiar, terminar, capa } = useGuia(nombre, () => {});
+  return (
+    <>
+      {capa}
+      <ChatPatty nombre={nombre} corredor={corredor} modo="pagina" ruta={ruta} guiar={guiar} terminar={terminar} />
     </>
   );
 }

@@ -228,3 +228,9 @@ export const IconoInicio = (p: Props) => (
     <rect x="13" y="13" width="7" height="7" rx="1.5" />
   </Icono>
 );
+
+export const IconoClip = (p: Props) => (
+  <Icono {...p}>
+    <path d="m20.5 11.5-8.6 8.6a5 5 0 0 1-7.1-7.1l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l7.9-7.9" />
+  </Icono>
+);

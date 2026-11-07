@@ -5715,3 +5715,312 @@ body:has(.marco.tema) {
     font-size: 1.7rem;
   }
 }
+
+/* Patty · IA como WhatsApp: fondo de chat, burbujas con hora, caja con clip y botón redondo */
+.patty-chat {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: #efeae2;
+}
+.patty-panel {
+  overflow: hidden;
+}
+.patty-panel > .patty-chat {
+  height: 100%;
+}
+.patty-chat.pagina {
+  position: fixed;
+  z-index: 35;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: calc(68px + env(safe-area-inset-bottom));
+}
+@media (min-width: 900px) {
+  .patty-chat.pagina {
+    left: var(--lateral, 248px);
+    bottom: 0;
+  }
+}
+.patty-chat .patty-cabecera {
+  background: #008069;
+  gap: 10px;
+  padding: 10px 12px;
+  padding-top: max(10px, env(safe-area-inset-top));
+}
+.patty-chat .patty-titulo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  min-width: 0;
+}
+.patty-chat .patty-titulo small {
+  opacity: 0.85;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.patty-chat .patty-volver {
+  color: #fff;
+  font-size: 2rem;
+  line-height: 1;
+  padding: 0 6px;
+  text-decoration: none;
+}
+.patty-chat .patty-cabecera .patty-limpiar {
+  min-height: 34px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 16%);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  border: 0;
+}
+.patty-chat .patty-mensajes {
+  background-color: #efeae2;
+  background-image: radial-gradient(rgb(0 0 0 / 4%) 1px, transparent 1px), radial-gradient(rgb(0 0 0 / 3%) 1px, transparent 1px);
+  background-size: 22px 22px, 22px 22px;
+  background-position: 0 0, 11px 11px;
+  padding: 14px 12px;
+  gap: 6px;
+}
+@media (min-width: 900px) {
+  .patty-chat.pagina .patty-mensajes {
+    padding: 20px max(24px, calc((100% - 820px) / 2));
+  }
+  .patty-chat.pagina .patty-escribir,
+  .patty-chat.pagina .patty-atajos,
+  .patty-chat.pagina .patty-por-enviar {
+    padding-left: max(16px, calc((100% - 820px) / 2));
+    padding-right: max(16px, calc((100% - 820px) / 2));
+  }
+}
+.patty-chat .patty-burbuja {
+  position: relative;
+  max-width: 82%;
+  padding: 7px 10px 6px;
+  border-radius: 8px;
+  box-shadow: 0 1px 0.5px rgb(11 20 26 / 13%);
+  border: 0;
+  font-size: 0.97rem;
+  line-height: 1.4;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  white-space: normal;
+}
+.patty-chat .patty-burbuja.suya {
+  align-self: flex-start;
+  background: #fff;
+  border-top-left-radius: 0;
+}
+.patty-chat .patty-burbuja.mia {
+  align-self: flex-end;
+  background: #d9fdd3;
+  border-top-right-radius: 0;
+}
+.patty-chat .patty-texto {
+  white-space: pre-wrap;
+}
+.patty-chat .patty-hora {
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.7rem;
+  color: #667781;
+  margin-top: -2px;
+}
+.patty-chat .patty-burbuja.mia .patty-hora svg {
+  color: #53bdeb;
+}
+.patty-chat .patty-bienvenida {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.patty-chat .patty-bienvenida .patty-burbuja {
+  max-width: 90%;
+}
+.patty-chat .patty-sugerencias {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+.patty-chat .patty-sugerencias button,
+.patty-chat .patty-atajos button {
+  background: #fff !important;
+  border: 1px solid #d1d7db !important;
+  color: #008069 !important;
+  border-radius: 999px !important;
+  min-height: 38px !important;
+  padding: 6px 14px !important;
+  font-size: 0.9rem !important;
+  font-weight: 500 !important;
+  box-shadow: 0 1px 0.5px rgb(11 20 26 / 10%) !important;
+  text-align: left;
+}
+.patty-chat .patty-atajos {
+  background: #efeae2;
+  border-top: 0;
+  padding: 6px 12px;
+}
+.patty-chat .pensando {
+  padding: 10px 14px;
+}
+.patty-chat .puntos {
+  display: inline-flex;
+  gap: 4px;
+}
+.patty-chat .puntos i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #8696a0;
+  animation: patty-puntos 1.2s infinite ease-in-out;
+}
+.patty-chat .puntos i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.patty-chat .puntos i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes patty-puntos {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+.patty-chat .patty-adjuntos-enviados {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.patty-chat .patty-adjuntos-enviados img {
+  width: 140px;
+  height: 105px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+.patty-chat .patty-archivo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: rgb(0 0 0 / 5%);
+  font-size: 0.88rem;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.patty-chat .patty-por-enviar {
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f0f2f5;
+  overflow-x: auto;
+}
+.patty-chat .patty-por-enviar-item {
+  position: relative;
+  flex: 0 0 auto;
+}
+.patty-chat .patty-por-enviar-item img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 8px;
+  display: block;
+}
+.patty-chat .patty-por-enviar-item .patty-archivo {
+  background: #fff;
+  height: 72px;
+}
+.patty-chat .patty-por-enviar-item button {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 24px;
+  height: 24px;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  background: #54656f !important;
+  color: #fff !important;
+  border: 2px solid #fff !important;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+.patty-chat .patty-escribir {
+  background: #f0f2f5;
+  border-top: 0;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 8px 10px;
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+}
+.patty-chat .patty-caja {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  background: #fff;
+  border-radius: 24px;
+  padding: 2px 6px 2px 4px;
+  min-width: 0;
+}
+.patty-chat .patty-caja textarea {
+  flex: 1;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  min-height: 44px;
+  max-height: 140px;
+  padding: 11px 6px !important;
+  resize: none;
+  font-size: 1rem;
+  outline: none;
+}
+.patty-chat .patty-adjuntar {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: #54656f !important;
+  min-height: 44px !important;
+  width: 40px;
+  padding: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(-45deg);
+}
+.patty-chat .patty-enviar {
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  background: #00a884 !important;
+  border: 0 !important;
+  color: #fff !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 20%) !important;
+}
+.patty-chat .patty-enviar:disabled {
+  background: #8696a0 !important;
+  opacity: 1;
+}

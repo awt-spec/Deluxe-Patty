@@ -78,6 +78,13 @@ export interface ClasificacionCorreo {
   consumo: Consumo;
 }
 
+export interface Adjunto {
+  tipo: "imagen" | "pdf";
+  mediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif" | "application/pdf";
+  datos: string;
+  nombre: string;
+}
+
 export interface Cerebro {
   clasificar(corredor: Corredor, historial: Mensaje[], mensaje: string): Promise<Clasificacion>;
   responder(
@@ -103,6 +110,8 @@ export interface Cerebro {
     contexto: string,
     historial: { autor: "corredor" | "asistente"; texto: string }[],
     mensaje: string,
+    /** Fotos o PDF que el corredor adjuntó a este mensaje (en base64). */
+    adjuntos?: Adjunto[],
   ): Promise<Respuesta>;
   /** Arma la ficha de una propiedad a partir de lo que el corredor cuenta en el panel. */
   fichaConversada(
@@ -473,7 +482,7 @@ export function crearCerebroClaude(client = new Anthropic()): Cerebro {
       return { ficha, pregunta: pregunta?.trim() || null, consumo: c };
     },
 
-    async conversarConCorredor(corredor, contexto, historial, mensaje) {
+    async conversarConCorredor(corredor, contexto, historial, mensaje, adjuntos = []) {
       const nombre = corredor.nombre_asistente ?? "Patty";
       const system = [
         instruccion("patty"),
@@ -485,7 +494,17 @@ export function crearCerebroClaude(client = new Anthropic()): Cerebro {
       ];
       const messages: Anthropic.Beta.BetaMessageParam[] = [
         ...historial.slice(-12).map((m) => ({ role: m.autor === "corredor" ? ("user" as const) : ("assistant" as const), content: m.texto })),
-        { role: "user", content: mensaje },
+        {
+          role: "user",
+          content: [
+            ...adjuntos.map((a): Anthropic.Beta.BetaContentBlockParam =>
+              a.tipo === "pdf"
+                ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: a.datos }, title: a.nombre.slice(0, 100) }
+                : { type: "image", source: { type: "base64", media_type: a.mediaType as "image/jpeg", data: a.datos } },
+            ),
+            { type: "text", text: mensaje },
+          ],
+        },
       ];
       // Los turnos tienen que alternar y empezar por el corredor.
       while (messages.length && messages[0].role !== "user") messages.shift();

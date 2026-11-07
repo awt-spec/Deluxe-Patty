@@ -2,7 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { etiquetaHorario } from "../agenda/formato";
 import { fechaIso, fechaLocal } from "../agenda/tiempo";
-import { fichaPropiedades, RechazoModelo } from "../asistente/cerebro";
+import { fichaPropiedades, RechazoModelo, type Adjunto } from "../asistente/cerebro";
 import { hayPresupuestoHoy } from "../asistente/limites";
 import { armarPlan, datosDelPlan } from "../asistente/plan";
 import type { Dependencias } from "../asistente/procesar";
@@ -195,8 +195,9 @@ export async function hablarConPatty(
   historial: TurnoPatty[],
   mensaje: string,
   ruta = "/panel",
+  adjuntos: Adjunto[] = [],
 ): Promise<{ ok: true; texto: string } | { ok: false; motivo: string }> {
-  const limpio = mensaje.trim().slice(0, 4000);
+  const limpio = mensaje.trim().slice(0, 4000) || (adjuntos.length ? "Revisa lo que te adjunto y dime qué ves o qué me recomiendas." : "");
   if (!limpio) return { ok: false, motivo: "Escribe algo para Patty." };
   if (!(await hayPresupuestoHoy(deps.repo, corredor))) {
     return { ok: false, motivo: "Por hoy se llegó al tope de uso de la asistente. Mañana sigue." };
@@ -206,7 +207,7 @@ export async function hablarConPatty(
   try {
     const [negocio, pantalla] = await Promise.all([contextoPatty(deps, db, corredor), contextoPantalla(db, corredor, ruta)]);
     const contexto = `<pantalla_actual>\n${pantalla}\n</pantalla_actual>\n\n${negocio}`;
-    const r = await deps.cerebro.conversarConCorredor(corredor, contexto, historial.slice(-12), limpio);
+    const r = await deps.cerebro.conversarConCorredor(corredor, contexto, historial.slice(-12), limpio, adjuntos);
     await registrarCosto(r.consumo);
     return { ok: true, texto: r.texto };
   } catch (e) {

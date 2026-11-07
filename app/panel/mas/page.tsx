@@ -8,6 +8,7 @@ import {
   IconoFlecha,
   IconoIdea,
   IconoLlave,
+  IconoChats,
   IconoProbar,
   IconoResumen,
   IconoSalir,
@@ -16,6 +17,7 @@ import {
 // Lo que no se usa todos los días. Lo que ya tiene su pestaña (agenda, horario, clientes) no se repite aquí.
 const GRUPOS = [
   [
+    { ruta: "/panel/patty", Icono: IconoChats, nombre: "Patty · IA", detalle: "Tu asistente: pregúntale o mándale fotos y PDF" },
     { ruta: "/panel/negocio", Icono: IconoResumen, nombre: "Cómo va el negocio", detalle: "Lo ganado, de dónde vienen y por qué se pierden" },
     { ruta: "/panel/cerebro", Icono: IconoIdea, nombre: "Cerebro de la asistente", detalle: "Lo que sabe y lo que te pregunta" },
   ],
