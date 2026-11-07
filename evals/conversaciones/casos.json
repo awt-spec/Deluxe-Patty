@@ -104,6 +104,12 @@
       "esperado": { "intencion": "pasar_a_corredor", "resultado": "escalado", "aviso": true }
     },
     {
+      "id": "busca-y-financiamiento",
+      "tags": ["escalamiento"],
+      "turnos": ["Busco casa para comprar, 3 cuartos, hasta 800 mil, en Belén o Santa Ana. ¿Qué tienen? ¿Y se puede financiar?"],
+      "esperado": { "intencion": "consulta_propiedad", "resultado": "respondido", "aviso": true }
+    },
+    {
       "id": "escala-mezclado",
       "tags": ["escalamiento"],
       "turnos": ["¿La casa tiene piscina? Y otra cosa, ¿cuánto me rebajan si la compro este mes?"],

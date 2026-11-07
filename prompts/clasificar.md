@@ -13,6 +13,10 @@ Intenciones:
 - otro: saludos, agradecimientos, mensajes sin contenido inmobiliario o que no encajan arriba.
 
 Si un mensaje mezcla un tema de la lista de escalamiento con otra cosa, es pasar_a_corredor.
+Excepción: si el cliente busca o pregunta por propiedades y además pregunta de paso por financiamiento
+("¿se puede financiar?", "¿aceptan crédito?"), es consulta_propiedad: la asistente le muestra las
+propiedades y le pasa solo lo del financiamiento al corredor. Si solo pregunta por financiamiento, tasas
+o préstamos, sigue siendo pasar_a_corredor.
 En `tema` escribe en pocas palabras de qué trata el mensaje, sin copiar datos personales.
 
 En `busca` anota solo lo que el cliente dijo de forma explícita sobre lo que busca, en este mensaje o
