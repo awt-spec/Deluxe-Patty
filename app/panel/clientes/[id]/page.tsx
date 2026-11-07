@@ -4,7 +4,7 @@ import { etiquetaHorario } from "@/lib/agenda/formato";
 import { fechaIso, fechaLocal, sumarDias } from "@/lib/agenda/tiempo";
 import { AYUDA_ETAPA, ETAPAS, MOTIVOS_PERDIDA, NOMBRE_ETAPA, encaja, resumenBusca, telefonoBonito, type Busca, type Etapa } from "@/lib/crm/perfil";
 import type { Foto } from "@/lib/datos/tipos";
-import { comisionEstimada, monedaDe, reglaComision } from "@/lib/crm/dinero";
+import { comisionEstimada, monedaDe, montoExacto, reglaComision } from "@/lib/crm/dinero";
 import { precio } from "@/lib/formato";
 import { ordenarFotos } from "@/lib/panel/formularios";
 import { sesionConCorredor } from "@/lib/panel/sesion";
@@ -165,12 +165,12 @@ export default async function Cliente({
             <span>
               {etapa === "cerrado" ? (
                 c.cierre_precio ? (
-                  `${precio(Number(c.cierre_precio), monedaCierre)} · comisión ${precio(Number(c.cierre_comision ?? 0), monedaCierre)}`
+                  `${montoExacto(Number(c.cierre_precio), monedaCierre)} · comisión ${montoExacto(Number(c.cierre_comision ?? 0), monedaCierre)}`
                 ) : (
                   <a href="#cierre">Falta anotar el precio</a>
                 )
               ) : valorEnJuego ? (
-                `${precio(valorEnJuego, monedaEnJuego)}${alquiler ? " al mes" : ""} · comisión ${precio(comisionEnJuego, monedaEnJuego)}`
+                `${montoExacto(valorEnJuego, monedaEnJuego)}${alquiler ? " al mes" : ""} · comisión ${montoExacto(comisionEnJuego, monedaEnJuego)}`
               ) : (
                 "Sin casa elegida"
               )}
@@ -311,8 +311,8 @@ export default async function Cliente({
               <>
                 <h2>Cerró</h2>
                 <p className="cierre-resumen">
-                  {casaCierre ? <strong>{casaCierre.titulo}</strong> : "Sin casa anotada"} · {precio(Number(c.cierre_precio), monedaCierre)}
-                  <span className="cierre-comision">Comisión {precio(Number(c.cierre_comision ?? 0), monedaCierre)}</span>
+                  {casaCierre ? <strong>{casaCierre.titulo}</strong> : "Sin casa anotada"} · {montoExacto(Number(c.cierre_precio), monedaCierre)}
+                  <span className="cierre-comision">Comisión {montoExacto(Number(c.cierre_comision ?? 0), monedaCierre)}</span>
                   {c.cierre_at && <span className="suave"> · {etiquetaHorario(new Date(c.cierre_at as string), zona).split(",")[0]}</span>}
                 </p>
               </>
@@ -369,7 +369,7 @@ export default async function Cliente({
                 </div>
                 {valorEnJuego > 0 && (
                   <p className="comision-estimada">
-                    Tu comisión: <strong>{precio(comisionEnJuego, monedaEnJuego)}</strong> <span className="suave">({reglaComision(pct, operacion)})</span>
+                    Tu comisión: <strong>{montoExacto(comisionEnJuego, monedaEnJuego)}</strong> <span className="suave">({reglaComision(pct, operacion)})</span>
                   </p>
                 )}
                 <button type="submit" className="primario chico">
