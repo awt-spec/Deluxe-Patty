@@ -7182,3 +7182,13 @@ body:has(.marco.tema) {
   text-align: left;
   align-items: flex-start;
 }
+/* El rango del rato libre o bloqueado se lee completo (no se corta con "…"). */
+.tema .dia-lista li.dia-libre .dia-texto .suave,
+.tema .dia-lista li.dia-bloqueado .dia-texto .suave {
+  white-space: normal;
+  overflow: visible;
+}
+.tema .dia-lista li.dia-libre .dia-hora,
+.tema .dia-lista li.dia-bloqueado .dia-hora {
+  min-width: 64px;
+}
