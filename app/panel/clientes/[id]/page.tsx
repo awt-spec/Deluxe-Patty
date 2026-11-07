@@ -122,42 +122,92 @@ export default async function Cliente({
   const manana = fechaIso(sumarDias(fechaLocal(new Date(), zona), 1));
   const resumen = resumenBusca(busca);
 
+  const diasEnEtapa = Math.max(0, Math.floor((Date.now() - Date.parse(c.etapa_at as string)) / 86_400_000));
+  const venceRecordatorio = !!c.seguimiento_fecha && (c.seguimiento_fecha as string) <= fechaIso(fechaLocal(new Date(), zona));
+  const valorEnJuego = Number(c.oferta_monto ?? 0) || casaInteres?.precio || 0;
+  const visitas = (citas ?? []) as { id: string; inicio: string; estado: string; propiedades: { titulo: string } | { titulo: string }[] | null }[];
+
   return (
     <>
       <Volver href="/panel/clientes" texto="Clientes" />
-      <header className="cliente-cabecera">
-        <Avatar nombre={c.nombre as string | null} telefono={c.telefono as string} grande />
-        <div>
-          <h1>{nombre}</h1>
-          <p className="suave">
-            {c.nombre ? `${telefonoBonito(c.telefono as string)} · ` : ""}llegó por {ORIGEN[c.origen as string] ?? c.origen}
-          </p>
-        </div>
-      </header>
       <Aviso texto={aviso} />
-      <div className="preguntas-patty">
-        <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="¿Qué le digo a este cliente?" />
-        <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="¿Qué casa le ofrezco?" />
-      </div>
 
-      <div className="cliente-acciones">
-        {conv && (
-          <Link href={`/panel/conversaciones/${conv.id}`} className="boton primario">
-            <IconoChats tamano={22} /> Ver el chat
+      {/* Cabecera: quién es, en qué va y lo más importante de un vistazo */}
+      <section className={`ficha-cabecera etapa-${etapa}`}>
+        <div className="ficha-identidad">
+          <Avatar nombre={c.nombre as string | null} telefono={c.telefono as string} grande />
+          <div className="ficha-nombre">
+            <h1>{nombre}</h1>
+            <p className="suave">
+              {c.nombre ? `${telefonoBonito(c.telefono as string)} · ` : ""}llegó por {ORIGEN[c.origen as string] ?? c.origen}
+            </p>
+          </div>
+          <div className="ficha-etapa">
+            <span className={`etapa etapa-${etapa}`}>{NOMBRE_ETAPA[etapa]}</span>
+            <span className="suave">{diasEnEtapa === 0 ? "desde hoy" : `hace ${diasEnEtapa} ${diasEnEtapa === 1 ? "día" : "días"}`}</span>
+          </div>
+        </div>
+        <div className="ficha-datos">
+          <div>
+            <span className="ficha-dato-titulo">Busca</span>
+            <span>{resumen || "Todavía no lo dijo"}</span>
+          </div>
+          <div>
+            <span className="ficha-dato-titulo">{etapa === "cerrado" ? "Cerró en" : c.oferta_monto ? "Ofreció" : "En juego"}</span>
+            <span>
+              {etapa === "cerrado" && c.cierre_precio
+                ? precio(Number(c.cierre_precio), "USD")
+                : valorEnJuego
+                  ? `${precio(valorEnJuego, "USD")} · comisión ${precio(Math.round((valorEnJuego * pct) / 100), "USD")}`
+                  : "Sin casa elegida"}
+            </span>
+          </div>
+          <div className={venceRecordatorio ? "vence" : undefined}>
+            <span className="ficha-dato-titulo">Recordatorio</span>
+            <span>
+              {c.seguimiento_fecha
+                ? `${venceRecordatorio ? "Hoy" : etiquetaHorario(new Date(`${c.seguimiento_fecha as string}T12:00:00`), zona).split(",")[0]}: ${(c.seguimiento_nota as string | null) ?? "escribirle"}`
+                : "Ninguno"}
+            </span>
+          </div>
+        </div>
+        <div className="cliente-acciones">
+          {conv && (
+            <Link href={`/panel/conversaciones/${conv.id}`} className="boton primario">
+              <IconoChats tamano={20} /> Ver el chat
+            </Link>
+          )}
+          <a href={`https://wa.me/${(c.telefono as string).replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="boton">
+            <IconoChats tamano={20} /> WhatsApp
+          </a>
+          <Link data-patty="cliente-agendar" href={`/panel/agenda/nueva?cliente=${id}`} className="boton">
+            <IconoAgenda tamano={20} /> Agendar visita
           </Link>
-        )}
-        <a href={`https://wa.me/${(c.telefono as string).replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="boton">
-          <IconoChats tamano={22} /> WhatsApp
-        </a>
-        <Link data-patty="cliente-agendar" href={`/panel/agenda/nueva?cliente=${id}`} className="boton">
-          <IconoAgenda tamano={22} /> Agendar visita
-        </Link>
-        <a href={`tel:${c.telefono as string}`} className="boton">
-          <IconoTelefono tamano={22} /> Llamar
-        </a>
-      </div>
+          <a href={`tel:${c.telefono as string}`} className="boton">
+            <IconoTelefono tamano={20} /> Llamar
+          </a>
+        </div>
+        <div className="preguntas-patty">
+          <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="¿Qué le digo a este cliente?" />
+          <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="¿Qué casa le ofrezco?" />
+        </div>
+      </section>
 
-      <h2 data-patty="cliente-etapa">¿En qué va?</h2>
+      {parecidos.length > 0 && (
+        <form action={unirCliente} className="aviso parecido">
+          <input type="hidden" name="id" value={id} />
+          <input type="hidden" name="otro" value={parecidos[0].id} />
+          <span>
+            Parece la misma persona que <strong>{parecidos[0].nombre ?? telefonoBonito(parecidos[0].telefono)}</strong> (
+            {telefonoBonito(parecidos[0].telefono)}).
+          </span>
+          <button type="submit">Unirlos</button>
+        </form>
+      )}
+
+      <h2 data-patty="cliente-etapa" className="ficha-subtitulo">
+        ¿En qué va?
+      </h2>
       <form action={cambiarEtapa} className="etapas-selector">
         <input type="hidden" name="id" value={id} />
         {ETAPAS.map((e) => (
@@ -185,49 +235,98 @@ export default async function Cliente({
         </form>
       )}
 
-      <section className="tarjeta pila oportunidad" data-patty="cliente-oportunidad">
-        {etapa === "cerrado" && c.cierre_precio ? (
-          <>
-            <h2>Cerró</h2>
-            <p className="cierre-resumen">
-              {casaCierre ? <strong>{casaCierre.titulo}</strong> : "Sin casa anotada"} · {precio(Number(c.cierre_precio), "USD")}
-              <span className="cierre-comision">Comisión {precio(Number(c.cierre_comision ?? 0), "USD")}</span>
-              {c.cierre_at && <span className="suave"> · {etiquetaHorario(new Date(c.cierre_at as string), zona).split(",")[0]}</span>}
-            </p>
-          </>
-        ) : etapa === "cerrado" ? (
-          <form action={guardarCierre} className="pila">
-            <h2>¡Cerró! Anota cómo fue</h2>
-            <input type="hidden" name="id" value={id} />
-            <label htmlFor="cierre-casa">Casa</label>
-            <select id="cierre-casa" name="casa" defaultValue={casaInteres?.id ?? ""}>
-              <option value="">Ninguna de mis casas</option>
-              {todas.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.titulo}
-                </option>
-              ))}
-            </select>
-            <div className="fila campos">
-              <div className="pila" style={{ flex: 1 }}>
+      <div className="ficha-grid">
+        {/* Columna principal: lo que pasó con el cliente y lo que viene */}
+        <div className="ficha-principal">
+          <Historia supabase={supabase} corredorId={corredor.id} contactoId={id} zona={zona} nombreAsistente={corredor.nombre_asistente ?? "Patty"} />
+
+          {visitas.length > 0 && (
+            <section className="tarjeta pila">
+              <h2>Visitas</h2>
+              <ul className="ficha-visitas">
+                {visitas.map((v) => {
+                  const casa = (Array.isArray(v.propiedades) ? v.propiedades[0] : v.propiedades) as { titulo: string } | null;
+                  return (
+                    <li key={v.id}>
+                      <Link href={`/panel/agenda/visita/${v.id}`}>
+                        <span>
+                          <strong>{etiquetaHorario(new Date(v.inicio), zona)}</strong>
+                          {casa && <span className="suave"> · {casa.titulo}</span>}
+                        </span>
+                        <span className="insignia">{ESTADO_CITA[v.estado] ?? v.estado}</span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
+
+          {casas.length > 0 && (
+            <section className="tarjeta pila">
+              <h2>Casas que le encajan</h2>
+              <div className="carrusel">
+                {casas.map((p) => {
+                  const foto = ordenarFotos(p.fotos ?? [])[0]?.url;
+                  return (
+                    <Link key={p.id} href={`/panel/propiedades/${p.id}`} className="casa-tarjeta">
+                      {foto ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={foto} alt="" loading="lazy" />
+                      ) : (
+                        <span className="sin-foto" aria-hidden>
+                          <IconoCasa tamano={40} />
+                        </span>
+                      )}
+                      <span className="casa-tarjeta-texto">
+                        <strong>{p.titulo}</strong>
+                        {p.precio !== null && <span>{precio(p.precio, p.moneda)}</span>}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+        </div>
+
+        {/* Columna lateral: los datos que se editan */}
+        <aside className="ficha-lateral">
+          <section className="tarjeta pila oportunidad" data-patty="cliente-oportunidad">
+            {etapa === "cerrado" && c.cierre_precio ? (
+              <>
+                <h2>Cerró</h2>
+                <p className="cierre-resumen">
+                  {casaCierre ? <strong>{casaCierre.titulo}</strong> : "Sin casa anotada"} · {precio(Number(c.cierre_precio), "USD")}
+                  <span className="cierre-comision">Comisión {precio(Number(c.cierre_comision ?? 0), "USD")}</span>
+                  {c.cierre_at && <span className="suave"> · {etiquetaHorario(new Date(c.cierre_at as string), zona).split(",")[0]}</span>}
+                </p>
+              </>
+            ) : etapa === "cerrado" ? (
+              <form action={guardarCierre} className="pila">
+                <h2>¡Cerró! Anota cómo fue</h2>
+                <input type="hidden" name="id" value={id} />
+                <label htmlFor="cierre-casa">Casa</label>
+                <select id="cierre-casa" name="casa" defaultValue={casaInteres?.id ?? ""}>
+                  <option value="">Ninguna de mis casas</option>
+                  {todas.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.titulo}
+                    </option>
+                  ))}
+                </select>
                 <label htmlFor="cierre-precio">Precio final (dólares)</label>
                 <input id="cierre-precio" name="precio" type="text" inputMode="numeric" required defaultValue={c.oferta_monto ?? casaInteres?.precio ?? ""} />
-              </div>
-              <div className="pila" style={{ flex: 1 }}>
-                <label htmlFor="cierre-comision">Tu comisión (si la dejas vacía, {pct}%)</label>
+                <label htmlFor="cierre-comision">Tu comisión (vacía: {pct}%)</label>
                 <input id="cierre-comision" name="comision" type="text" inputMode="numeric" placeholder={`${pct}% del precio`} />
-              </div>
-            </div>
-            <button type="submit" className="primario">
-              Guardar el cierre
-            </button>
-          </form>
-        ) : (
-          <form action={guardarOportunidad} className="pila">
-            <h2>Lo que está en juego</h2>
-            <input type="hidden" name="id" value={id} />
-            <div className="fila campos">
-              <div className="pila" style={{ flex: 2 }}>
+                <button type="submit" className="primario">
+                  Guardar el cierre
+                </button>
+              </form>
+            ) : (
+              <form action={guardarOportunidad} className="pila">
+                <h2>Lo que está en juego</h2>
+                <input type="hidden" name="id" value={id} />
                 <label htmlFor="op-casa">Casa que le interesa</label>
                 <select id="op-casa" name="casa" defaultValue={casaInteres?.id ?? ""}>
                   <option value="">Todavía ninguna</option>
@@ -240,196 +339,140 @@ export default async function Cliente({
                       </option>
                     ))}
                 </select>
-              </div>
-              <div className="pila" style={{ flex: 1 }}>
                 <label htmlFor="op-oferta">Oferta del cliente (dólares)</label>
                 <input id="op-oferta" name="oferta" type="text" inputMode="numeric" defaultValue={c.oferta_monto ?? ""} placeholder="Si hizo una" />
-              </div>
-            </div>
-            {(c.oferta_monto || casaInteres?.precio) && (
-              <p className="suave">
-                Si cierra en {precio(Number(c.oferta_monto ?? casaInteres?.precio), "USD")}, tu comisión sería de unos{" "}
-                <strong>{precio(Math.round((Number(c.oferta_monto ?? casaInteres?.precio) * pct) / 100), "USD")}</strong> ({pct}%).
-              </p>
+                {valorEnJuego > 0 && (
+                  <p className="comision-estimada">
+                    Tu comisión: <strong>{precio(Math.round((valorEnJuego * pct) / 100), "USD")}</strong> <span className="suave">({pct}%)</span>
+                  </p>
+                )}
+                <button type="submit" className="primario chico">
+                  Guardar
+                </button>
+              </form>
             )}
-            <button type="submit" className="primario">
-              Guardar
-            </button>
-          </form>
-        )}
-      </section>
+          </section>
 
-      <div className="cliente-columnas">
-        <section className="tarjeta pila">
-          <h2 data-patty="cliente-busca">Qué busca</h2>
-          <p>{resumen || "Todavía no lo dijo. La asistente lo anota sola cuando el cliente lo cuenta en el chat."}</p>
-          <details>
-            <summary>Corregirlo</summary>
-            <form action={guardarBusca} className="pila">
+          <section className={`tarjeta pila${venceRecordatorio ? " recordatorio-vence" : ""}`}>
+            <h2 data-patty="cliente-recordatorio">Recordatorio</h2>
+            <form action={guardarSeguimiento} className="pila">
               <input type="hidden" name="id" value={id} />
-              <label htmlFor="operacion">Para</label>
-              <select id="operacion" name="operacion" defaultValue={busca.operacion ?? ""}>
-                <option value="">Sin decir</option>
-                <option value="venta">Comprar</option>
-                <option value="alquiler">Alquilar</option>
-              </select>
-              <label htmlFor="tipo">Tipo</label>
-              <input id="tipo" name="tipo" type="text" defaultValue={busca.tipo ?? ""} placeholder="casa, apartamento, lote…" />
-              <label htmlFor="zonas">Zonas (separadas por coma)</label>
-              <input id="zonas" name="zonas" type="text" list="zonas-conocidas" defaultValue={(busca.zonas ?? []).join(", ")} placeholder="Escazú, Santa Ana" />
-              <datalist id="zonas-conocidas">
-                {ZONAS_CONOCIDAS.map((z) => (
-                  <option key={z} value={z} />
-                ))}
-              </datalist>
-              <div className="fila campos">
-                <div className="pila">
-                  <label htmlFor="presupuesto">Presupuesto máximo</label>
-                  <input id="presupuesto" name="presupuesto" type="text" inputMode="numeric" defaultValue={busca.presupuesto_max ?? ""} />
-                </div>
-                <div className="pila">
-                  <label htmlFor="moneda">Moneda</label>
-                  <select id="moneda" name="moneda" defaultValue={busca.moneda ?? "USD"}>
-                    <option value="USD">Dólares</option>
-                    <option value="CRC">Colones</option>
-                  </select>
-                </div>
+              <input
+                data-patty="cliente-recordatorio-texto"
+                id="nota"
+                name="nota"
+                type="text"
+                aria-label="Qué tienes que hacer"
+                defaultValue={(c.seguimiento_nota as string | null) ?? ""}
+                placeholder="¿Qué tienes que hacer? Ej.: llamarla"
+              />
+              <div className="botones atajos">
+                <button type="submit" name="dias" value="1">Mañana</button>
+                <button type="submit" name="dias" value="3">En 3 días</button>
+                <button type="submit" name="dias" value="7">En 1 semana</button>
               </div>
-              <label htmlFor="habitaciones">Cuartos</label>
-              <input id="habitaciones" name="habitaciones" type="number" min={0} defaultValue={busca.habitaciones ?? ""} />
-              <button type="submit" className="primario">
-                Guardar
-              </button>
-            </form>
-          </details>
-        </section>
-
-        <section className="tarjeta pila">
-          <h2 data-patty="cliente-recordatorio">Recordatorio</h2>
-          {c.seguimiento_fecha ? (
-            <p>
-              <strong>{etiquetaHorario(new Date(`${c.seguimiento_fecha as string}T12:00:00`), zona).split(",")[0]}</strong>
-              {c.seguimiento_nota ? `: ${c.seguimiento_nota as string}` : ""}
-            </p>
-          ) : (
-            <p className="suave">Nada pendiente con este cliente.</p>
-          )}
-          <form action={guardarSeguimiento} className="pila">
-            <input type="hidden" name="id" value={id} />
-            <label htmlFor="nota">¿Qué tienes que hacer?</label>
-            <input data-patty="cliente-recordatorio-texto" id="nota" name="nota" type="text" defaultValue={(c.seguimiento_nota as string | null) ?? ""} placeholder="Llamarla para ver si le gustó la casa" />
-            <p className="suave">Recordármelo:</p>
-            <div className="botones atajos">
-              <button type="submit" name="dias" value="1">Mañana</button>
-              <button type="submit" name="dias" value="3">En 3 días</button>
-              <button type="submit" name="dias" value="7">En una semana</button>
-            </div>
-            <label htmlFor="fecha">U otro día</label>
-            <input id="fecha" name="fecha" type="date" defaultValue={(c.seguimiento_fecha as string | null) ?? manana} />
-            <div className="botones">
-              <button type="submit" className="primario">
-                Guardar
-              </button>
+              <details>
+                <summary>Otro día</summary>
+                <div className="fila campos">
+                  <input id="fecha" name="fecha" type="date" aria-label="Día" defaultValue={(c.seguimiento_fecha as string | null) ?? manana} />
+                  <button type="submit" className="primario chico">
+                    Guardar
+                  </button>
+                </div>
+              </details>
               {c.seguimiento_fecha && (
-                <button type="submit" name="quitar" value="1">
+                <button type="submit" name="quitar" value="1" className="chico ya-lo-hice">
                   Ya lo hice
                 </button>
               )}
-            </div>
-          </form>
-        </section>
+            </form>
+          </section>
+
+          <section className="tarjeta pila">
+            <h2 data-patty="cliente-busca">Qué busca</h2>
+            <p>{resumen || "Todavía no lo dijo. La asistente lo anota sola cuando el cliente lo cuenta en el chat."}</p>
+            <details>
+              <summary>Corregirlo</summary>
+              <form action={guardarBusca} className="pila">
+                <input type="hidden" name="id" value={id} />
+                <label htmlFor="operacion">Para</label>
+                <select id="operacion" name="operacion" defaultValue={busca.operacion ?? ""}>
+                  <option value="">Sin decir</option>
+                  <option value="venta">Comprar</option>
+                  <option value="alquiler">Alquilar</option>
+                </select>
+                <label htmlFor="tipo">Tipo</label>
+                <input id="tipo" name="tipo" type="text" defaultValue={busca.tipo ?? ""} placeholder="casa, apartamento, lote…" />
+                <label htmlFor="zonas">Zonas (separadas por coma)</label>
+                <input id="zonas" name="zonas" type="text" list="zonas-conocidas" defaultValue={(busca.zonas ?? []).join(", ")} placeholder="Escazú, Santa Ana" />
+                <datalist id="zonas-conocidas">
+                  {ZONAS_CONOCIDAS.map((z) => (
+                    <option key={z} value={z} />
+                  ))}
+                </datalist>
+                <div className="fila campos">
+                  <div className="pila" style={{ flex: 2 }}>
+                    <label htmlFor="presupuesto">Presupuesto máximo</label>
+                    <input id="presupuesto" name="presupuesto" type="text" inputMode="numeric" defaultValue={busca.presupuesto_max ?? ""} />
+                  </div>
+                  <div className="pila" style={{ flex: 1 }}>
+                    <label htmlFor="moneda">Moneda</label>
+                    <select id="moneda" name="moneda" defaultValue={busca.moneda ?? "USD"}>
+                      <option value="USD">Dólares</option>
+                      <option value="CRC">Colones</option>
+                    </select>
+                  </div>
+                </div>
+                <label htmlFor="habitaciones">Cuartos</label>
+                <input id="habitaciones" name="habitaciones" type="number" min={0} defaultValue={busca.habitaciones ?? ""} />
+                <button type="submit" className="primario chico">
+                  Guardar
+                </button>
+              </form>
+            </details>
+          </section>
+
+          <section className="tarjeta pila">
+            <h2 data-patty="cliente-notas">Notas</h2>
+            <p className={c.notas ? "ficha-notas" : "suave"}>{(c.notas as string | null) ?? "Sin notas todavía."}</p>
+            <details>
+              <summary>{c.notas ? "Editar" : "Escribir notas"}</summary>
+              <form action={guardarNotas} className="pila">
+                <input type="hidden" name="id" value={id} />
+                <label htmlFor="nombre">Nombre</label>
+                <input id="nombre" name="nombre" type="text" defaultValue={(c.nombre as string | null) ?? ""} />
+                <label htmlFor="notas">Lo que quieras recordar</label>
+                <textarea id="notas" name="notas" defaultValue={(c.notas as string | null) ?? ""} placeholder="Tiene dos hijos, busca colegio cerca, viene de Estados Unidos…" />
+                <button type="submit" className="primario chico">
+                  Guardar
+                </button>
+              </form>
+            </details>
+          </section>
+
+          <details className="tarjeta pila unir">
+            <summary>¿Es la misma persona que otro cliente?</summary>
+            <form action={unirCliente} className="pila">
+              <input type="hidden" name="id" value={id} />
+              <label htmlFor="otro">Unir con</label>
+              <select id="otro" name="otro" required defaultValue="">
+                <option value="" disabled>
+                  Elige el otro cliente
+                </option>
+                {otros.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.nombre ?? telefonoBonito(o.telefono)} · {telefonoBonito(o.telefono)}
+                  </option>
+                ))}
+              </select>
+              <p className="suave">Sus chats, visitas e historia pasan a este cliente y se completan los datos que falten. Su teléfono queda en las notas.</p>
+              <button type="submit" className="chico">
+                Unir
+              </button>
+            </form>
+          </details>
+        </aside>
       </div>
-
-      {casas.length > 0 && (
-        <>
-          <h2>Casas que le encajan</h2>
-          <div className="carrusel">
-            {casas.map((p) => {
-              const foto = ordenarFotos(p.fotos ?? [])[0]?.url;
-              return (
-                <Link key={p.id} href={`/panel/propiedades/${p.id}`} className="casa-tarjeta">
-                  {foto ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={foto} alt="" loading="lazy" />
-                  ) : (
-                    <span className="sin-foto" aria-hidden>
-                      <IconoCasa tamano={40} />
-                    </span>
-                  )}
-                  <span className="casa-tarjeta-texto">
-                    <strong>{p.titulo}</strong>
-                    {p.precio !== null && <span>{precio(p.precio, p.moneda)}</span>}
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
-        </>
-      )}
-
-      <h2>Visitas</h2>
-      {(citas ?? []).length === 0 ? (
-        <p className="suave">Todavía no tiene visitas.</p>
-      ) : (
-        (citas ?? []).map((v) => {
-          const casa = (Array.isArray(v.propiedades) ? v.propiedades[0] : v.propiedades) as { titulo: string } | null;
-          return (
-            <Link key={v.id as string} href={`/panel/agenda/visita/${v.id as string}`} className="tarjeta fila">
-              <span>
-                <strong>{etiquetaHorario(new Date(v.inicio as string), zona)}</strong>
-                {casa && <span className="suave"> · {casa.titulo}</span>}
-              </span>
-              <span className="insignia">{ESTADO_CITA[v.estado as string] ?? (v.estado as string)}</span>
-            </Link>
-          );
-        })
-      )}
-
-      {parecidos.length > 0 && (
-        <form action={unirCliente} className="aviso parecido">
-          <input type="hidden" name="id" value={id} />
-          <input type="hidden" name="otro" value={parecidos[0].id} />
-          <span>
-            Parece la misma persona que <strong>{parecidos[0].nombre ?? telefonoBonito(parecidos[0].telefono)}</strong> (
-            {telefonoBonito(parecidos[0].telefono)}).
-          </span>
-          <button type="submit">Unirlos</button>
-        </form>
-      )}
-
-      <Historia supabase={supabase} corredorId={corredor.id} contactoId={id} zona={zona} nombreAsistente={corredor.nombre_asistente ?? "Patty"} />
-
-      <details className="tarjeta pila unir">
-        <summary>¿Es la misma persona que otro cliente?</summary>
-        <form action={unirCliente} className="pila">
-          <input type="hidden" name="id" value={id} />
-          <label htmlFor="otro">Unir con</label>
-          <select id="otro" name="otro" required defaultValue="">
-            <option value="" disabled>
-              Elige el otro cliente
-            </option>
-            {otros.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.nombre ?? telefonoBonito(o.telefono)} · {telefonoBonito(o.telefono)}
-              </option>
-            ))}
-          </select>
-          <p className="suave">Sus chats, visitas e historia pasan a este cliente y se completan los datos que falten. Su teléfono queda en las notas.</p>
-          <button type="submit">Unir</button>
-        </form>
-      </details>
-
-      <h2 data-patty="cliente-notas">Notas</h2>
-      <form action={guardarNotas} className="tarjeta pila">
-        <input type="hidden" name="id" value={id} />
-        <label htmlFor="nombre">Nombre</label>
-        <input id="nombre" name="nombre" type="text" defaultValue={(c.nombre as string | null) ?? ""} />
-        <label htmlFor="notas">Lo que quieras recordar de este cliente</label>
-        <textarea id="notas" name="notas" defaultValue={(c.notas as string | null) ?? ""} placeholder="Tiene dos hijos, busca colegio cerca, viene de Estados Unidos…" />
-        <button type="submit" className="primario">
-          Guardar
-        </button>
-      </form>
     </>
   );
 }
