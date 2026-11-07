@@ -135,6 +135,9 @@ describe("dinero del CRM: monedas y comisión por operación", () => {
     expect(m).toEqual({ USD: 1_150_000, CRC: 850_000 });
     expect(plataMontos(m)).toBe("$1,1 millón + ₡850 mil");
     expect(plataMontos({ USD: 0, CRC: 2_500_000 })).toBe("₡2,5 millones");
+    const { montoExacto } = await import("../lib/crm/dinero");
+    expect(montoExacto(450_000, "CRC")).toBe("₡450.000");
+    expect(montoExacto(1_250_000, "USD")).toBe("$1.250.000");
     expect(hayMonto({ USD: 0, CRC: 0 })).toBe(false);
   });
 });

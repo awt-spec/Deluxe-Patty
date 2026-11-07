@@ -43,4 +43,7 @@ export function plataMontos(m: Montos): string {
 export const hayMonto = (m: Montos) => m.USD > 0 || m.CRC > 0;
 
 /** Monto exacto con su símbolo: "$1.250.000" o "₡450.000". */
-export const montoExacto = (n: number, moneda: Moneda) => `${SIMBOLO[moneda]}${Math.round(n).toLocaleString("es-CR")}`;
+export const montoExacto = (n: number, moneda: Moneda) =>
+  `${SIMBOLO[moneda]}${Math.round(n)
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`;
