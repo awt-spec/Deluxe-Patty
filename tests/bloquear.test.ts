@@ -115,3 +115,46 @@ describe("cómo se lee un bloqueo", () => {
     expect(rangoBloqueo({ inicio: "2026-11-07T20:00:00Z", fin: "2026-11-07T22:00:00Z" }, CR)).toMatch(/sábado.*, de .*2.* a .*4/);
   });
 });
+
+describe("QA: frases reales que antes se entendían mal", () => {
+  // Sábado 7 de noviembre de 2026, 9:00 a. m.
+  const SAB = new Date("2026-11-07T15:00:00Z");
+  const leer = (t: string) => {
+    const p = entenderBloqueo(t, SAB, CR);
+    return p ? describirBloqueo(p) : null;
+  };
+  it.each([
+    ["bloquear mañana por la mañana", "el domingo 8 de noviembre en la mañana"],
+    ["bloquear mañana por la tarde", "el domingo 8 de noviembre en la tarde"],
+    ["bloquear para mañana en la tarde", "el domingo 8 de noviembre en la tarde"],
+    ["bloquear el 7 de diciembre", "el lunes 7 de diciembre todo el día"],
+    ["bloquear el 15 de diciembre en la tarde", "el martes 15 de diciembre en la tarde"],
+    ["bloquear mañana de 5 a 7", "el domingo 8 de noviembre, de 5 p. m. a 7 p. m."],
+    ["bloquear mañana a las 3", "el domingo 8 de noviembre, de 3 p. m. a 4 p. m."],
+    ["bloquear de 2 a 4", "el sábado 7 de noviembre, de 2 p. m. a 4 p. m."],
+    ["bloquear del 20 al 25 por vacaciones", "del viernes 20 al miércoles 25 de noviembre, días enteros"],
+  ])("%s", (texto, esperado) => {
+    expect(leer(texto)).toBe(esperado);
+  });
+
+  it("«por la tarde» no es un motivo, «por vacaciones» sí", () => {
+    expect(entenderBloqueo("bloquear mañana por la tarde", SAB, CR)!.motivo).toBeNull();
+    expect(entenderBloqueo("bloquear del 20 al 25 por vacaciones", SAB, CR)!.motivo).toBe("vacaciones");
+  });
+
+  it("varios días cubren de la medianoche del primero a la del día siguiente al último", () => {
+    const p = entenderBloqueo("bloquear del 20 al 25", SAB, CR)!;
+    expect(hora(p.inicio)).toBe("2026-11-20T06:00");
+    expect(hora(p.fin)).toBe("2026-11-26T06:00");
+  });
+
+  it("horas que no cuadran se preguntan en vez de bloquear el día entero", () => {
+    expect(entenderBloqueo("bloquear mañana de 9 a 8 am", SAB, CR)).toBeNull();
+  });
+
+  it("«bloquea a Juan» no es un pedido de agenda", () => {
+    expect(pideBloqueo("bloquea a Juan el martes")).toBe(false);
+    expect(pideBloqueo("bloquear al cliente")).toBe(false);
+    expect(pideBloqueo("bloquear a las 3")).toBe(true);
+  });
+});
