@@ -6842,7 +6842,7 @@ body:has(.marco.tema) {
   display: grid;
   gap: 12px;
 }
-.tema .casa-tarjeta {
+.tema .casa-item {
   display: grid;
   grid-template-columns: 116px minmax(0, 1fr);
   gap: 14px;
@@ -6853,15 +6853,15 @@ body:has(.marco.tema) {
   align-items: start;
   transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
-.tema .casa-tarjeta:hover {
+.tema .casa-item:hover {
   box-shadow: 0 6px 22px rgb(0 0 0 / 10%);
 }
-.tema .casa-tarjeta.estado-vendida,
-.tema .casa-tarjeta.estado-alquilada,
-.tema .casa-tarjeta.estado-inactiva {
+.tema .casa-item.estado-vendida,
+.tema .casa-item.estado-alquilada,
+.tema .casa-item.estado-inactiva {
   opacity: 0.82;
 }
-.tema .casa-tarjeta-foto {
+.tema .casa-item-foto {
   position: relative;
   display: block;
   aspect-ratio: 1;
@@ -6869,8 +6869,8 @@ body:has(.marco.tema) {
   overflow: hidden;
   background: var(--superficie-alta, #f0f2f5);
 }
-.tema .casa-tarjeta-foto img,
-.tema .casa-tarjeta-foto .sin-foto {
+.tema .casa-item-foto img,
+.tema .casa-item-foto .sin-foto {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -6878,9 +6878,9 @@ body:has(.marco.tema) {
   place-items: center;
   color: var(--suave);
 }
-.tema .casa-tarjeta-operacion,
-.tema .casa-tarjeta-estado,
-.tema .casa-tarjeta-fotos {
+.tema .casa-item-operacion,
+.tema .casa-item-estado,
+.tema .casa-item-fotos {
   position: absolute;
   font-size: 0.72rem;
   font-weight: 700;
@@ -6888,27 +6888,27 @@ body:has(.marco.tema) {
   border-radius: 999px;
   line-height: 1.3;
 }
-.tema .casa-tarjeta-operacion {
+.tema .casa-item-operacion {
   left: 6px;
   top: 6px;
   background: var(--superficie, #fff);
   color: var(--principal-oscuro, #008069);
   box-shadow: 0 1px 4px rgb(0 0 0 / 18%);
 }
-.tema .casa-tarjeta-operacion.alquiler {
+.tema .casa-item-operacion.alquiler {
   color: #3d5a99;
 }
-.tema .casa-tarjeta-estado {
+.tema .casa-item-estado {
   left: 6px;
   bottom: 6px;
   background: #111b21;
   color: #fff;
 }
-.tema .casa-tarjeta-estado.reservada {
+.tema .casa-item-estado.reservada {
   background: #e9a23b;
   color: #111b21;
 }
-.tema .casa-tarjeta-fotos {
+.tema .casa-item-fotos {
   right: 6px;
   bottom: 6px;
   background: rgb(0 0 0 / 58%);
@@ -6916,22 +6916,22 @@ body:has(.marco.tema) {
   font-weight: 600;
   display: none;
 }
-.tema .casa-tarjeta-cuerpo {
+.tema .casa-item-cuerpo {
   display: grid;
   gap: 3px;
   min-width: 0;
 }
-.tema .casa-tarjeta-precio {
+.tema .casa-item-precio {
   font-size: 1.15rem;
   font-weight: 700;
   color: var(--profundo);
 }
-.tema .casa-tarjeta-precio small {
+.tema .casa-item-precio small {
   font-size: 0.8rem;
   font-weight: 500;
   color: var(--suave);
 }
-.tema .casa-tarjeta-titulo {
+.tema .casa-item-titulo {
   font-size: 1rem;
   line-height: 1.3;
   display: -webkit-box;
@@ -6939,20 +6939,20 @@ body:has(.marco.tema) {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.tema .casa-tarjeta-lugar,
-.tema .casa-tarjeta-datos {
+.tema .casa-item-lugar,
+.tema .casa-item-datos {
   font-size: 0.88rem;
 }
-.tema .casa-tarjeta-datos {
+.tema .casa-item-datos {
   color: var(--profundo);
 }
-.tema .casa-tarjeta-pie {
+.tema .casa-item-pie {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 6px;
 }
-.tema .casa-tarjeta-pie > span {
+.tema .casa-item-pie > span {
   font-size: 0.78rem;
   font-weight: 600;
   padding: 2px 9px;
@@ -6960,11 +6960,11 @@ body:has(.marco.tema) {
   background: var(--superficie-alta, #f0f2f5);
   color: var(--suave);
 }
-.tema .casa-tarjeta-pie .movimiento.activo {
+.tema .casa-item-pie .movimiento.activo {
   background: color-mix(in srgb, var(--ok) 14%, transparent);
   color: var(--principal-oscuro, #008069);
 }
-.tema .casa-tarjeta-pie .falta {
+.tema .casa-item-pie .falta {
   background: color-mix(in srgb, #e9a23b 18%, transparent);
   color: #9a5b00;
 }
@@ -6976,43 +6976,58 @@ body:has(.marco.tema) {
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 18px;
   }
-  .tema .casa-tarjeta {
+  .tema .casa-item {
     grid-template-columns: 1fr;
     padding: 0;
     overflow: hidden;
     gap: 0;
   }
-  .tema .casa-tarjeta:hover {
+  .tema .casa-item:hover {
     transform: translateY(-2px);
   }
-  .tema .casa-tarjeta-foto {
+  .tema .casa-item-foto {
     aspect-ratio: 16 / 10;
     border-radius: 0;
   }
-  .tema .casa-tarjeta-operacion,
-  .tema .casa-tarjeta-estado {
+  .tema .casa-item-operacion,
+  .tema .casa-item-estado {
     font-size: 0.8rem;
     padding: 4px 10px;
   }
-  .tema .casa-tarjeta-operacion {
+  .tema .casa-item-operacion {
     left: 12px;
     top: 12px;
   }
-  .tema .casa-tarjeta-estado {
+  .tema .casa-item-estado {
     left: auto;
     right: 12px;
     top: 12px;
     bottom: auto;
   }
-  .tema .casa-tarjeta-fotos {
+  .tema .casa-item-fotos {
     display: block;
     right: 12px;
     bottom: 12px;
   }
-  .tema .casa-tarjeta-cuerpo {
+  .tema .casa-item-cuerpo {
     padding: 14px 16px 16px;
   }
-  .tema .casa-tarjeta-precio {
+  .tema .casa-item-precio {
     font-size: 1.3rem;
+  }
+}
+
+@media (max-width: 699px) {
+  .tema .casas-cifras {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .tema .casas-cifras .cifra {
+    padding: 12px 14px;
+    min-height: 0;
+  }
+  .tema .casas-cifras .cifra strong {
+    font-size: 1.6rem;
   }
 }
