@@ -3826,3 +3826,91 @@ fieldset.opciones label {
     margin: -8px 0 8px;
   }
 }
+
+/* Calendario: agendar tocando una hora libre, traslados y colores por zona */
+.cal-agendar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: var(--principal);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.cal-agendar span {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.cal-agendar:hover,
+.cal-agendar:focus-visible {
+  background: color-mix(in srgb, var(--principal) 8%, transparent);
+}
+.cal-agendar:hover span,
+.cal-agendar:focus-visible span {
+  opacity: 1;
+}
+@media (hover: none) {
+  .cal-dia .cal-agendar span {
+    opacity: 0.55;
+  }
+}
+.cal-cita {
+  border-left-width: 5px;
+}
+.cal-cita:not(.confirmada) {
+  background: #fff8ef;
+}
+.cal-traslado {
+  position: absolute;
+  left: 6px;
+  z-index: 2;
+  font-size: 0.72rem;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #eef2f4;
+  color: var(--suave);
+  white-space: nowrap;
+  max-width: calc(100% - 12px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cal-traslado.no-da {
+  background: #fde8e1;
+  color: #c2410c;
+  font-weight: 600;
+}
+.zona-leyenda {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 10px;
+}
+.visita-botones {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+.visita-botones form {
+  flex: 1;
+  display: flex;
+}
+.visita-botones button {
+  flex: 1;
+  min-height: 52px;
+}
+button.peligro {
+  color: #b42318;
+  border-color: #f3c3bd;
+}
+label.casilla {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-height: 44px;
+}

@@ -68,6 +68,16 @@ export interface FichaConversada {
   consumo: Consumo;
 }
 
+export interface ClasificacionCorreo {
+  esCliente: boolean;
+  nombre: string | null;
+  telefono: string | null;
+  correo: string | null;
+  busca: Busca;
+  resumen: string;
+  consumo: Consumo;
+}
+
 export interface Cerebro {
   clasificar(corredor: Corredor, historial: Mensaje[], mensaje: string): Promise<Clasificacion>;
   responder(
@@ -81,6 +91,8 @@ export interface Cerebro {
     conocimiento?: Conocimiento[],
   ): Promise<Respuesta>;
   prepararAnuncio(corredor: Corredor, propiedad: PropiedadConFotos): Promise<AnuncioPreparado>;
+  /** ¿Un correo es de un cliente? Con sus datos y lo que busca. */
+  clasificarCorreo(corredor: Corredor, correo: { de: string; asunto: string; texto: string }): Promise<ClasificacionCorreo>;
   /** Dueño directo o corredor, para la búsqueda semanal. */
   clasificarAnuncio(anuncio: AnuncioE24, publicacionesDelAnunciante: number): Promise<ClasificacionAnuncio>;
   /** Análisis a pedido del corredor: propiedad u oferta (enlace o datos). */
@@ -118,6 +130,15 @@ const EsquemaClasificacion = z.object({
     moneda: z.enum(["USD", "CRC"]).nullable(),
     habitaciones: z.number().int().nullable(),
   }),
+});
+
+const EsquemaCorreo = z.object({
+  es_cliente: z.boolean(),
+  nombre: z.string().nullable(),
+  telefono: z.string().nullable(),
+  correo: z.string().nullable(),
+  busca: EsquemaClasificacion.shape.busca,
+  resumen: z.string(),
 });
 
 const EsquemaRespuesta = z.object({
@@ -347,6 +368,41 @@ export function crearCerebroClaude(client = new Anthropic()): Cerebro {
         descripcionEn: o.descripcion_en.trim(),
         ordenFotos: o.orden_fotos.filter((f) => f.foto >= 1 && f.foto <= fotos.length),
         sugerencias: o.sugerencias,
+        consumo: c,
+      };
+    },
+
+    async clasificarCorreo(corredor, correo) {
+      const res = await client.beta.messages.parse({
+        model: MODELO_CLASIFICAR,
+        max_tokens: 1500,
+        output_config: { effort: "low", format: betaZodOutputFormat(EsquemaCorreo) },
+        system: `${instruccion("correo")}\n\nEl corredor es ${corredor.nombre_contacto}, de ${corredor.nombre}.`,
+        messages: [
+          {
+            role: "user",
+            content: `<correo>\nDe: ${correo.de}\nAsunto: ${correo.asunto}\n\n${correo.texto.slice(0, 5000)}\n</correo>`,
+          },
+        ],
+      });
+      const c = consumo(MODELO_CLASIFICAR, res.usage);
+      if (res.stop_reason === "refusal") throw new RechazoModelo(c);
+      if (!res.parsed_output) throw new Error(`Clasificación de correo sin salida (stop_reason ${res.stop_reason})`);
+      const o = res.parsed_output;
+      const b = o.busca;
+      return {
+        esCliente: o.es_cliente,
+        nombre: o.nombre?.trim() || null,
+        telefono: o.telefono?.trim() || null,
+        correo: o.correo?.trim().toLowerCase() || null,
+        busca: {
+          ...(b.operacion ? { operacion: b.operacion } : {}),
+          ...(b.tipo ? { tipo: b.tipo } : {}),
+          ...(b.zonas.length ? { zonas: b.zonas } : {}),
+          ...(b.presupuesto_max ? { presupuesto_max: b.presupuesto_max, moneda: b.moneda ?? "USD" } : {}),
+          ...(b.habitaciones ? { habitaciones: b.habitaciones } : {}),
+        },
+        resumen: o.resumen.slice(0, 300),
         consumo: c,
       };
     },

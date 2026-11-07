@@ -42,6 +42,15 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
 
   const desde24 = new Date(ahora.getTime() - DIA).toISOString();
   const cuenta = (q: PromiseLike<{ count: number | null }>) => Promise.resolve(q).then((r) => r.count ?? 0);
+  const { data: correosData } = await supabase
+    .from("correos_procesados")
+    .select("gmail_id, contacto_id, remitente, asunto, resumen")
+    .eq("corredor_id", corredor.id)
+    .eq("tipo", "cliente")
+    .gte("created_at", desde24)
+    .order("created_at", { ascending: false })
+    .limit(5);
+  const correos = (correosData ?? []) as { gmail_id: string; contacto_id: string | null; remitente: string | null; asunto: string | null; resumen: string | null }[];
   const [contestados, agendadas, nuevos, dudas] = await Promise.all([
     cuenta(
       supabase
@@ -196,6 +205,28 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
           </Link>
         </div>
       </section>
+
+      {correos.length > 0 && (
+        <section className="hoy" aria-label="Correos de clientes">
+          <h2>Correos de clientes: la respuesta está lista en Gmail</h2>
+          <ul className="hoy-lista">
+            {correos.map((c) => (
+              <li key={c.gmail_id}>
+                <a href={c.contacto_id ? `/panel/clientes/${c.contacto_id}` : "https://mail.google.com/mail/u/0/#drafts"} target={c.contacto_id ? undefined : "_blank"} rel="noreferrer">
+                  <span className="hoy-hora">Correo</span>
+                  <span>
+                    <strong>{c.remitente}</strong>
+                    {c.resumen && <span className="suave"> · {c.resumen}</span>}
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+          <p className="suave">
+            Revísalas y mándalas desde <a href="https://mail.google.com/mail/u/0/#drafts" target="_blank" rel="noreferrer">tus borradores de Gmail</a>.
+          </p>
+        </section>
+      )}
 
       {visitas.length === 0 && seguimientos.length === 0 && sinRespuesta.length === 0 && (
         <p className="suave">Hoy no tienes visitas ni recordatorios.</p>

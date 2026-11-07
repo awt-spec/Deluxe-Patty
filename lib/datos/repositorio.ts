@@ -1,3 +1,5 @@
+import { ocupadoEnGoogle } from "../google/calendario";
+import { conexionDe } from "../google/conexion";
 import type { Busca, Etapa } from "../crm/perfil";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
@@ -339,11 +341,14 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
       verificar(horarios.error, "datosAgenda (horarios)");
       verificar(bloqueos.error, "datosAgenda (bloqueos)");
       verificar(citas.error, "datosAgenda (citas)");
+      // Lo que el corredor ya tiene ocupado en su Google Calendar (si lo conectó) también bloquea.
+      const google = await conexionDe(db, corredorId).catch(() => null);
+      const ocupadoGoogle = google ? await ocupadoEnGoogle(google, desde, hasta) : [];
       const fechas = (filas: { inicio: string; fin: string }[] | null) =>
         (filas ?? []).map((f) => ({ inicio: new Date(f.inicio), fin: new Date(f.fin) }));
       return {
         horarios: horarios.data ?? [],
-        bloqueos: fechas(bloqueos.data),
+        bloqueos: [...fechas(bloqueos.data), ...ocupadoGoogle],
         // Cada cita con la zona de su propiedad, para calcular el traslado a la siguiente visita.
         citas: (citas.data ?? []).map((f) => {
           const p = (Array.isArray(f.propiedades) ? f.propiedades[0] : f.propiedades) as { zona: string | null; canton: string | null } | null;

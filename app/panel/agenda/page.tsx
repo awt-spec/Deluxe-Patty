@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { diaLargo, horaCorta } from "@/lib/agenda/formato";
 import { aUtc, fechaIso, fechaLocal, minutosDe, minutosLocales, sumarDias, type FechaLocal } from "@/lib/agenda/tiempo";
+import { minutosEntre } from "@/lib/agenda/zonas";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Aviso } from "../aviso";
@@ -23,6 +24,14 @@ type Vista = keyof typeof VISTAS;
 const DIAS_CORTOS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 const ALTO_HORA = 56;
+// Un color por zona, siempre el mismo, para ver de un vistazo qué visitas quedan cerca.
+const COLORES_ZONA = ["#3d7ea6", "#d1495b", "#25a18e", "#e09f3e", "#7b5ea7", "#5c946e", "#c2185b", "#00838f"];
+function colorZona(zona: string | null | undefined): string {
+  if (!zona) return "#9b958c";
+  let h = 0;
+  for (const c of zona.toLowerCase()) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return COLORES_ZONA[h % COLORES_ZONA.length];
+}
 
 // Agenda como calendario: por día, por semana o por mes (y la lista de siempre). Las visitas salen en su
 // hora, con el cliente y la casa; las horas en que no enseñas casas se ven grises.
@@ -134,9 +143,10 @@ export default async function Agenda({
     return (
       <Link
         key={c.id}
-        href={`/panel/clientes/${c.contacto_id}`}
+        href={`/panel/agenda/visita/${c.id}`}
         className={`cal-cita${c.estado === "confirmada" ? " confirmada" : ""}`}
-        style={{ top: y(ini), height: Math.max(28, y(fin) - y(ini) - 2) }}
+        style={{ top: y(ini), height: Math.max(28, y(fin) - y(ini) - 2), borderLeftColor: colorZona(propiedad?.zona) }}
+        title={c.estado === "confirmada" ? "Confirmada" : "Por confirmar"}
       >
         <strong>
           {horaCorta(new Date(c.inicio), zona)} · {contacto?.nombre ?? contacto?.telefono}
@@ -167,7 +177,41 @@ export default async function Agenda({
             const fin = Date.parse(b.fin) >= finDia ? horaMax * 60 : minutosLocales(new Date(b.fin), zona);
             return <span key={`b${i}`} className="cal-bloqueo" style={{ top: y(ini), height: Math.max(0, y(fin) - y(ini)) }} title="Bloqueado" />;
           })}
+        {/* Horas libres: se tocan para agendar una visita a esa hora. */}
+        {franjas.flatMap((h) =>
+          Array.from({ length: Math.floor((minutosDe(h.hora_fin) - minutosDe(h.hora_inicio)) / 60) }, (_, i) => minutosDe(h.hora_inicio) + i * 60),
+        ).map((m) => {
+          const libreHasta = aUtc(f, m + 60, zona).getTime();
+          if (libreHasta < Date.now()) return null;
+          const hh = `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+          return (
+            <Link
+              key={`n${m}`}
+              href={`/panel/agenda/nueva?fecha=${fechaIso(f)}&hora=${hh}`}
+              className="cal-agendar"
+              style={{ top: y(m), height: ALTO_HORA }}
+              aria-label={`Agendar a las ${hh}`}
+            >
+              <span>+ Agendar</span>
+            </Link>
+          );
+        })}
         {(porDia.get(fechaIso(f)) ?? []).map(bloque)}
+        {/* Traslado entre visitas seguidas: en rojo si no da tiempo de llegar. */}
+        {(porDia.get(fechaIso(f)) ?? []).slice(1).map((c, i) => {
+          const antes = (porDia.get(fechaIso(f)) ?? [])[i];
+          const de = uno(antes.propiedades)?.zona;
+          const a = uno(c.propiedades)?.zona;
+          const min = minutosEntre(de, a);
+          if (min === null) return null;
+          const hueco = (Date.parse(c.inicio) - Date.parse(antes.fin)) / 60_000;
+          const finAntes = minutosLocales(new Date(antes.fin), zona);
+          return (
+            <span key={`t${c.id}`} className={`cal-traslado${hueco < min ? " no-da" : ""}`} style={{ top: y(finAntes) }}>
+              {hueco < min ? `No da tiempo: ${min} min a ${a}` : `${min} min a ${a}`}
+            </span>
+          );
+        })}
       </div>
     );
   };
@@ -176,9 +220,14 @@ export default async function Agenda({
     <>
       <header className="encabezado">
         <h1>Agenda</h1>
-        <Link href="/panel/agenda/horario" className="boton">
-          Mi horario
-        </Link>
+        <div className="botones">
+          <Link href={`/panel/agenda/nueva?fecha=${fechaIso(base)}`} className="boton primario">
+            + Agendar
+          </Link>
+          <Link href="/panel/agenda/horario" className="boton">
+            Mi horario
+          </Link>
+        </div>
       </header>
       <Aviso texto={aviso} />
 
@@ -229,7 +278,12 @@ export default async function Agenda({
             <p className="vacio">{vista === "dia" ? "Este día no tienes visitas." : "Esta semana no tienes visitas."}</p>
           )}
           <p className="suave cal-leyenda">
-            <span className="muestra libre" /> Horas en que enseñas casas <span className="muestra bloqueo" /> Bloqueado
+            <span className="muestra libre" /> Toca una hora libre para agendar <span className="muestra bloqueo" /> Bloqueado
+            {[...new Set(citas.map((c) => uno(c.propiedades)?.zona).filter((z): z is string => !!z))].map((z) => (
+              <span key={z} className="zona-leyenda">
+                <span className="muestra" style={{ background: colorZona(z) }} /> {z}
+              </span>
+            ))}
           </p>
         </div>
       )}
@@ -251,7 +305,7 @@ export default async function Agenda({
               >
                 <strong>{f.dia}</strong>
                 {lista.slice(0, 2).map((c) => (
-                  <span key={c.id} className="cal-mes-cita">
+                  <span key={c.id} className="cal-mes-cita" style={{ borderLeft: `3px solid ${colorZona(uno(c.propiedades)?.zona)}` }}>
                     {horaCorta(new Date(c.inicio), zona)} {uno(c.contactos)?.nombre ?? "Visita"}
                   </span>
                 ))}
@@ -273,7 +327,7 @@ export default async function Agenda({
               const contacto = uno(c.contactos);
               const propiedad = uno(c.propiedades);
               return (
-                <Link key={c.id} href={`/panel/clientes/${c.contacto_id}`} className="tarjeta acento fila">
+                <Link key={c.id} href={`/panel/agenda/visita/${c.id}`} className="tarjeta acento fila">
                   <div>
                     <strong>{horaCorta(new Date(c.inicio), zona)}</strong> · {contacto?.nombre ?? contacto?.telefono}
                     {propiedad && <p className="suave">{propiedad.titulo}</p>}

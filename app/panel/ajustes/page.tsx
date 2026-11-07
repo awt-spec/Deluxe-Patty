@@ -2,7 +2,7 @@ import { Volver } from "../volver";
 import Link from "next/link";
 import { fechaCorta } from "@/lib/formato";
 import { sesionConCorredor } from "@/lib/panel/sesion";
-import { guardarAjustes, salir } from "../acciones";
+import { desconectarGoogle, guardarAjustes, salir } from "../acciones";
 import { Aviso } from "../aviso";
 
 type Corredor = {
@@ -14,7 +14,8 @@ type Corredor = {
 export default async function Ajustes({ searchParams }: { searchParams: Promise<{ aviso?: string }> }) {
   const { aviso } = await searchParams;
   const { supabase, corredor, usuario } = await sesionConCorredor();
-  const [{ data: extra }, { data: mes }, { data: dias }] = await Promise.all([
+  const [{ data: google }, { data: extra }, { data: mes }, { data: dias }] = await Promise.all([
+    supabase.from("google_conexiones").select("correo, conectado_at, ultimo_error").eq("corredor_id", corredor.id).maybeSingle(),
     supabase.from("corredores").select("zonas_e24, precio_busqueda_min, precio_busqueda_max").eq("id", corredor.id).single(),
     supabase
       .from("uso_mensual")
@@ -34,6 +35,46 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
         <h1>Ajustes</h1>
       </header>
       <Aviso texto={aviso} />
+
+      <section className="tarjeta pila">
+        <h2>Correo y calendario de Google</h2>
+        {google ? (
+          <>
+            <p>
+              Conectado con <strong>{google.correo as string}</strong>.
+            </p>
+            {google.ultimo_error ? (
+              <p className="aviso">Google dejó de aceptar la conexión. Vuelve a conectarla.</p>
+            ) : (
+              <p className="suave">
+                La asistente lee los correos de clientes y te deja la respuesta lista en Gmail, pone tus visitas en tu
+                calendario de Google (y le manda la invitación al cliente si tiene correo), respeta lo que ya tienes
+                ocupado y te manda el resumen del día por correo.
+              </p>
+            )}
+            <div className="botones">
+              {google.ultimo_error ? (
+                <a href="/api/google/conectar" className="boton primario">
+                  Volver a conectar
+                </a>
+              ) : null}
+              <form action={desconectarGoogle}>
+                <button type="submit">Desconectar</button>
+              </form>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="suave">
+              Conecta tu Gmail para que la asistente lea los correos de clientes, te deje la respuesta lista, ponga tus
+              visitas en tu calendario de Google y te mande el resumen del día por correo.
+            </p>
+            <a href="/api/google/conectar" className="boton primario">
+              Conectar Google
+            </a>
+          </>
+        )}
+      </section>
 
       <form action={guardarAjustes} className="pila">
         <h2>Respuestas</h2>
