@@ -6024,3 +6024,215 @@ body:has(.marco.tema) {
   background: #8696a0 !important;
   opacity: 1;
 }
+
+/* Agenda: resumen, días con cuántas visitas, visitas más legibles y lista del día */
+.tema .agenda-encabezado {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.tema .agenda-encabezado .botones {
+  display: flex;
+  gap: 8px;
+}
+@media (max-width: 599px) {
+  .tema .agenda-encabezado .boton {
+    min-height: 42px;
+    padding: 8px 14px;
+    font-size: 0.95rem;
+  }
+  .tema .agenda-encabezado + .aviso + .preguntas-patty,
+  .tema .agenda-encabezado ~ .preguntas-patty {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tema .agenda-encabezado ~ .preguntas-patty .preguntar-patty {
+    flex: 0 0 auto;
+  }
+  .tema .cal-barra h2 {
+    font-size: 1rem;
+  }
+}
+.tema .cal-resumen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.tema .cal-resumen > span {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--borde);
+  font-size: 0.9rem;
+  color: #46525c;
+}
+.tema .cal-resumen > span strong {
+  color: #111b21;
+}
+.tema .cal-resumen > span.pendientes {
+  background: #fff4e5;
+  border-color: #f3c08f;
+  color: #8a4b08;
+}
+.tema .cal-proxima {
+  margin-left: auto;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #e6f6f1;
+  color: #00684f;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+.tema .cal-cabecera a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 4px 8px;
+}
+.tema .cal-cabecera a:hover {
+  background: #f6f8fa;
+}
+.tema .cal-cuantas {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #00876a;
+  background: #e6f6f1;
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+.tema .cal-columna {
+  background-image: linear-gradient(to bottom, #e9ecef 1px, transparent 1px), linear-gradient(to bottom, transparent 27px, #f3f5f7 27px, #f3f5f7 28px, transparent 28px);
+  background-size: 100% 56px, 100% 56px;
+}
+.tema .cal-cita {
+  left: 4px;
+  right: 4px;
+  gap: 1px;
+  padding: 5px 8px;
+  border: 0;
+  border-left: 4px solid var(--zona, #9b958c);
+  background: color-mix(in srgb, var(--zona, #9b958c) 12%, #fff);
+  box-shadow: 0 1px 3px rgb(16 24 40 / 12%);
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.tema .cal-cita:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgb(16 24 40 / 16%);
+  z-index: 4;
+}
+.tema .cal-cita:not(.confirmada) {
+  background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--zona, #9b958c) 9%, #fff), color-mix(in srgb, var(--zona, #9b958c) 9%, #fff) 8px, color-mix(in srgb, var(--zona, #9b958c) 4%, #fff) 8px, color-mix(in srgb, var(--zona, #9b958c) 4%, #fff) 16px);
+}
+.tema .cal-cita-hora {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #46525c;
+}
+.tema .cal-cita-nombre,
+.tema .cal-cita-casa {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tema .cal-cita-nombre {
+  font-size: 0.86rem;
+  color: #111b21;
+}
+.tema .cal-cita-casa {
+  font-size: 0.76rem;
+  color: #5f6b76;
+}
+.tema .cal-cita-estado {
+  flex: 0 0 auto;
+  font-size: 0.66rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #fff1e6;
+  color: #b45309;
+}
+.tema .cal-cita-estado.ok {
+  background: #e6f6f1;
+  color: #00876a;
+}
+.tema .cal-semana .cal-cita-estado {
+  display: none;
+}
+.tema .cal-semana .cal-cita:not(.confirmada) .cal-cita-hora::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #e2702f;
+}
+.tema .cal-semana .cal-cita.confirmada .cal-cita-hora::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #00a884;
+}
+.tema .cal-dia .cal-cita {
+  padding: 8px 12px;
+}
+.tema .cal-dia .cal-cita-nombre {
+  font-size: 1rem;
+}
+.tema .cal-dia .cal-cita-casa {
+  font-size: 0.88rem;
+}
+.tema .dia-lista {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tema .dia-lista li {
+  background: #fff;
+  border: 1px solid var(--borde);
+  border-left: 5px solid var(--zona, #9b958c);
+  border-radius: 12px;
+  box-shadow: var(--sombra-1);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tema .dia-visita {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+.tema .dia-hora {
+  flex: 0 0 auto;
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: #111b21;
+  min-width: 78px;
+}
+.tema .dia-texto {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.tema .dia-texto .suave {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tema .dia-lista .como-llegar.chico {
+  padding: 0;
+}
