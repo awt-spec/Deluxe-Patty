@@ -1,3 +1,5 @@
+import { minutosLocales } from "./tiempo";
+
 const formatos = new Map<string, Intl.DateTimeFormat>();
 
 function formatear(fecha: Date, zona: string, clave: string, opciones: Intl.DateTimeFormatOptions): string {
@@ -35,4 +37,17 @@ export function etiquetaHorario(fecha: Date, zona: string): string {
 /** Cierra una oración sin duplicar el punto de "a. m." / "p. m.". */
 export function conPunto(texto: string): string {
   return texto.endsWith(".") ? texto : `${texto}.`;
+}
+
+/** Un bloqueo para leer: "jueves 24 de diciembre, todo el día", "… al sábado 26 de diciembre" o con horas. */
+export function rangoBloqueo(b: { inicio: string; fin: string }, zona: string): string {
+  const inicio = new Date(b.inicio);
+  const fin = new Date(b.fin);
+  if (minutosLocales(inicio, zona) === 0 && minutosLocales(fin, zona) === 0) {
+    const primero = diaLargo(inicio, zona);
+    const ultimo = diaLargo(new Date(fin.getTime() - 1), zona);
+    return primero === ultimo ? `${primero}, todo el día` : `${primero} al ${ultimo}`;
+  }
+  if (diaLargo(inicio, zona) === diaLargo(fin, zona)) return `${diaLargo(inicio, zona)}, de ${horaCorta(inicio, zona)} a ${horaCorta(fin, zona)}`;
+  return `del ${etiquetaHorario(inicio, zona)} al ${etiquetaHorario(fin, zona)}`;
 }

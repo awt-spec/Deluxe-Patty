@@ -59,6 +59,7 @@ export function repoEnMemoria(corredor: Corredor) {
   const planes = new Map<string, { contenido: string; enviado: boolean }>();
   const citas: (NuevaCita & { id: string; estado: EstadoCita; recordatorio: boolean; creada: Date })[] = [];
   const horarios = [1, 2, 3, 4, 5].map((d) => ({ dia_semana: d, hora_inicio: "08:00:00", hora_fin: "17:00:00" }));
+  const bloqueos: { inicio: Date; fin: Date }[] = [];
   const activa = (c: { estado: EstadoCita }) => c.estado === "agendada" || c.estado === "confirmada";
   const uso = { mes: "2026-10-01", mensajes_total: 0, aviso_tope_enviado_at: null as string | null };
   let n = 0;
@@ -116,7 +117,10 @@ export function repoEnMemoria(corredor: Corredor) {
       return true;
     },
     actualizarEstadoEntrega: async () => {},
-    datosAgenda: async () => ({ horarios, bloqueos: [], citas: citas.filter(activa) }),
+    datosAgenda: async () => ({ horarios, bloqueos: [...bloqueos], citas: citas.filter(activa) }),
+    crearBloqueo: async (_c, inicio, fin) => {
+      bloqueos.push({ inicio, fin });
+    },
     citasProximasContacto: async (_c, contactoId, desde) =>
       citas
         .filter((c) => c.contacto_id === contactoId && activa(c) && c.inicio >= desde)
@@ -311,6 +315,7 @@ export function repoEnMemoria(corredor: Corredor) {
   };
   return {
     repo,
+    bloqueos,
     costoDia,
     mensajes,
     conversaciones,

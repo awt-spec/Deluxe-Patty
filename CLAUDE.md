@@ -102,7 +102,7 @@ hoy" (visitas con hora de salida, recordatorios y clientes que no contestan), ab
 pueden adjuntar hasta 4 fotos (achicadas en el navegador) o PDF, que van a Claude como imagen o documento solo en
 ese mensaje (no se guardan; en el navegador queda la miniatura); `lib/panel/patty.ts` arma el contexto
 (plan de hoy, visitas de 7 días, clientes, dudas y casas) y `cerebro.conversarConCorredor` (`prompts/patty.md`)
-contesta sin escribir en la base ni mandar nada; la conversación vive en el navegador y respeta el tope diario.
+contesta sin escribir en la base ni mandar nada (salvo "bloquear …", que resuelve el código); la conversación vive en el navegador y respeta el tope diario.
 Patty sabe en qué pantalla está el corredor (`contextoPantalla`: en la ficha de un cliente, una visita o una casa
 lee sus datos y el chat), sugiere preguntas según la pantalla, trae una guía del panel en `prompts/patty.md` y
 contesta "¿dónde está…?" con enlaces `[Pantalla](/panel/...)` que se vuelven botones (solo rutas del panel).
@@ -113,7 +113,13 @@ hace clic en enlaces y pestañas y solo escribe en campos: nunca guarda, envía 
 Las pantallas principales tienen botones "Pregúntale" (`app/panel/preguntar-patty.tsx`, evento `abrir-patty`).
 Agenda en calendario: día, semana, mes o lista (`?vista=`); se toca una hora libre para agendar
 (`/panel/agenda/nueva`), cada visita se abre para confirmarla, moverla o cancelarla con aviso al cliente
-(`/panel/agenda/visita/<id>`, `lib/panel/visitas.ts`), con color por zona y el traslado entre visitas. Revisar (`/panel/revisar`, `lib/panel/pendientes.ts`) muestra uno a la
+(`/panel/agenda/visita/<id>`, `lib/panel/visitas.ts`), con color por zona y el traslado entre visitas.
+**Bloquear** (`/panel/agenda/bloquear`): un día, mañana, tarde, noche, horas exactas o varios días (uno por día si
+son horas), con lista de ratos bloqueados y "Quitar" en la agenda. También por texto, entendido por el código
+(`lib/agenda/bloquear.ts`, `lib/agenda/apartar.ts`): "bloquear mañana en la tarde" por WhatsApp del corredor o en el
+chat de Patty (sin llamar al modelo; es lo único que Patty escribe en la base). La asistente lo pregunta seguido:
+tarjeta diaria "¿Tienes algún compromiso mañana?" en Inicio y Agenda (`app/panel/agenda/pregunta-bloqueo.tsx`, una
+vez al día por navegador) y una línea al final del plan del día. Revisar (`/panel/revisar`, `lib/panel/pendientes.ts`) muestra uno a la
 vez lo que dijo el cliente y la respuesta propuesta, editable, con Enviar, Yo le escribo y No enviar (o
 "Escribirle por WhatsApp" y "Ya lo atendí" si pidió hablar con el corredor) y pasa al siguiente. Lo de
 poco uso (Dueños, Anuncios, Probar la asistente, Ajustes, Salir) está detrás de "Más" (`/panel/mas`). Íconos dibujados en `app/panel/iconos.tsx`

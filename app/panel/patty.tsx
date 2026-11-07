@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { separarPasos, useGuia, type Paso } from "./guia";
 import { IconoClip, IconoDobleCheck, IconoDocumento, IconoEnviar } from "./iconos";
@@ -26,7 +26,8 @@ const SUGERENCIAS: [RegExp, string, string[]][] = [
   [/^\/panel\/clientes/, "Estás en Clientes.", ["¿A quién debería llamar?", "¿Cómo muevo un cliente de etapa?", "¿Cómo agrego un cliente?", "¿Cómo va el mes?"]],
   [/^\/panel\/agenda\/visita/, "Estás en una visita.", ["¿Qué le digo al confirmar?", "¿Cómo la muevo a otro día?", "Prepárame para esta visita"]],
   [/^\/panel\/agenda\/horario/, "Estás en Mi horario.", ["¿Cómo bloqueo un día?", "¿Para qué sirve desde dónde salgo?"]],
-  [/^\/panel\/agenda/, "Estás en la Agenda.", ["¿Qué visitas tengo esta semana?", "¿Cómo agendo una visita?", "¿Cómo cancelo una visita?"]],
+  [/^\/panel\/agenda\/bloquear/, "Estás bloqueando un rato.", ["Bloquear mañana en la tarde", "Bloquear el viernes todo el día", "¿Las visitas que ya tengo se cancelan?"]],
+  [/^\/panel\/agenda/, "Estás en la Agenda.", ["¿Qué visitas tengo esta semana?", "Bloquear mañana en la tarde", "¿Cómo agendo una visita?"]],
   [/^\/panel\/propiedades\/[0-9a-f-]{36}/, "Estás en la ficha de una casa.", ["¿A qué clientes les sirve esta casa?", "¿Cómo hago la ficha en PDF?", "Escríbeme un texto para ofrecerla"]],
   [/^\/panel\/propiedades/, "Estás en Mis casas.", ["¿Cómo agrego una casa?", "¿Qué casa se mueve más?", "¿Cómo mejoro las fotos?"]],
   [/^\/panel\/cerebro/, "Estás en el Cerebro de la asistente.", ["¿Cómo le enseño algo?", "¿Qué preguntas no supo contestar?"]],
@@ -122,6 +123,7 @@ export function ChatPatty({
   alUsarPregunta?: () => void;
 }) {
   const busqueda = useSearchParams();
+  const router = useRouter();
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const [texto, setTexto] = useState("");
   const [archivos, setArchivos] = useState<ArchivoListo[]>([]);
@@ -224,6 +226,7 @@ export function ChatPatty({
           const { texto: leible, pasos } = separarPasos(r.texto);
           setTurnos((t) => [...t, { autor: "asistente", texto: leible, hora: new Date().toISOString() }]);
           if (pasos.length) void guiar(pasos);
+          if ("cambio" in r && r.cambio) router.refresh();
         } else setError(r.motivo);
       } catch {
         setError("No se pudo mandar. Si adjuntaste archivos, prueba con menos o más livianos.");

@@ -1,6 +1,6 @@
 import { Volver } from "../../volver";
 import Link from "next/link";
-import { diaLargo, etiquetaHorario } from "@/lib/agenda/formato";
+import { diaLargo, etiquetaHorario, rangoBloqueo } from "@/lib/agenda/formato";
 import { minutosLocales } from "@/lib/agenda/tiempo";
 import {
   DIAS_SEMANA,
@@ -32,19 +32,7 @@ type Bloqueo = {
   motivo: string | null;
 };
 
-/** "jueves 24 de diciembre al sábado 26 de diciembre" si son días completos; si no, con horas. */
-function rango(b: Bloqueo, zona: string): string {
-  const inicio = new Date(b.inicio);
-  const fin = new Date(b.fin);
-  if (minutosLocales(inicio, zona) === 0 && minutosLocales(fin, zona) === 0) {
-    const primero = diaLargo(inicio, zona);
-    const ultimo = diaLargo(new Date(fin.getTime() - 1), zona);
-    return primero === ultimo
-      ? `${primero}, todo el día`
-      : `${primero} al ${ultimo}`;
-  }
-  return `del ${etiquetaHorario(inicio, zona)} al ${etiquetaHorario(fin, zona)}`;
-}
+const rango = (b: Bloqueo, zona: string) => rangoBloqueo(b, zona);
 
 // Lunes primero, como se lee una semana de trabajo.
 const ORDEN = [1, 2, 3, 4, 5, 6, 0];
