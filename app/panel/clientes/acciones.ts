@@ -109,3 +109,16 @@ export async function agregarCliente(f: FormData) {
   revalidatePath("/panel/clientes");
   redirect(`/panel/clientes/${data.id}?aviso=${encodeURIComponent("Cliente agregado.")}`);
 }
+
+/** Mover un cliente de etapa desde el tablero (arrastrando). Devuelve si se guardó. */
+export async function moverEtapa(id: string, etapa: string): Promise<boolean> {
+  if (!idValido(id) || !(ETAPAS as readonly string[]).includes(etapa)) return false;
+  const { supabase, corredor } = await sesionConCorredor();
+  const { error } = await supabase
+    .from("contactos")
+    .update({ etapa, etapa_at: new Date().toISOString(), ...(etapa === "perdido" ? {} : { motivo_perdida: null }) })
+    .eq("corredor_id", corredor.id)
+    .eq("id", id);
+  revalidatePath("/panel/clientes");
+  return !error;
+}

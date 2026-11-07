@@ -3752,3 +3752,77 @@ fieldset.opciones label {
     font-size: 0.85rem;
   }
 }
+
+/* Embudo de clientes: cifras, días en la etapa, tablero con arrastre */
+.embudo-cifras {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.embudo-cifras .cifra {
+  text-decoration: none;
+  color: inherit;
+  min-height: 88px;
+}
+.embudo-cifras .cifra strong {
+  font-size: 1.8rem;
+}
+.embudo-cifras .cifra.alerta strong {
+  color: #c2410c;
+}
+.embudo-nota {
+  margin: 4px 0 12px;
+}
+.dias-etapa {
+  font-size: 0.8rem;
+  color: var(--suave);
+}
+.dias-etapa.estancado {
+  color: #c2410c;
+  font-weight: 600;
+}
+.filtro-etapas a.filtro-atencion {
+  border-color: #f0a868;
+}
+.lista-escritorio,
+.tablero-ayuda {
+  display: none;
+}
+.tablero-valor {
+  margin: -4px 0 10px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--profundo, inherit);
+}
+@media (min-width: 900px) {
+  .embudo-cifras {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .lista-escritorio {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 10px;
+  }
+  .tablero-ayuda {
+    display: block;
+    margin: 0 0 8px;
+  }
+  .tablero-columna {
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .tablero-columna.encima {
+    background: color-mix(in srgb, var(--principal) 10%, #fff);
+    border-color: var(--principal);
+    border-style: dashed;
+  }
+  .tablero .cliente-tarjeta {
+    cursor: grab;
+  }
+  .tablero .cliente-tarjeta.arrastrando {
+    opacity: 0.4;
+  }
+  .tablero-columna > .suave {
+    margin: -8px 0 8px;
+  }
+}
