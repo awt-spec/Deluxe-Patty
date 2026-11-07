@@ -22,6 +22,31 @@ export interface Busca {
   habitaciones?: number;
 }
 
+/** Qué quiere decir cada etapa, en palabras de todos los días. */
+export const AYUDA_ETAPA: Record<Etapa, string> = {
+  nuevo: "Acaba de escribir",
+  interesado: "Preguntó por casas",
+  visita: "Tiene una visita",
+  negociando: "Hablando de precio",
+  cerrado: "Compró o alquiló",
+  perdido: "Ya no sigue",
+};
+
+/** Por qué se pierde un cliente: botones para no escribir. */
+export const MOTIVOS_PERDIDA = [
+  "Compró con otro corredor",
+  "No le alcanzó el dinero",
+  "Ya no contesta",
+  "No encontró lo que buscaba",
+  "Ya no está buscando",
+] as const;
+
+/** "+506 8800 0004" en vez de "+50688000004". */
+export function telefonoBonito(t: string): string {
+  const m = /^\+506(\d{4})(\d{4})$/.exec(t);
+  return m ? `+506 ${m[1]} ${m[2]}` : t;
+}
+
 const ORDEN: Record<Etapa, number> = { nuevo: 0, interesado: 1, visita: 2, negociando: 3, cerrado: 4, perdido: 4 };
 
 /**

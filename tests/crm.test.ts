@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { Cerebro } from "../lib/asistente/cerebro";
 import { SIN_CONSUMO } from "../lib/asistente/costo";
 import { procesarMensaje, type Dependencias } from "../lib/asistente/procesar";
-import { avanzarEtapa, encaja, fusionarBusca, resumenBusca } from "../lib/crm/perfil";
+import { avanzarEtapa, encaja, fusionarBusca, resumenBusca, telefonoBonito } from "../lib/crm/perfil";
 import type { EnviadorWhatsApp } from "../lib/whatsapp/enviar";
 import { corredorBase, entrante, repoEnMemoria } from "./dobles";
 
@@ -33,6 +33,13 @@ describe("perfil del cliente", () => {
     expect(encaja({ presupuesto_max: 400000 }, casa)).toBe(false);
     expect(encaja({ habitaciones: 5 }, casa)).toBe(false);
     expect(encaja({}, casa)).toBe(false);
+  });
+});
+
+describe("teléfono fácil de leer", () => {
+  it("separa los números de Costa Rica y deja los demás como vienen", () => {
+    expect(telefonoBonito("+50688000004")).toBe("+506 8800 0004");
+    expect(telefonoBonito("+14155550100")).toBe("+14155550100");
   });
 });
 
