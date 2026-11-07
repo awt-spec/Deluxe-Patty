@@ -64,7 +64,7 @@ export interface AlmacenExtension {
 
 export interface DependenciasExtension {
   almacen: AlmacenExtension;
-  repo: Pick<Repositorio, "registrarUso" | "costoClaudeDelDia">;
+  repo: Pick<Repositorio, "registrarUso" | "presupuestoIA">;
   cerebro: Pick<Cerebro, "clasificarAnuncio">;
 }
 
@@ -108,7 +108,7 @@ export async function iniciarBusqueda(d: DependenciasExtension, corredorId: stri
   const corredor = await d.almacen.corredor(corredorId);
   if (!corredor) return { ok: false, motivo: "sin_corredor" };
   if (corredor.zonas_e24.length === 0) return { ok: false, motivo: "sin_zonas" };
-  if (!(await hayPresupuestoHoy(d.repo, corredor, ahora))) return { ok: false, motivo: "sin_presupuesto" };
+  if (!(await hayPresupuestoHoy(d.repo, corredor))) return { ok: false, motivo: "sin_presupuesto" };
 
   const recorrido = iniciarRecorrido(corredor.zonas_e24);
   const t = siguienteDelRecorrido(recorrido, false)!;

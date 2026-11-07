@@ -64,6 +64,7 @@ export async function mejorarFotos(
   );
 
   const log = deps.registrar ?? ((evento, datos) => console.info(JSON.stringify({ evento, ...datos })));
+  let costoTotal = 0;
   const resultados = await enParalelo(aMejorar, EN_PARALELO, async (foto) => {
     // Número de la foto en el orden de la propiedad, para que coincida con lo que ve el corredor.
     const numero = fotos.indexOf(foto) + 1;
@@ -71,7 +72,8 @@ export async function mejorarFotos(
       const original = await fetch(foto.url);
       const tipo = (original.headers.get("content-type") ?? "").split(";")[0];
       if (!original.ok || !TIPOS.test(tipo)) throw new Error(`descarga ${original.status} ${tipo}`);
-      const mejorada = await editor.mejorar(Buffer.from(await original.arrayBuffer()), tipo);
+      const { imagen: mejorada, costoUsd } = await editor.mejorar(Buffer.from(await original.arrayBuffer()), tipo);
+      costoTotal += costoUsd;
       const url = await deps.repo.subirArchivo(
         corredor.id,
         "fotos",
@@ -97,6 +99,8 @@ export async function mejorarFotos(
     await deps.repo.guardarFotos(corredor.id, propiedad.id, fotos);
     await deps.repo.registrarFotosMejoradas(corredor.id, mejoradas.length);
   }
+  // Lo que se pagó a OpenAI suma al gasto de IA del corredor (también lo que salió mal después de pagar).
+  if (costoTotal > 0) await deps.repo.registrarImagenes(corredor.id, mejoradas.length, costoTotal);
   const fallidas = aMejorar.length - mejoradas.length;
 
   const cierre = mejoradas.length

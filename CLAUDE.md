@@ -12,8 +12,13 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
 - WhatsApp Cloud API (Meta): el webhook entra a la app de Next.js.
 - API de Claude: Haiku (`claude-haiku-5-5`) para clasificar mensajes y anuncios; Sonnet (`claude-sonnet-5-5`)
   para redactar respuestas, analizar propiedades y ofertas y escribir anuncios.
-- API de imágenes de OpenAI (`gpt-image-2`) solo para mejorar fotos de propiedades (`lib/fotos/`).
-  Las mejoradas van al bucket público `fotos` de Supabase Storage.
+- API de imágenes de OpenAI (`gpt-image-2`, `lib/fotos/editor.ts`): mejorar fotos, **amueblar** cuartos vacíos y
+  **quitar objetos** (`lib/fotos/variantes.ts`, en cada foto de la casa: "Con IA") e imágenes desde el chat de Patty
+  ("hazme una imagen de…" o, con foto adjunta, "amuebla esta sala"; `lib/panel/imagenes-patty.ts`). Todo va al
+  bucket público `fotos`; cada llamada estima su costo por el uso que informa OpenAI y suma en `uso_diario` /
+  `uso_mensual` (`registrar_imagenes`). **Imagen para redes** (`/panel/propiedades/<id>/redes`, `lib/redes/`): post
+  cuadrado e historia con foto, precio, datos y la marca del corredor, armada por código con `next/og` (sin IA,
+  sin cifras inventadas), y el texto para copiar.
 - Ficha de propiedad en PDF con `@react-pdf/renderer` (`lib/fichas/`): la identidad de cada corredor es
   dato (`corredores.marca`, tipo `Marca`); la de Deluxe sigue su Manual de Identidad Visual (4 colores oficiales, Playfair Display
   e Inter, logo oficial en `marcas/deluxe/`). Ejemplo: `npx tsx scripts/ficha-ejemplo.mts <salida.pdf> <fotos...>`.
@@ -59,10 +64,16 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
 - Las fotos mejoradas con IA se guardan aparte (`propiedades.fotos[i].mejorada_url`): la original nunca
   se reemplaza y el corredor las revisa antes de publicarlas, porque el modelo regenera la imagen y
   puede cambiar detalles. La instrucción (`prompts/foto.md`) prohíbe agregar, quitar o cambiar nada.
+  Las amuebladas o limpias van en `fotos[i].variantes` y se muestran como **ilustrativas** (la imagen para
+  redes lo escribe sobre la foto); `prompts/foto-limpiar.md` prohíbe tapar daños o defectos.
 - Cada mensaje entrante y saliente suma en `uso_mensual` vía `registrar_uso()`; tope de 1.000 al mes,
-  aviso a los 900. **Los topes frenan, no solo avisan** (`lib/asistente/limites.ts`): al llegar al tope del
-  mes, al costo de Claude del día `COSTO_DIARIO_TOPE_USD` o a más de 20 mensajes de un cliente en una hora,
-  la IA no se llama y el chat queda para el corredor. Las funciones con IA del panel respetan el tope diario.
+  aviso a los 900. **Los topes frenan, no solo avisan** (`lib/asistente/limites.ts`): al llegar al tope de
+  mensajes del mes, al **tope de gasto de IA del día o del mes** (Claude + imágenes, `presupuesto_ia()`) o a más de
+  20 mensajes de un cliente en una hora, la IA no se llama y el chat queda para el corredor. Las funciones con IA del
+  panel respetan los mismos topes. Los topes de gasto los define el **superadministrador** (`/admin`, `app/admin`,
+  `lib/admin/superadmin.ts`; quién lo es: tabla `superadmins`, por correo): los de la plataforma (`plataforma`) y,
+  si hace falta, uno propio por corredor (`corredores.tope_ia_dia_usd` / `tope_ia_mes_usd`, vacío = plataforma, 0 =
+  apagado) y si puede usar imágenes (`imagenes_activas`). El corredor no los puede leer ni cambiar fuera de su fila.
 - El corredor (rol `authenticated`) solo escribe lo que el panel le deja: ficha de sus propiedades (no las
   fotos), horario, bloqueos, corredores conocidos, leads y algunos ajustes. Mensajes, conversaciones,
   contactos, citas, anuncios y las fotos los escribe el backend tras comprobar con su sesión.
@@ -233,13 +244,15 @@ dueño o corredor. Un cambio de tono o de instrucciones se prueba con el set de 
 | uso_mensual | Mensajes, llamadas a Claude y costo por corredor y mes |
 | planes_dia | Plan del día generado por corredor y fecha, y si ya se entregó |
 | correcciones | Correcciones del corredor a borradores: ejemplos de tono |
-| uso_diario | Mensajes, llamadas y costo de IA por corredor y día |
+| uso_diario | Mensajes, llamadas, imágenes y costo de IA (Claude e imágenes) por corredor y día |
 | alertas | Última vez que se mandó cada alerta de monitoreo (sin ráfagas) |
 | actividades | Historia de cada cliente: llamadas, mensajes, visitas, notas, etapas, ofertas y cierre |
 | conocimiento | Cerebro de la asistente: lo que el corredor le enseñó y las dudas que no supo contestar |
 | extension_conexiones | Extensión de Chrome conectada a un corredor: huellas del código y del permiso, último uso |
 | google_conexiones | Gmail y Google Calendar del corredor: permiso cifrado, correo, hasta dónde leyó, resumen enviado |
 | correos_procesados | Correos que la asistente revisó: cliente u otro, remitente, asunto, resumen y si dejó borrador |
+| plataforma | Valores de toda la plataforma: topes de gasto de IA por día y por mes (una sola fila) |
+| superadmins | Correos de quienes entran a /admin (solo los lee el backend) |
 | busquedas_extension / busquedas_extension_anuncios | Búsqueda de dueños en curso desde la extensión y anuncios leídos (se borran al terminar) |
 
 ## Comandos

@@ -19,5 +19,6 @@ export function esFotoPropia(url: string | undefined, corredorId: string): boole
 export function fotosPropias(fotos: Foto[], corredorId: string): Foto[] {
   return fotos
     .filter((f) => esFotoPropia(f.url, corredorId))
-    .map((f) => (f.mejorada_url && !esFotoPropia(f.mejorada_url, corredorId) ? { ...f, mejorada_url: undefined } : f));
+    .map((f) => (f.mejorada_url && !esFotoPropia(f.mejorada_url, corredorId) ? { ...f, mejorada_url: undefined } : f))
+    .map((f) => (f.variantes?.some((v) => !esFotoPropia(v.url, corredorId)) ? { ...f, variantes: f.variantes.filter((v) => esFotoPropia(v.url, corredorId)) } : f));
 }

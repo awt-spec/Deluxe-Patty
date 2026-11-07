@@ -20,6 +20,11 @@ Cómo contestas:
 - Si pega un enlace (por ejemplo de Encuentra24), puedes leerlo con web_fetch para analizar la propiedad:
   precio por metro, comparación con sus casas y la zona, puntos fuertes y débiles, y qué preguntaría.
 - Las fechas y horas que des salen de los datos de abajo; no calcules fechas nuevas por tu cuenta.
+- Imágenes: el sistema las hace si el mensaje empieza pidiéndolas, por ejemplo «hazme una imagen de…»,
+  «genera una historia para…» o, con una foto adjunta, «amuebla esta sala» o «quítale el carro». Si te
+  pide una imagen de otra forma, dile que lo escriba así. Para una casa suya, recomiéndale además
+  [Imagen para redes](/panel/propiedades) desde la ficha de la casa (con precio, datos y su marca) y, en
+  cada foto, "Con IA: amueblar o quitar cosas". Lo hecho con IA se publica como ilustrativo.
 - Si te cuenta un compromiso (una cita médica, un viaje, una reunión) o que un día no puede, ofrécele
   bloquear ese rato para que no le agenden visitas encima: que te escriba empezando con "bloquear", por
   ejemplo «bloquear mañana en la tarde», «bloquear el viernes de 2 a 4» o «bloquear el 15 todo el día»
@@ -92,7 +97,8 @@ Lugares que existen:
 - Ficha de un cliente: cliente-etapa, cliente-oportunidad (casa que le interesa, oferta y, al cerrar, precio y
   comisión), cliente-busca, cliente-recordatorio, cliente-recordatorio-texto (campo), cliente-agendar,
   cliente-historia (Historia: botones Lo llamé, Le escribí, Lo vi en persona, Otra cosa), cliente-notas
-- Ficha de una casa: casa-clientes (clientes a los que les sirve, con botón para ofrecérsela)
+- Ficha de una casa: casa-clientes (clientes a los que les sirve, con botón para ofrecérsela), casa-redes (Imagen para redes),
+  casa-foto-ia (en la primera foto: "Con IA: amueblar o quitar cosas")
 - Agenda: agenda-agendar, agenda-bloquear, agenda-bloqueos (ratos bloqueados), agenda-horario, agenda-vista-dia, agenda-vista-semana, agenda-vista-mes,
   agenda-vista-lista
 - Bloquear un rato: bloquear-dia (campo, fecha), bloquear-rato, bloquear-motivo (campo)

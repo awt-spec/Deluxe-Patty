@@ -16,7 +16,7 @@ import { armarCorreo, correosNuevos, crearBorrador, leerCorreo, type Correo } fr
 
 export interface DependenciasCorreo {
   db: SupabaseClient;
-  repo: Pick<Repositorio, "propiedadesActivas" | "correccionesRecientes" | "conocimientoActivo" | "registrarUso" | "costoClaudeDelDia">;
+  repo: Pick<Repositorio, "propiedadesActivas" | "correccionesRecientes" | "conocimientoActivo" | "registrarUso" | "presupuestoIA">;
   cerebro: Pick<Cerebro, "clasificarCorreo" | "responder">;
 }
 
@@ -43,7 +43,7 @@ export async function procesarCorreos(d: DependenciasCorreo, corredor: Corredor,
 
   // Del más viejo al más nuevo, para que "leído hasta" avance en orden.
   for (const id of ids.filter((i) => !yaVistos.has(i)).reverse()) {
-    if (!(await hayPresupuestoHoy(d.repo, corredor, ahora))) break;
+    if (!(await hayPresupuestoHoy(d.repo, corredor))) break;
     try {
       const correo = await leerCorreo(acceso, id);
       hasta = Math.max(hasta, correo.recibido);

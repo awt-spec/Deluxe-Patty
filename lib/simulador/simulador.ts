@@ -100,8 +100,9 @@ function repoSimulado(real: Repositorio, corredor: Corredor, estado: EstadoSimul
       return { mes: "", mensajes_total: 0, aviso_tope_enviado_at: "simulacion" };
     },
     marcarAvisoTope: async () => false,
-    // El tope de costo del día es el real: las pruebas también gastan.
-    costoClaudeDelDia: (corredorId, dia) => real.costoClaudeDelDia(corredorId, dia),
+    // Los topes de gasto son los reales: las pruebas también gastan.
+    presupuestoIA: (corredorId) => real.presupuestoIA(corredorId),
+    registrarImagenes: async () => {},
     entrantesDesde: async () => estado.mensajes.filter((m) => m.direccion === "entrante").length,
     propiedadesActivas: (corredorId) => real.propiedadesActivas(corredorId),
     correccionesRecientes: (corredorId, limite) => real.correccionesRecientes(corredorId, limite),

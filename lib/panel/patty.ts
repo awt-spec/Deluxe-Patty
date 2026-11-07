@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { apartar } from "../agenda/apartar";
+import { imagenParaPatty, pideImagen } from "./imagenes-patty";
 import { AYUDA_BLOQUEO, entenderBloqueo, pideBloqueo } from "../agenda/bloquear";
 import { etiquetaHorario } from "../agenda/formato";
 import { fechaIso, fechaLocal } from "../agenda/tiempo";
@@ -206,6 +207,9 @@ export async function hablarConPatty(
 ): Promise<{ ok: true; texto: string; cambio?: boolean } | { ok: false; motivo: string }> {
   const limpio = mensaje.trim().slice(0, 4000) || (adjuntos.length ? "Revisa lo que te adjunto y dime qué ves o qué me recomiendas." : "");
   if (!limpio) return { ok: false, motivo: "Escribe algo para Patty." };
+  // "Hazme una imagen de…" o, con una foto adjunta, "amuebla esta sala": la hace OpenAI, sin el modelo de texto.
+  const pedidoImagen = pideImagen(limpio, adjuntos);
+  if (pedidoImagen) return imagenParaPatty(deps, corredor, pedidoImagen, limpio);
   // "Bloquear mañana en la tarde": lo entiende y lo guarda el código (las fechas nunca las pone el modelo).
   if (pideBloqueo(limpio) && adjuntos.length === 0) {
     const pedido = entenderBloqueo(limpio, new Date(), corredor.zona_horaria);
