@@ -147,7 +147,13 @@ asistente llena `busca` con lo que el cliente dice (sale de la misma clasificaci
 llamada) y la etapa solo avanza sola (nuevo → interesado → visita al agendar), nunca retrocede ni toca un
 cliente cerrado o perdido. Arriba, cifras del embudo (activos, compras en juego, cerrados del mes, a quién llamar); en el teléfono, lista por
 etapa; en computadora, tablero donde cada cliente se arrastra de etapa (`app/panel/clientes/tablero.tsx`). Se puede
-agregar un cliente a mano y, al perderlo, anotar el motivo (`motivo_perdida`). La ficha muestra las
+agregar un cliente a mano y, al perderlo, anotar el motivo (`motivo_perdida`). Cada cliente tiene **Historia**
+(`actividades`, `lib/crm/actividades.ts`): lo que anota el corredor (Lo llamé, Le escribí…), cambios de etapa,
+ofertas, visitas, correos y los días de WhatsApp; anotar algo reinicia el "sin movimiento" (`ultima_actividad_at`).
+"Lo que está en juego": casa que le interesa y oferta (con oferta pasa a Negociando); al cerrar, casa, precio y
+comisión (`corredores.comision_pct`, 5% por defecto). Las cifras usan ese dinero real (en negociación, ganado del
+mes). Al marcar una visita como hecha queda un recordatorio para mañana; Inicio pide cómo salieron las visitas
+pasadas y avisa de casas nuevas que le sirven a algún cliente, y la ficha de cada casa lista a esos clientes. La ficha muestra las
 casas que le encajan; el inicio, "Para hoy" (seguimientos que vencen y clientes que no contestan hace 3
 días). El corredor edita esos campos con su sesión (permiso por columna; el teléfono no).
 Cerebro de la asistente (`app/panel/cerebro`, desde Más): lo que el corredor le enseña (`conocimiento`,
@@ -213,6 +219,7 @@ dueño o corredor. Un cambio de tono o de instrucciones se prueba con el set de 
 | correcciones | Correcciones del corredor a borradores: ejemplos de tono |
 | uso_diario | Mensajes, llamadas y costo de IA por corredor y día |
 | alertas | Última vez que se mandó cada alerta de monitoreo (sin ráfagas) |
+| actividades | Historia de cada cliente: llamadas, mensajes, visitas, notas, etapas, ofertas y cierre |
 | conocimiento | Cerebro de la asistente: lo que el corredor le enseñó y las dudas que no supo contestar |
 | extension_conexiones | Extensión de Chrome conectada a un corredor: huellas del código y del permiso, último uso |
 | google_conexiones | Gmail y Google Calendar del corredor: permiso cifrado, correo, hasta dónde leyó, resumen enviado |

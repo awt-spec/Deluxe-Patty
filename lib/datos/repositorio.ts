@@ -160,7 +160,7 @@ function verificar(error: { message: string; code?: string } | null, que: string
 }
 
 export const COLUMNAS_CORREDOR =
-  "id, nombre, nombre_contacto, whatsapp_numero, whatsapp_phone_number_id, whatsapp_corredor, zona_horaria, tono, reglas_escalamiento, tope_mensajes_mes, aviso_mensajes_mes, respuesta_automatica, duracion_visita_min, margen_visitas_min, anticipacion_min_horas, horizonte_agenda_dias, hora_plan_dia, marca, activo, zona_base, nombre_asistente";
+  "id, nombre, nombre_contacto, whatsapp_numero, whatsapp_phone_number_id, whatsapp_corredor, zona_horaria, tono, reglas_escalamiento, tope_mensajes_mes, aviso_mensajes_mes, respuesta_automatica, duracion_visita_min, margen_visitas_min, anticipacion_min_horas, horizonte_agenda_dias, hora_plan_dia, marca, activo, zona_base, nombre_asistente, comision_pct";
 
 export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
   return {

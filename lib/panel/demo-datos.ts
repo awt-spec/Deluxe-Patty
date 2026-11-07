@@ -196,6 +196,30 @@ export async function rehacerDemo(db: SupabaseClient, correo: string, ahora = Da
     ).error,
   );
 
+  // 4c. Lo que está en juego y la historia de los clientes (CRM).
+  revisar(
+    "oferta",
+    (
+      await db
+        .from("contactos")
+        .update({ propiedad_interes_id: casa("DEMO-01"), oferta_monto: 1100000 })
+        .eq("corredor_id", ID)
+        .eq("id", cliente(2))
+    ).error,
+  );
+  revisar("interes", (await db.from("contactos").update({ propiedad_interes_id: casa("DEMO-01") }).eq("corredor_id", ID).eq("id", cliente(1))).error);
+  revisar(
+    "historia",
+    (
+      await db.from("actividades").insert([
+        { corredor_id: ID, contacto_id: cliente(2), tipo: "etapa", texto: "Pasó a Negociando", autor: "asistente", created_at: hace(44) },
+        { corredor_id: ID, contacto_id: cliente(2), tipo: "oferta", texto: "Oferta de $1.100.000 por Casa contemporánea con vista al valle", autor: "corredor", created_at: hace(40) },
+        { corredor_id: ID, contacto_id: cliente(1), tipo: "llamada", texto: "La llamé: le encantó la vista y quiere ir con su esposo", autor: "corredor", created_at: hace(60 * 26) },
+        { corredor_id: ID, contacto_id: cliente(3), tipo: "mensaje", texto: "Le mandé las fotos del apartamento", autor: "corredor", created_at: hace(60 * 30) },
+      ])
+    ).error,
+  );
+
   // 5. Visitas agendadas.
   revisar(
     "citas",

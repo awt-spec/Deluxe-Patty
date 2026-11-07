@@ -2,7 +2,7 @@ import Link from "next/link";
 import { diaLargo, etiquetaHorario, horaCorta } from "@/lib/agenda/formato";
 import { fechaIso, fechaLocal, limitesDia } from "@/lib/agenda/tiempo";
 import { minutosEntre } from "@/lib/agenda/zonas";
-import { telefonoBonito } from "@/lib/crm/perfil";
+import { encaja, telefonoBonito, type Busca } from "@/lib/crm/perfil";
 import { pendientesDe } from "@/lib/panel/pendientes";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Aviso } from "./aviso";
@@ -103,6 +103,39 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
       .limit(5),
   ]);
   const conversaciones = (convs ?? []) as Conv[];
+
+  // Visitas de los últimos 7 días que ya pasaron y no dicen cómo salieron.
+  const { data: pasadasData } = await supabase
+    .from("citas")
+    .select("id, inicio, contactos(nombre, telefono), propiedades(titulo)")
+    .eq("corredor_id", corredor.id)
+    .in("estado", ["agendada", "confirmada"])
+    .lt("fin", ahora.toISOString())
+    .gte("inicio", new Date(ahora.getTime() - 7 * DIA).toISOString())
+    .order("inicio", { ascending: false })
+    .limit(5);
+  const pasadas = (pasadasData ?? []) as unknown as {
+    id: string;
+    inicio: string;
+    contactos: { nombre: string | null; telefono: string } | null;
+    propiedades: { titulo: string } | null;
+  }[];
+
+  // Casas agregadas en la última semana que le sirven a algún cliente.
+  const [{ data: casasNuevasData }, { data: buscanData }] = await Promise.all([
+    supabase
+      .from("propiedades")
+      .select("id, titulo, operacion, tipo, precio, moneda, zona, canton, habitaciones")
+      .eq("corredor_id", corredor.id)
+      .eq("estado", "activa")
+      .gte("created_at", new Date(ahora.getTime() - 7 * DIA).toISOString())
+      .limit(10),
+    supabase.from("contactos").select("busca").eq("corredor_id", corredor.id).eq("es_corredor", false).not("etapa", "in", "(cerrado,perdido)").limit(500),
+  ]);
+  const casasNuevas = ((casasNuevasData ?? []) as (Parameters<typeof encaja>[1] & { id: string; titulo: string })[])
+    .map((casa) => ({ casa, cuantos: ((buscanData ?? []) as { busca: Busca }[]).filter((c) => encaja(c.busca ?? {}, casa)).length }))
+    .filter((x) => x.cuantos > 0)
+    .slice(0, 3);
   const visitas = (visitasData ?? []) as unknown as Visita[];
   const seguimientos = (seguimientosData ?? []) as { id: string; nombre: string | null; telefono: string; seguimiento_nota: string | null }[];
 
@@ -256,10 +289,10 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
         </section>
       )}
 
-      {visitas.length === 0 && seguimientos.length === 0 && sinRespuesta.length === 0 && (
+      {visitas.length === 0 && seguimientos.length === 0 && sinRespuesta.length === 0 && pasadas.length === 0 && casasNuevas.length === 0 && (
         <p className="suave">Hoy no tienes visitas ni recordatorios.</p>
       )}
-      {(visitas.length > 0 || seguimientos.length > 0 || sinRespuesta.length > 0) && (
+      {(visitas.length > 0 || seguimientos.length > 0 || sinRespuesta.length > 0 || pasadas.length > 0 || casasNuevas.length > 0) && (
         <section className="hoy" aria-label="Hoy">
           <h2>
             <IconoCampana tamano={20} /> Qué hacer hoy
@@ -288,6 +321,31 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
                   <span>
                     <strong>{nombre(s)}</strong>
                     {s.seguimiento_nota && <span className="suave"> · {s.seguimiento_nota}</span>}
+                  </span>
+                </Link>
+              </li>
+            ))}
+            {pasadas.map((v) => (
+              <li key={`p-${v.id}`}>
+                <Link href={`/panel/agenda/visita/${v.id}`}>
+                  <span className="hoy-hora">Anotar</span>
+                  <span>
+                    ¿Cómo salió la visita con <strong>{v.contactos ? nombre(v.contactos) : "el cliente"}</strong>?
+                    {v.propiedades && <span className="suave"> · {v.propiedades.titulo}</span>}
+                  </span>
+                </Link>
+              </li>
+            ))}
+            {casasNuevas.map(({ casa, cuantos }) => (
+              <li key={`c-${casa.id}`}>
+                <Link href={`/panel/propiedades/${casa.id}`}>
+                  <span className="hoy-hora">Ofrecer</span>
+                  <span>
+                    <strong>{casa.titulo}</strong>
+                    <span className="suave">
+                      {" "}
+                      · le sirve a {cuantos} {cuantos === 1 ? "cliente" : "clientes"}
+                    </span>
                   </span>
                 </Link>
               </li>

@@ -81,6 +81,9 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
         <label htmlFor="nombre_asistente">¿Cómo se llama?</label>
         <input data-patty="ajustes-nombre" id="nombre_asistente" name="nombre_asistente" type="text" maxLength={40} defaultValue={corredor.nombre_asistente ?? "Patty"} />
         <p className="suave">Es el nombre que ves en el botón de chat de cada página.</p>
+        <label htmlFor="comision_pct">Tu comisión (% del precio)</label>
+        <input data-patty="ajustes-comision" id="comision_pct" name="comision_pct" type="number" min={0} max={20} step={0.5} defaultValue={corredor.comision_pct ?? 5} />
+        <p className="suave">Con esto se calcula cuánto ganarías en cada negociación y en cada cierre.</p>
         <h2>Respuestas</h2>
         <label className="casilla">
           <input data-patty="ajustes-respuesta-automatica" type="checkbox" name="respuesta_automatica" defaultChecked={corredor.respuesta_automatica} />
