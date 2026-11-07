@@ -147,7 +147,8 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
         .select("conversacion_id, direccion, contenido, created_at")
         .eq("corredor_id", corredor.id)
         .in("conversacion_id", ids)
-        .neq("estado_borrador", "descartado")
+        // Solo lo que de verdad se mandó o llegó (sin borradores). Ojo: neq() deja afuera los null.
+        .or("estado_borrador.is.null,estado_borrador.in.(aprobado,corregido)")
         .order("created_at", { ascending: false })
         .limit(400)
     : { data: [] };
@@ -185,239 +186,286 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
   const hora = Number(new Intl.DateTimeFormat("es-CR", { hour: "numeric", hourCycle: "h23", timeZone: zona }).format(ahora));
   const saludo = hora < 12 ? "Buenos días" : hora < 19 ? "Buenas tardes" : "Buenas noches";
 
+  // Lo del día en una línea, arriba: lo primero que se lee al abrir.
+  const resumenDia = [
+    visitas.length ? `${visitas.length} ${visitas.length === 1 ? "visita" : "visitas"} hoy` : "Sin visitas hoy",
+    pendientes.length ? `${pendientes.length} ${pendientes.length === 1 ? "cliente espera" : "clientes esperan"}` : null,
+    seguimientos.length ? `${seguimientos.length} ${seguimientos.length === 1 ? "por llamar" : "por llamar"}` : null,
+  ].filter((x): x is string => !!x);
+  const nombreAsistente = corredor.nombre_asistente ?? "Patty";
+
   return (
-    <>
+    <div className="inicio">
       <header className="saludo">
         <div>
           <h1>
             {saludo}, {corredor.nombre_contacto}
           </h1>
           <p className="saludo-fecha">{diaLargo(ahora, zona)}</p>
+          <p className="saludo-resumen">
+            {resumenDia.map((r, i) => (
+              <span key={r} className={i === 0 && visitas.length ? "destacado" : undefined}>
+                {r}
+              </span>
+            ))}
+          </p>
         </div>
         <Link href="/panel/mas" className="boton boton-mas" aria-label="Más opciones">
           <IconoMas tamano={22} />
         </Link>
       </header>
       <Aviso texto={aviso} />
-      {(() => {
-        const hoyLocal = fechaLocal(ahora, zona);
-        const manana = sumarDias(hoyLocal, 1);
-        const DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
-        return (
-          <PreguntaBloqueo
-            nombre={corredor.nombre_asistente ?? "Patty"}
-            fecha={fechaIso(manana)}
-            dia={`mañana ${DIAS[manana.diaSemana]} ${manana.dia}`}
-            hoy={fechaIso(hoyLocal)}
-            volverA="/panel"
-          />
-        );
-      })()}
-      <div className="preguntas-patty">
-        <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="¿Por dónde empiezo hoy?" />
-        <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="¿A quién debería llamar?" />
-      </div>
 
-      {pendientes.length > 0 ? (
-        <section className="esperan" aria-label="Clientes que te esperan">
-          <Link data-patty="inicio-revisar" href="/panel/revisar" className="esperan-cabecera">
-            <span className="revisar-numero">{pendientes.length}</span>
-            <span className="revisar-texto">
-              <strong>{pendientes.length === 1 ? "Un cliente te espera" : `${pendientes.length} clientes te esperan`}</strong>
-              <span>
-                {[respuestas ? `${respuestas} ${respuestas === 1 ? "respuesta lista" : "respuestas listas"} para que la revises` : null, hablar ? `${hablar} ${hablar === 1 ? "quiere" : "quieren"} hablar contigo` : null]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </span>
-            </span>
-            <span className="revisar-ir">
-              Revisar {pendientes.length > 1 ? "uno por uno" : ""} <IconoFlecha tamano={20} />
-            </span>
-          </Link>
-          <ul className="esperan-lista">
-            {pendientes.slice(0, 4).map((p) => (
-              <li key={p.tipo === "respuesta" ? p.mensajeId : p.conversacionId}>
-                <Link href={p.tipo === "respuesta" ? "/panel/revisar" : `/panel/conversaciones/${p.conversacionId}`}>
-                  <Avatar nombre={p.contacto.nombre} telefono={p.contacto.telefono} />
-                  <span className="esperan-texto">
-                    <strong>{nombre(p.contacto)}</strong>
-                    <span className="suave">{p.dijo ? `“${p.dijo.length > 110 ? `${p.dijo.slice(0, 110)}…` : p.dijo}”` : "Te escribió"}</span>
-                  </span>
-                  <span className={`esperan-etiqueta ${p.tipo}`}>{p.tipo === "respuesta" ? "Respuesta lista" : "Quiere hablar contigo"}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-          {pendientes.length > 4 && (
-            <Link href="/panel/revisar" className="esperan-mas">
-              y {pendientes.length - 4} más
-            </Link>
-          )}
-        </section>
-      ) : (
-        <p className="al-dia">
-          <IconoCheck tamano={24} /> Todo al día
-        </p>
-      )}
-
-      <section className="resumen-asistente" aria-label="Lo que hizo la asistente">
-        <h2>Lo que hizo la asistente en las últimas 24 horas</h2>
-        <div className="cifras">
-          <Link href="/panel#chats" className="tarjeta cifra">
-            <strong>{contestados}</strong>
-            <span className="suave">{contestados === 1 ? "mensaje contestado" : "mensajes contestados"}</span>
-          </Link>
-          <Link href="/panel/agenda" className="tarjeta cifra">
-            <strong>{agendadas}</strong>
-            <span className="suave">{agendadas === 1 ? "visita agendada" : "visitas agendadas"}</span>
-          </Link>
-          <Link href="/panel/clientes" className="tarjeta cifra">
-            <strong>{nuevos}</strong>
-            <span className="suave">{nuevos === 1 ? "cliente nuevo" : "clientes nuevos"}</span>
-          </Link>
-          <Link href="/panel/cerebro?ver=dudas" className="tarjeta cifra">
-            <strong>{dudas}</strong>
-            <span className="suave">{dudas === 1 ? "pregunta que no supo" : "preguntas que no supo"}</span>
-          </Link>
-        </div>
-      </section>
-
-      {correos.length > 0 && (
-        <section className="hoy" aria-label="Correos de clientes">
-          <h2>Correos de clientes: la respuesta está lista en Gmail</h2>
-          <ul className="hoy-lista">
-            {correos.map((c) => (
-              <li key={c.gmail_id}>
-                <a href={c.contacto_id ? `/panel/clientes/${c.contacto_id}` : "https://mail.google.com/mail/u/0/#drafts"} target={c.contacto_id ? undefined : "_blank"} rel="noreferrer">
-                  <span className="hoy-hora">Correo</span>
-                  <span>
-                    <strong>{c.remitente}</strong>
-                    {c.resumen && <span className="suave"> · {c.resumen}</span>}
-                  </span>
-                </a>
-              </li>
-            ))}
-          </ul>
-          <p className="suave">
-            Revísalas y mándalas desde <a href="https://mail.google.com/mail/u/0/#drafts" target="_blank" rel="noreferrer">tus borradores de Gmail</a>.
-          </p>
-        </section>
-      )}
-
-      {visitas.length === 0 && seguimientos.length === 0 && sinRespuesta.length === 0 && pasadas.length === 0 && casasNuevas.length === 0 && (
-        <p className="suave">Hoy no tienes visitas ni recordatorios.</p>
-      )}
-      {(visitas.length > 0 || seguimientos.length > 0 || sinRespuesta.length > 0 || pasadas.length > 0 || casasNuevas.length > 0) && (
-        <section className="hoy" aria-label="Hoy">
-          <h2>
-            <IconoCampana tamano={20} /> Qué hacer hoy
-          </h2>
-          <ul className="hoy-lista">
-            {visitas.map((v, i) => {
-              const sale = salida(i);
-              return (
-                <li key={`v-${v.id}`} className="hoy-visita">
-                  <Link href={`/panel/agenda/visita/${v.id}`}>
-                    <span className="hoy-hora">{horaCorta(new Date(v.inicio), zona)}</span>
+      {/* Computadora: dos columnas (lo de hoy y los chats a la izquierda; Patty y el resumen a la derecha).
+          Teléfono: una sola, con lo urgente primero (el orden lo pone el CSS). */}
+      <div className="inicio-grid">
+        <div className="inicio-principal">
+          <div className="inicio-bloque bloque-esperan">
+            {pendientes.length > 0 ? (
+              <section className="esperan" aria-label="Clientes que te esperan">
+                <Link data-patty="inicio-revisar" href="/panel/revisar" className="esperan-cabecera">
+                  <span className="revisar-numero">{pendientes.length}</span>
+                  <span className="revisar-texto">
+                    <strong>{pendientes.length === 1 ? "Un cliente te espera" : `${pendientes.length} clientes te esperan`}</strong>
                     <span>
-                      Visita con <strong>{v.contactos ? nombre(v.contactos) : "un cliente"}</strong>
-                      {v.propiedades && <span className="suave"> · {v.propiedades.titulo}</span>}
-                      {sale && <span className="salida">{sale}</span>}
-                    </span>
-                  </Link>
-                  {v.propiedades && <ComoLlegar casa={v.propiedades} chico />}
-                </li>
-              );
-            })}
-            {seguimientos.map((s) => (
-              <li key={`s-${s.id}`}>
-                <Link href={`/panel/clientes/${s.id}`}>
-                  <span className="hoy-hora">Llamar</span>
-                  <span>
-                    <strong>{nombre(s)}</strong>
-                    {s.seguimiento_nota && <span className="suave"> · {s.seguimiento_nota}</span>}
-                  </span>
-                </Link>
-              </li>
-            ))}
-            {pasadas.map((v) => (
-              <li key={`p-${v.id}`}>
-                <Link href={`/panel/agenda/visita/${v.id}`}>
-                  <span className="hoy-hora">Anotar</span>
-                  <span>
-                    ¿Cómo salió la visita con <strong>{v.contactos ? nombre(v.contactos) : "el cliente"}</strong>?
-                    {v.propiedades && <span className="suave"> · {v.propiedades.titulo}</span>}
-                  </span>
-                </Link>
-              </li>
-            ))}
-            {casasNuevas.map(({ casa, cuantos }) => (
-              <li key={`c-${casa.id}`}>
-                <Link href={`/panel/propiedades/${casa.id}`}>
-                  <span className="hoy-hora">Ofrecer</span>
-                  <span>
-                    <strong>{casa.titulo}</strong>
-                    <span className="suave">
-                      {" "}
-                      · le sirve a {cuantos} {cuantos === 1 ? "cliente" : "clientes"}
+                      {[respuestas ? `${respuestas} ${respuestas === 1 ? "respuesta lista" : "respuestas listas"} para que la revises` : null, hablar ? `${hablar} ${hablar === 1 ? "quiere" : "quieren"} hablar contigo` : null]
+                        .filter(Boolean)
+                        .join(" · ")}
                     </span>
                   </span>
-                </Link>
-              </li>
-            ))}
-            {sinRespuesta.map((c) => (
-              <li key={`r-${c.id}`}>
-                <Link href={`/panel/conversaciones/${c.id}`}>
-                  <span className="hoy-hora">Escribir</span>
-                  <span>
-                    <strong>{nombre(uno(c.contactos))}</strong>
-                    <span className="suave"> · no contesta hace días</span>
+                  <span className="revisar-ir">
+                    Revisar {pendientes.length > 1 ? "uno por uno" : ""} <IconoFlecha tamano={20} />
                   </span>
                 </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <h2 id="chats">Chats</h2>
-      {conversaciones.length === 0 && <p className="vacio">Todavía no te ha escrito ningún cliente.</p>}
-      <ul className="chat-lista" aria-label="Todos los chats">
-        {conversaciones.map((c) => {
-          const contacto = uno(c.contactos);
-          const m = ultimo.get(c.id);
-          const marca = espera.has(c.id);
-          return (
-            <li key={c.id}>
-              <Link href={`/panel/conversaciones/${c.id}`}>
-                <Avatar nombre={contacto.nombre} telefono={contacto.telefono} />
-                <span className="texto">
-                  <span className="renglon">
-                    <strong>{nombre(contacto)}</strong>
-                    {m && <span className={`hora${marca ? " nueva" : ""}`}>{cuando(m.created_at)}</span>}
-                  </span>
-                  <span className="renglon">
-                    <span className="vista">
-                      {c.control === "corredor" ? "Le contestas tú · " : ""}
-                      {m?.direccion === "saliente" && (
-                        <span className="visto" aria-label="enviado">
-                          <IconoDobleCheck tamano={18} />
+                <ul className="esperan-lista">
+                  {pendientes.slice(0, 4).map((p) => (
+                    <li key={p.tipo === "respuesta" ? p.mensajeId : p.conversacionId}>
+                      <Link href={p.tipo === "respuesta" ? "/panel/revisar" : `/panel/conversaciones/${p.conversacionId}`}>
+                        <Avatar nombre={p.contacto.nombre} telefono={p.contacto.telefono} />
+                        <span className="esperan-texto">
+                          <strong>{nombre(p.contacto)}</strong>
+                          <span className="suave">{p.dijo ? `“${p.dijo.length > 110 ? `${p.dijo.slice(0, 110)}…` : p.dijo}”` : "Te escribió"}</span>
                         </span>
-                      )}
-                      {m ? (m.contenido ?? "(archivo)") : ""}
-                    </span>
-                    {marca && (
-                      <span className="punto" aria-label="te espera">
-                        1
-                      </span>
-                    )}
-                  </span>
+                        <span className={`esperan-etiqueta ${p.tipo}`}>{p.tipo === "respuesta" ? "Respuesta lista" : "Quiere hablar contigo"}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+                {pendientes.length > 4 && (
+                  <Link href="/panel/revisar" className="esperan-mas">
+                    y {pendientes.length - 4} más
+                  </Link>
+                )}
+              </section>
+            ) : (
+              <section className="al-dia-tarjeta" aria-label="Todo al día">
+                <span className="al-dia-icono">
+                  <IconoCheck tamano={26} />
                 </span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-    </>
+                <span>
+                  <strong>Todo al día</strong>
+                  <span className="suave">Ningún cliente espera respuesta. {nombreAsistente} te avisa aquí si alguien te necesita.</span>
+                </span>
+              </section>
+            )}
+          </div>
+          <div className="inicio-bloque bloque-hoy">
+            {visitas.length === 0 && seguimientos.length === 0 && sinRespuesta.length === 0 && pasadas.length === 0 && casasNuevas.length === 0 && (
+              <section className="hoy hoy-vacio" aria-label="Hoy">
+                <h2>
+                  <IconoCampana tamano={20} /> Qué hacer hoy
+                </h2>
+                <p className="suave">Hoy no tienes visitas ni recordatorios. Buen momento para ofrecer casas o llamar a quien no ha contestado.</p>
+              </section>
+            )}
+            {(visitas.length > 0 || seguimientos.length > 0 || sinRespuesta.length > 0 || pasadas.length > 0 || casasNuevas.length > 0) && (
+              <section className="hoy" aria-label="Hoy">
+                <h2>
+                  <IconoCampana tamano={20} /> Qué hacer hoy
+                </h2>
+                <ul className="hoy-lista">
+                  {visitas.map((v, i) => {
+                    const sale = salida(i);
+                    return (
+                      <li key={`v-${v.id}`} className="hoy-visita">
+                        <Link href={`/panel/agenda/visita/${v.id}`}>
+                          <span className="hoy-hora">{horaCorta(new Date(v.inicio), zona)}</span>
+                          <span>
+                            Visita con <strong>{v.contactos ? nombre(v.contactos) : "un cliente"}</strong>
+                            {v.propiedades && <span className="suave"> · {v.propiedades.titulo}</span>}
+                            {sale && <span className="salida">{sale}</span>}
+                          </span>
+                        </Link>
+                        {v.propiedades && <ComoLlegar casa={v.propiedades} chico />}
+                      </li>
+                    );
+                  })}
+                  {seguimientos.map((s) => (
+                    <li key={`s-${s.id}`}>
+                      <Link href={`/panel/clientes/${s.id}`}>
+                        <span className="hoy-hora">Llamar</span>
+                        <span>
+                          <strong>{nombre(s)}</strong>
+                          {s.seguimiento_nota && <span className="suave"> · {s.seguimiento_nota}</span>}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                  {pasadas.map((v) => (
+                    <li key={`p-${v.id}`}>
+                      <Link href={`/panel/agenda/visita/${v.id}`}>
+                        <span className="hoy-hora">Anotar</span>
+                        <span>
+                          ¿Cómo salió la visita con <strong>{v.contactos ? nombre(v.contactos) : "el cliente"}</strong>?
+                          {v.propiedades && <span className="suave"> · {v.propiedades.titulo}</span>}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                  {casasNuevas.map(({ casa, cuantos }) => (
+                    <li key={`c-${casa.id}`}>
+                      <Link href={`/panel/propiedades/${casa.id}`}>
+                        <span className="hoy-hora">Ofrecer</span>
+                        <span>
+                          <strong>{casa.titulo}</strong>
+                          <span className="suave">
+                            {" "}
+                            · le sirve a {cuantos} {cuantos === 1 ? "cliente" : "clientes"}
+                          </span>
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                  {sinRespuesta.map((c) => (
+                    <li key={`r-${c.id}`}>
+                      <Link href={`/panel/conversaciones/${c.id}`}>
+                        <span className="hoy-hora">Escribir</span>
+                        <span>
+                          <strong>{nombre(uno(c.contactos))}</strong>
+                          <span className="suave"> · no contesta hace días</span>
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+          </div>
+          <div className="inicio-bloque bloque-correos">
+              {correos.length > 0 && (
+                <section className="hoy" aria-label="Correos de clientes">
+                  <h2>Correos de clientes: la respuesta está lista en Gmail</h2>
+                  <ul className="hoy-lista">
+                    {correos.map((c) => (
+                      <li key={c.gmail_id}>
+                        <a href={c.contacto_id ? `/panel/clientes/${c.contacto_id}` : "https://mail.google.com/mail/u/0/#drafts"} target={c.contacto_id ? undefined : "_blank"} rel="noreferrer">
+                          <span className="hoy-hora">Correo</span>
+                          <span>
+                            <strong>{c.remitente}</strong>
+                            {c.resumen && <span className="suave"> · {c.resumen}</span>}
+                          </span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="suave">
+                    Revísalas y mándalas desde <a href="https://mail.google.com/mail/u/0/#drafts" target="_blank" rel="noreferrer">tus borradores de Gmail</a>.
+                  </p>
+                </section>
+              )}
+          </div>
+          <div className="inicio-bloque bloque-chats">
+            <h2 id="chats">Chats</h2>
+            {conversaciones.length === 0 && <p className="vacio">Todavía no te ha escrito ningún cliente.</p>}
+            <ul className="chat-lista" aria-label="Todos los chats">
+              {conversaciones.map((c) => {
+                const contacto = uno(c.contactos);
+                const m = ultimo.get(c.id);
+                const marca = espera.has(c.id);
+                return (
+                  <li key={c.id}>
+                    <Link href={`/panel/conversaciones/${c.id}`}>
+                      <Avatar nombre={contacto.nombre} telefono={contacto.telefono} />
+                      <span className="texto">
+                        <span className="renglon">
+                          <strong>{nombre(contacto)}</strong>
+                          {m && <span className={`hora${marca ? " nueva" : ""}`}>{cuando(m.created_at)}</span>}
+                        </span>
+                        <span className="renglon">
+                          <span className="vista">
+                            {c.control === "corredor" ? "Le contestas tú · " : ""}
+                            {m?.direccion === "saliente" && (
+                              <span className="visto" aria-label="enviado">
+                                <IconoDobleCheck tamano={18} />
+                              </span>
+                            )}
+                            {m ? (m.contenido ?? "(archivo)") : ""}
+                          </span>
+                          {marca && (
+                            <span className="punto" aria-label="te espera">
+                              1
+                            </span>
+                          )}
+                        </span>
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </div>
+        <aside className="inicio-lateral">
+          <div className="inicio-bloque bloque-pregunta">
+            {(() => {
+              const hoyLocal = fechaLocal(ahora, zona);
+              const manana = sumarDias(hoyLocal, 1);
+              const DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+              return (
+                <PreguntaBloqueo
+                  nombre={corredor.nombre_asistente ?? "Patty"}
+                  fecha={fechaIso(manana)}
+                  dia={`mañana ${DIAS[manana.diaSemana]} ${manana.dia}`}
+                  hoy={fechaIso(hoyLocal)}
+                  volverA="/panel"
+                />
+              );
+            })()}
+          </div>
+          <section className="inicio-bloque bloque-patty tarjeta" aria-label={`Pregúntale a ${nombreAsistente}`}>
+            <h2>Pregúntale a {nombreAsistente}</h2>
+            <p className="suave">Conoce tu agenda, tus clientes y tus casas.</p>
+            <div className="preguntas-patty">
+              <PreguntarPatty nombre={nombreAsistente} pregunta="¿Por dónde empiezo hoy?" />
+              <PreguntarPatty nombre={nombreAsistente} pregunta="¿A quién debería llamar?" />
+              <PreguntarPatty nombre={nombreAsistente} pregunta="¿Qué casa le ofrezco a quién?" />
+            </div>
+          </section>
+          <div className="inicio-bloque bloque-resumen">
+            <section className="resumen-asistente" aria-label="Lo que hizo la asistente">
+              <h2>Lo que hizo {nombreAsistente} en 24 horas</h2>
+              <div className="cifras inicio-cifras">
+                <Link href="/panel#chats" className="tarjeta cifra">
+                  <strong>{contestados}</strong>
+                  <span className="suave">{contestados === 1 ? "mensaje contestado" : "mensajes contestados"}</span>
+                </Link>
+                <Link href="/panel/agenda" className="tarjeta cifra">
+                  <strong>{agendadas}</strong>
+                  <span className="suave">{agendadas === 1 ? "visita agendada" : "visitas agendadas"}</span>
+                </Link>
+                <Link href="/panel/clientes" className="tarjeta cifra">
+                  <strong>{nuevos}</strong>
+                  <span className="suave">{nuevos === 1 ? "cliente nuevo" : "clientes nuevos"}</span>
+                </Link>
+                <Link href="/panel/cerebro?ver=dudas" className="tarjeta cifra">
+                  <strong>{dudas}</strong>
+                  <span className="suave">{dudas === 1 ? "pregunta que no supo" : "preguntas que no supo"}</span>
+                </Link>
+              </div>
+            </section>
+          </div>
+        </aside>
+      </div>
+    </div>
   );
 }

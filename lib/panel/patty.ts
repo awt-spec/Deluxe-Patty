@@ -175,7 +175,8 @@ export async function contextoPantalla(db: SupabaseClient, corredor: Corredor, r
           .select("autor, contenido")
           .eq("corredor_id", corredor.id)
           .eq("conversacion_id", conv.id)
-          .neq("estado_borrador", "descartado")
+          // neq() dejaría afuera los mensajes sin estado (todos los del cliente).
+          .or("estado_borrador.is.null,estado_borrador.neq.descartado")
           .order("created_at", { ascending: false })
           .limit(10);
         const chat = (msjs ?? []).reverse().map((m) => `${m.autor === "cliente" ? "Cliente" : m.autor === "corredor" ? corredor.nombre_contacto : "Asistente"}: ${String(m.contenido ?? "(archivo)").slice(0, 300)}`);

@@ -6602,3 +6602,180 @@ body:has(.marco.tema) {
 .admin-corredor h3 {
   margin: 0;
 }
+
+/* ------------------------------------------------------------------------------------------------
+   Inicio: lo urgente primero. En computadora, dos columnas (hoy y chats | Patty y resumen); en el
+   teléfono, una sola columna en este orden: te esperan, la pregunta de Patty, qué hacer hoy, correos,
+   chats y lo que hizo la asistente.
+   ------------------------------------------------------------------------------------------------ */
+.tema .inicio .saludo {
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+.tema .saludo-resumen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0 0;
+}
+.tema .saludo-resumen span {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--superficie, #fff);
+  border: 1px solid var(--borde);
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--profundo);
+}
+.tema .saludo-resumen span.destacado {
+  background: color-mix(in srgb, var(--ok) 12%, var(--superficie, #fff));
+  border-color: color-mix(in srgb, var(--ok) 35%, transparent);
+  color: var(--principal-oscuro, #008069);
+}
+.tema .inicio-grid,
+.tema .inicio-principal,
+.tema .inicio-lateral {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+.tema .inicio-bloque > *:first-child {
+  margin-top: 0;
+}
+.tema .inicio-bloque > *:last-child {
+  margin-bottom: 0;
+}
+.tema .inicio-bloque:empty {
+  display: none;
+}
+.tema .inicio h2 {
+  font-size: 1.1rem;
+  margin: 0 0 10px;
+}
+/* Teléfono: una columna con lo urgente primero */
+@media (max-width: 1099px) {
+  .tema .inicio-principal,
+  .tema .inicio-lateral {
+    display: contents;
+  }
+  .tema .bloque-esperan { order: 1; }
+  .tema .bloque-pregunta { order: 2; }
+  .tema .bloque-hoy { order: 3; }
+  .tema .bloque-correos { order: 4; }
+  .tema .bloque-chats { order: 5; }
+  .tema .bloque-resumen { order: 6; }
+  /* En el teléfono Patty ya está en el botón flotante. */
+  .tema .bloque-patty { display: none; }
+}
+/* Computadora: dos columnas; la de la derecha acompaña al bajar */
+@media (min-width: 1100px) {
+  .tema .inicio {
+    max-width: 1240px;
+  }
+  .tema .inicio-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr);
+    align-items: start;
+    gap: 22px;
+  }
+  .tema .inicio-lateral {
+    position: sticky;
+    top: 16px;
+  }
+}
+/* "Todo al día" */
+.tema .al-dia-tarjeta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+  border-radius: var(--radio, 12px);
+  background: color-mix(in srgb, var(--ok) 8%, var(--superficie, #fff));
+  border: 1px solid color-mix(in srgb, var(--ok) 25%, transparent);
+}
+.tema .al-dia-tarjeta > span:last-child {
+  display: grid;
+  gap: 2px;
+}
+.tema .al-dia-tarjeta strong {
+  font-size: 1.15rem;
+}
+.tema .al-dia-icono {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--ok);
+  color: #fff;
+}
+/* Pregunta diaria de Patty dentro de la columna */
+.tema .bloque-pregunta .pregunta-bloqueo {
+  margin: 0;
+}
+@media (min-width: 1100px) {
+  .tema .bloque-pregunta .pregunta-bloqueo-botones button,
+  .tema .bloque-pregunta .pregunta-bloqueo-botones .boton {
+    padding: 8px 12px;
+  }
+}
+/* Pregúntale a Patty */
+.tema .bloque-patty {
+  display: grid;
+  gap: 6px;
+}
+.tema .bloque-patty h2 {
+  margin: 0;
+}
+.tema .bloque-patty p {
+  margin: 0 0 6px;
+}
+.tema .bloque-patty .preguntas-patty {
+  flex-direction: column;
+  align-items: stretch;
+  margin: 0;
+}
+.tema .bloque-patty .preguntar-patty {
+  justify-content: flex-start;
+}
+/* Lo que hizo la asistente: cuatro cifras compactas */
+.tema .inicio .resumen-asistente {
+  margin: 0;
+}
+.tema .inicio-cifras {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+@media (min-width: 700px) and (max-width: 1099px) {
+  .tema .inicio-cifras {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+.tema .inicio-cifras .cifra {
+  padding: 14px 16px;
+  min-height: 0;
+}
+.tema .inicio-cifras .cifra strong {
+  font-size: 1.7rem;
+  line-height: 1.1;
+}
+/* Qué hacer hoy y chats como tarjetas */
+.tema .inicio .hoy {
+  margin: 0;
+}
+.tema .hoy-vacio p {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: var(--radio, 12px);
+  background: var(--superficie, #fff);
+  border: 1px solid var(--borde);
+}
+.tema .bloque-chats h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
