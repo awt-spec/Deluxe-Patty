@@ -7336,3 +7336,231 @@ body:has(.marco.tema) {
   max-width: 40px;
   padding: 0 !important;
 }
+
+/* ================================================================================================
+   Teléfono: como WhatsApp de iPhone.
+   Fondo gris de iOS con celdas blancas agrupadas (sin bordes ni sombras), títulos grandes, barra de
+   abajo translúcida con el ícono activo en verde (sin píldora), botones grises con texto verde y uno
+   verde lleno para la acción principal, buscador gris, segmentados de iOS, chats con líneas finas y
+   la cabecera de los chats clara y translúcida.
+   ================================================================================================ */
+@media (max-width: 899px) {
+  .marco.tema {
+    --ios-fondo: #f2f2f7;
+    --ios-linea: rgb(60 60 67 / 18%);
+    --ios-gris: #8e8e93;
+    --ios-relleno: rgb(118 118 128 / 12%);
+    --ios-verde: #1daa61;
+    --ios-verde-texto: #0f8a48;
+    --ios-verde-boton: #13984f;
+    background: var(--ios-fondo);
+    -webkit-font-smoothing: antialiased;
+  }
+  .tema .panel {
+    background: var(--ios-fondo);
+  }
+
+  /* Títulos grandes, como "Chats" en WhatsApp */
+  .tema main h1 {
+    font-size: 2.125rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+  .tema main h2 {
+    letter-spacing: -0.01em;
+  }
+
+  /* Celdas agrupadas: blancas, redondeadas, sin borde ni sombra */
+  .tema .tarjeta,
+  .tema .chat-lista,
+  .tema .esperan,
+  .tema .hoy-lista,
+  .tema .dia-plan,
+  .tema .casa-item,
+  .tema .cifra {
+    border: 0 !important;
+    box-shadow: none !important;
+    border-radius: 12px;
+    background-color: #fff;
+  }
+  .tema .cifra::before {
+    display: none;
+  }
+
+  /* Botones: gris con texto verde; el principal, verde lleno */
+  .tema main .boton:not(.primario):not(.waze):not(.maps),
+  .tema main button.chico:not(.primario):not(.enlace) {
+    background: var(--ios-relleno) !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    color: var(--ios-verde-texto) !important;
+    border-radius: 12px !important;
+    font-weight: 600;
+  }
+  .tema main .primario,
+  .tema main button.primario {
+    background: var(--ios-verde-boton) !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    color: #fff !important;
+    border-radius: 12px !important;
+    font-weight: 600;
+  }
+  .tema main .enlace {
+    color: var(--ios-verde-texto) !important;
+  }
+  .tema .volver {
+    color: var(--ios-verde-texto);
+    font-size: 1.0625rem;
+    font-weight: 400;
+  }
+
+  /* Campos y buscador de iOS */
+  .tema main input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  .tema main select,
+  .tema main textarea {
+    border: 0.5px solid var(--ios-linea) !important;
+    border-radius: 10px !important;
+    background-color: #fff;
+    box-shadow: none !important;
+  }
+  .tema main input[type="search"] {
+    background: var(--ios-relleno)
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%238e8e93' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E")
+      no-repeat 12px center / 18px !important;
+    border: 0 !important;
+    padding-left: 38px !important;
+  }
+  .tema main input:focus,
+  .tema main select:focus,
+  .tema main textarea:focus {
+    outline: 2px solid color-mix(in srgb, var(--ios-verde) 55%, transparent);
+    outline-offset: 0;
+  }
+
+  /* Segmentados de iOS (Día/Semana…, Todos/Compras…, filtros) */
+  .tema main .cal-vistas {
+    background: var(--ios-relleno) !important;
+    border-radius: 10px !important;
+    padding: 2px !important;
+    border: 0 !important;
+  }
+  .tema main .cal-vistas a {
+    border-radius: 8px !important;
+    color: #000 !important;
+    font-weight: 500;
+  }
+  .tema main .cal-vistas a[aria-current="page"] {
+    background: #fff !important;
+    font-weight: 600;
+    box-shadow: 0 3px 8px rgb(0 0 0 / 12%), 0 3px 1px rgb(0 0 0 / 4%) !important;
+  }
+
+  /* Barra de abajo translúcida, ícono activo en verde y sin píldora */
+  .tema .navegacion {
+    background: rgb(249 249 249 / 88%) !important;
+    -webkit-backdrop-filter: saturate(1.8) blur(20px);
+    backdrop-filter: saturate(1.8) blur(20px);
+    border-top: 0.5px solid var(--ios-linea) !important;
+    box-shadow: none !important;
+  }
+  .tema .navegacion a {
+    color: var(--ios-gris) !important;
+    background: transparent !important;
+  }
+  .tema .navegacion a .icono,
+  .tema .navegacion a[aria-current="page"] .icono {
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  .tema .navegacion a[aria-current="page"] {
+    color: var(--ios-verde) !important;
+    font-weight: 600;
+  }
+  .tema .navegacion a[aria-current="page"]::before {
+    display: none !important;
+  }
+  .tema .navegacion .nombre {
+    font-size: 0.75rem;
+    letter-spacing: 0;
+  }
+  .tema .navegacion .contador {
+    background: #25d366 !important;
+    color: #fff !important;
+    border: 2px solid rgb(249 249 249) !important;
+    font-weight: 700;
+  }
+
+  /* Lista de chats como WhatsApp: líneas finas desde el texto, hora gris (verde si hay nuevo) */
+  .tema .chat-lista li + li .texto {
+    border-top: 0.5px solid var(--ios-linea) !important;
+  }
+  .tema .chat-lista .hora {
+    color: var(--ios-gris) !important;
+    font-size: 0.875rem;
+  }
+  .tema .chat-lista .hora.nueva {
+    color: var(--ios-verde) !important;
+  }
+  .tema .chat-lista .punto {
+    background: #25d366 !important;
+    color: #fff !important;
+  }
+  .tema .chat-lista .vista {
+    color: var(--ios-gris) !important;
+  }
+
+  /* Cabecera de los chats (con un cliente y con Patty): clara y translúcida, como en iOS */
+  .tema .barra-chat,
+  .tema .patty-chat .patty-cabecera {
+    background: rgb(246 246 246 / 92%) !important;
+    -webkit-backdrop-filter: saturate(1.8) blur(20px);
+    backdrop-filter: saturate(1.8) blur(20px);
+    color: #000 !important;
+    border-bottom: 0.5px solid var(--ios-linea) !important;
+    box-shadow: none !important;
+  }
+  .tema .barra-chat *,
+  .tema .patty-chat .patty-cabecera * {
+    color: inherit;
+  }
+  .tema .patty-chat .patty-cabecera small,
+  .tema .barra-chat small,
+  .tema .barra-chat .suave {
+    color: var(--ios-gris) !important;
+  }
+  .tema .patty-chat .patty-volver,
+  .tema .barra-chat a:first-child {
+    color: var(--ios-verde-texto) !important;
+  }
+  .tema .patty-chat .patty-cabecera .patty-avatar {
+    background: var(--ios-verde) !important;
+    color: #fff !important;
+    box-shadow: none !important;
+  }
+  .tema .patty-chat .patty-cabecera button,
+  .tema .patty-chat .patty-cabecera .boton {
+    background: var(--ios-relleno) !important;
+    color: var(--ios-verde-texto) !important;
+    border: 0 !important;
+  }
+  .tema .patty-chat .patty-escribir {
+    background: rgb(246 246 246 / 94%) !important;
+    border-top: 0.5px solid var(--ios-linea) !important;
+  }
+  .tema .patty-chat .patty-enviar {
+    background: var(--ios-verde) !important;
+  }
+
+  /* Patty flotante: verde, como el botón de chat nuevo de WhatsApp */
+  .tema .patty-boton {
+    background: var(--ios-verde) !important;
+    box-shadow: 0 4px 14px rgb(0 0 0 / 18%) !important;
+  }
+  .tema .patty-boton .patty-avatar {
+    background: transparent !important;
+    color: #fff !important;
+    box-shadow: none !important;
+  }
+}
