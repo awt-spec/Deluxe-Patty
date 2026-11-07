@@ -26,7 +26,8 @@ const VISTAS = { dia: "Día", semana: "Semana", mes: "Mes", lista: "Lista" } as 
 type Vista = keyof typeof VISTAS;
 const DIAS_CORTOS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
-const ALTO_HORA = 56;
+const ALTO_SEMANA = 64;
+const ALTO_DIA = 88;
 // Un color por zona, siempre el mismo, para ver de un vistazo qué visitas quedan cerca.
 const COLORES_ZONA = ["#3d7ea6", "#d1495b", "#25a18e", "#e09f3e", "#7b5ea7", "#5c946e", "#c2185b", "#00838f"];
 function colorZona(zona: string | null | undefined): string {
@@ -120,6 +121,8 @@ export default async function Agenda({
     horaMin = Math.min(horaMin, Math.floor(minutosLocales(new Date(c.inicio), zona) / 60));
     horaMax = Math.max(horaMax, Math.ceil(minutosLocales(new Date(c.fin), zona) / 60));
   }
+  // Cada hora más alta en Día (cabe nombre, casa y estado) que en Semana.
+  const ALTO_HORA = vista === "dia" ? ALTO_DIA : ALTO_SEMANA;
   const horas = Array.from({ length: horaMax - horaMin }, (_, i) => horaMin + i);
   const y = (min: number) => ((min - horaMin * 60) / 60) * ALTO_HORA;
 
@@ -274,7 +277,8 @@ export default async function Agenda({
             <strong>{citas.length}</strong> {citas.length === 1 ? "visita" : "visitas"}
           </span>
           <span>
-            <strong>{citas.filter((c) => c.estado === "confirmada").length}</strong> confirmadas
+            <strong>{citas.filter((c) => c.estado === "confirmada").length}</strong>{" "}
+            {citas.filter((c) => c.estado === "confirmada").length === 1 ? "confirmada" : "confirmadas"}
           </span>
           <span className={citas.some((c) => c.estado !== "confirmada") ? "pendientes" : undefined}>
             <strong>{citas.filter((c) => c.estado !== "confirmada").length}</strong> por confirmar
@@ -320,7 +324,7 @@ export default async function Agenda({
       )}
 
       {(vista === "dia" || vista === "semana") && (
-        <div className={`cal cal-${vista}`}>
+        <div className={`cal cal-${vista}`} style={{ ["--alto-hora" as string]: `${ALTO_HORA}px` }}>
           <div className="cal-cabecera">
             <span />
             {diasVista.map((f) => (
