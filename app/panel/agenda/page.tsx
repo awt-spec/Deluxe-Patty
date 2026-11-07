@@ -76,7 +76,7 @@ export default async function Agenda({
   const desde = aUtc(primerDia, 0, zona);
   const hasta = aUtc(sumarDias(primerDia, dias), 0, zona);
 
-  const [{ data }, { data: horariosData }, { data: bloqueosData }] = await Promise.all([
+  const [{ data }, { data: horariosData }, { data: bloqueosData }, { data: proximosData }] = await Promise.all([
     supabase
       .from("citas")
       .select("id, inicio, fin, estado, contacto_id, contactos(nombre, telefono), propiedades(titulo, zona)")
@@ -93,13 +93,37 @@ export default async function Agenda({
       .eq("corredor_id", corredor.id)
       .lt("inicio", hasta.toISOString())
       .gt("fin", desde.toISOString()),
+    // Para la lista de abajo: todos los que vienen, no solo los de lo que se ve.
+    supabase
+      .from("bloqueos_agenda")
+      .select("id, inicio, fin, motivo")
+      .eq("corredor_id", corredor.id)
+      .gt("fin", new Date().toISOString())
+      .order("inicio")
+      .limit(40),
   ]);
   const citas = (data ?? []) as Cita[];
   const horarios = (horariosData ?? []) as { dia_semana: number; hora_inicio: string; hora_fin: string }[];
   const bloqueos = ((bloqueosData ?? []) as { id: string; inicio: string; fin: string; motivo: string | null }[]).sort(
     (a, b) => Date.parse(a.inicio) - Date.parse(b.inicio),
   );
-  const ahoraMs = Date.now();
+  const proximos = (proximosData ?? []) as typeof bloqueos;
+  /** Bloqueos que tocan un día: "todo el día" si lo cubren entero, si no el rato. */
+  const bloqueoDelDia = (f: FechaLocal) => {
+    const ini = aUtc(f, 0, zona).getTime();
+    const fin = aUtc(sumarDias(f, 1), 0, zona).getTime();
+    const del = bloqueos.filter((b) => Date.parse(b.inicio) < fin && Date.parse(b.fin) > ini);
+    if (del.length === 0) return null;
+    if (del.some((b) => Date.parse(b.inicio) <= ini && Date.parse(b.fin) >= fin)) return { texto: "Bloqueado", todo: true, motivo: del[0].motivo };
+    const b = del[0];
+    const desdeB = Math.max(Date.parse(b.inicio), ini);
+    const hastaB = Math.min(Date.parse(b.fin), fin);
+    return {
+      texto: `${horaCorta(new Date(desdeB), zona)}–${hastaB >= fin ? "fin" : horaCorta(new Date(hastaB), zona)}${del.length > 1 ? ` y ${del.length - 1} más` : ""}`,
+      todo: false,
+      motivo: b.motivo,
+    };
+  };
   const manana = sumarDias(hoy, 1);
 
   // El token del calendario no es legible con la sesión del corredor (RLS por columnas): se lee con el
@@ -398,6 +422,14 @@ export default async function Agenda({
                 className={`cal-mes-celda${f.mes !== base.mes ? " otro-mes" : ""}${esHoy(f) ? " hoy" : ""}`}
               >
                 <strong>{f.dia}</strong>
+                {(() => {
+                  const bl = bloqueoDelDia(f);
+                  return bl ? (
+                    <span className={`cal-mes-bloqueo${bl.todo ? " todo" : ""}`} title={bl.motivo ? `Bloqueado: ${bl.motivo}` : "Bloqueado"}>
+                      {bl.todo ? bl.motivo ?? "Bloqueado" : bl.texto}
+                    </span>
+                  ) : null;
+                })()}
                 {lista.slice(0, 2).map((c) => (
                   <span key={c.id} className="cal-mes-cita" style={{ borderLeft: `3px solid ${colorZona(uno(c.propiedades)?.zona)}` }}>
                     {horaCorta(new Date(c.inicio), zona)} {uno(c.contactos)?.nombre ?? "Visita"}
@@ -435,13 +467,11 @@ export default async function Agenda({
           </section>
         ))}
 
-      {bloqueos.some((b) => Date.parse(b.fin) > ahoraMs) && (
+      {proximos.length > 0 && (
         <section className="tarjeta pila bloqueos-lista" data-patty="agenda-bloqueos">
           <h2>Ratos bloqueados</h2>
-          <p className="suave">La asistente no ofrece visitas en estos ratos.</p>
-          {bloqueos
-            .filter((b) => Date.parse(b.fin) > ahoraMs)
-            .map((b) => (
+          <p className="suave">Todos los que vienen. La asistente no ofrece visitas en estos ratos.</p>
+          {proximos.map((b) => (
               <form key={b.id} action={quitarBloqueoAgenda} className="fila bloqueo-fila">
                 <div>
                   <strong>{capitalizar(rangoBloqueo(b, zona))}</strong>

@@ -158,3 +158,16 @@ describe("QA: frases reales que antes se entendían mal", () => {
     expect(pideBloqueo("bloquear a las 3")).toBe(true);
   });
 });
+
+describe("no se repite un bloqueo", () => {
+  it("pedir dos veces el mismo rato deja un solo bloqueo", async () => {
+    const { apartar } = await import("../lib/agenda/apartar");
+    const { corredorBase, repoEnMemoria } = await import("./dobles");
+    const db = repoEnMemoria(corredorBase());
+    const pedido = entenderBloqueo("bloquear mañana en la tarde", AHORA, CR)!;
+    await apartar(db.repo, "c1", pedido, AHORA);
+    const otra = await apartar(db.repo, "c1", pedido, AHORA);
+    expect(db.bloqueos).toHaveLength(1);
+    expect(otra.texto).toContain("ya estaba bloqueado");
+  });
+});

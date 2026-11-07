@@ -6344,3 +6344,19 @@ body:has(.marco.tema) {
 .bloqueo-fila p {
   margin: 2px 0 0;
 }
+
+/* Bloqueos en la vista de mes */
+.cal-mes-bloqueo {
+  display: block;
+  font-size: 0.72rem;
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: #6b665e;
+  background: repeating-linear-gradient(45deg, #e6e3de, #e6e3de 5px, #f1eee9 5px, #f1eee9 10px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cal-mes-celda:has(.cal-mes-bloqueo.todo) {
+  background: repeating-linear-gradient(45deg, #f4f2ee, #f4f2ee 6px, #faf9f7 6px, #faf9f7 12px);
+}

@@ -12,8 +12,12 @@ export async function apartar(
   ahora = new Date(),
 ): Promise<{ ok: true; texto: string } | { ok: false; texto: string }> {
   if (pedido.fin <= ahora) return { ok: false, texto: `Ese rato (${describirBloqueo(pedido)}) ya pasó.` };
+  const { citas, bloqueos } = await repo.datosAgenda(corredorId, pedido.inicio, pedido.fin);
+  // Si ya estaba bloqueado entero (lo pidió dos veces), no se repite.
+  if (bloqueos.some((b) => b.inicio <= pedido.inicio && b.fin >= pedido.fin)) {
+    return { ok: true, texto: `Eso ya estaba bloqueado: ${describirBloqueo(pedido)} no se agendan visitas.` };
+  }
   await repo.crearBloqueo(corredorId, pedido.inicio, pedido.fin, pedido.motivo);
-  const { citas } = await repo.datosAgenda(corredorId, pedido.inicio, pedido.fin);
   const encima = citas.filter((c) => c.inicio < pedido.fin && c.fin > pedido.inicio).length;
   return {
     ok: true,
