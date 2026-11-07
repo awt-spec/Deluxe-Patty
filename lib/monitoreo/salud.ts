@@ -18,11 +18,12 @@ export async function revisarSalud(db: SupabaseClient, ahora = new Date()): Prom
     const dia = new Intl.DateTimeFormat("en-CA", { timeZone: c.zona_horaria as string }).format(ahora);
     const { data: uso } = await db
       .from("uso_diario")
-      .select("costo_claude_usd, mensajes")
+      .select("costo_claude_usd, costo_imagenes_usd, mensajes")
       .eq("corredor_id", c.id)
       .eq("dia", dia)
       .maybeSingle();
-    const costo = Number(uso?.costo_claude_usd ?? 0);
+    // Claude + imágenes de OpenAI.
+    const costo = Number(uso?.costo_claude_usd ?? 0) + Number(uso?.costo_imagenes_usd ?? 0);
     if (costo > limiteCosto) {
       hallazgos.push({
         clave: `costo:${c.id}:${dia}`,

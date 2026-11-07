@@ -1,5 +1,7 @@
 import { PantallaEntrada } from "@/app/entrar/pantalla";
 import { marcaDeEntrada } from "@/lib/panel/marca";
+import { redirect } from "next/navigation";
+import { esSuperadmin } from "@/lib/admin/superadmin";
 import { sesionCorredor } from "@/lib/panel/sesion";
 import { salir } from "./acciones";
 import { Navegacion } from "./navegacion";
@@ -8,8 +10,10 @@ import { Patty } from "./patty";
 export const dynamic = "force-dynamic";
 
 export default async function LayoutPanel({ children }: { children: React.ReactNode }) {
-  const { supabase, corredor } = await sesionCorredor();
+  const { supabase, corredor, usuario } = await sesionCorredor();
   if (!corredor) {
+    // El superadministrador sin corredor propio va directo a su pantalla.
+    if (await esSuperadmin(usuario.email)) redirect("/admin");
     return (
       <PantallaEntrada marca={await marcaDeEntrada()}>
         <h1>Todavía no tienes acceso</h1>

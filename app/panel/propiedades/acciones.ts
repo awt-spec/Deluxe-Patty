@@ -7,7 +7,9 @@ import { dependenciasPara } from "@/lib/asistente/dependencias";
 import { SIN_PRESUPUESTO, hayPresupuestoHoy } from "@/lib/asistente/limites";
 import type { FichaParcial, Foto } from "@/lib/datos/tipos";
 import { fichaDePropiedad } from "@/lib/fichas/comando";
+import type { EstiloAmueblado } from "@/lib/fotos/editor";
 import { mejorarFotos } from "@/lib/fotos/mejorar";
+import { crearVariante, sinVariante } from "@/lib/fotos/variantes";
 import {
   MAX_FOTOS_PROPIEDAD,
   agregarFotos,
@@ -273,4 +275,51 @@ export async function guardarCasaConversada(fichaNavegador: unknown): Promise<{ 
     if (error?.code !== "23505") break;
   }
   return { error: "No se pudo guardar. Inténtalo de nuevo." };
+}
+
+// --- Fotos ilustrativas con IA: amueblar un cuarto vacío o quitar objetos que estorban ---------------
+
+const ESTILOS_VALIDOS: EstiloAmueblado[] = ["moderno", "clasico", "minimalista", "tropical"];
+
+async function varianteDesdePanel(f: FormData, pedido: Parameters<typeof crearVariante>[5]) {
+  const id = String(f.get("id") ?? "");
+  const { corredor, propiedad } = await propiedadPropia(id);
+  let aviso: string;
+  try {
+    const r = await crearVariante(dependenciasPara(corredor), corredor, propiedad.id, propiedad.fotos ?? [], String(f.get("url") ?? ""), pedido);
+    aviso = r.ok
+      ? pedido.tipo === "amueblada"
+        ? "Listo, la amueblé. Revísala: es una imagen ilustrativa y así hay que decirlo al publicarla."
+        : "Listo, la limpié. Revísala antes de usarla: la IA puede cambiar detalles."
+      : r.motivo;
+  } catch {
+    aviso = "No pude hacer la imagen ahora. Inténtalo de nuevo en un rato.";
+  }
+  ir(`/panel/propiedades/${id}#fotos`, aviso);
+}
+
+/** "Amueblar": versión amueblada y decorada de un cuarto vacío. */
+export async function amueblarFoto(f: FormData) {
+  const estilo = String(f.get("estilo") ?? "") as EstiloAmueblado;
+  await varianteDesdePanel(f, {
+    tipo: "amueblada",
+    estilo: ESTILOS_VALIDOS.includes(estilo) ? estilo : "moderno",
+    cuarto: String(f.get("cuarto") ?? "").trim().slice(0, 80) || undefined,
+  });
+}
+
+/** "Quitar objetos": la foto sin lo que estorba (carros, basura, cables…). */
+export async function limpiarFoto(f: FormData) {
+  await varianteDesdePanel(f, { tipo: "limpia", queQuitar: String(f.get("quitar") ?? "").trim().slice(0, 300) });
+}
+
+/** Quita una imagen ilustrativa de la casa. */
+export async function quitarVariante(f: FormData) {
+  const id = String(f.get("id") ?? "");
+  const { corredor, propiedad } = await propiedadPropia(id);
+  const fotos = propiedad.fotos ?? [];
+  if (sinVariante(fotos, String(f.get("url") ?? ""), String(f.get("variante") ?? ""))) {
+    await dependenciasPara(corredor).repo.guardarFotos(corredor.id, propiedad.id, fotos);
+  }
+  ir(`/panel/propiedades/${id}#fotos`, "Imagen quitada.");
 }

@@ -46,13 +46,31 @@ export function abrirPatty(pregunta?: string) {
  * Negritas (**así**), cursivas, enlaces del panel ([Agenda](/panel/agenda)) y sin separadores (---).
  * Solo se vuelven enlace las rutas del propio panel; lo demás queda como texto. Nunca se interpreta HTML.
  */
+const BASE_FOTOS = `${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""}/storage/v1/object/public/fotos/`;
+const esImagenPropia = (url: string) => !!process.env.NEXT_PUBLIC_SUPABASE_URL && url.startsWith(BASE_FOTOS) && !url.includes("..");
+
 function conFormato(texto: string, alIr: () => void) {
   return texto
     .replace(/^\s*-{3,}\s*$/gm, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim()
-    .split(/(\*\*[^*\n]+\*\*|\*[^*\s][^*\n]*\*|\[[^\]\n]+\]\([^)\s]+\))/g)
+    .split(/(!\[[^\]\n]*\]\([^)\s]+\)|\*\*[^*\n]+\*\*|\*[^*\s][^*\n]*\*|\[[^\]\n]+\]\([^)\s]+\))/g)
     .map((parte, i) => {
+      // Imágenes que hizo Patty: solo del almacenamiento de fotos de la app, nunca de afuera.
+      const imagen = /^!\[([^\]]*)\]\(([^)\s]+)\)$/.exec(parte);
+      if (imagen) {
+        return esImagenPropia(imagen[2]) ? (
+          <span key={i} className="patty-imagen">
+            <a href={imagen[2]} target="_blank" rel="noreferrer">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={imagen[2]} alt={imagen[1] || "Imagen"} loading="lazy" />
+            </a>
+            <a href={imagen[2]} download className="patty-enlace">
+              Descargar
+            </a>
+          </span>
+        ) : null;
+      }
       if (/^\*\*[^*]+\*\*$/.test(parte)) return <strong key={i}>{parte.slice(2, -2)}</strong>;
       if (/^\*[^*]+\*$/.test(parte)) return <em key={i}>{parte.slice(1, -1)}</em>;
       const enlace = /^\[([^\]]+)\]\(([^)\s]+)\)$/.exec(parte);

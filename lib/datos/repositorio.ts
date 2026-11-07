@@ -2,7 +2,7 @@ import { ocupadoEnGoogle } from "../google/calendario";
 import { conexionDe } from "../google/conexion";
 import type { Busca, Etapa } from "../crm/perfil";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type {
+import type { PresupuestoIA,
   AnuncioPorVencer,
   BorradorPendiente,
   ConversacionConContacto,
@@ -53,8 +53,10 @@ export interface Repositorio {
   historial(corredorId: string, conversacionId: string, limite: number): Promise<Mensaje[]>;
   propiedadesActivas(corredorId: string): Promise<Propiedad[]>;
   registrarUso(corredorId: string, delta: UsoDelta): Promise<UsoMensual>;
-  /** Costo de Claude del día (fecha local del corredor, YYYY-MM-DD). */
-  costoClaudeDelDia(corredorId: string, dia: string): Promise<number>;
+  /** Gasto de IA (Claude + imágenes) de hoy y del mes, con los topes que le tocan al corredor. */
+  presupuestoIA(corredorId: string): Promise<PresupuestoIA>;
+  /** Suma imágenes generadas o editadas con OpenAI y su costo (día y mes). */
+  registrarImagenes(corredorId: string, cantidad: number, costoUsd: number): Promise<void>;
   /** Mensajes del cliente en una conversación desde un momento (para frenar ráfagas). */
   entrantesDesde(corredorId: string, conversacionId: string, desde: Date): Promise<number>;
   /** Marca el aviso de tope del mes. true solo para la llamada que lo marcó (evita avisos dobles). */
@@ -162,7 +164,7 @@ function verificar(error: { message: string; code?: string } | null, que: string
 }
 
 export const COLUMNAS_CORREDOR =
-  "id, nombre, nombre_contacto, whatsapp_numero, whatsapp_phone_number_id, whatsapp_corredor, zona_horaria, tono, reglas_escalamiento, tope_mensajes_mes, aviso_mensajes_mes, respuesta_automatica, duracion_visita_min, margen_visitas_min, anticipacion_min_horas, horizonte_agenda_dias, hora_plan_dia, marca, activo, zona_base, nombre_asistente, comision_pct";
+  "id, nombre, nombre_contacto, whatsapp_numero, whatsapp_phone_number_id, whatsapp_corredor, zona_horaria, tono, reglas_escalamiento, tope_mensajes_mes, aviso_mensajes_mes, respuesta_automatica, duracion_visita_min, margen_visitas_min, anticipacion_min_horas, horizonte_agenda_dias, hora_plan_dia, marca, activo, zona_base, nombre_asistente, comision_pct, tope_ia_dia_usd, tope_ia_mes_usd, imagenes_activas";
 
 export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
   return {
@@ -283,15 +285,21 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
       return data as UsoMensual;
     },
 
-    async costoClaudeDelDia(corredorId, dia) {
-      const { data, error } = await db
-        .from("uso_diario")
-        .select("costo_claude_usd")
-        .eq("corredor_id", corredorId)
-        .eq("dia", dia)
-        .maybeSingle();
-      verificar(error, "costoClaudeDelDia");
-      return Number(data?.costo_claude_usd ?? 0);
+    async presupuestoIA(corredorId) {
+      const { data, error } = await db.rpc("presupuesto_ia", { p_corredor_id: corredorId });
+      verificar(error, "presupuestoIA");
+      const fila = (Array.isArray(data) ? data[0] : data) as Record<string, unknown> | null;
+      return {
+        gastoDia: Number(fila?.gasto_dia ?? 0),
+        gastoMes: Number(fila?.gasto_mes ?? 0),
+        topeDia: Number(fila?.tope_dia ?? 10),
+        topeMes: Number(fila?.tope_mes ?? 150),
+      };
+    },
+
+    async registrarImagenes(corredorId, cantidad, costoUsd) {
+      const { error } = await db.rpc("registrar_imagenes", { p_corredor_id: corredorId, p_cantidad: cantidad, p_costo_usd: costoUsd });
+      verificar(error, "registrarImagenes");
     },
 
     async entrantesDesde(corredorId, conversacionId, desde) {

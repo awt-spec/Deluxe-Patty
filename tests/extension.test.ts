@@ -135,7 +135,7 @@ function dependencias(almacen: AlmacenExtension, costoHoy = 0): DependenciasExte
     cerebro,
     usos,
     repo: {
-      costoClaudeDelDia: async () => costoHoy,
+      presupuestoIA: async () => ({ gastoDia: costoHoy, gastoMes: costoHoy, topeDia: 10, topeMes: 150 }),
       registrarUso: async (_id, delta) => {
         usos.push(delta);
         return {} as never;

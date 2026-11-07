@@ -24,6 +24,11 @@ export interface Corredor {
   nombre_asistente?: string;
   /** Porcentaje de comisión con el que se estima lo que gana en cada cierre. */
   comision_pct?: number;
+  /** Tope propio de gasto de IA en dólares (vacío: el de la plataforma). Lo define el superadministrador. */
+  tope_ia_dia_usd?: number | null;
+  tope_ia_mes_usd?: number | null;
+  /** Si puede generar o editar imágenes con IA. */
+  imagenes_activas?: boolean;
   anticipacion_min_horas: number;
   horizonte_agenda_dias: number;
   hora_plan_dia: string;
@@ -218,6 +223,16 @@ export interface Foto {
   orden?: number;
   /** Versión mejorada con IA (la original nunca se reemplaza). */
   mejorada_url?: string;
+  /** Versiones ilustrativas hechas con IA a partir de esta foto: amueblada o sin objetos que estorban. */
+  variantes?: VarianteFoto[];
+}
+
+export interface VarianteFoto {
+  tipo: "amueblada" | "limpia";
+  url: string;
+  /** Estilo del amueblado o lo que se quitó. */
+  detalle: string;
+  creada_at: string;
 }
 
 export type PropiedadConFotos = Propiedad & { fotos: Foto[] };
@@ -258,4 +273,12 @@ export interface FichaParcial {
   m2_terreno: number | null;
   descripcion: string | null;
   amenidades: string[];
+}
+
+/** Gasto de IA (Claude + imágenes) de hoy y del mes, y los topes del corredor (o de la plataforma). */
+export interface PresupuestoIA {
+  gastoDia: number;
+  gastoMes: number;
+  topeDia: number;
+  topeMes: number;
 }

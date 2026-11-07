@@ -1,5 +1,6 @@
 import { Volver } from "../volver";
 import Link from "next/link";
+import { esSuperadmin } from "@/lib/admin/superadmin";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { elegirCorredor, salir } from "../acciones";
 import {
@@ -33,6 +34,7 @@ const GRUPOS = [
 
 export default async function Mas() {
   const { corredor, corredores, usuario } = await sesionConCorredor();
+  const superadmin = await esSuperadmin(usuario.email);
   return (
     <>
       <Volver href="/panel" texto="Chats" />
@@ -61,6 +63,25 @@ export default async function Mas() {
           </ul>
         ))}
       </nav>
+
+      {superadmin && (
+        <ul className="opciones" style={{ marginTop: 18 }}>
+          <li>
+            <Link href="/admin">
+              <span className="opcion-icono">
+                <IconoLlave />
+              </span>
+              <span className="opcion-texto">
+                Superadministrador
+                <span className="suave">Gasto de IA y topes de todos los corredores</span>
+              </span>
+              <span className="opcion-flecha">
+                <IconoFlecha tamano={20} />
+              </span>
+            </Link>
+          </li>
+        </ul>
+      )}
 
       {corredores.length > 1 && (
         <form action={elegirCorredor} className="pila tarjeta" style={{ marginTop: 18 }}>

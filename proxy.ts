@@ -25,4 +25,4 @@ export async function proxy(request: NextRequest) {
   return respuesta;
 }
 
-export const config = { matcher: ["/panel/:path*"] };
+export const config = { matcher: ["/panel/:path*", "/admin/:path*"] };

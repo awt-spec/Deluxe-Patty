@@ -107,7 +107,10 @@ export function repoEnMemoria(corredor: Corredor) {
       costoDia.usd += d.costoClaudeUsd ?? 0;
       return { ...uso };
     },
-    costoClaudeDelDia: async () => costoDia.usd,
+    presupuestoIA: async () => ({ gastoDia: costoDia.usd, gastoMes: costoDia.usd, topeDia: 10, topeMes: 150 }),
+    registrarImagenes: async (_c, _n, costo) => {
+      costoDia.usd += costo;
+    },
     entrantesDesde: async (_c, conversacionId, desde) =>
       mensajes.filter((m) => m.conversacion_id === conversacionId && m.direccion === "entrante" && (m.creado ?? new Date()) >= desde)
         .length,

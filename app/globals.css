@@ -6400,3 +6400,205 @@ body:has(.marco.tema) {
   text-decoration: underline;
   opacity: 0.75;
 }
+
+/* Imágenes ilustrativas con IA en la ficha de la casa */
+.casa-variantes {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 6px;
+}
+.casa-variantes li {
+  display: grid;
+  gap: 2px;
+}
+.casa-variantes a {
+  position: relative;
+  display: block;
+}
+.casa-variantes img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 8px;
+  display: block;
+}
+.casa-variante-etiqueta {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  font-size: 0.68rem;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 60%);
+  color: #fff;
+}
+.casa-variantes .enlace,
+.casa-foto-ia .enlace {
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  text-decoration: underline;
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+.casa-foto-ia {
+  margin-top: 6px;
+  font-size: 0.9rem;
+}
+.casa-foto-ia summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--ok, #00a884);
+}
+.casa-foto-ia[open] {
+  display: grid;
+  gap: 10px;
+}
+.casa-foto-ia label {
+  display: grid;
+  gap: 4px;
+  font-weight: 600;
+}
+
+/* Imagen para redes */
+.redes-fotos {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  margin-bottom: 14px;
+}
+.redes-fotos a {
+  position: relative;
+  flex: 0 0 auto;
+  width: 96px;
+  height: 72px;
+  border-radius: 10px;
+  overflow: hidden;
+  outline: 3px solid transparent;
+  outline-offset: -3px;
+}
+.redes-fotos a.elegida {
+  outline-color: var(--ok, #00a884);
+}
+.redes-fotos img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.redes-fotos span {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  font-size: 0.65rem;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 60%);
+  color: #fff;
+}
+.redes-vistas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 16px;
+}
+.redes-vista {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+.redes-vista img {
+  width: 100%;
+  border-radius: 12px;
+  background: var(--superficie-alta, #f0f2f5);
+  box-shadow: 0 2px 12px rgb(0 0 0 / 12%);
+}
+.redes-vista.historia img {
+  max-width: 340px;
+}
+.redes-vista figcaption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: 600;
+}
+
+/* Imágenes que hace Patty en el chat */
+.patty-imagen {
+  display: grid;
+  gap: 4px;
+  margin: 6px 0;
+}
+.patty-imagen img {
+  width: 100%;
+  max-width: 320px;
+  border-radius: 10px;
+  display: block;
+}
+
+/* Superadministrador */
+.admin .cifras {
+  margin-bottom: 16px;
+}
+.admin-topes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+}
+.admin-topes label {
+  display: grid;
+  gap: 4px;
+  font-weight: 600;
+  flex: 1 1 160px;
+}
+.admin-topes label.casilla {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 200px;
+}
+.admin-uso {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+.admin-uso > div {
+  display: grid;
+  gap: 4px;
+}
+.admin-uso strong {
+  font-size: 1.3rem;
+}
+.admin-barra {
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--superficie-alta, #f0f2f5);
+  overflow: hidden;
+}
+.admin-barra > span {
+  display: block;
+  height: 100%;
+  background: var(--ok, #00a884);
+}
+.admin-barra.cerca > span {
+  background: #e9a23b;
+}
+.admin-barra.lleno > span {
+  background: var(--peligro, #d1393f);
+}
+.insignia.alerta {
+  background: color-mix(in srgb, var(--peligro, #d1393f) 14%, transparent);
+  color: var(--peligro, #d1393f);
+}
+.admin-corredor h3 {
+  margin: 0;
+}

@@ -16,7 +16,7 @@ describe('"fotos <código>"', () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://proyecto.supabase.co");
     db = repoEnMemoria(corredorBase());
     whatsapp = { texto: vi.fn(async () => "w"), plantilla: vi.fn(async () => "w"), imagen: vi.fn(async () => "w"), documento: vi.fn(async () => "w") };
-    editor = { mejorar: vi.fn(async (b: Buffer) => Buffer.concat([Buffer.from("mejorada:"), b])) };
+    editor = { mejorar: vi.fn(async (b: Buffer) => ({ imagen: Buffer.concat([Buffer.from("mejorada:"), b]), costoUsd: 0.2 })) };
     deps = {
       repo: db.repo,
       cerebro: {} as Cerebro,
@@ -54,6 +54,8 @@ describe('"fotos <código>"', () => {
   it("mejora las fotos en orden, guarda la versión aparte y se las manda a Patricia para revisar", async () => {
     const r = await procesarMensaje(deps, dePatricia("fotos DLX-1"));
     expect(r).toEqual({ tipo: "corredor", accion: "fotos" });
+    // Lo pagado a OpenAI suma al gasto de IA del día (2 fotos a $0,20).
+    expect((await db.repo.presupuestoIA("c1")).gastoDia).toBeCloseTo(0.4);
 
     // Orden de la propiedad: a.jpg es la 1, b.jpg la 2.
     expect(editor.mejorar.mock.calls.map((c) => String(c[0]))).toEqual(["https://proyecto.supabase.co/storage/v1/object/public/fotos/c1/p1/originales/a.jpg", "https://proyecto.supabase.co/storage/v1/object/public/fotos/c1/p1/originales/b.jpg"]);

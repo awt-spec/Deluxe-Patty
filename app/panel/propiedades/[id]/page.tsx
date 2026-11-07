@@ -16,7 +16,10 @@ import {
   cambiarEstado,
   generarFicha,
   guardarPropiedad,
+  amueblarFoto,
+  limpiarFoto,
   mejorarFotosPanel,
+  quitarVariante,
   ordenarFoto,
   prepararAnuncioPanel,
 } from "../acciones";
@@ -75,6 +78,8 @@ export default async function Propiedad({
   const p = data as PropiedadFormulario & { id: string; fotos: Foto[] };
   const fotos = ordenarFotos(p.fotos);
   const fotosActivas = !!process.env.OPENAI_API_KEY;
+  // Amueblar y quitar objetos: con OpenAI configurado, imágenes permitidas y fuera de la demo.
+  const imagenesIA = fotosActivas && corredor.imagenes_activas !== false && corredor.activo !== false;
   // Clientes activos a los que les sirve esta casa por lo que dijeron que buscan.
   const { data: clientesData } = await supabase
     .from("contactos")
@@ -176,6 +181,11 @@ export default async function Propiedad({
               <input type="hidden" name="id" value={p.id} />
               <BotonEnviar texto={<><IconoMegafono tamano={20} /> Anuncio de Encuentra24</>} pendiente="Escribiendo el anuncio…" />
             </form>
+            {fotos.length > 0 && (
+              <Link href={`/panel/propiedades/${p.id}/redes`} className="boton" data-patty="casa-redes">
+                Imagen para redes
+              </Link>
+            )}
             {p.url_e24 && (
               <a href={p.url_e24} target="_blank" rel="noreferrer" className="boton">
                 Ver en Encuentra24
@@ -235,6 +245,57 @@ export default async function Propiedad({
                     <a className="casa-foto-mejorada" href={f.mejorada_url} target="_blank" rel="noreferrer">
                       Ver mejorada
                     </a>
+                  )}
+                  {(f.variantes ?? []).length > 0 && (
+                    <ul className="casa-variantes" aria-label="Imágenes ilustrativas">
+                      {(f.variantes ?? []).map((v) => (
+                        <li key={v.url}>
+                          <a href={v.url} target="_blank" rel="noreferrer">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={v.url} alt={v.tipo === "amueblada" ? "Amueblada (ilustrativa)" : "Sin objetos (ilustrativa)"} loading="lazy" />
+                            <span className="casa-variante-etiqueta">{v.tipo === "amueblada" ? "Amueblada" : "Limpia"} · ilustrativa</span>
+                          </a>
+                          <form action={quitarVariante}>
+                            <input type="hidden" name="id" value={p.id} />
+                            <input type="hidden" name="url" value={f.url} />
+                            <input type="hidden" name="variante" value={v.url} />
+                            <button type="submit" className="chico enlace" aria-label="Quitar esta imagen">
+                              Quitar
+                            </button>
+                          </form>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {imagenesIA && (
+                    <details className="casa-foto-ia" data-patty={i === 0 ? "casa-foto-ia" : undefined}>
+                      <summary>Con IA: amueblar o quitar cosas</summary>
+                      <form action={amueblarFoto} className="pila">
+                        <input type="hidden" name="id" value={p.id} />
+                        <input type="hidden" name="url" value={f.url} />
+                        <label>
+                          Amueblar un cuarto vacío
+                          <select name="estilo" defaultValue="moderno">
+                            <option value="moderno">Moderno</option>
+                            <option value="minimalista">Minimalista</option>
+                            <option value="clasico">Clásico</option>
+                            <option value="tropical">Tropical</option>
+                          </select>
+                        </label>
+                        <input name="cuarto" type="text" maxLength={80} placeholder="¿Qué cuarto es? (sala, cuarto principal…)" />
+                        <BotonEnviar texto="Amueblar" pendiente="Amueblando… tarda un minuto" className="chico" />
+                      </form>
+                      <form action={limpiarFoto} className="pila">
+                        <input type="hidden" name="id" value={p.id} />
+                        <input type="hidden" name="url" value={f.url} />
+                        <label>
+                          Quitar objetos
+                          <input name="quitar" type="text" maxLength={300} required placeholder="Ej.: el carro rojo y los cables" />
+                        </label>
+                        <BotonEnviar texto="Quitar" pendiente="Limpiando… tarda un minuto" className="chico" />
+                      </form>
+                      <p className="suave">Se guarda aparte: tu foto no cambia. Al publicarla, di que es ilustrativa.</p>
+                    </details>
                   )}
                 </figure>
               ))}
