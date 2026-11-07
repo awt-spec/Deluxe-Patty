@@ -97,8 +97,10 @@ letra y botones grandes, palabras de todos los días (nada de "borrador" ni "esc
 WhatsApp (letra del sistema, verde de WhatsApp para enviar). Inicio (`/panel`): arriba lo
 urgente (un botón "Revisar" con lo que espera al corredor), lo que hizo la asistente en 24 horas y "Qué hacer
 hoy" (visitas con hora de salida, recordatorios y clientes que no contestan), abajo todos los chats.
-**Patty · IA** (`corredores.nombre_asistente`, se cambia en Ajustes): botón flotante en cada página
-(`app/panel/patty.tsx`) que abre un chat del corredor con su asistente; `lib/panel/patty.ts` arma el contexto
+**Patty · IA** (`corredores.nombre_asistente`, se cambia en Ajustes): botón flotante en cada página y pantalla propia
+(`/panel/patty`, desde Más), con el mismo chat al estilo WhatsApp (`ChatPatty` en `app/panel/patty.tsx`): se
+pueden adjuntar hasta 4 fotos (achicadas en el navegador) o PDF, que van a Claude como imagen o documento solo en
+ese mensaje (no se guardan; en el navegador queda la miniatura); `lib/panel/patty.ts` arma el contexto
 (plan de hoy, visitas de 7 días, clientes, dudas y casas) y `cerebro.conversarConCorredor` (`prompts/patty.md`)
 contesta sin escribir en la base ni mandar nada; la conversación vive en el navegador y respeta el tope diario.
 Patty sabe en qué pantalla está el corredor (`contextoPantalla`: en la ficha de un cliente, una visita o una casa

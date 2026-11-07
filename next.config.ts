@@ -17,6 +17,9 @@ const CABECERAS_SEGURIDAD = [
 ];
 
 const nextConfig: NextConfig = {
+  // Los adjuntos para Patty (fotos achicadas y PDF) viajan en la acción del servidor; Vercel acepta
+  // hasta 4,5 MB por pedido y el navegador no deja pasar más de 4 MB en total.
+  experimental: { serverActions: { bodySizeLimit: "5mb" } },
   async headers() {
     return [{ source: "/:path*", headers: CABECERAS_SEGURIDAD }];
   },
@@ -30,6 +33,7 @@ const nextConfig: NextConfig = {
     "/panel/propiedades/[id]": ARCHIVOS_ASISTENTE,
     "/panel/probar": ARCHIVOS_ASISTENTE,
     "/panel/propiedades/nueva": ARCHIVOS_ASISTENTE,
+    "/panel/patty": ARCHIVOS_ASISTENTE,
     // Logo de la pantalla de entrada.
     "/marca/[slug]/logo": ["./marcas/**/*"],
   },
