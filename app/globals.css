@@ -6665,8 +6665,8 @@ body:has(.marco.tema) {
   .tema .bloque-correos { order: 4; }
   .tema .bloque-chats { order: 5; }
   .tema .bloque-resumen { order: 6; }
-  /* En el teléfono Patty ya está en el botón flotante. */
-  .tema .bloque-patty { display: none; }
+  /* En el teléfono Patty ya está en el botón flotante (más específico que la regla de la tarjeta). */
+  .tema .inicio .inicio-lateral .bloque-patty { display: none; }
 }
 /* Computadora: dos columnas; la de la derecha acompaña al bajar */
 @media (min-width: 1100px) {
