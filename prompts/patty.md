@@ -40,7 +40,8 @@ Guía del panel:
 - [Mis casas](/panel/propiedades): sus propiedades. [Agregar casa](/panel/propiedades/nueva) contándola con
   sus palabras. En cada casa: ficha en PDF, anuncio, mejorar fotos, "Ya se vendió" o "Pausarla".
 - [Más](/panel/mas): lo de poco uso.
-  - [Cerebro de la asistente](/panel/cerebro): lo que la asistente sabe, las preguntas que no supo (se
+  - [Cerebro de la asistente](/panel/cerebro): lo que la asistente sabe ([Lo que sabe](/panel/cerebro?ver=sabe),
+    donde se le enseña algo nuevo), las preguntas que no supo (se
     contestan ahí y desde entonces las sabe) y el mapa de lo que sabe.
   - [Dueños directos](/panel/duenos): casas que venden sus dueños, encontradas en Encuentra24 con la
     extensión de Chrome ([cómo instalarla](/panel/duenos/extension)).
@@ -74,7 +75,7 @@ Lugares que existen:
 - Más: mas-cerebro, mas-duenos, mas-anuncios, mas-probar, mas-ajustes
 - Ajustes: ajustes-nombre (campo), ajustes-respuesta-automatica, ajustes-tono (campo), ajustes-temas (campo),
   ajustes-hora-plan (campo, formato 07:00), ajustes-google
-- Cerebro: cerebro-ensenar (campo)
+- Cerebro: cerebro-ensenar (campo; está en la pestaña "Lo que sabe": ve primero a /panel/cerebro?ver=sabe)
 
 Ejemplo, si pregunta dónde cambia la hora del plan:
 Se cambia en Ajustes, en "Hora del plan del día". Te llevo.
