@@ -1,12 +1,13 @@
 import { headers } from "next/headers";
 import Link from "next/link";
-import { diaLargo, horaCorta } from "@/lib/agenda/formato";
+import { diaLargo, etiquetaHorario, horaCorta } from "@/lib/agenda/formato";
 import { aUtc, fechaIso, fechaLocal, minutosDe, minutosLocales, sumarDias, type FechaLocal } from "@/lib/agenda/tiempo";
 import { minutosEntre } from "@/lib/agenda/zonas";
 import { telefonoBonito } from "@/lib/crm/perfil";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Aviso } from "../aviso";
+import { ComoLlegar } from "../como-llegar";
 import { PreguntarPatty } from "../preguntar-patty";
 import { cambiarEnlaceCalendario } from "./acciones";
 
@@ -147,14 +148,16 @@ export default async function Agenda({
         key={c.id}
         href={`/panel/agenda/visita/${c.id}`}
         className={`cal-cita${c.estado === "confirmada" ? " confirmada" : ""}`}
-        style={{ top: y(ini), height: Math.max(28, y(fin) - y(ini) - 2), borderLeftColor: colorZona(propiedad?.zona) }}
-        title={c.estado === "confirmada" ? "Confirmada" : "Por confirmar"}
+        style={{ top: y(ini) + 1, height: Math.max(30, y(fin) - y(ini) - 3), ["--zona" as string]: colorZona(propiedad?.zona) }}
+        title={`${contacto?.nombre ?? "Visita"}${propiedad ? ` · ${propiedad.titulo}` : ""} · ${c.estado === "confirmada" ? "Confirmada" : "Por confirmar"}`}
       >
-        <strong>
-          {horaCorta(new Date(c.inicio), zona)} · {contacto?.nombre ?? (contacto ? telefonoBonito(contacto.telefono) : "")}
-        </strong>
+        <span className="cal-cita-hora">
+          {horaCorta(new Date(c.inicio), zona)}
+          <span className={`cal-cita-estado${c.estado === "confirmada" ? " ok" : ""}`}>{c.estado === "confirmada" ? "Confirmada" : "Por confirmar"}</span>
+        </span>
+        <strong className="cal-cita-nombre">{contacto?.nombre ?? (contacto ? telefonoBonito(contacto.telefono) : "Cliente")}</strong>
         {propiedad && (
-          <span>
+          <span className="cal-cita-casa">
             {propiedad.titulo}
             {propiedad.zona ? ` · ${propiedad.zona}` : ""}
           </span>
@@ -225,7 +228,7 @@ export default async function Agenda({
 
   return (
     <>
-      <header className="encabezado">
+      <header className="encabezado agenda-encabezado">
         <h1>Agenda</h1>
         <div className="botones">
           <Link data-patty="agenda-agendar" href={`/panel/agenda/nueva?fecha=${fechaIso(base)}`} className="boton primario">
@@ -265,6 +268,57 @@ export default async function Agenda({
         </div>
       )}
 
+      {vista !== "lista" && (
+        <div className="cal-resumen">
+          <span>
+            <strong>{citas.length}</strong> {citas.length === 1 ? "visita" : "visitas"}
+          </span>
+          <span>
+            <strong>{citas.filter((c) => c.estado === "confirmada").length}</strong> confirmadas
+          </span>
+          <span className={citas.some((c) => c.estado !== "confirmada") ? "pendientes" : undefined}>
+            <strong>{citas.filter((c) => c.estado !== "confirmada").length}</strong> por confirmar
+          </span>
+          {(() => {
+            const proxima = citas.find((c) => Date.parse(c.inicio) > Date.now());
+            if (!proxima) return null;
+            const cl = uno(proxima.contactos);
+            return (
+              <Link href={`/panel/agenda/visita/${proxima.id}`} className="cal-proxima">
+                Próxima: <strong>{etiquetaHorario(new Date(proxima.inicio), zona)}</strong> con {cl?.nombre ?? (cl ? telefonoBonito(cl.telefono) : "un cliente")}
+              </Link>
+            );
+          })()}
+        </div>
+      )}
+
+      {vista === "dia" && (porDia.get(fechaIso(base)) ?? []).length > 0 && (
+        <ul className="dia-lista">
+          {(porDia.get(fechaIso(base)) ?? []).map((c) => {
+            const cl = uno(c.contactos);
+            const casa = uno(c.propiedades);
+            return (
+              <li key={c.id} style={{ ["--zona" as string]: colorZona(casa?.zona) }}>
+                <Link href={`/panel/agenda/visita/${c.id}`} className="dia-visita">
+                  <span className="dia-hora">{horaCorta(new Date(c.inicio), zona)}</span>
+                  <span className="dia-texto">
+                    <strong>{cl?.nombre ?? (cl ? telefonoBonito(cl.telefono) : "Cliente")}</strong>
+                    {casa && (
+                      <span className="suave">
+                        {casa.titulo}
+                        {casa.zona ? ` · ${casa.zona}` : ""}
+                      </span>
+                    )}
+                  </span>
+                  <span className={`cal-cita-estado${c.estado === "confirmada" ? " ok" : ""}`}>{c.estado === "confirmada" ? "Confirmada" : "Por confirmar"}</span>
+                </Link>
+                {casa?.zona && <ComoLlegar casa={{ zona: casa.zona }} chico />}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
       {(vista === "dia" || vista === "semana") && (
         <div className={`cal cal-${vista}`}>
           <div className="cal-cabecera">
@@ -272,6 +326,11 @@ export default async function Agenda({
             {diasVista.map((f) => (
               <Link key={fechaIso(f)} href={enlaceA("dia", f)} className={esHoy(f) ? "hoy" : undefined}>
                 <small>{DIAS_CORTOS[f.diaSemana]}</small> <strong>{f.dia}</strong>
+                {(porDia.get(fechaIso(f)) ?? []).length > 0 && (
+                  <span className="cal-cuantas">
+                    {(porDia.get(fechaIso(f)) ?? []).length} {(porDia.get(fechaIso(f)) ?? []).length === 1 ? "visita" : "visitas"}
+                  </span>
+                )}
               </Link>
             ))}
           </div>
