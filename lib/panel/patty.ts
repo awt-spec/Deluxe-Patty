@@ -207,7 +207,7 @@ export async function hablarConPatty(
     if (!pedido) return { ok: true, texto: `No entendí qué día. ${AYUDA_BLOQUEO}` };
     try {
       const r = await apartar(deps.repo, corredor.id, pedido);
-      return { ok: true, texto: `${r.texto}${r.ok ? " Lo ves en [Agenda](/panel/agenda)." : ""}`, cambio: r.ok };
+      return { ok: true, texto: r.ok ? r.texto.replace(/en la Agenda\.$/, "en la [Agenda](/panel/agenda).").replace(/ahí\.$/, "ahí. Lo ves en la [Agenda](/panel/agenda).") : r.texto, cambio: r.ok };
     } catch (e) {
       console.error(JSON.stringify({ evento: "error_patty_bloqueo", corredorId: corredor.id, error: errorSeguro(e) }));
       return { ok: false, motivo: "No pude bloquear ese rato. Inténtalo de nuevo o hazlo en la Agenda." };
