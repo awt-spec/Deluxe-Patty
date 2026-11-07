@@ -8,6 +8,7 @@ import { fichaPropiedades, RechazoModelo, type Adjunto } from "../asistente/cere
 import { hayPresupuestoHoy } from "../asistente/limites";
 import { armarPlan, datosDelPlan } from "../asistente/plan";
 import type { Dependencias } from "../asistente/procesar";
+import { monedaDe, montoExacto } from "../crm/dinero";
 import { NOMBRE_ETAPA, resumenBusca, type Busca, type Etapa } from "../crm/perfil";
 import type { Corredor } from "../datos/tipos";
 import { errorSeguro } from "../monitoreo/errores";
@@ -33,7 +34,7 @@ export async function contextoPatty(deps: Dependencias, db: SupabaseClient, corr
     deps.repo.propiedadesActivas(corredor.id),
     db
       .from("contactos")
-      .select("id, nombre, telefono, etapa, etapa_at, busca, seguimiento_fecha, seguimiento_nota, motivo_perdida, updated_at, oferta_monto, cierre_precio, cierre_comision, cierre_at, ultima_actividad_at")
+      .select("id, nombre, telefono, etapa, etapa_at, busca, seguimiento_fecha, seguimiento_nota, motivo_perdida, updated_at, oferta_monto, oferta_moneda, cierre_precio, cierre_comision, cierre_moneda, cierre_at, ultima_actividad_at")
       .eq("corredor_id", corredor.id)
       .eq("es_corredor", false)
       .order("updated_at", { ascending: false })
@@ -66,6 +67,8 @@ export async function contextoPatty(deps: Dependencias, db: SupabaseClient, corr
   const lineasClientes = ((clientes ?? []) as {
     id: string;
     oferta_monto: number | null;
+    oferta_moneda: string | null;
+    cierre_moneda: string | null;
     cierre_precio: number | null;
     cierre_comision: number | null;
     nombre: string | null;
@@ -83,8 +86,10 @@ export async function contextoPatty(deps: Dependencias, db: SupabaseClient, corr
       resumenBusca(c.busca ?? {}) ? `busca ${resumenBusca(c.busca)}` : null,
       c.seguimiento_fecha ? `recordatorio ${c.seguimiento_fecha <= hoy ? "para hoy o vencido" : c.seguimiento_fecha}: ${c.seguimiento_nota ?? "escribirle"}` : null,
       c.motivo_perdida ? `se perdió: ${c.motivo_perdida}` : null,
-      c.oferta_monto ? `ofreció $${Number(c.oferta_monto).toLocaleString("es-CR")}` : null,
-      c.cierre_precio ? `cerró en $${Number(c.cierre_precio).toLocaleString("es-CR")} (comisión $${Number(c.cierre_comision ?? 0).toLocaleString("es-CR")})` : null,
+      c.oferta_monto ? `ofreció ${montoExacto(Number(c.oferta_monto), monedaDe(c.oferta_moneda))}` : null,
+      c.cierre_precio
+        ? `cerró en ${montoExacto(Number(c.cierre_precio), monedaDe(c.cierre_moneda))} (comisión ${montoExacto(Number(c.cierre_comision ?? 0), monedaDe(c.cierre_moneda))})`
+        : null,
       ultimas.get(c.id)?.length ? `lo último: ${ultimas.get(c.id)!.join("; ")}` : null,
     ]
       .filter(Boolean)
@@ -109,7 +114,7 @@ export async function contextoPatty(deps: Dependencias, db: SupabaseClient, corr
     `Visitas de los próximos 7 días:\n${lineasCitas.join("\n") || "- ninguna"}`,
     `Clientes (los más recientes primero):\n${lineasClientes.join("\n") || "- todavía no hay"}`,
     `Preguntas de clientes que la asistente no supo contestar: ${(dudas ?? []).map((d) => d.tema as string).join("; ") || "ninguna"}`,
-    `Comisión de ${corredor.nombre_contacto}: ${corredor.comision_pct ?? 5}% del precio.`,
+    `Comisión de ${corredor.nombre_contacto}: en venta, ${corredor.comision_pct ?? 5}% del precio; en alquiler, un mes de renta. Dólares y colones no se suman entre sí.`,
     `Casas activas:\n${fichaPropiedades(propiedades)}`,
   ]
     .filter(Boolean)

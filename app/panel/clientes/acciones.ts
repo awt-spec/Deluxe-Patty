@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { fechaIso, fechaLocal, sumarDias } from "@/lib/agenda/tiempo";
 import { normalizarZona } from "@/lib/agenda/zonas";
-import { anotar, comisionEstimada, type TipoActividad } from "@/lib/crm/actividades";
+import { anotar, type TipoActividad } from "@/lib/crm/actividades";
+import { comisionEstimada, monedaDe, montoExacto } from "@/lib/crm/dinero";
 import { ETAPAS, MOTIVOS_PERDIDA, NOMBRE_ETAPA, type Busca, type Etapa } from "@/lib/crm/perfil";
 import { leerNumero, normalizarTelefono } from "@/lib/panel/formularios";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -196,14 +197,12 @@ async function casaPropia(corredorId: string, casa: string) {
   if (!idValido(casa)) return null;
   const { data } = await createAdminClient()
     .from("propiedades")
-    .select("id, titulo, precio")
+    .select("id, titulo, precio, moneda, operacion")
     .eq("corredor_id", corredorId)
     .eq("id", casa)
     .maybeSingle();
-  return data as { id: string; titulo: string; precio: number | null } | null;
+  return data as { id: string; titulo: string; precio: number | null; moneda: string; operacion: string } | null;
 }
-
-const dolares = (n: number) => `$${n.toLocaleString("es-CR")}`;
 
 /** Casa que le interesa y oferta (si la hay). Con oferta, el cliente pasa a "Negociando". */
 export async function guardarOportunidad(f: FormData) {
@@ -211,21 +210,23 @@ export async function guardarOportunidad(f: FormData) {
   const corredor = await clientePropio(id);
   const casa = texto(f, "casa") ? await casaPropia(corredor.id, texto(f, "casa")) : null;
   const oferta = montoDe(texto(f, "oferta"));
+  const moneda = monedaDe(texto(f, "oferta_moneda"));
   const db = createAdminClient();
-  const { data: antes } = await db.from("contactos").select("etapa, oferta_monto").eq("corredor_id", corredor.id).eq("id", id).single();
+  const { data: antes } = await db.from("contactos").select("etapa, oferta_monto, oferta_moneda").eq("corredor_id", corredor.id).eq("id", id).single();
   const pasa = !!oferta && ["nuevo", "interesado", "visita"].includes(antes?.etapa as string);
   const { error } = await db
     .from("contactos")
     .update({
       propiedad_interes_id: casa?.id ?? null,
       oferta_monto: oferta,
+      oferta_moneda: moneda,
       ...(pasa ? { etapa: "negociando", etapa_at: new Date().toISOString() } : {}),
     })
     .eq("corredor_id", corredor.id)
     .eq("id", id);
   if (error) volverA(id, "No se pudo guardar. Vuelve a intentarlo.");
-  if (oferta && oferta !== Number(antes?.oferta_monto ?? 0)) {
-    await anotar(db, corredor.id, id, "oferta", `Oferta de ${dolares(oferta)}${casa ? ` por ${casa.titulo}` : ""}`);
+  if (oferta && (oferta !== Number(antes?.oferta_monto ?? 0) || moneda !== antes?.oferta_moneda)) {
+    await anotar(db, corredor.id, id, "oferta", `Oferta de ${montoExacto(oferta, moneda)}${casa ? ` por ${casa.titulo}` : ""}`);
   }
   if (pasa) await anotar(db, corredor.id, id, "etapa", "Pasó a Negociando");
   volverA(id, pasa ? "Guardado. Lo pasé a Negociando." : "Guardado.");
@@ -238,8 +239,12 @@ export async function guardarCierre(f: FormData) {
   const casa = await casaPropia(corredor.id, texto(f, "casa"));
   const precio = montoDe(texto(f, "precio"));
   if (!precio) volverA(id, "Escribe el precio final.");
-  const comision = montoDe(texto(f, "comision")) ?? comisionEstimada(precio, corredor.comision_pct);
+  const moneda = monedaDe(texto(f, "moneda"));
   const db = createAdminClient();
+  // Venta o alquiler: lo dice la casa; si no se eligió casa, lo que el cliente buscaba.
+  const { data: cliente } = await db.from("contactos").select("busca").eq("corredor_id", corredor.id).eq("id", id).single();
+  const operacion = casa?.operacion ?? (cliente?.busca as { operacion?: string } | null)?.operacion ?? null;
+  const comision = montoDe(texto(f, "comision")) ?? comisionEstimada(precio, corredor.comision_pct, operacion);
   const { error } = await db
     .from("contactos")
     .update({
@@ -249,12 +254,19 @@ export async function guardarCierre(f: FormData) {
       cierre_propiedad_id: casa?.id ?? null,
       cierre_precio: precio,
       cierre_comision: comision,
+      cierre_moneda: moneda,
       cierre_at: new Date().toISOString(),
     })
     .eq("corredor_id", corredor.id)
     .eq("id", id);
   if (error) volverA(id, "No se pudo guardar. Vuelve a intentarlo.");
-  await anotar(db, corredor.id, id, "cierre", `Cerró${casa ? ` ${casa.titulo}` : ""} en ${dolares(precio)} · comisión ${dolares(comision)}`);
+  await anotar(
+    db,
+    corredor.id,
+    id,
+    "cierre",
+    `${operacion === "alquiler" ? "Alquiló" : "Cerró"}${casa ? ` ${casa.titulo}` : ""} en ${montoExacto(precio, moneda)}${operacion === "alquiler" ? " al mes" : ""} · comisión ${montoExacto(comision, moneda)}`,
+  );
   volverA(id, "¡Felicidades! Cierre guardado.");
 }
 

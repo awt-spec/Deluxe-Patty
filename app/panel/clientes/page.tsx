@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { comisionEstimada, hayMonto, monedaDe, plataMontos, sumar, type Moneda } from "@/lib/crm/dinero";
 import { fechaIso, fechaLocal } from "@/lib/agenda/tiempo";
 import { AYUDA_ETAPA, ETAPAS, NOMBRE_ETAPA, resumenBusca, telefonoBonito, type Busca, type Etapa } from "@/lib/crm/perfil";
 import { fechaCorta } from "@/lib/formato";
@@ -24,6 +25,8 @@ type Cliente = {
   updated_at: string;
   ultima_actividad_at: string | null;
   oferta_monto: number | null;
+  oferta_moneda: string;
+  cierre_moneda: string;
   propiedad_interes_id: string | null;
   cierre_precio: number | null;
   cierre_comision: number | null;
@@ -35,13 +38,6 @@ const DIA = 24 * 60 * 60_000;
 const ESTANCADO: Partial<Record<Etapa, number>> = { nuevo: 2, interesado: 7, visita: 5, negociando: 7 };
 // Un alquiler se decide en días: se avisa antes.
 const ESTANCADO_ALQUILER: Partial<Record<Etapa, number>> = { nuevo: 1, interesado: 3, visita: 2, negociando: 3 };
-
-/** "$1,2 millones" o "$850 mil": cifras redondas, fáciles de leer. */
-function plata(n: number): string {
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1).replace(".", ",").replace(",0", "")} ${n >= 2_000_000 ? "millones" : "millón"}`;
-  if (n >= 1000) return `$${Math.round(n / 1000)} mil`;
-  return `$${Math.round(n)}`;
-}
 
 export default async function Clientes({
   searchParams,
@@ -61,7 +57,7 @@ export default async function Clientes({
   const [{ data, error }, { data: citasData }] = await Promise.all([
     supabase
       .from("contactos")
-      .select("id, nombre, telefono, etapa, etapa_at, busca, seguimiento_fecha, seguimiento_nota, motivo_perdida, updated_at, ultima_actividad_at, oferta_monto, propiedad_interes_id, cierre_precio, cierre_comision, cierre_at")
+      .select("id, nombre, telefono, etapa, etapa_at, busca, seguimiento_fecha, seguimiento_nota, motivo_perdida, updated_at, ultima_actividad_at, oferta_monto, oferta_moneda, propiedad_interes_id, cierre_precio, cierre_comision, cierre_moneda, cierre_at")
       .eq("corredor_id", corredor.id)
       .eq("es_corredor", false)
       .order("updated_at", { ascending: false })
@@ -103,13 +99,22 @@ export default async function Clientes({
   const activos = todos.filter(activo);
   // Dinero real: lo que vale lo que se está negociando (la oferta, o el precio de la casa que le
   // interesa) y lo que ya se ganó este mes en comisiones.
-  // Las cifras son en dólares: una casa en colones no se suma (se ve en la ficha del cliente).
-  const precioDe = new Map([...casasPorId].map(([id, p]) => [id, p.moneda === "USD" ? (p.precio ?? 0) : 0]));
-  const valorDe = (c: Cliente) => Number(c.oferta_monto ?? 0) || (c.propiedad_interes_id ? (precioDe.get(c.propiedad_interes_id) ?? 0) : 0);
+  // Dólares y colones nunca se suman entre sí. Lo que vale cada negocio: la oferta en su moneda o el
+  // precio de la casa que le interesa; la comisión, un porcentaje en venta y un mes de renta en alquiler.
+  const valorDe = (c: Cliente): { monto: number; moneda: Moneda } => {
+    if (c.oferta_monto) return { monto: Number(c.oferta_monto), moneda: monedaDe(c.oferta_moneda) };
+    const casa = c.propiedad_interes_id ? casasPorId.get(c.propiedad_interes_id) : undefined;
+    return { monto: Number(casa?.precio ?? 0), moneda: monedaDe(casa?.moneda) };
+  };
+  const comisionDe = (c: Cliente) => {
+    const v = valorDe(c);
+    return { monto: comisionEstimada(v.monto, corredor.comision_pct, operacion(c)), moneda: v.moneda };
+  };
   const negociando = activos.filter((c) => c.etapa === "negociando");
-  const enNegociacion = negociando.reduce((s, c) => s + valorDe(c), 0);
+  const enNegociacion = sumar(negociando.map(valorDe));
+  const comisionPosible = sumar(negociando.map(comisionDe));
   const cerradosMes = todos.filter((c) => c.etapa === "cerrado" && (c.cierre_at ?? c.etapa_at).slice(0, 7) === mes);
-  const ganadoMes = cerradosMes.reduce((s, c) => s + Number(c.cierre_comision ?? 0), 0);
+  const ganadoMes = sumar(cerradosMes.map((c) => ({ monto: Number(c.cierre_comision ?? 0), moneda: monedaDe(c.cierre_moneda) })));
   const atencion = todos.filter((c) => estancado(c) || vence(c));
   const perdidos = todos.filter((c) => c.etapa === "perdido");
   const motivos = new Map<string, number>();
@@ -159,12 +164,12 @@ export default async function Clientes({
   // Tablero de la computadora: valor por columna (compras en dólares) y tarjetas listas para arrastrar.
   const columnas: ColumnaTablero[] = ETAPAS.filter((e) => e !== "perdido").map((e) => {
     const lista = clientes.filter((c) => c.etapa === e);
-    const suma = lista.reduce((s, c) => s + (e === "cerrado" ? Number(c.cierre_precio ?? 0) : valorDe(c)), 0);
+    const suma = sumar(lista.map((c) => (e === "cerrado" ? { monto: Number(c.cierre_precio ?? 0), moneda: monedaDe(c.cierre_moneda) } : valorDe(c))));
     return {
       etapa: e,
       nombre: NOMBRE_ETAPA[e],
       ayuda: AYUDA_ETAPA[e],
-      valor: suma > 0 ? `${e === "cerrado" ? "Cerrado en" : "En juego"}: ${plata(suma)}` : null,
+      valor: hayMonto(suma) ? `${e === "cerrado" ? "Cerrado en" : "En juego"}: ${plataMontos(suma)}` : null,
       tarjetas: lista.map((c) => ({
         id: c.id,
         nombre: c.nombre ?? telefonoBonito(c.telefono),
@@ -200,16 +205,16 @@ export default async function Clientes({
             <span className="suave">{activos.length === 1 ? "cliente activo" : "clientes activos"}</span>
           </Link>
           <Link href="/panel/clientes?etapa=negociando" className="tarjeta cifra">
-            <strong>{enNegociacion > 0 ? plata(enNegociacion) : "—"}</strong>
+            <strong>{hayMonto(enNegociacion) ? plataMontos(enNegociacion) : "—"}</strong>
             <span className="suave">
               en negociación{negociando.length ? ` (${negociando.length} ${negociando.length === 1 ? "cliente" : "clientes"})` : ""}
-              {enNegociacion > 0 ? ` · comisión posible ${plata(Math.round((enNegociacion * (corredor.comision_pct ?? 5)) / 100))}` : ""}
+              {hayMonto(comisionPosible) ? ` · comisión posible ${plataMontos(comisionPosible)}` : ""}
             </span>
           </Link>
           <Link href="/panel/clientes?etapa=cerrado" className="tarjeta cifra">
-            <strong>{ganadoMes > 0 ? plata(ganadoMes) : cerradosMes.length}</strong>
+            <strong>{hayMonto(ganadoMes) ? plataMontos(ganadoMes) : cerradosMes.length}</strong>
             <span className="suave">
-              {ganadoMes > 0
+              {hayMonto(ganadoMes)
                 ? `ganado este mes (${cerradosMes.length} ${cerradosMes.length === 1 ? "cierre" : "cierres"})`
                 : cerradosMes.length === 1
                   ? "cerró este mes"
