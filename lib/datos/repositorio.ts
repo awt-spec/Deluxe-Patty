@@ -63,6 +63,8 @@ export interface Repositorio {
 
   // Agenda
   datosAgenda(corredorId: string, desde: Date, hasta: Date): Promise<DatosAgenda>;
+  /** Aparta un rato de la agenda (la asistente no ofrece esas horas). */
+  crearBloqueo(corredorId: string, inicio: Date, fin: Date, motivo: string | null): Promise<void>;
   citasProximasContacto(corredorId: string, contactoId: string, desde: Date): Promise<Cita[]>;
   /** Devuelve null si el horario ya está tomado (restricción citas_sin_choques). */
   crearCita(cita: NuevaCita): Promise<string | null>;
@@ -355,6 +357,13 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
           return { inicio: new Date(f.inicio), fin: new Date(f.fin), zona: p?.zona ?? p?.canton ?? null };
         }),
       };
+    },
+
+    async crearBloqueo(corredorId, inicio, fin, motivo) {
+      const { error } = await db
+        .from("bloqueos_agenda")
+        .insert({ corredor_id: corredorId, inicio: inicio.toISOString(), fin: fin.toISOString(), motivo });
+      verificar(error, "crearBloqueo");
     },
 
     async citasProximasContacto(corredorId, contactoId, desde) {

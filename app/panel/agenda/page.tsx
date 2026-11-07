@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import Link from "next/link";
-import { diaLargo, etiquetaHorario, horaCorta } from "@/lib/agenda/formato";
+import { diaLargo, etiquetaHorario, horaCorta, rangoBloqueo } from "@/lib/agenda/formato";
 import { aUtc, fechaIso, fechaLocal, minutosDe, minutosLocales, sumarDias, type FechaLocal } from "@/lib/agenda/tiempo";
 import { minutosEntre } from "@/lib/agenda/zonas";
 import { telefonoBonito } from "@/lib/crm/perfil";
@@ -9,7 +9,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { Aviso } from "../aviso";
 import { ComoLlegar } from "../como-llegar";
 import { PreguntarPatty } from "../preguntar-patty";
-import { cambiarEnlaceCalendario } from "./acciones";
+import { cambiarEnlaceCalendario, quitarBloqueoAgenda } from "./acciones";
+import { PreguntaBloqueo } from "./pregunta-bloqueo";
 
 type Cita = {
   id: string;
@@ -25,6 +26,7 @@ const uno = <T,>(v: T | T[] | null): T | null => (Array.isArray(v) ? (v[0] ?? nu
 const VISTAS = { dia: "Día", semana: "Semana", mes: "Mes", lista: "Lista" } as const;
 type Vista = keyof typeof VISTAS;
 const DIAS_CORTOS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+const DIAS_LARGOS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 const ALTO_SEMANA = 64;
 const ALTO_DIA = 88;
@@ -87,14 +89,18 @@ export default async function Agenda({
     supabase.from("horarios_visitas").select("dia_semana, hora_inicio, hora_fin").eq("corredor_id", corredor.id),
     supabase
       .from("bloqueos_agenda")
-      .select("inicio, fin")
+      .select("id, inicio, fin, motivo")
       .eq("corredor_id", corredor.id)
       .lt("inicio", hasta.toISOString())
       .gt("fin", desde.toISOString()),
   ]);
   const citas = (data ?? []) as Cita[];
   const horarios = (horariosData ?? []) as { dia_semana: number; hora_inicio: string; hora_fin: string }[];
-  const bloqueos = (bloqueosData ?? []) as { inicio: string; fin: string }[];
+  const bloqueos = ((bloqueosData ?? []) as { id: string; inicio: string; fin: string; motivo: string | null }[]).sort(
+    (a, b) => Date.parse(a.inicio) - Date.parse(b.inicio),
+  );
+  const ahoraMs = Date.now();
+  const manana = sumarDias(hoy, 1);
 
   // El token del calendario no es legible con la sesión del corredor (RLS por columnas): se lee con el
   // backend solo para el corredor que ya se verificó con su sesión.
@@ -183,7 +189,11 @@ export default async function Agenda({
           .map((b, i) => {
             const ini = Date.parse(b.inicio) <= inicioDia ? horaMin * 60 : minutosLocales(new Date(b.inicio), zona);
             const fin = Date.parse(b.fin) >= finDia ? horaMax * 60 : minutosLocales(new Date(b.fin), zona);
-            return <span key={`b${i}`} className="cal-bloqueo" style={{ top: y(ini), height: Math.max(0, y(fin) - y(ini)) }} title="Bloqueado" />;
+            return (
+              <span key={`b${i}`} className="cal-bloqueo" style={{ top: y(ini), height: Math.max(0, y(fin) - y(ini)) }} title={b.motivo ? `Bloqueado: ${b.motivo}` : "Bloqueado"}>
+                {y(fin) - y(ini) >= 26 && <span>{b.motivo ?? "Bloqueado"}</span>}
+              </span>
+            );
           })}
         {/* Horas libres: se tocan para agendar una visita a esa hora. */}
         {franjas.flatMap((h) =>
@@ -237,12 +247,22 @@ export default async function Agenda({
           <Link data-patty="agenda-agendar" href={`/panel/agenda/nueva?fecha=${fechaIso(base)}`} className="boton primario">
             + Agendar
           </Link>
+          <Link data-patty="agenda-bloquear" href={`/panel/agenda/bloquear?fecha=${fechaIso(fechaIso(base) < fechaIso(hoy) ? hoy : base)}`} className="boton">
+            Bloquear
+          </Link>
           <Link data-patty="agenda-horario" href="/panel/agenda/horario" className="boton">
             Mi horario
           </Link>
         </div>
       </header>
       <Aviso texto={aviso} />
+      <PreguntaBloqueo
+        nombre={corredor.nombre_asistente ?? "Patty"}
+        fecha={fechaIso(manana)}
+        dia={`mañana ${DIAS_LARGOS[manana.diaSemana]} ${manana.dia}`}
+        hoy={fechaIso(hoy)}
+        volverA="/panel/agenda"
+      />
       <div className="preguntas-patty">
         <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="¿Qué visitas tengo esta semana?" />
         <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="¿Cómo agendo una visita?" />
@@ -414,6 +434,28 @@ export default async function Agenda({
             })}
           </section>
         ))}
+
+      {bloqueos.some((b) => Date.parse(b.fin) > ahoraMs) && (
+        <section className="tarjeta pila bloqueos-lista" data-patty="agenda-bloqueos">
+          <h2>Ratos bloqueados</h2>
+          <p className="suave">La asistente no ofrece visitas en estos ratos.</p>
+          {bloqueos
+            .filter((b) => Date.parse(b.fin) > ahoraMs)
+            .map((b) => (
+              <form key={b.id} action={quitarBloqueoAgenda} className="fila bloqueo-fila">
+                <div>
+                  <strong>{capitalizar(rangoBloqueo(b, zona))}</strong>
+                  {b.motivo && <p className="suave">{b.motivo}</p>}
+                </div>
+                <input type="hidden" name="id" value={b.id} />
+                <input type="hidden" name="volver" value={enlaceA(vista, base)} />
+                <button type="submit" className="chico">
+                  Quitar
+                </button>
+              </form>
+            ))}
+        </section>
+      )}
 
       {enlace && (
         <details className="tarjeta pila" style={{ marginTop: 20 }}>

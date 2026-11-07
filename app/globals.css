@@ -6241,3 +6241,105 @@ body:has(.marco.tema) {
   background-image: linear-gradient(to bottom, #e9ecef 1px, transparent 1px),
     linear-gradient(to bottom, transparent calc(var(--alto-hora, 56px) / 2 - 1px), #f3f5f7 calc(var(--alto-hora, 56px) / 2 - 1px), #f3f5f7 calc(var(--alto-hora, 56px) / 2), transparent calc(var(--alto-hora, 56px) / 2));
 }
+
+
+/* --- Bloquear ratos de la agenda --------------------------------------------------------------- */
+.cal-bloqueo {
+  z-index: 0;
+  overflow: hidden;
+}
+.cal-bloqueo > span {
+  display: block;
+  padding: 3px 6px;
+  font-size: 0.78rem;
+  color: #6b665e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pregunta-bloqueo {
+  display: grid;
+  gap: 10px;
+  border-left: 4px solid var(--ok);
+  margin-bottom: 14px;
+}
+.pregunta-bloqueo p {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.pregunta-bloqueo-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pregunta-bloqueo-botones form {
+  margin: 0;
+}
+.pregunta-bloqueo-botones .enlace {
+  background: none;
+  border: none;
+  text-decoration: underline;
+  color: inherit;
+  opacity: 0.75;
+}
+.form-bloquear fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+.form-bloquear legend {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.form-bloquear .opcion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  font-size: 1.05rem;
+  cursor: pointer;
+}
+.form-bloquear .opcion:has(input:checked) {
+  border-color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 10%, transparent);
+}
+.form-bloquear .opcion input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+}
+.bloquear-horas {
+  display: none;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.form-bloquear:has(input[name="rato"][value="horas"]:checked) .bloquear-horas {
+  display: grid;
+}
+.bloquear-horas label {
+  display: grid;
+  gap: 4px;
+}
+.bloquear-varios summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.bloquear-varios[open] {
+  display: grid;
+  gap: 8px;
+}
+.bloqueos-lista {
+  margin-top: 20px;
+}
+.bloqueo-fila {
+  border-top: 1px solid var(--borde);
+  padding-top: 10px;
+  margin: 0;
+}
+.bloqueo-fila p {
+  margin: 2px 0 0;
+}

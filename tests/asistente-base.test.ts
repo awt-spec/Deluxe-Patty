@@ -148,6 +148,8 @@ describe("armarPlan", () => {
         "*Te esperan (1):* Carlos",
         "*Respuestas por aprobar:* 2",
         "Mañana tienes 1 visita.",
+        "",
+        "¿Tienes algún compromiso hoy o mañana? Escríbeme, por ejemplo, «bloquear mañana en la tarde» y no agendo visitas ahí.",
       ].join("\n"),
     );
   });

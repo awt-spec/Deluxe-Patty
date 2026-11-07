@@ -1,3 +1,5 @@
+import { apartar } from "../agenda/apartar";
+import { AYUDA_BLOQUEO, entenderBloqueo, pideBloqueo } from "../agenda/bloquear";
 import { prepararAnuncio } from "../anuncios/preparar";
 import { DIAS_REPORTE, armarReporte } from "../anuncios/reporte";
 import type { Conversacion, Corredor } from "../datos/tipos";
@@ -15,7 +17,7 @@ export type ResultadoCorredor =
   | { tipo: "duplicado" }
   | {
       tipo: "corredor";
-      accion: "plan" | "plan_pendiente" | "analisis" | "anuncio" | "fotos" | "ficha" | "reporte" | "ayuda" | "error";
+      accion: "plan" | "plan_pendiente" | "analisis" | "anuncio" | "fotos" | "ficha" | "reporte" | "bloqueo" | "ayuda" | "error";
     };
 
 export async function conversacionDelCorredor(deps: Pick<Dependencias, "repo">, corredor: Corredor) {
@@ -180,6 +182,17 @@ export async function procesarMensajeCorredor(
     const desde = new Date(ahora.getTime() - DIAS_REPORTE * 24 * 60 * 60_000);
     await responder(armarReporte(await repo.reporteAnuncios(corredor.id, desde), fecha));
     return { tipo: "corredor", accion: "reporte" };
+  }
+
+  // "bloquear mañana en la tarde": aparta ese rato de la agenda (el código entiende la fecha).
+  if (pideBloqueo(texto)) {
+    const pedido = entenderBloqueo(texto, ahora, corredor.zona_horaria);
+    if (!pedido) {
+      await responder(`No entendí qué día. ${AYUDA_BLOQUEO}`);
+      return { tipo: "corredor", accion: "ayuda" };
+    }
+    await responder((await apartar(repo, corredor.id, pedido, ahora)).texto);
+    return { tipo: "corredor", accion: "bloqueo" };
   }
 
   const pedidoAnuncio = /^anuncio\s+(?:de\s+)?(\S+)/i.exec(texto);

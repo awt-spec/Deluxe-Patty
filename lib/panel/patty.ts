@@ -1,5 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { apartar } from "../agenda/apartar";
+import { AYUDA_BLOQUEO, entenderBloqueo, pideBloqueo } from "../agenda/bloquear";
 import { etiquetaHorario } from "../agenda/formato";
 import { fechaIso, fechaLocal } from "../agenda/tiempo";
 import { fichaPropiedades, RechazoModelo, type Adjunto } from "../asistente/cerebro";
@@ -196,9 +198,21 @@ export async function hablarConPatty(
   mensaje: string,
   ruta = "/panel",
   adjuntos: Adjunto[] = [],
-): Promise<{ ok: true; texto: string } | { ok: false; motivo: string }> {
+): Promise<{ ok: true; texto: string; cambio?: boolean } | { ok: false; motivo: string }> {
   const limpio = mensaje.trim().slice(0, 4000) || (adjuntos.length ? "Revisa lo que te adjunto y dime qué ves o qué me recomiendas." : "");
   if (!limpio) return { ok: false, motivo: "Escribe algo para Patty." };
+  // "Bloquear mañana en la tarde": lo entiende y lo guarda el código (las fechas nunca las pone el modelo).
+  if (pideBloqueo(limpio) && adjuntos.length === 0) {
+    const pedido = entenderBloqueo(limpio, new Date(), corredor.zona_horaria);
+    if (!pedido) return { ok: true, texto: `No entendí qué día. ${AYUDA_BLOQUEO}` };
+    try {
+      const r = await apartar(deps.repo, corredor.id, pedido);
+      return { ok: true, texto: `${r.texto}${r.ok ? " Lo ves en [Agenda](/panel/agenda)." : ""}`, cambio: r.ok };
+    } catch (e) {
+      console.error(JSON.stringify({ evento: "error_patty_bloqueo", corredorId: corredor.id, error: errorSeguro(e) }));
+      return { ok: false, motivo: "No pude bloquear ese rato. Inténtalo de nuevo o hazlo en la Agenda." };
+    }
+  }
   if (!(await hayPresupuestoHoy(deps.repo, corredor))) {
     return { ok: false, motivo: "Por hoy se llegó al tope de uso de la asistente. Mañana sigue." };
   }

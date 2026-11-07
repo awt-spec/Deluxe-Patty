@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { diaLargo, etiquetaHorario, horaCorta } from "@/lib/agenda/formato";
-import { fechaIso, fechaLocal, limitesDia } from "@/lib/agenda/tiempo";
+import { fechaIso, fechaLocal, limitesDia, sumarDias } from "@/lib/agenda/tiempo";
 import { minutosEntre } from "@/lib/agenda/zonas";
 import { encaja, telefonoBonito, type Busca } from "@/lib/crm/perfil";
 import { pendientesDe } from "@/lib/panel/pendientes";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Aviso } from "./aviso";
+import { PreguntaBloqueo } from "./agenda/pregunta-bloqueo";
 import { PreguntarPatty } from "./preguntar-patty";
 import { ComoLlegar } from "./como-llegar";
 import { Avatar } from "./avatar";
@@ -198,6 +199,20 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
         </Link>
       </header>
       <Aviso texto={aviso} />
+      {(() => {
+        const hoyLocal = fechaLocal(ahora, zona);
+        const manana = sumarDias(hoyLocal, 1);
+        const DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+        return (
+          <PreguntaBloqueo
+            nombre={corredor.nombre_asistente ?? "Patty"}
+            fecha={fechaIso(manana)}
+            dia={`mañana ${DIAS[manana.diaSemana]} ${manana.dia}`}
+            hoy={fechaIso(hoyLocal)}
+            volverA="/panel"
+          />
+        );
+      })()}
       <div className="preguntas-patty">
         <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="¿Por dónde empiezo hoy?" />
         <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="¿A quién debería llamar?" />

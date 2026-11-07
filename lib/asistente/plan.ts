@@ -42,6 +42,8 @@ export function armarPlan(corredor: Corredor, datos: DatosPlan, ahora: Date): st
   if (datos.citasManana) {
     l.push(`Mañana tienes ${datos.citasManana} ${datos.citasManana === 1 ? "visita" : "visitas"}.`);
   }
+  // Todos los días la asistente pregunta por compromisos, para no agendar visitas encima.
+  l.push("", "¿Tienes algún compromiso hoy o mañana? Escríbeme, por ejemplo, «bloquear mañana en la tarde» y no agendo visitas ahí.");
   return l.join("\n");
 }
 
