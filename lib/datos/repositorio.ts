@@ -126,6 +126,11 @@ export interface Repositorio {
   /** Sube un archivo a un bucket público ("fotos" o "fichas") y devuelve su URL. */
   subirArchivo(corredorId: string, bucket: "fotos" | "fichas", ruta: string, datos: Buffer, tipo: string): Promise<string>;
   guardarFotos(corredorId: string, propiedadId: string, fotos: Foto[]): Promise<void>;
+  /**
+   * Relee las fotos de la propiedad y guarda el resultado de `aplicar` sobre ellas. Para lo que tarda
+   * (IA): así no se pisan fotos que el corredor subió, ordenó o quitó mientras tanto.
+   */
+  fusionarFotos(corredorId: string, propiedadId: string, aplicar: (fotos: Foto[]) => Foto[]): Promise<void>;
   registrarFotosMejoradas(corredorId: string, cantidad: number): Promise<void>;
 
   // Panel: piloto en sombra y toma de control
@@ -801,6 +806,18 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
       const { error } = await db.storage.from(bucket).upload(camino, datos, { contentType: tipo, upsert: true });
       verificar(error ? { message: error.message } : null, "subirArchivo");
       return db.storage.from(bucket).getPublicUrl(camino).data.publicUrl;
+    },
+
+    async fusionarFotos(corredorId, propiedadId, aplicar) {
+      const { data, error } = await db.from("propiedades").select("fotos").eq("corredor_id", corredorId).eq("id", propiedadId).maybeSingle();
+      verificar(error, "fusionarFotos");
+      if (!data) return;
+      const { error: e2 } = await db
+        .from("propiedades")
+        .update({ fotos: aplicar(((data.fotos as Foto[] | null) ?? []).map((f) => ({ ...f }))) })
+        .eq("corredor_id", corredorId)
+        .eq("id", propiedadId);
+      verificar(e2, "fusionarFotos");
     },
 
     async guardarFotos(corredorId, propiedadId, fotos) {

@@ -71,8 +71,11 @@ export async function crearVariante(
     detalle: pedido.tipo === "amueblada" ? `Estilo ${pedido.estilo}` : `Sin: ${pedido.queQuitar.trim().slice(0, 120)}`,
     creada_at: new Date().toISOString(),
   };
-  foto.variantes = [variante, ...(foto.variantes ?? [])].slice(0, MAX_VARIANTES);
-  await deps.repo.guardarFotos(corredor.id, propiedadId, fotos);
+  // Sobre las fotos de ahora (no las leídas antes de esperar a OpenAI): si mientras tanto el corredor
+  // subió, ordenó o quitó fotos, eso se respeta. Si quitó esta foto, la variante no se agrega.
+  await deps.repo.fusionarFotos(corredor.id, propiedadId, (actuales) =>
+    actuales.map((f) => (f.url === urlFoto ? { ...f, variantes: [variante, ...(f.variantes ?? [])].slice(0, MAX_VARIANTES) } : f)),
+  );
   return { ok: true, url };
 }
 

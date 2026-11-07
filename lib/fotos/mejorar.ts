@@ -96,7 +96,11 @@ export async function mejorarFotos(
 
   const mejoradas = resultados.filter((r): r is FotoMejorada => r !== null);
   if (mejoradas.length) {
-    await deps.repo.guardarFotos(corredor.id, propiedad.id, fotos);
+    // Sobre las fotos de ahora: la mejora tarda minutos y el corredor pudo cambiar fotos mientras tanto.
+    const nuevas = new Map(fotos.filter((f) => f.mejorada_url).map((f) => [f.url, f.mejorada_url!]));
+    await deps.repo.fusionarFotos(corredor.id, propiedad.id, (actuales) =>
+      actuales.map((f) => (nuevas.has(f.url) && !f.mejorada_url ? { ...f, mejorada_url: nuevas.get(f.url) } : f)),
+    );
     await deps.repo.registrarFotosMejoradas(corredor.id, mejoradas.length);
   }
   // Lo que se pagó a OpenAI suma al gasto de IA del corredor (también lo que salió mal después de pagar).

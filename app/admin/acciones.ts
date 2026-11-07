@@ -3,20 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { sesionSuperadmin } from "@/lib/admin/superadmin";
+import { monto } from "@/lib/admin/montos";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Cambios del superadministrador. Cada acción vuelve a comprobar que quien la hace es superadmin y
 // escribe con el backend (plataforma y los topes de los corredores no los puede tocar nadie más).
-
-const MAXIMO_USD = 10_000;
-
-/** Monto en dólares: vacío es null (usar el de la plataforma); fuera de rango, error. */
-function monto(v: FormDataEntryValue | null, vacioEsNull: boolean): number | null | "error" {
-  const t = String(v ?? "").trim().replace(",", ".");
-  if (!t) return vacioEsNull ? null : "error";
-  const n = Number(t);
-  return Number.isFinite(n) && n >= 0 && n <= MAXIMO_USD ? Math.round(n * 100) / 100 : "error";
-}
 
 function volver(aviso: string): never {
   revalidatePath("/admin");
