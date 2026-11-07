@@ -1,4 +1,6 @@
-import { IconoAbajo, IconoArriba, IconoDocumento, IconoEstrella, IconoMegafono } from "../../iconos";
+import { IconoAbajo, IconoArriba, IconoCamara, IconoDocumento, IconoEstrella, IconoMegafono } from "../../iconos";
+import { ComoLlegar } from "../../como-llegar";
+import { precio } from "@/lib/formato";
 import { Volver } from "../../volver";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -85,136 +87,242 @@ export default async function Propiedad({
     .filter((c) => p.estado === "activa" && encaja(c.busca ?? {}, p as never))
     .slice(0, 12);
 
+  // Movimiento de la casa: visitas y clientes que la tienen como "la que le interesa".
+  const [{ count: visitas }, { count: interesadosEnElla }] = await Promise.all([
+    supabase.from("citas").select("id", { count: "exact", head: true }).eq("corredor_id", corredor.id).eq("propiedad_id", p.id),
+    supabase.from("contactos").select("id", { count: "exact", head: true }).eq("corredor_id", corredor.id).eq("propiedad_interes_id", p.id),
+  ]);
+  const ESTADO_CASA: Record<string, string> = {
+    activa: "Disponible",
+    reservada: "Reservada",
+    vendida: "Vendida",
+    alquilada: "Alquilada",
+    inactiva: "Pausada",
+  };
+  const TIPO: Record<string, string> = { casa: "Casa", apartamento: "Apartamento", lote: "Lote", local: "Local", oficina: "Oficina", finca: "Finca", otro: "Propiedad" };
+  const lugar = [p.zona, p.canton && p.canton !== p.zona ? p.canton : null, p.provincia].filter(Boolean).join(", ");
+  const datos = [
+    p.habitaciones !== null ? { valor: String(p.habitaciones), nombre: p.habitaciones === 1 ? "cuarto" : "cuartos" } : null,
+    p.banos !== null ? { valor: String(p.banos).replace(".", ","), nombre: p.banos === 1 ? "baño" : "baños" } : null,
+    p.m2_construccion !== null ? { valor: Number(p.m2_construccion).toLocaleString("es-CR"), nombre: "m² construidos" } : null,
+    p.m2_terreno !== null ? { valor: Number(p.m2_terreno).toLocaleString("es-CR"), nombre: "m² de terreno" } : null,
+  ].filter((d): d is { valor: string; nombre: string } => !!d);
+  const principal = fotos[0];
+
   return (
     <>
       <Volver href="/panel/propiedades" texto="Mis casas" />
-      <header className="encabezado">
-        <div style={{ minWidth: 0 }}>
-          <h1>{p.titulo}</h1>
-          <p className="suave">{p.codigo}</p>
-        </div>
-      </header>
       <Aviso texto={aviso} />
+
+      {/* Portada: la foto principal y lo que todo cliente pregunta primero */}
+      <section className={`casa-portada estado-${p.estado}`}>
+        <div className="casa-portada-fotos">
+          {principal ? (
+            <a href={principal.url} target="_blank" rel="noreferrer" className="casa-portada-principal">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={principal.url} alt={p.titulo} />
+            </a>
+          ) : (
+            <a href="#fotos" className="casa-portada-principal sin-foto">
+              <IconoCamara tamano={40} />
+              <span>Sube las fotos de la casa</span>
+            </a>
+          )}
+          {fotos.length > 1 && (
+            <div className="casa-portada-miniaturas">
+              {fotos.slice(1, 5).map((f, i) => (
+                <a key={f.url} href={f.url} target="_blank" rel="noreferrer">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={f.url} alt={`Foto ${i + 2}`} loading="lazy" />
+                  {i === 3 && fotos.length > 5 && <span>+{fotos.length - 5}</span>}
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="casa-portada-datos">
+          <div className="casa-portada-etiquetas">
+            <span className={`casa-estado ${p.estado}`}>{ESTADO_CASA[p.estado] ?? p.estado}</span>
+            <span className="suave">
+              {TIPO[p.tipo] ?? p.tipo} en {p.operacion === "alquiler" ? "alquiler" : "venta"} · {p.codigo}
+            </span>
+          </div>
+          <h1>{p.titulo}</h1>
+          {lugar && <p className="casa-lugar">{lugar}</p>}
+          <p className="casa-precio">
+            {p.precio ? precio(p.precio, p.moneda) : "Sin precio"}
+            {p.operacion === "alquiler" && p.precio ? <span> al mes</span> : null}
+          </p>
+          {datos.length > 0 && (
+            <div className="casa-datos">
+              {datos.map((d) => (
+                <span key={d.nombre}>
+                  <strong>{d.valor}</strong> {d.nombre}
+                </span>
+              ))}
+            </div>
+          )}
+          <p className="suave casa-movimiento">
+            {visitas ?? 0} {visitas === 1 ? "visita" : "visitas"} · {interesadosEnElla ?? 0}{" "}
+            {interesadosEnElla === 1 ? "cliente interesado" : "clientes interesados"}
+            {interesados.length > 0 ? ` · le sirve a ${interesados.length} más` : ""}
+          </p>
+          <div className="casa-acciones">
+            <form action={generarFicha}>
+              <input type="hidden" name="id" value={p.id} />
+              <BotonEnviar texto={<><IconoDocumento tamano={20} /> Ficha para un cliente</>} pendiente="Armando la ficha…" className="primario" />
+            </form>
+            <form action={prepararAnuncioPanel}>
+              <input type="hidden" name="id" value={p.id} />
+              <BotonEnviar texto={<><IconoMegafono tamano={20} /> Anuncio de Encuentra24</>} pendiente="Escribiendo el anuncio…" />
+            </form>
+            {p.url_e24 && (
+              <a href={p.url_e24} target="_blank" rel="noreferrer" className="boton">
+                Ver en Encuentra24
+              </a>
+            )}
+          </div>
+          {p.zona && <ComoLlegar casa={{ zona: p.zona, canton: p.canton }} chico />}
+        </div>
+      </section>
+
       <div className="preguntas-patty">
         <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="¿A qué clientes les sirve esta casa?" />
         <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="Escríbeme un texto para ofrecerla" />
       </div>
 
-      {interesados.length > 0 && (
-        <section className="tarjeta pila encajan" data-patty="casa-clientes">
-          <h2>
-            Le sirve a {interesados.length} {interesados.length === 1 ? "cliente" : "clientes"}
-          </h2>
-          <p className="suave">Por lo que dijeron que buscan. Ofrécesela antes de que se la lleve otro.</p>
-          <ul className="encajan-lista">
-            {interesados.map((c) => (
-              <li key={c.id}>
-                <Link href={`/panel/clientes/${c.id}`}>
-                  <Avatar nombre={c.nombre} telefono={c.telefono} />
-                  <span>
-                    <strong>{c.nombre ?? telefonoBonito(c.telefono)}</strong>
-                    <span className="suave">
-                      {NOMBRE_ETAPA[c.etapa]} · {resumenBusca(c.busca ?? {})}
-                    </span>
-                  </span>
-                </Link>
-                <a className="boton" target="_blank" rel="noreferrer" href={`https://wa.me/${c.telefono.replace(/\D/g, "")}?text=${encodeURIComponent(`Hola${c.nombre ? ` ${c.nombre.split(" ")[0]}` : ""}, le escribe ${corredor.nombre_contacto} de ${corredor.nombre}. Tengo una propiedad que encaja con lo que busca: ${p.titulo}. ¿Le gustaría que le mande fotos o coordinar una visita?`)}`}>
-                  Ofrecérsela
-                </a>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <section className="pila" style={{ marginBottom: 8 }}>
-        <form action={generarFicha}>
-          <input type="hidden" name="id" value={p.id} />
-          <BotonEnviar texto={<><IconoDocumento tamano={24} /> Ficha para mandar a un cliente</>} pendiente="Armando la ficha…" className="primario grande" />
-        </form>
-        <form action={prepararAnuncioPanel}>
-          <input type="hidden" name="id" value={p.id} />
-          <BotonEnviar texto={<><IconoMegafono tamano={24} /> Escribir el anuncio de Encuentra24</>} pendiente="Escribiendo el anuncio…" className="grande" />
-        </form>
-      </section>
-
-      <h2 id="fotos">Fotos</h2>
-      <p className="suave">
-        La primera es la que se ve en la ficha y en el anuncio.
-      </p>
-      {fotos.length === 0 && <p className="vacio">Todavía no tiene fotos.</p>}
-      <div className="galeria">
-        {fotos.map((f, i) => (
-          <figure key={f.url} className="tarjeta pila">
-            <a href={f.url} target="_blank" rel="noreferrer">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={f.url} alt={`Foto ${i + 1}`} loading="lazy" />
-            </a>
-            <figcaption className="suave">
-              {i === 0 ? <><IconoEstrella tamano={16} /> Principal</> : `Foto ${i + 1}`}
-              {f.mejorada_url && (
-                <>
-                  {" · "}
-                  <a href={f.mejorada_url} target="_blank" rel="noreferrer">
-                    ver mejorada
-                  </a>
-                </>
+      <div className="ficha-grid">
+        <div className="ficha-principal">
+          {(p.descripcion || p.amenidades.length > 0) && (
+            <section className="tarjeta pila">
+              <h2>Cómo es</h2>
+              {p.descripcion && <p className="casa-descripcion">{p.descripcion}</p>}
+              {p.amenidades.length > 0 && (
+                <ul className="casa-amenidades">
+                  {p.amenidades.map((a) => (
+                    <li key={a}>{a}</li>
+                  ))}
+                </ul>
               )}
-            </figcaption>
-            <div className="botones">
-              {i > 0 && <BotonFoto id={p.id} url={f.url} accion="principal" texto={<><IconoEstrella tamano={18} /> Principal</>} />}
-              {i > 0 && <BotonFoto id={p.id} url={f.url} accion="subir" texto={<IconoArriba tamano={20} />} etiqueta="Subir" />}
-              {i < fotos.length - 1 && <BotonFoto id={p.id} url={f.url} accion="bajar" texto={<IconoAbajo tamano={20} />} etiqueta="Bajar" />}
-              <BotonFoto id={p.id} url={f.url} accion="quitar" texto="Quitar" peligro />
+            </section>
+          )}
+
+          <section className="tarjeta pila" id="fotos">
+            <div className="fila">
+              <h2>Fotos ({fotos.length})</h2>
+              <span className="suave">La primera es la de la ficha y el anuncio.</span>
             </div>
-          </figure>
-        ))}
-      </div>
-      {fotos.length < MAX_FOTOS_PROPIEDAD && <SubirFotos propiedadId={p.id} />}
-      {fotosActivas && fotos.length > 0 && (
-        <form action={mejorarFotosPanel} className="pila tarjeta">
-          <input type="hidden" name="id" value={p.id} />
-          <p className="suave">
-            Mejora la luz y el color de las fotos. Tarda unos minutos. Tus fotos originales no se tocan: revisa las
-            mejoradas antes de usarlas.
-          </p>
-          <BotonEnviar texto="Mejorar fotos" pendiente="Mejorando… puede tardar unos minutos" />
-        </form>
-      )}
-
-      <h2>¿Sigue disponible?</h2>
-      {p.estado !== "activa" ? (
-        <form action={cambiarEstado}>
-          <input type="hidden" name="id" value={p.id} />
-          <input type="hidden" name="estado" value="activa" />
-          <p className="suave">La asistente no la está ofreciendo.</p>
-          <button type="submit" className="grande">
-            Volver a ofrecerla
-          </button>
-        </form>
-      ) : (
-        <div className="botones">
-          <form action={cambiarEstado}>
-            <input type="hidden" name="id" value={p.id} />
-            <input type="hidden" name="estado" value={p.operacion === "alquiler" ? "alquilada" : "vendida"} />
-            <button type="submit" className="grande">
-              {p.operacion === "alquiler" ? "Ya se alquiló" : "Ya se vendió"}
-            </button>
-          </form>
-          <form action={cambiarEstado}>
-            <input type="hidden" name="id" value={p.id} />
-            <input type="hidden" name="estado" value="inactiva" />
-            <button type="submit" className="grande">
-              Pausarla
-            </button>
-          </form>
+            {fotos.length === 0 && <p className="vacio">Todavía no tiene fotos.</p>}
+            <div className="galeria casa-galeria">
+              {fotos.map((f, i) => (
+                <figure key={f.url} className="casa-foto">
+                  <a href={f.url} target="_blank" rel="noreferrer">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={f.url} alt={`Foto ${i + 1}`} loading="lazy" />
+                    {i === 0 && (
+                      <span className="casa-foto-principal">
+                        <IconoEstrella tamano={14} /> Principal
+                      </span>
+                    )}
+                  </a>
+                  <div className="casa-foto-botones">
+                    {i > 0 && <BotonFoto id={p.id} url={f.url} accion="principal" texto={<IconoEstrella tamano={16} />} etiqueta="Hacerla la principal" />}
+                    {i > 0 && <BotonFoto id={p.id} url={f.url} accion="subir" texto={<IconoArriba tamano={16} />} etiqueta="Antes" />}
+                    {i < fotos.length - 1 && <BotonFoto id={p.id} url={f.url} accion="bajar" texto={<IconoAbajo tamano={16} />} etiqueta="Después" />}
+                    <BotonFoto id={p.id} url={f.url} accion="quitar" texto="Quitar" peligro />
+                  </div>
+                  {f.mejorada_url && (
+                    <a className="casa-foto-mejorada" href={f.mejorada_url} target="_blank" rel="noreferrer">
+                      Ver mejorada
+                    </a>
+                  )}
+                </figure>
+              ))}
+            </div>
+            {fotos.length < MAX_FOTOS_PROPIEDAD && <SubirFotos propiedadId={p.id} />}
+            {fotosActivas && fotos.length > 0 && (
+              <form action={mejorarFotosPanel} className="pila casa-mejorar">
+                <input type="hidden" name="id" value={p.id} />
+                <p className="suave">
+                  Mejora la luz y el color. Tarda unos minutos y tus originales no se tocan: revisa las mejoradas antes de usarlas.
+                </p>
+                <BotonEnviar texto="Mejorar fotos" pendiente="Mejorando… puede tardar unos minutos" />
+              </form>
+            )}
+          </section>
         </div>
-      )}
 
-      <details style={{ marginTop: 20 }}>
-        <summary>Ver o cambiar todos los datos</summary>
-        <FormularioPropiedad p={p} accion={guardarPropiedad} boton="Guardar cambios" />
-      </details>
+        <aside className="ficha-lateral">
+          {interesados.length > 0 && (
+            <section className="tarjeta pila encajan" data-patty="casa-clientes">
+              <h2>
+                Le sirve a {interesados.length} {interesados.length === 1 ? "cliente" : "clientes"}
+              </h2>
+              <p className="suave">Por lo que dijeron que buscan.</p>
+              <ul className="encajan-lista">
+                {interesados.map((c) => (
+                  <li key={c.id}>
+                    <Link href={`/panel/clientes/${c.id}`}>
+                      <Avatar nombre={c.nombre} telefono={c.telefono} />
+                      <span>
+                        <strong>{c.nombre ?? telefonoBonito(c.telefono)}</strong>
+                        <span className="suave">{NOMBRE_ETAPA[c.etapa]}</span>
+                      </span>
+                    </Link>
+                    <a
+                      className="boton"
+                      target="_blank"
+                      rel="noreferrer"
+                      href={`https://wa.me/${c.telefono.replace(/\D/g, "")}?text=${encodeURIComponent(`Hola${c.nombre ? ` ${c.nombre.split(" ")[0]}` : ""}, le escribe ${corredor.nombre_contacto} de ${corredor.nombre}. Tengo una propiedad que encaja con lo que busca: ${p.titulo}. ¿Le gustaría que le mande fotos o coordinar una visita?`)}`}
+                    >
+                      Ofrecérsela
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          <section className="tarjeta pila">
+            <h2>¿Sigue disponible?</h2>
+            {p.estado !== "activa" ? (
+              <form action={cambiarEstado} className="pila">
+                <input type="hidden" name="id" value={p.id} />
+                <input type="hidden" name="estado" value="activa" />
+                <p className="suave">La asistente no la está ofreciendo.</p>
+                <button type="submit" className="primario chico">
+                  Volver a ofrecerla
+                </button>
+              </form>
+            ) : (
+              <>
+                <p className="suave">La asistente la está ofreciendo a los clientes.</p>
+                <div className="botones casa-estado-botones">
+                  <form action={cambiarEstado}>
+                    <input type="hidden" name="id" value={p.id} />
+                    <input type="hidden" name="estado" value={p.operacion === "alquiler" ? "alquilada" : "vendida"} />
+                    <button type="submit" className="chico">
+                      {p.operacion === "alquiler" ? "Ya se alquiló" : "Ya se vendió"}
+                    </button>
+                  </form>
+                  <form action={cambiarEstado}>
+                    <input type="hidden" name="id" value={p.id} />
+                    <input type="hidden" name="estado" value="inactiva" />
+                    <button type="submit" className="chico">
+                      Pausarla
+                    </button>
+                  </form>
+                </div>
+              </>
+            )}
+          </section>
+
+          <details className="tarjeta pila casa-editar">
+            <summary>Cambiar los datos de la casa</summary>
+            <FormularioPropiedad p={p} accion={guardarPropiedad} boton="Guardar cambios" />
+          </details>
+        </aside>
+      </div>
     </>
   );
 }

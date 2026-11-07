@@ -5435,3 +5435,271 @@ body:has(.marco.tema) {
     flex: 1 1 45%;
   }
 }
+
+/* Ficha de la casa: portada con la foto y los datos clave */
+.tema .casa-portada {
+  display: grid;
+  gap: 18px;
+  background: #fff;
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+  box-shadow: var(--sombra-1);
+  padding: 14px;
+  margin: 6px 0 12px;
+}
+@media (min-width: 1000px) {
+  .tema .casa-portada {
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    padding: 16px;
+  }
+}
+.tema .casa-portada-fotos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.tema .casa-portada-principal {
+  display: block;
+  aspect-ratio: 4 / 3;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #eef1f4;
+}
+.tema .casa-portada-principal img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.tema .casa-portada-principal.sin-foto {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #00876a;
+  font-weight: 600;
+  text-decoration: none;
+}
+.tema .casa-portada-miniaturas {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.tema .casa-portada-miniaturas a {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.tema .casa-portada-miniaturas img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.tema .casa-portada-miniaturas span {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(17 27 33 / 55%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+.tema .casa-portada-datos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 4px 4px 0;
+}
+.tema .casa-portada-datos h1 {
+  margin: 0;
+  font-size: 1.6rem;
+  line-height: 1.2;
+}
+.tema .casa-portada-etiquetas {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.tema .casa-estado {
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.82rem;
+  background: #e6f6f1;
+  color: #00876a;
+}
+.tema .casa-estado.reservada {
+  background: #fff4e5;
+  color: #b45309;
+}
+.tema .casa-estado.vendida,
+.tema .casa-estado.alquilada {
+  background: #e8f0fe;
+  color: #1a56db;
+}
+.tema .casa-estado.inactiva {
+  background: #eef1f4;
+  color: #5f6b76;
+}
+.tema .casa-lugar {
+  margin: 0;
+  color: #46525c;
+  font-weight: 500;
+}
+.tema .casa-precio {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #111b21;
+}
+.tema .casa-precio span {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--suave);
+}
+.tema .casa-datos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tema .casa-datos span {
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #f6f8fa;
+  border: 1px solid #eef0f3;
+  font-size: 0.92rem;
+  color: #46525c;
+}
+.tema .casa-datos strong {
+  color: #111b21;
+  font-size: 1.05rem;
+}
+.tema .casa-movimiento {
+  margin: 0;
+  font-size: 0.9rem;
+}
+.tema .casa-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+.tema .casa-acciones form {
+  display: flex;
+}
+.tema .casa-acciones button,
+.tema .casa-acciones .boton {
+  min-height: 46px;
+}
+.tema .casa-portada .como-llegar.chico {
+  padding: 0;
+}
+.tema .casa-descripcion {
+  white-space: pre-wrap;
+  margin: 0;
+  line-height: 1.55;
+}
+.tema .casa-amenidades {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+}
+.tema .casa-amenidades li {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: #e6f6f1;
+  color: #00684f;
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+.tema .casa-galeria {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px;
+}
+.tema .casa-foto {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tema .casa-foto > a:first-child {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 3;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.tema .casa-foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.tema .casa-foto-principal {
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 92%);
+  color: #00876a;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.tema .casa-foto-botones {
+  display: flex;
+  gap: 4px;
+}
+.tema .casa-foto-botones form {
+  display: flex;
+}
+.tema .casa-foto-botones button {
+  min-height: 34px;
+  padding: 4px 10px;
+  font-size: 0.82rem;
+  box-shadow: none;
+}
+.tema .casa-foto-botones form:last-child {
+  margin-left: auto;
+}
+.tema .casa-foto-mejorada {
+  font-size: 0.82rem;
+  color: #00876a;
+}
+.tema .casa-mejorar {
+  padding-top: 8px;
+  border-top: 1px solid #eef0f3;
+}
+.tema .casa-estado-botones {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tema .casa-editar summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #00876a;
+}
+.tema #fotos .fila {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
