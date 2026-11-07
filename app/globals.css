@@ -6779,3 +6779,240 @@ body:has(.marco.tema) {
   align-items: center;
   gap: 8px;
 }
+
+/* ------------------------------------------------------------------------------------------------
+   Mis casas: cifras arriba, filtros y buscador, y cada casa con foto, precio, datos, movimiento y lo
+   que le falta. Teléfono: foto a la izquierda; computadora: cuadrícula con la foto arriba.
+   ------------------------------------------------------------------------------------------------ */
+.tema .casas-encabezado {
+  align-items: flex-start;
+}
+.tema .casas-encabezado h1 {
+  margin-bottom: 2px;
+}
+.tema .casas-encabezado p {
+  margin: 0;
+}
+.tema .casas-encabezado .boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.tema .casas-cifras {
+  margin-bottom: 14px;
+}
+.tema .casas-barra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.tema .casas-filtros {
+  margin: 0;
+  overflow-x: auto;
+  flex: 0 1 auto;
+  max-width: 100%;
+}
+.tema .casas-filtros a {
+  white-space: nowrap;
+}
+.tema .casas-buscar {
+  flex: 1 1 240px;
+  margin: 0;
+}
+.tema .casas-buscar input {
+  width: 100%;
+  margin: 0;
+}
+.tema .casas-vacio {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+  padding: 28px 16px;
+  color: var(--suave);
+}
+.tema .casas-vacio p {
+  margin: 0;
+  max-width: 420px;
+}
+.tema .casas-lista {
+  display: grid;
+  gap: 12px;
+}
+.tema .casa-tarjeta {
+  display: grid;
+  grid-template-columns: 116px minmax(0, 1fr);
+  gap: 14px;
+  padding: 12px;
+  margin: 0;
+  color: inherit;
+  text-decoration: none;
+  align-items: start;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.tema .casa-tarjeta:hover {
+  box-shadow: 0 6px 22px rgb(0 0 0 / 10%);
+}
+.tema .casa-tarjeta.estado-vendida,
+.tema .casa-tarjeta.estado-alquilada,
+.tema .casa-tarjeta.estado-inactiva {
+  opacity: 0.82;
+}
+.tema .casa-tarjeta-foto {
+  position: relative;
+  display: block;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--superficie-alta, #f0f2f5);
+}
+.tema .casa-tarjeta-foto img,
+.tema .casa-tarjeta-foto .sin-foto {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: grid;
+  place-items: center;
+  color: var(--suave);
+}
+.tema .casa-tarjeta-operacion,
+.tema .casa-tarjeta-estado,
+.tema .casa-tarjeta-fotos {
+  position: absolute;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  line-height: 1.3;
+}
+.tema .casa-tarjeta-operacion {
+  left: 6px;
+  top: 6px;
+  background: var(--superficie, #fff);
+  color: var(--principal-oscuro, #008069);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 18%);
+}
+.tema .casa-tarjeta-operacion.alquiler {
+  color: #3d5a99;
+}
+.tema .casa-tarjeta-estado {
+  left: 6px;
+  bottom: 6px;
+  background: #111b21;
+  color: #fff;
+}
+.tema .casa-tarjeta-estado.reservada {
+  background: #e9a23b;
+  color: #111b21;
+}
+.tema .casa-tarjeta-fotos {
+  right: 6px;
+  bottom: 6px;
+  background: rgb(0 0 0 / 58%);
+  color: #fff;
+  font-weight: 600;
+  display: none;
+}
+.tema .casa-tarjeta-cuerpo {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.tema .casa-tarjeta-precio {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--profundo);
+}
+.tema .casa-tarjeta-precio small {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--suave);
+}
+.tema .casa-tarjeta-titulo {
+  font-size: 1rem;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.tema .casa-tarjeta-lugar,
+.tema .casa-tarjeta-datos {
+  font-size: 0.88rem;
+}
+.tema .casa-tarjeta-datos {
+  color: var(--profundo);
+}
+.tema .casa-tarjeta-pie {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.tema .casa-tarjeta-pie > span {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--superficie-alta, #f0f2f5);
+  color: var(--suave);
+}
+.tema .casa-tarjeta-pie .movimiento.activo {
+  background: color-mix(in srgb, var(--ok) 14%, transparent);
+  color: var(--principal-oscuro, #008069);
+}
+.tema .casa-tarjeta-pie .falta {
+  background: color-mix(in srgb, #e9a23b 18%, transparent);
+  color: #9a5b00;
+}
+@media (min-width: 900px) {
+  .tema .panel:has(.casas-lista) {
+    max-width: 1240px;
+  }
+  .tema .casas-lista {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 18px;
+  }
+  .tema .casa-tarjeta {
+    grid-template-columns: 1fr;
+    padding: 0;
+    overflow: hidden;
+    gap: 0;
+  }
+  .tema .casa-tarjeta:hover {
+    transform: translateY(-2px);
+  }
+  .tema .casa-tarjeta-foto {
+    aspect-ratio: 16 / 10;
+    border-radius: 0;
+  }
+  .tema .casa-tarjeta-operacion,
+  .tema .casa-tarjeta-estado {
+    font-size: 0.8rem;
+    padding: 4px 10px;
+  }
+  .tema .casa-tarjeta-operacion {
+    left: 12px;
+    top: 12px;
+  }
+  .tema .casa-tarjeta-estado {
+    left: auto;
+    right: 12px;
+    top: 12px;
+    bottom: auto;
+  }
+  .tema .casa-tarjeta-fotos {
+    display: block;
+    right: 12px;
+    bottom: 12px;
+  }
+  .tema .casa-tarjeta-cuerpo {
+    padding: 14px 16px 16px;
+  }
+  .tema .casa-tarjeta-precio {
+    font-size: 1.3rem;
+  }
+}
