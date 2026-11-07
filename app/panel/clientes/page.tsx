@@ -179,6 +179,10 @@ export default async function Clientes({
         estancado: estancado(c),
         recordatorio: recordatorio(c),
         casa: casaDe.get(c.id) ?? null,
+        cierre: (() => {
+          const v = valorDe(c);
+          return { precio: v.monto || null, moneda: v.moneda, operacion: operacion(c) ?? null };
+        })(),
       })),
     };
   });
@@ -291,7 +295,7 @@ export default async function Clientes({
       {elegida || verAtencion ? (
         <div className="lista-escritorio">{visibles.map(tarjeta)}</div>
       ) : (
-        todos.length > 0 && <Tablero columnas={columnas} />
+        todos.length > 0 && <Tablero columnas={columnas} comisionPct={corredor.comision_pct ?? 5} />
       )}
     </>
   );

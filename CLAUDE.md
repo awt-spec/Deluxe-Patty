@@ -154,7 +154,7 @@ negociando, cerrado, perdido), lo que busca (`contactos.busca`), notas y seguimi
 asistente llena `busca` con lo que el cliente dice (sale de la misma clasificación de Haiku, sin otra
 llamada) y la etapa solo avanza sola (nuevo → interesado → visita al agendar), nunca retrocede ni toca un
 cliente cerrado o perdido. Arriba, cifras del embudo (activos, compras en juego, cerrados del mes, a quién llamar); en el teléfono, lista por
-etapa; en computadora, tablero donde cada cliente se arrastra de etapa (`app/panel/clientes/tablero.tsx`). Se puede
+etapa; en computadora, tablero donde cada cliente se arrastra de etapa (`app/panel/clientes/tablero.tsx`; al soltar en Cerró pide precio, moneda y comisión con `cerrarDesdeTablero`). Se puede
 agregar un cliente a mano y, al perderlo, anotar el motivo (`motivo_perdida`). Cada cliente tiene **Historia**
 (`actividades`, `lib/crm/actividades.ts`): lo que anota el corredor (Lo llamé, Le escribí…), cambios de etapa,
 ofertas, visitas, correos y los días de WhatsApp; anotar algo reinicia el "sin movimiento" (`ultima_actividad_at`).
