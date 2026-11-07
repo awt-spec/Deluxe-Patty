@@ -7579,3 +7579,15 @@ body:has(.marco.tema) {
     white-space: nowrap;
   }
 }
+@media (max-width: 899px) {
+  /* Contraste de lectura (WCAG AA, 4,5 a 1): los grises y verdes de iOS se ven bien pero leen mal
+     para letra chica. Mismos tonos, un punto más oscuros. */
+  .marco.tema {
+    --ios-gris: #6e6e73;       /* antes #8e8e93: 3,3 → 5,1 sobre blanco */
+    --ios-verde-texto: #0a7139; /* antes #0f8a48: 3,4 → 4,7 en botón gris */
+    --ios-verde-boton: #0e7f42; /* antes #13984f: 3,7 → 5,1 con letra blanca */
+  }
+  .tema .navegacion a[aria-current="page"] {
+    color: #0e7f42 !important; /* antes #1daa61: 2,9 → 4,8 */
+  }
+}
