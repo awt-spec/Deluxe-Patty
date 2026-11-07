@@ -38,7 +38,7 @@ export default async function Mas() {
           <ul key={i} className="opciones">
             {grupo.map((o) => (
               <li key={o.ruta}>
-                <Link href={o.ruta}>
+                <Link href={o.ruta} data-patty={`mas-${o.ruta.split("/").pop()}`}>
                   <span className="opcion-icono">
                     <o.Icono />
                   </span>

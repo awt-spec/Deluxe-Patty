@@ -155,7 +155,7 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
           <h1>Clientes</h1>
           <p className="suave">{todos.length === 1 ? "1 cliente" : `${todos.length} clientes`}</p>
         </div>
-        <Link href="/panel/clientes/nuevo" className="boton primario">
+        <Link data-patty="clientes-agregar" href="/panel/clientes/nuevo" className="boton primario">
           <IconoAgregar tamano={20} /> Agregar
         </Link>
       </header>
@@ -189,7 +189,7 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
 
       <form className="buscar-clientes" role="search">
         {elegida && <input type="hidden" name="etapa" value={elegida} />}
-        <input type="search" name="q" defaultValue={q ?? ""} placeholder="Buscar por nombre o teléfono" aria-label="Buscar por nombre o teléfono" />
+        <input data-patty="clientes-buscar" type="search" name="q" defaultValue={q ?? ""} placeholder="Buscar por nombre o teléfono" aria-label="Buscar por nombre o teléfono" />
       </form>
 
       <nav className="filtro-etapas" aria-label="Etapas">
@@ -197,7 +197,7 @@ export default async function Clientes({ searchParams }: { searchParams: Promise
           Activos <span>{clientes.filter(activo).length}</span>
         </Link>
         {atencion.length > 0 && (
-          <Link href="/panel/clientes?ver=atencion" aria-current={verAtencion ? "page" : undefined} className="filtro-atencion">
+          <Link href="/panel/clientes?ver=atencion" aria-current={verAtencion ? "page" : undefined} className="filtro-atencion" data-patty="clientes-llamar">
             Llamar <span>{atencion.length}</span>
           </Link>
         )}

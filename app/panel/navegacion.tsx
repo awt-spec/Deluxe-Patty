@@ -84,6 +84,7 @@ export function Navegacion({
             href={s.ruta}
             aria-current={activa(s) ? "page" : undefined}
             title={s.nombre}
+            data-patty={`nav-${s.ruta === "/panel" ? "inicio" : s.ruta.split("/").pop()}`}
           >
             <span className="icono">
               <s.Icono tamano={26} />
@@ -105,6 +106,7 @@ export function Navegacion({
         className="solo-escritorio"
         aria-current={ruta.startsWith("/panel/mas") ? "page" : undefined}
         title="Más"
+        data-patty="nav-mas"
       >
         <span className="icono">
           <IconoMas tamano={26} />

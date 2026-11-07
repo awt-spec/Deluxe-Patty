@@ -228,10 +228,10 @@ export default async function Agenda({
       <header className="encabezado">
         <h1>Agenda</h1>
         <div className="botones">
-          <Link href={`/panel/agenda/nueva?fecha=${fechaIso(base)}`} className="boton primario">
+          <Link data-patty="agenda-agendar" href={`/panel/agenda/nueva?fecha=${fechaIso(base)}`} className="boton primario">
             + Agendar
           </Link>
-          <Link href="/panel/agenda/horario" className="boton">
+          <Link data-patty="agenda-horario" href="/panel/agenda/horario" className="boton">
             Mi horario
           </Link>
         </div>
@@ -244,7 +244,7 @@ export default async function Agenda({
 
       <nav className="cal-vistas" aria-label="Cómo ver la agenda">
         {(Object.keys(VISTAS) as Vista[]).map((v) => (
-          <Link key={v} href={enlaceA(v, base)} aria-current={v === vista ? "page" : undefined}>
+          <Link key={v} data-patty={`agenda-vista-${v}`} href={enlaceA(v, base)} aria-current={v === vista ? "page" : undefined}>
             {VISTAS[v]}
           </Link>
         ))}

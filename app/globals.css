@@ -4697,3 +4697,105 @@ body:has(.marco.tema) {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+
+/* Patty guía en pantalla: cursor, resaltado y texto */
+.guia {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+}
+.guia-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+  transition: transform 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+  filter: drop-shadow(0 2px 4px rgb(0 0 0 / 25%));
+}
+.guia-cursor svg {
+  transition: transform 0.15s;
+}
+.guia-cursor.clic svg {
+  transform: scale(0.8);
+}
+.guia-cursor.clic::after {
+  content: "";
+  position: absolute;
+  left: -10px;
+  top: -10px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 3px solid #00a884;
+  animation: guia-onda 0.5s ease-out;
+}
+@keyframes guia-onda {
+  from {
+    transform: scale(0.4);
+    opacity: 1;
+  }
+  to {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+.guia-nombre {
+  margin-top: 18px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #00a884;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.guia-resalte {
+  position: fixed;
+  border-radius: 12px;
+  box-shadow: 0 0 0 3px #00a884, 0 0 0 9999px rgb(17 27 33 / 28%);
+  transition: all 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: guia-pulso 1.6s ease-in-out infinite;
+}
+@keyframes guia-pulso {
+  50% {
+    box-shadow: 0 0 0 6px rgb(0 168 132 / 55%), 0 0 0 9999px rgb(17 27 33 / 28%);
+  }
+}
+.guia-texto {
+  position: fixed;
+  max-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #111b21;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 25%);
+  pointer-events: auto;
+}
+.guia-texto button,
+.guia-parar {
+  pointer-events: auto;
+  align-self: flex-start;
+  min-height: 34px !important;
+  padding: 4px 14px !important;
+  border-radius: 999px !important;
+  border: 0 !important;
+  background: #00a884 !important;
+  color: #fff !important;
+  font-weight: 650 !important;
+  box-shadow: none !important;
+}
+.guia-parar {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #111b21 !important;
+}

@@ -121,7 +121,7 @@ export default async function Cliente({
         <a href={`https://wa.me/${(c.telefono as string).replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="boton">
           <IconoChats tamano={22} /> WhatsApp
         </a>
-        <Link href={`/panel/agenda/nueva?cliente=${id}`} className="boton">
+        <Link data-patty="cliente-agendar" href={`/panel/agenda/nueva?cliente=${id}`} className="boton">
           <IconoAgenda tamano={22} /> Agendar visita
         </Link>
         <a href={`tel:${c.telefono as string}`} className="boton">
@@ -129,7 +129,7 @@ export default async function Cliente({
         </a>
       </div>
 
-      <h2>¿En qué va?</h2>
+      <h2 data-patty="cliente-etapa">¿En qué va?</h2>
       <form action={cambiarEtapa} className="etapas-selector">
         <input type="hidden" name="id" value={id} />
         {ETAPAS.map((e) => (
@@ -159,7 +159,7 @@ export default async function Cliente({
 
       <div className="cliente-columnas">
         <section className="tarjeta pila">
-          <h2>Qué busca</h2>
+          <h2 data-patty="cliente-busca">Qué busca</h2>
           <p>{resumen || "Todavía no lo dijo. La asistente lo anota sola cuando el cliente lo cuenta en el chat."}</p>
           <details>
             <summary>Corregirlo</summary>
@@ -198,7 +198,7 @@ export default async function Cliente({
         </section>
 
         <section className="tarjeta pila">
-          <h2>Recordatorio</h2>
+          <h2 data-patty="cliente-recordatorio">Recordatorio</h2>
           {c.seguimiento_fecha ? (
             <p>
               <strong>{etiquetaHorario(new Date(`${c.seguimiento_fecha as string}T12:00:00`), zona).split(",")[0]}</strong>
@@ -210,7 +210,7 @@ export default async function Cliente({
           <form action={guardarSeguimiento} className="pila">
             <input type="hidden" name="id" value={id} />
             <label htmlFor="nota">¿Qué tienes que hacer?</label>
-            <input id="nota" name="nota" type="text" defaultValue={(c.seguimiento_nota as string | null) ?? ""} placeholder="Llamarla para ver si le gustó la casa" />
+            <input data-patty="cliente-recordatorio-texto" id="nota" name="nota" type="text" defaultValue={(c.seguimiento_nota as string | null) ?? ""} placeholder="Llamarla para ver si le gustó la casa" />
             <p className="suave">Recordármelo:</p>
             <div className="botones atajos">
               <button type="submit" name="dias" value="1">Mañana</button>
@@ -278,7 +278,7 @@ export default async function Cliente({
         })
       )}
 
-      <h2>Notas</h2>
+      <h2 data-patty="cliente-notas">Notas</h2>
       <form action={guardarNotas} className="tarjeta pila">
         <input type="hidden" name="id" value={id} />
         <label htmlFor="nombre">Nombre</label>

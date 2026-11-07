@@ -69,7 +69,7 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
               Conecta tu Gmail para que la asistente lea los correos de clientes, te deje la respuesta lista, ponga tus
               visitas en tu calendario de Google y te mande el resumen del día por correo.
             </p>
-            <a href="/api/google/conectar" className="boton primario">
+            <a data-patty="ajustes-google" href="/api/google/conectar" className="boton primario">
               Conectar Google
             </a>
           </>
@@ -79,11 +79,11 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
       <form action={guardarAjustes} className="pila">
         <h2>Tu asistente</h2>
         <label htmlFor="nombre_asistente">¿Cómo se llama?</label>
-        <input id="nombre_asistente" name="nombre_asistente" type="text" maxLength={40} defaultValue={corredor.nombre_asistente ?? "Patty"} />
+        <input data-patty="ajustes-nombre" id="nombre_asistente" name="nombre_asistente" type="text" maxLength={40} defaultValue={corredor.nombre_asistente ?? "Patty"} />
         <p className="suave">Es el nombre que ves en el botón de chat de cada página.</p>
         <h2>Respuestas</h2>
         <label className="casilla">
-          <input type="checkbox" name="respuesta_automatica" defaultChecked={corredor.respuesta_automatica} />
+          <input data-patty="ajustes-respuesta-automatica" type="checkbox" name="respuesta_automatica" defaultChecked={corredor.respuesta_automatica} />
           La asistente contesta sola
         </label>
         <p className="suave">Si está apagado, revisas cada respuesta antes de que salga.</p>
@@ -92,16 +92,17 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
         <textarea
           id="tono"
           name="tono"
+          data-patty="ajustes-tono"
           defaultValue={corredor.tono}
           placeholder="Ejemplo: cordial y profesional, trato de usted, mensajes cortos, sin emojis."
         />
 
         <label htmlFor="reglas">Temas que siempre te pasa a ti (uno por línea)</label>
-        <textarea id="reglas" name="reglas" rows={5} defaultValue={corredor.reglas_escalamiento.join("\n")} />
+        <textarea data-patty="ajustes-temas" id="reglas" name="reglas" rows={5} defaultValue={corredor.reglas_escalamiento.join("\n")} />
 
         <h2>Plan del día</h2>
         <label htmlFor="hora_plan">Hora en que te llega</label>
-        <input id="hora_plan" name="hora_plan" type="time" defaultValue={corredor.hora_plan_dia.slice(0, 5)} />
+        <input data-patty="ajustes-hora-plan" id="hora_plan" name="hora_plan" type="time" defaultValue={corredor.hora_plan_dia.slice(0, 5)} />
 
         <h2>Búsqueda de dueños</h2>
         <label htmlFor="zonas_e24">Zonas de Encuentra24 (una por línea, como en la dirección del sitio)</label>

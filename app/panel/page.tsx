@@ -170,7 +170,7 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
       </div>
 
       {pendientes.length > 0 ? (
-        <Link href="/panel/revisar" className="revisar-boton">
+        <Link data-patty="inicio-revisar" href="/panel/revisar" className="revisar-boton">
           <span className="revisar-numero">{pendientes.length}</span>
           <span className="revisar-texto">
             <strong>{pendientes.length === 1 ? "Un cliente te espera" : `${pendientes.length} clientes te esperan`}</strong>

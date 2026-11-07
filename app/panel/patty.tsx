@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
+import { separarPasos, useGuia } from "./guia";
 import { preguntarAPatty } from "./patty-acciones";
 
 // Botón flotante en cada página del panel para abrir el chat con la asistente (Patty). La conversación
@@ -68,6 +69,10 @@ export function Patty({ nombre, corredor }: { nombre: string; corredor: string }
   const [pensando, empezar] = useTransition();
   const fin = useRef<HTMLDivElement>(null);
   const clave = `${CLAVE}:${corredor}`;
+  // En el teléfono el chat tapa la pantalla: mientras Patty guía, se cierra y queda el botón.
+  const { guiar, terminar, capa } = useGuia(nombre, () => {
+    if (window.innerWidth < 900) setAbierto(false);
+  });
 
   useEffect(() => {
     try {
@@ -106,13 +111,14 @@ export function Patty({ nombre, corredor }: { nombre: string; corredor: string }
   }, [pendiente, abierto]);
 
   // En un chat con un cliente y en "Probar la asistente" abajo va otra caja de texto: ahí no se muestra.
-  if (ruta.startsWith("/panel/conversaciones/") || ruta.startsWith("/panel/probar")) return null;
+  if (ruta.startsWith("/panel/conversaciones/") || ruta.startsWith("/panel/probar")) return <>{capa}</>;
 
   const [, aviso, sugerencias] = SUGERENCIAS.find(([r]) => r.test(ruta))!;
 
   function enviar(mensaje: string) {
     const limpio = mensaje.trim();
     if (!limpio || pensando) return;
+    terminar();
     const previos = turnos;
     setTurnos([...previos, { autor: "corredor", texto: limpio }]);
     setTexto("");
@@ -120,13 +126,17 @@ export function Patty({ nombre, corredor }: { nombre: string; corredor: string }
     const dondeEsta = `${ruta}${busqueda.toString() ? `?${busqueda}` : ""}`;
     empezar(async () => {
       const r = await preguntarAPatty(previos, limpio, dondeEsta);
-      if (r.ok) setTurnos((t) => [...t, { autor: "asistente", texto: r.texto }]);
-      else setError(r.motivo);
+      if (r.ok) {
+        const { texto: leible, pasos } = separarPasos(r.texto);
+        setTurnos((t) => [...t, { autor: "asistente", texto: leible }]);
+        if (pasos.length) void guiar(pasos);
+      } else setError(r.motivo);
     });
   }
 
   return (
     <>
+      {capa}
       {!abierto && (
         <button type="button" className="patty-boton" onClick={() => setAbierto(true)} aria-label={`Hablar con ${nombre}`}>
           <span className="patty-avatar" aria-hidden>

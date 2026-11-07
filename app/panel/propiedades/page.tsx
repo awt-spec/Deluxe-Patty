@@ -46,7 +46,7 @@ export default async function Propiedades({
       <div className="preguntas-patty">
         <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="¿Cómo agrego una casa?" />
       </div>
-      <Link href="/panel/propiedades/nueva" className="boton primario grande" style={{ marginBottom: 14 }}>
+      <Link data-patty="casas-agregar" href="/panel/propiedades/nueva" className="boton primario grande" style={{ marginBottom: 14 }}>
         <IconoAgregar tamano={24} /> Agregar casa
       </Link>
       {propiedades.length === 0 && (
