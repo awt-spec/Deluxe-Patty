@@ -120,6 +120,17 @@ export async function cambiarLaVisita(f: FormData) {
 
 const RATOS: Record<string, [string, string]> = { manana: ["07:00", "12:00"], tarde: ["12:00", "18:00"], noche: ["18:00", "22:00"] };
 
+/** ¿Ya hay un bloqueo que cubre todo ese rato? (para no repetirlo si se pide dos veces) */
+async function yaBloqueado(supabase: Awaited<ReturnType<typeof sesionConCorredor>>["supabase"], corredorId: string, inicio: string, fin: string) {
+  const { count } = await supabase
+    .from("bloqueos_agenda")
+    .select("id", { count: "exact", head: true })
+    .eq("corredor_id", corredorId)
+    .lte("inicio", inicio)
+    .gte("fin", fin);
+  return (count ?? 0) > 0;
+}
+
 /** "Bloquear": un día (o varios seguidos), entero, la mañana, la tarde, la noche o unas horas exactas. */
 export async function bloquearDesdeAgenda(f: FormData) {
   const { supabase, corredor } = await sesionConCorredor();
@@ -154,7 +165,10 @@ export async function bloquearDesdeAgenda(f: FormData) {
     else problema ??= r.motivo;
   }
   if (filas.length === 0) irA(volver, problema ?? "Revisa el día y las horas.");
-  const { error } = await supabase.from("bloqueos_agenda").insert(filas);
+  const repetidos = await Promise.all(filas.map((b) => yaBloqueado(supabase, corredor.id, b.inicio, b.fin)));
+  const nuevas = filas.filter((_, i) => !repetidos[i]);
+  if (nuevas.length === 0) irA(`/panel/agenda?vista=dia&fecha=${desde}`, "Ese rato ya estaba bloqueado.");
+  const { error } = await supabase.from("bloqueos_agenda").insert(nuevas);
   if (error) irA(volver, "No se pudo guardar el bloqueo.");
   const { data: encima } = await supabase
     .from("citas")
@@ -186,6 +200,7 @@ export async function bloquearRapido(f: FormData) {
   const destino = campo(f, "volver_a") === "/panel" ? "/panel" : "/panel/agenda";
   if (!r.ok) irA(destino, r.motivo);
   const { inicio, fin } = (r as Extract<typeof r, { ok: true }>).valor;
+  if (await yaBloqueado(supabase, corredor.id, inicio.toISOString(), fin.toISOString())) irA(destino, "Ese rato ya estaba bloqueado.");
   const { error } = await supabase.from("bloqueos_agenda").insert({ corredor_id: corredor.id, inicio: inicio.toISOString(), fin: fin.toISOString(), motivo: null });
   irA(destino, error ? "No se pudo guardar el bloqueo." : "Listo, bloqueado: no se agendarán visitas en ese rato.");
 }
