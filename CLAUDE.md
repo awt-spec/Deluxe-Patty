@@ -195,6 +195,10 @@ navegador (`lib/simulador/estado.ts`). Nada se escribe en mensajes, citas ni con
 WhatsApp y no suma al tope; solo se registra el costo de Claude.
 
 ## Monitoreo (`lib/monitoreo/`)
+Cada llamada a Claude deja una traza `llamada_claude` (modelo, ms, tokens, caché leída y escrita, motivo de parada;
+nunca contenido) y tiene tiempo de espera de 90 s con 1 reintento (`lib/asistente/cliente-claude.ts`); OpenAI, 120 s y 1
+reintento. El panel y el webhook tienen `maxDuration` 300 s: una llamada colgada termina en error (y aviso al corredor), no
+en una función cortada sin aviso.
 Errores (`registrar("error_…")`), fallas del webhook, crons fallidos, mensajes no entregados y costo de
 IA del día por encima de `COSTO_DIARIO_ALERTA_USD` llegan como alerta por WhatsApp a `SOPORTE_WHATSAPP`
 (plantilla de aviso), una por clave y hora como máximo (`reclamar_alerta`). En serverless, cada ruta

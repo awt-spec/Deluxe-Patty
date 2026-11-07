@@ -4,7 +4,7 @@ import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Chat } from "./chat";
 
 // Cada turno llama a Claude una o dos veces.
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 export default async function Probar() {
   const { corredor } = await sesionConCorredor();

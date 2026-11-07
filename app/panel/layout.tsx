@@ -8,6 +8,9 @@ import { Navegacion } from "./navegacion";
 import { Patty } from "./patty";
 
 export const dynamic = "force-dynamic";
+// Patty (chat e imágenes) corre como acción desde cualquier pantalla del panel: que ninguna la corte antes
+// de lo que puede tardar una llamada a la IA (ver lib/asistente/cliente-claude.ts).
+export const maxDuration = 300;
 
 export default async function LayoutPanel({ children }: { children: React.ReactNode }) {
   const { supabase, corredor, usuario } = await sesionCorredor();
