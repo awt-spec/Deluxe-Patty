@@ -3946,3 +3946,490 @@ label.casilla {
   padding: 4px 14px;
   font-size: 0.9rem;
 }
+
+/* ==========================================================================================
+   Pulido visual (noviembre): Inter, fondo más limpio, tarjetas con sombra suave, jerarquía clara,
+   acentos de color por sección. Se queda claro como WhatsApp y con esquinas poco redondas.
+   ========================================================================================== */
+.marco.tema {
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --serif: var(--sans);
+  --base: #f4f6f8;
+  --borde: #e6e9ee;
+  --borde-fuerte: #d5dae1;
+  --suave: #5f6b76;
+  --principal: #00a884;
+  --principal-oscuro: #00876a;
+  --principal-claro: #e6f6f1;
+  --sombra-1: 0 1px 2px rgb(16 24 40 / 5%), 0 1px 3px rgb(16 24 40 / 4%);
+  --sombra-2: 0 4px 12px rgb(16 24 40 / 7%), 0 1px 3px rgb(16 24 40 / 5%);
+  --radio: 10px;
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+}
+body:has(.marco.tema) {
+  background: #f4f6f8;
+}
+.tema .panel h1,
+.tema h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.tema h2 {
+  font-size: 1.05rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: #1d2730;
+}
+.tema .suave {
+  color: var(--suave);
+}
+
+/* Esquinas: un poco más suaves que antes, sin llegar a "píldora" */
+.tema button,
+.tema .boton,
+.tema input[type="text"],
+.tema input[type="email"],
+.tema input[type="tel"],
+.tema input[type="search"],
+.tema input[type="time"],
+.tema input[type="number"],
+.tema input[type="date"],
+.tema textarea,
+.tema select,
+.tema .tarjeta,
+.tema .cifra,
+.tema .chat-lista,
+.tema .hoy-lista,
+.tema .cliente-tarjeta,
+.tema .tablero-columna,
+.tema .revisar-boton,
+.tema .al-dia,
+.tema .aviso,
+.tema .cal,
+.tema .cal-mes,
+.tema .cal-vistas a {
+  border-radius: 10px;
+}
+
+/* Tarjetas y listas: blanco sobre gris, borde fino y sombra suave */
+.tema .tarjeta,
+.tema .cifra,
+.tema .chat-lista,
+.tema .hoy-lista,
+.tema .cliente-tarjeta,
+.tema .al-dia,
+.tema .cal,
+.tema .cal-mes {
+  background: #fff;
+  border: 1px solid var(--borde);
+  box-shadow: var(--sombra-1);
+}
+.tema a.tarjeta,
+.tema a.cifra,
+.tema a.cliente-tarjeta {
+  transition: box-shadow 0.15s, transform 0.15s, border-color 0.15s;
+}
+.tema a.tarjeta:hover,
+.tema a.cifra:hover,
+.tema a.cliente-tarjeta:hover {
+  box-shadow: var(--sombra-2);
+  border-color: var(--borde-fuerte);
+  transform: translateY(-1px);
+}
+
+/* Botones */
+.tema button,
+.tema .boton {
+  min-height: 46px;
+  padding: 10px 18px;
+  font-weight: 600;
+  border: 1px solid var(--borde-fuerte);
+  background: #fff;
+  color: #1d2730;
+  box-shadow: 0 1px 2px rgb(16 24 40 / 5%);
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.tema button:hover,
+.tema .boton:hover {
+  background: #f8fafb;
+  border-color: #c3cad3;
+}
+.tema button.primario,
+.tema .boton.primario {
+  background: var(--principal);
+  border-color: var(--principal);
+  color: #fff;
+  box-shadow: 0 1px 2px rgb(0 135 106 / 25%);
+}
+.tema button.primario:hover,
+.tema .boton.primario:hover {
+  background: var(--principal-oscuro);
+  border-color: var(--principal-oscuro);
+}
+.tema button:focus-visible,
+.tema .boton:focus-visible,
+.tema a:focus-visible,
+.tema input:focus-visible,
+.tema select:focus-visible,
+.tema textarea:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--principal) 35%, transparent);
+  outline-offset: 2px;
+}
+.tema input[type="text"],
+.tema input[type="email"],
+.tema input[type="tel"],
+.tema input[type="search"],
+.tema input[type="time"],
+.tema input[type="number"],
+.tema input[type="date"],
+.tema textarea,
+.tema select {
+  border: 1px solid var(--borde-fuerte);
+  background: #fff;
+  min-height: 46px;
+  padding: 10px 14px;
+  font-size: 1rem;
+}
+.tema input:focus,
+.tema textarea:focus,
+.tema select:focus {
+  border-color: var(--principal);
+}
+.tema label {
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: #2b3640;
+}
+
+/* Menú de la izquierda (computadora) */
+@media (min-width: 900px) {
+  .tema .navegacion {
+    background: #fff;
+    border-right: 1px solid var(--borde);
+    box-shadow: 1px 0 0 rgb(16 24 40 / 2%);
+  }
+  .navegacion-marca {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: #1d2730;
+    letter-spacing: -0.01em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .navegacion-marca::before {
+    content: "";
+    flex: 0 0 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, #00a884, #00876a);
+    box-shadow: inset 0 0 0 2px rgb(255 255 255 / 25%);
+  }
+  .tema .navegacion a {
+    color: #46525c;
+    font-weight: 500;
+    position: relative;
+  }
+  .tema .navegacion a[aria-current="page"] {
+    background: var(--principal-claro);
+    color: var(--principal-oscuro);
+    font-weight: 650;
+  }
+  .tema .navegacion a[aria-current="page"]::before {
+    content: "";
+    position: absolute;
+    left: -16px;
+    top: 8px;
+    bottom: 8px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--principal);
+  }
+  .marco.tema.plegado .navegacion a[aria-current="page"]::before {
+    left: -10px;
+  }
+  .tema .panel {
+    padding-top: 36px;
+  }
+}
+
+/* Barra de abajo (teléfono) */
+@media (max-width: 899px) {
+  .tema .navegacion {
+    background: rgb(255 255 255 / 96%);
+    backdrop-filter: saturate(1.4) blur(10px);
+    border-top: 1px solid var(--borde);
+  }
+  .tema .navegacion a[aria-current="page"] {
+    color: var(--principal-oscuro);
+    font-weight: 650;
+  }
+}
+
+/* Banda de la demo, más discreta */
+.tema .banda-demo,
+.banda-demo {
+  background: #fff7e0;
+  color: #7a5a00;
+  border-bottom: 1px solid #f3e2a9;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+/* Saludo del inicio */
+.tema .saludo h1 {
+  font-size: 1.9rem;
+}
+.tema .saludo-fecha {
+  color: var(--suave);
+  text-transform: capitalize;
+  margin-top: 2px;
+}
+
+/* Botón "clientes te esperan" con más presencia */
+.tema .revisar-boton {
+  background: linear-gradient(135deg, #00a884, #008a6d);
+  border: 0;
+  box-shadow: 0 6px 18px rgb(0 135 106 / 25%);
+  color: #fff;
+}
+.tema .revisar-boton .revisar-ir {
+  color: #fff;
+  background: rgb(255 255 255 / 18%);
+  border-radius: 999px;
+  padding: 6px 14px;
+}
+.tema .revisar-boton .revisar-texto span {
+  color: rgb(255 255 255 / 88%);
+}
+.tema .revisar-numero {
+  color: var(--principal-oscuro);
+}
+
+/* Cifras: número grande con una franja de color arriba */
+.tema .cifra {
+  position: relative;
+  overflow: hidden;
+  padding: 18px 18px 16px;
+  gap: 6px;
+}
+.tema .cifra::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: var(--acento-cifra, var(--principal));
+}
+.tema .cifras > .cifra:nth-child(2) {
+  --acento-cifra: #3d7ea6;
+}
+.tema .cifras > .cifra:nth-child(3) {
+  --acento-cifra: #7b5ea7;
+}
+.tema .cifras > .cifra:nth-child(4) {
+  --acento-cifra: #e09f3e;
+}
+.tema .cifra strong {
+  font-size: 2.1rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #111b21;
+}
+.tema .cifra .suave {
+  font-size: 0.92rem;
+  color: var(--suave);
+}
+.tema .embudo-cifras .cifra.alerta::before {
+  --acento-cifra: #e2702f;
+  background: #e2702f;
+}
+.tema .resumen-asistente h2,
+.tema .hoy h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 28px;
+}
+.tema .resumen-asistente h2::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--principal);
+  box-shadow: 0 0 0 4px var(--principal-claro);
+}
+
+/* Listas del inicio y chats */
+.tema .hoy-lista li + li,
+.tema .chat-lista li + li {
+  border-top: 1px solid #eef0f3;
+}
+.tema .hoy-lista a,
+.tema .chat-lista a {
+  transition: background 0.12s;
+}
+.tema .hoy-lista a:hover,
+.tema .chat-lista a:hover {
+  background: #f8faf9;
+}
+.tema .hoy-hora {
+  font-weight: 650;
+  color: var(--principal-oscuro);
+  font-variant-numeric: tabular-nums;
+}
+.tema .chat-lista .renglon strong {
+  font-weight: 650;
+}
+
+/* Clientes: tarjetas y columnas del tablero con su color de etapa */
+.tema .cliente-tarjeta {
+  padding: 14px;
+}
+.tema .cliente-texto strong {
+  font-weight: 650;
+}
+.tema .etapa {
+  font-weight: 600;
+  font-size: 0.82rem;
+  border-radius: 999px;
+  padding: 4px 10px;
+  border: 0;
+  background: color-mix(in srgb, var(--tono) 22%, #fff);
+  color: color-mix(in srgb, var(--tono) 55%, #111);
+}
+@media (min-width: 900px) {
+  .tema .tablero-columna {
+    background: #eef1f4;
+    border: 1px solid var(--borde);
+    border-top: 3px solid var(--tono, var(--borde-fuerte));
+    box-shadow: none;
+  }
+  .tema .tablero-columna h2 span {
+    display: inline-block;
+    min-width: 22px;
+    padding: 1px 7px;
+    margin-left: 4px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid var(--borde);
+    font-size: 0.8rem;
+    text-align: center;
+    color: #46525c;
+  }
+  .tema .tablero .cliente-tarjeta {
+    margin-bottom: 8px;
+  }
+}
+.tema .filtro-etapas a {
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--borde);
+  font-weight: 500;
+}
+.tema .filtro-etapas a[aria-current="page"] {
+  background: #1d2730;
+  border-color: #1d2730;
+  color: #fff;
+}
+.tema .filtro-etapas a[aria-current="page"] span {
+  color: rgb(255 255 255 / 75%);
+}
+.tema .buscar-clientes input {
+  padding-left: 42px;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' fill='none' stroke='%235f6b76' stroke-width='2' stroke-linecap='round' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat 14px center;
+}
+
+/* Calendario */
+.tema .cal-vistas {
+  background: #e9edf1;
+  padding: 4px;
+  border-radius: 12px;
+  gap: 4px;
+}
+.tema .cal-vistas a {
+  border: 0;
+  background: transparent;
+  color: #46525c;
+  font-weight: 600;
+  padding: 9px 6px;
+}
+.tema .cal-vistas a[aria-current="page"] {
+  background: #fff;
+  color: #111b21;
+  box-shadow: var(--sombra-1);
+}
+.tema .cal-barra h2 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+.tema .cal-cabecera {
+  background: #fbfcfd;
+}
+.tema .cal-cabecera a strong {
+  font-size: 1.05rem;
+}
+.tema .cal-cabecera a small {
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+}
+.tema .cal-columna {
+  background-color: #f6f7f9;
+}
+.tema .cal-cita {
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgb(16 24 40 / 8%);
+  padding: 6px 8px;
+}
+.tema .cal-cita strong {
+  font-weight: 650;
+}
+.tema .cal-ahora {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #e5484d;
+  z-index: 3;
+  pointer-events: none;
+}
+.tema .cal-ahora::before {
+  content: "";
+  position: absolute;
+  left: -5px;
+  top: -4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #e5484d;
+}
+.tema .cal-mes-celda:hover {
+  background: #f8faf9;
+}
+
+/* Visita */
+.tema .insignia {
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+.tema .como-llegar .waze {
+  background: #33ccff;
+  border-color: #2ab8e8;
+  color: #062b3a;
+}
+.tema .como-llegar .maps {
+  color: #1a73e8;
+}
+
+/* Avisos */
+.tema .aviso {
+  background: #fff8e6;
+  border: 1px solid #f5dfa0;
+  color: #6b4e00;
+}

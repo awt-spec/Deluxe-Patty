@@ -198,6 +198,11 @@ export default async function Agenda({
           );
         })}
         {(porDia.get(fechaIso(f)) ?? []).map(bloque)}
+        {/* La hora de ahora, como en el calendario del teléfono. */}
+        {esHoy(f) && (() => {
+          const m = minutosLocales(new Date(), zona);
+          return m >= horaMin * 60 && m <= horaMax * 60 ? <span className="cal-ahora" style={{ top: y(m) }} aria-hidden /> : null;
+        })()}
         {/* Traslado entre visitas seguidas: en rojo si no da tiempo de llegar. */}
         {(porDia.get(fechaIso(f)) ?? []).slice(1).map((c, i) => {
           const antes = (porDia.get(fechaIso(f)) ?? [])[i];
