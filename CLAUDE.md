@@ -104,6 +104,10 @@ contesta sin escribir en la base ni mandar nada; la conversación vive en el nav
 Patty sabe en qué pantalla está el corredor (`contextoPantalla`: en la ficha de un cliente, una visita o una casa
 lee sus datos y el chat), sugiere preguntas según la pantalla, trae una guía del panel en `prompts/patty.md` y
 contesta "¿dónde está…?" con enlaces `[Pantalla](/panel/...)` que se vuelven botones (solo rutas del panel).
+Además **lleva al corredor de la mano** (`app/panel/guia.tsx`): al final de la respuesta pide pasos
+`<<ir /panel/…>>`, `<<señalar lugar | texto>>`, `<<tocar lugar>>`, `<<escribir lugar | texto>>` sobre elementos con
+`data-patty="…"` (catálogo en `prompts/patty.md`); un cursor con su nombre se mueve, resalta y abre pantallas. Solo
+hace clic en enlaces y pestañas y solo escribe en campos: nunca guarda, envía ni borra.
 Las pantallas principales tienen botones "Pregúntale" (`app/panel/preguntar-patty.tsx`, evento `abrir-patty`).
 Agenda en calendario: día, semana, mes o lista (`?vista=`); se toca una hora libre para agendar
 (`/panel/agenda/nueva`), cada visita se abre para confirmarla, moverla o cancelarla con aviso al cliente

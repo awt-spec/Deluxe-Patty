@@ -123,7 +123,7 @@ export default async function Cerebro({ searchParams }: { searchParams: Promise<
           <form action={ensenar} className="tarjeta pila">
             <strong>Enseñarle algo</strong>
             <label htmlFor="tema">Tema o pregunta</label>
-            <input id="tema" name="tema" type="text" placeholder="¿Aceptan mascotas en los alquileres?" />
+            <input data-patty="cerebro-ensenar" id="tema" name="tema" type="text" placeholder="¿Aceptan mascotas en los alquileres?" />
             <label htmlFor="respuesta">Respuesta</label>
             <textarea id="respuesta" name="respuesta" rows={3} placeholder="Sí, perros pequeños, con un depósito extra de un mes." />
             <button type="submit" className="primario">
