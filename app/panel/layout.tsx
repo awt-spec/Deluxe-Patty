@@ -3,6 +3,7 @@ import { marcaDeEntrada } from "@/lib/panel/marca";
 import { sesionCorredor } from "@/lib/panel/sesion";
 import { salir } from "./acciones";
 import { Navegacion } from "./navegacion";
+import { Patty } from "./patty";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,7 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
       )}
       <main className="panel">{children}</main>
       <Navegacion teNecesitan={teNecesitan} marca={corredor.nombre} />
+      <Patty nombre={corredor.nombre_asistente ?? "Patty"} corredor={corredor.id} />
     </div>
   );
 }

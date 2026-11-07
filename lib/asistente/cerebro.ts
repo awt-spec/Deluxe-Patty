@@ -97,6 +97,13 @@ export interface Cerebro {
   clasificarAnuncio(anuncio: AnuncioE24, publicacionesDelAnunciante: number): Promise<ClasificacionAnuncio>;
   /** Análisis a pedido del corredor: propiedad u oferta (enlace o datos). */
   analizar(corredor: Corredor, propiedades: Propiedad[], historial: Mensaje[], mensaje: string): Promise<Respuesta>;
+  /** Conversación del corredor con su asistente desde el panel, con un resumen de su negocio. */
+  conversarConCorredor(
+    corredor: Corredor,
+    contexto: string,
+    historial: { autor: "corredor" | "asistente"; texto: string }[],
+    mensaje: string,
+  ): Promise<Respuesta>;
   /** Arma la ficha de una propiedad a partir de lo que el corredor cuenta en el panel. */
   fichaConversada(
     corredor: Corredor,
@@ -464,6 +471,46 @@ export function crearCerebroClaude(client = new Anthropic()): Cerebro {
       if (!res.parsed_output) throw new Error(`Ficha sin salida (stop_reason ${res.stop_reason})`);
       const { pregunta, ...ficha } = res.parsed_output;
       return { ficha, pregunta: pregunta?.trim() || null, consumo: c };
+    },
+
+    async conversarConCorredor(corredor, contexto, historial, mensaje) {
+      const nombre = corredor.nombre_asistente ?? "Patty";
+      const system = [
+        instruccion("patty"),
+        `Te llamas ${nombre}. El corredor es ${corredor.nombre_contacto}, de ${corredor.nombre}.`,
+        `<datos_del_negocio>\n${contexto}\n</datos_del_negocio>`,
+      ].join("\n\n");
+      const tools: Anthropic.Beta.BetaToolUnion[] = [
+        { type: "web_fetch_20260209", name: "web_fetch", max_uses: 2, max_content_tokens: 15_000 },
+      ];
+      const messages: Anthropic.Beta.BetaMessageParam[] = [
+        ...historial.slice(-12).map((m) => ({ role: m.autor === "corredor" ? ("user" as const) : ("assistant" as const), content: m.texto })),
+        { role: "user", content: mensaje },
+      ];
+      // Los turnos tienen que alternar y empezar por el corredor.
+      while (messages.length && messages[0].role !== "user") messages.shift();
+      let total: Consumo = { tokensEntrada: 0, tokensSalida: 0, costoUsd: 0 };
+      const textos: string[] = [];
+      for (let vuelta = 0; vuelta < 4; vuelta++) {
+        const res = await client.beta.messages.create({
+          model: MODELO_REDACTAR,
+          max_tokens: 4000,
+          betas: ["server-side-fallback-2026-07-01"],
+          fallbacks: "default",
+          output_config: { effort: "low" },
+          system: [{ type: "text", text: system }],
+          tools,
+          messages,
+        });
+        total = sumarConsumo(total, consumo(res.model, res.usage));
+        if (res.stop_reason === "refusal") throw new RechazoModelo(total);
+        for (const b of res.content) if (b.type === "text") textos.push(b.text);
+        if (res.stop_reason !== "pause_turn") break;
+        messages.push({ role: "assistant", content: res.content });
+      }
+      const texto = textos.join("").trim();
+      if (!texto) throw new Error("Conversación sin respuesta");
+      return { texto, avisarCorredor: null, consumo: total };
     },
 
     async analizar(corredor, propiedades, historial, mensaje) {

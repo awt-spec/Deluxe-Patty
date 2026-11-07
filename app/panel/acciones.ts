@@ -180,9 +180,10 @@ export async function guardarAjustes(f: FormData) {
       zonas_e24: lineas("zonas_e24"),
       precio_busqueda_min: numero("precio_min"),
       precio_busqueda_max: numero("precio_max"),
+      nombre_asistente: texto(f, "nombre_asistente").trim().slice(0, 40) || "Patty",
     })
     .eq("id", corredor.id);
-  revalidatePath("/panel/ajustes");
+  revalidatePath("/panel", "layout");
   redirect(`/panel/ajustes?aviso=${encodeURIComponent(error ? "No se pudo guardar. Revisa los datos." : "Guardado.")}`);
 }
 
