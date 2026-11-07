@@ -2,6 +2,7 @@ import Link from "next/link";
 import { diaLargo, etiquetaHorario, horaCorta } from "@/lib/agenda/formato";
 import { fechaIso, fechaLocal, limitesDia } from "@/lib/agenda/tiempo";
 import { minutosEntre } from "@/lib/agenda/zonas";
+import { telefonoBonito } from "@/lib/crm/perfil";
 import { pendientesDe } from "@/lib/panel/pendientes";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Aviso } from "./aviso";
@@ -33,7 +34,7 @@ type Visita = {
 
 const uno = <T,>(v: T | T[]): T => (Array.isArray(v) ? v[0] : v);
 const DIA = 24 * 60 * 60_000;
-const nombre = (c: { nombre: string | null; telefono: string }) => c.nombre ?? c.telefono;
+const nombre = (c: { nombre: string | null; telefono: string }) => c.nombre ?? telefonoBonito(c.telefono);
 
 export default async function Inicio({ searchParams }: { searchParams: Promise<{ aviso?: string }> }) {
   const { aviso } = await searchParams;
@@ -170,20 +171,41 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
       </div>
 
       {pendientes.length > 0 ? (
-        <Link data-patty="inicio-revisar" href="/panel/revisar" className="revisar-boton">
-          <span className="revisar-numero">{pendientes.length}</span>
-          <span className="revisar-texto">
-            <strong>{pendientes.length === 1 ? "Un cliente te espera" : `${pendientes.length} clientes te esperan`}</strong>
-            <span>
-              {[respuestas ? `${respuestas} ${respuestas === 1 ? "respuesta" : "respuestas"} por revisar` : null, hablar ? `${hablar} ${hablar === 1 ? "quiere" : "quieren"} hablar contigo` : null]
-                .filter(Boolean)
-                .join(" · ")}
+        <section className="esperan" aria-label="Clientes que te esperan">
+          <Link data-patty="inicio-revisar" href="/panel/revisar" className="esperan-cabecera">
+            <span className="revisar-numero">{pendientes.length}</span>
+            <span className="revisar-texto">
+              <strong>{pendientes.length === 1 ? "Un cliente te espera" : `${pendientes.length} clientes te esperan`}</strong>
+              <span>
+                {[respuestas ? `${respuestas} ${respuestas === 1 ? "respuesta lista" : "respuestas listas"} para que la revises` : null, hablar ? `${hablar} ${hablar === 1 ? "quiere" : "quieren"} hablar contigo` : null]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
             </span>
-          </span>
-          <span className="revisar-ir">
-            Revisar <IconoFlecha tamano={20} />
-          </span>
-        </Link>
+            <span className="revisar-ir">
+              Revisar {pendientes.length > 1 ? "uno por uno" : ""} <IconoFlecha tamano={20} />
+            </span>
+          </Link>
+          <ul className="esperan-lista">
+            {pendientes.slice(0, 4).map((p) => (
+              <li key={p.tipo === "respuesta" ? p.mensajeId : p.conversacionId}>
+                <Link href={p.tipo === "respuesta" ? "/panel/revisar" : `/panel/conversaciones/${p.conversacionId}`}>
+                  <Avatar nombre={p.contacto.nombre} telefono={p.contacto.telefono} />
+                  <span className="esperan-texto">
+                    <strong>{nombre(p.contacto)}</strong>
+                    <span className="suave">{p.dijo ? `“${p.dijo.length > 110 ? `${p.dijo.slice(0, 110)}…` : p.dijo}”` : "Te escribió"}</span>
+                  </span>
+                  <span className={`esperan-etiqueta ${p.tipo}`}>{p.tipo === "respuesta" ? "Respuesta lista" : "Quiere hablar contigo"}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          {pendientes.length > 4 && (
+            <Link href="/panel/revisar" className="esperan-mas">
+              y {pendientes.length - 4} más
+            </Link>
+          )}
+        </section>
       ) : (
         <p className="al-dia">
           <IconoCheck tamano={24} /> Todo al día

@@ -102,7 +102,7 @@ export default async function Cliente({
         <div>
           <h1>{nombre}</h1>
           <p className="suave">
-            {telefonoBonito(c.telefono as string)} · llegó por {ORIGEN[c.origen as string] ?? c.origen}
+            {c.nombre ? `${telefonoBonito(c.telefono as string)} · ` : ""}llegó por {ORIGEN[c.origen as string] ?? c.origen}
           </p>
         </div>
       </header>
