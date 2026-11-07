@@ -7321,3 +7321,18 @@ body:has(.marco.tema) {
     flex-wrap: wrap;
   }
 }
+/* Chat de Patty: el botón de enviar y la foto de la cabecera son círculos de tamaño fijo
+   (la regla de altura automática del teléfono no los aplasta). */
+.tema .patty-chat .patty-enviar {
+  height: 48px !important;
+  min-height: 48px !important;
+  width: 48px;
+}
+.tema .patty-cabecera .patty-avatar {
+  flex: 0 0 40px !important;
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px;
+  max-width: 40px;
+  padding: 0 !important;
+}
