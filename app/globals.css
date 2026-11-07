@@ -7150,3 +7150,35 @@ body:has(.marco.tema) {
 .tema .agenda-patty {
   margin-top: 20px;
 }
+/* "Tu día": los ratos libres y bloqueados en una fila (más específico que .dia-lista li) y nada
+   se sale del ancho del teléfono. */
+.tema .agenda-dia > * {
+  min-width: 0;
+}
+.tema .dia-lista li.dia-libre,
+.tema .dia-lista li.dia-bloqueado {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  box-shadow: none;
+}
+.tema .dia-lista li.dia-libre {
+  border: 1px dashed color-mix(in srgb, var(--ok) 45%, transparent);
+  border-left: 5px solid var(--ok);
+  background: color-mix(in srgb, var(--ok) 5%, #fff);
+}
+.tema .dia-lista li.dia-bloqueado {
+  border: 1px solid var(--borde);
+  border-left: 5px solid #9b958c;
+  background: repeating-linear-gradient(45deg, #ece9e4, #ece9e4 6px, #f5f3ef 6px, #f5f3ef 12px);
+}
+.tema .dia-lista li.dia-libre .boton {
+  flex: 0 0 auto;
+  margin: 0;
+}
+.tema .dia-lista li.dia-libre .dia-texto,
+.tema .dia-lista li.dia-bloqueado .dia-texto {
+  text-align: left;
+  align-items: flex-start;
+}
