@@ -266,6 +266,10 @@ export function repoEnMemoria(corredor: Corredor) {
       subidas.push({ bucket, ruta, datos });
       return `https://storage.example/${bucket}/${corredorId}/${ruta}`;
     },
+    fusionarFotos: async (_c, propiedadId, aplicar) => {
+      const p = propiedades.find((x) => x.id === propiedadId);
+      if (p) p.fotos = aplicar(p.fotos.map((f) => ({ ...f })));
+    },
     guardarFotos: async (_c, propiedadId, fotos) => {
       const p = propiedades.find((x) => x.id === propiedadId);
       if (p) p.fotos = fotos;

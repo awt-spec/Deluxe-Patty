@@ -46,11 +46,13 @@ describe("amueblar y quitar objetos (imágenes ilustrativas)", () => {
   it("guarda la versión amueblada aparte, sin tocar la original, y suma su costo", async () => {
     const { crearVariante } = await import("../lib/fotos/variantes");
     const { corredor, db, editor, deps, fotos } = await preparar();
+    db.propiedades.push({ id: "p1", codigo: "C-1", titulo: "Casa", fotos: structuredClone(fotos) } as never);
     const r = await crearVariante(deps, corredor, "p1", fotos, fotos[0].url, { tipo: "amueblada", estilo: "tropical", cuarto: "sala" });
     expect(r.ok).toBe(true);
     expect(editor.amueblar).toHaveBeenCalledWith(expect.any(Buffer), "image/jpeg", "tropical", "sala");
-    expect(fotos[0].url).toContain("originales/sala.jpg");
-    expect((fotos[0] as { variantes?: { tipo: string; detalle: string }[] }).variantes?.[0]).toMatchObject({ tipo: "amueblada", detalle: "Estilo tropical" });
+    const guardada = db.propiedades[0].fotos[0] as { url: string; variantes?: { tipo: string; detalle: string }[] };
+    expect(guardada.url).toContain("originales/sala.jpg");
+    expect(guardada.variantes?.[0]).toMatchObject({ tipo: "amueblada", detalle: "Estilo tropical" });
     expect((await db.repo.presupuestoIA(corredor.id)).gastoDia).toBeCloseTo(0.3);
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
@@ -127,6 +129,16 @@ describe("imágenes desde el chat de Patty", () => {
     expect(pideImagen("crea un banner para mi página")).toEqual({ tipo: "generar", formato: "horizontal" });
     expect(pideImagen("Amuebla esta sala en estilo moderno", [foto])).toMatchObject({ tipo: "editar" });
     expect(pideImagen("Quítale el carro a la foto", [foto])).toMatchObject({ tipo: "editar" });
+    // QA: frases normales que no son pedidos de imagen (antes generaban una imagen pagada).
+    expect(pideImagen("Quiero ver la foto principal de la casa de Escazú")).toBeNull();
+    expect(pideImagen("Arma la historia de Laura")).toBeNull();
+    expect(pideImagen("Necesito las fotos de la casa DLX-01")).toBeNull();
+    expect(pideImagen("Cambia el tono de este texto", [foto])).toBeNull();
+    expect(pideImagen("Mejora la descripción de esta casa", [foto])).toBeNull();
+    // Un post de una casa suya va a "Imagen para redes" (datos reales, sin gastar).
+    expect(pideImagen("Hazme un post para Instagram de la casa DLX-01")).toEqual({ tipo: "casa_propia" });
+    expect(pideImagen("Crea una imagen de mi casa en Santa Ana")).toEqual({ tipo: "casa_propia" });
+    expect(pideImagen("Necesito un flyer para un open house")).toEqual({ tipo: "generar", formato: "cuadrada" });
     // Sin foto, "quita…" no es una imagen; y preguntar sobre una foto tampoco.
     expect(pideImagen("Quita a Juan de mis clientes")).toBeNull();
     expect(pideImagen("¿Qué le mejorarías a esta foto?", [foto])).toBeNull();
@@ -162,5 +174,48 @@ describe("fotos que puede leer la imagen para redes", () => {
     const fotos = [{ url: "https://propio/a.jpg" }, { url: "https://images.unsplash.com/photo-1?w=1" }, { url: "http://169.254.169.254/x" }];
     expect(fotosParaRedes(fotos, { id: "c", activo: true }, propias).map((f) => f.url)).toEqual(["https://propio/a.jpg"]);
     expect(fotosParaRedes(fotos, { id: "c", activo: false }, propias).map((f) => f.url)).toEqual(["https://images.unsplash.com/photo-1?w=1"]);
+  });
+});
+
+describe("QA: la foto con IA no pisa cambios hechos mientras se generaba", () => {
+  it("si el corredor sube otra foto mientras se amuebla, la foto nueva no se pierde", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://proyecto.supabase.co");
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(Buffer.from("foto"), { headers: { "content-type": "image/jpeg" } })));
+    const { crearVariante } = await import("../lib/fotos/variantes");
+    const { corredorBase, repoEnMemoria } = await import("./dobles");
+    const corredor = corredorBase();
+    const db = repoEnMemoria(corredor);
+    const BASE = `https://proyecto.supabase.co/storage/v1/object/public/fotos/${corredor.id}/p1/originales`;
+    db.propiedades.push({ id: "p1", codigo: "C-1", titulo: "Casa", fotos: [{ url: `${BASE}/sala.jpg`, orden: 1 }] } as never);
+    const leidas = structuredClone(db.propiedades[0].fotos);
+    const editor = {
+      amueblar: vi.fn(async () => {
+        // Mientras OpenAI trabaja, el corredor sube otra foto desde el panel.
+        db.propiedades[0].fotos.push({ url: `${BASE}/cocina.jpg`, orden: 2 });
+        return { imagen: Buffer.from("x"), costoUsd: 0.1 };
+      }),
+    };
+    const r = await crearVariante({ repo: db.repo, fotos: editor, registrar: () => {} } as never, corredor, "p1", leidas, `${BASE}/sala.jpg`, { tipo: "amueblada", estilo: "moderno" });
+    expect(r.ok).toBe(true);
+    const fotos = db.propiedades[0].fotos;
+    expect(fotos.map((f) => f.url)).toEqual([`${BASE}/sala.jpg`, `${BASE}/cocina.jpg`]);
+    expect(fotos[0].variantes).toHaveLength(1);
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+});
+
+describe("QA: montos de los topes en el superadministrador", () => {
+  it("lee los montos como el resto del panel", async () => {
+    const { monto } = await import("../lib/admin/montos");
+    expect(monto("1.000", false)).toBe(1000); // antes quedaba en $1
+    expect(monto("1,000", false)).toBe(1000);
+    expect(monto("2,5", false)).toBe(2.5);
+    expect(monto("$15", false)).toBe(15);
+    expect(monto("", true)).toBeNull();
+    expect(monto("", false)).toBe("error");
+    expect(monto("-3", false)).toBe("error");
+    expect(monto("20000", false)).toBe("error");
+    expect(monto("abc", false)).toBe("error");
   });
 });

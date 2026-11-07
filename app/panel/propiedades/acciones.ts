@@ -317,9 +317,11 @@ export async function limpiarFoto(f: FormData) {
 export async function quitarVariante(f: FormData) {
   const id = String(f.get("id") ?? "");
   const { corredor, propiedad } = await propiedadPropia(id);
-  const fotos = propiedad.fotos ?? [];
-  if (sinVariante(fotos, String(f.get("url") ?? ""), String(f.get("variante") ?? ""))) {
-    await dependenciasPara(corredor).repo.guardarFotos(corredor.id, propiedad.id, fotos);
-  }
+  const urlFoto = String(f.get("url") ?? "");
+  const urlVariante = String(f.get("variante") ?? "");
+  await dependenciasPara(corredor).repo.fusionarFotos(corredor.id, propiedad.id, (actuales) => {
+    sinVariante(actuales, urlFoto, urlVariante);
+    return actuales;
+  });
   ir(`/panel/propiedades/${id}#fotos`, "Imagen quitada.");
 }
