@@ -211,7 +211,11 @@ export function ChatPatty({
     empezar(async () => {
       try {
         const r = await preguntarAPatty(
-          previos.map(({ autor, texto: t }) => ({ autor, texto: t })),
+          // Los archivos solo viajan en su mensaje; en los anteriores queda la nota de qué se mandó.
+          previos.map(({ autor, texto: t, adjuntos: a }) => ({
+            autor,
+            texto: a?.length ? `${t}\n[Adjuntó: ${a.map((x) => (x.tipo === "pdf" ? `PDF "${x.nombre}"` : "una foto")).join(", ")}]`.trim() : t,
+          })),
           limpio,
           dondeEsta,
           adjuntos.map(({ mediaType, datos, nombre: n }) => ({ mediaType, datos, nombre: n })),
