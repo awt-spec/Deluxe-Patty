@@ -11,6 +11,7 @@ import { ComoLlegar } from "../como-llegar";
 import { PreguntarPatty } from "../preguntar-patty";
 import { cambiarEnlaceCalendario, quitarBloqueoAgenda } from "./acciones";
 import { PreguntaBloqueo } from "./pregunta-bloqueo";
+import { VistaDelTelefono } from "./vista-telefono";
 
 type Cita = {
   id: string;
@@ -328,6 +329,7 @@ export default async function Agenda({
         </div>
       </header>
       <Aviso texto={aviso} />
+      {!pedida && <VistaDelTelefono actual={vista} fecha={fechaPedida} />}
 
       <div className="agenda-controles">
       {vista !== "lista" && (
