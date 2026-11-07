@@ -4185,8 +4185,10 @@ body:has(.marco.tema) {
 }
 .tema .saludo-fecha {
   color: var(--suave);
-  text-transform: capitalize;
   margin-top: 2px;
+}
+.tema .saludo-fecha::first-letter {
+  text-transform: uppercase;
 }
 
 /* Botón "clientes te esperan" con más presencia */
@@ -4364,7 +4366,6 @@ body:has(.marco.tema) {
 .tema .cal-barra h2 {
   font-size: 1.2rem;
   font-weight: 700;
-  text-transform: capitalize;
 }
 .tema .cal-cabecera {
   background: #fbfcfd;
@@ -4432,4 +4433,34 @@ body:has(.marco.tema) {
   background: #fff8e6;
   border: 1px solid #f5dfa0;
   color: #6b4e00;
+}
+
+/* El botón de contraer el menú es un enlace discreto, no una tarjeta */
+@media (min-width: 900px) {
+  .tema .navegacion .plegar,
+  .tema .navegacion .plegar:hover {
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+    min-height: 40px;
+    font-weight: 500;
+    color: var(--suave);
+  }
+  .tema .navegacion .plegar:hover {
+    color: #1d2730;
+  }
+}
+/* Botón "Más" del teléfono */
+.tema .saludo .boton-mas {
+  min-height: 48px;
+  min-width: 48px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+}
+.tema .saludo .boton-mas svg {
+  width: 26px;
+  height: 26px;
 }
