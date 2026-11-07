@@ -41,9 +41,10 @@ function conFormato(texto: string, alIr: () => void) {
     .replace(/^\s*-{3,}\s*$/gm, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim()
-    .split(/(\*\*[^*\n]+\*\*|\[[^\]\n]+\]\([^)\s]+\))/g)
+    .split(/(\*\*[^*\n]+\*\*|\*[^*\s][^*\n]*\*|\[[^\]\n]+\]\([^)\s]+\))/g)
     .map((parte, i) => {
       if (/^\*\*[^*]+\*\*$/.test(parte)) return <strong key={i}>{parte.slice(2, -2)}</strong>;
+      if (/^\*[^*]+\*$/.test(parte)) return <em key={i}>{parte.slice(1, -1)}</em>;
       const enlace = /^\[([^\]]+)\]\(([^)\s]+)\)$/.exec(parte);
       if (enlace) {
         return /^\/panel(\/[\w\-/?=&.]*)?$/.test(enlace[2]) ? (
