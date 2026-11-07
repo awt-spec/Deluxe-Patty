@@ -77,6 +77,10 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
       </section>
 
       <form action={guardarAjustes} className="pila">
+        <h2>Tu asistente</h2>
+        <label htmlFor="nombre_asistente">¿Cómo se llama?</label>
+        <input id="nombre_asistente" name="nombre_asistente" type="text" maxLength={40} defaultValue={corredor.nombre_asistente ?? "Patty"} />
+        <p className="suave">Es el nombre que ves en el botón de chat de cada página.</p>
         <h2>Respuestas</h2>
         <label className="casilla">
           <input type="checkbox" name="respuesta_automatica" defaultChecked={corredor.respuesta_automatica} />

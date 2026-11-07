@@ -4464,3 +4464,171 @@ body:has(.marco.tema) {
   width: 26px;
   height: 26px;
 }
+
+/* Patty · IA: botón flotante y chat en cada página */
+.patty-boton {
+  position: fixed;
+  right: 16px;
+  bottom: calc(84px + env(safe-area-inset-bottom));
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 6px 18px 6px 6px !important;
+  border-radius: 999px !important;
+  border: 0 !important;
+  background: linear-gradient(135deg, #00a884, #00876a) !important;
+  color: #fff !important;
+  font-weight: 650;
+  box-shadow: 0 8px 24px rgb(0 135 106 / 35%) !important;
+  cursor: pointer;
+}
+.patty-boton:hover {
+  transform: translateY(-1px);
+}
+.patty-avatar {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  color: #00876a;
+  font-weight: 800;
+  font-size: 1.15rem;
+  box-shadow: inset 0 0 0 2px rgb(0 168 132 / 25%);
+}
+.patty-panel {
+  position: fixed;
+  z-index: 50;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+@media (min-width: 900px) {
+  .patty-boton {
+    bottom: 24px;
+    right: 24px;
+  }
+  .patty-panel {
+    inset: auto 24px 24px auto;
+    width: 420px;
+    height: min(640px, calc(100vh - 48px));
+    border-radius: 14px;
+    border: 1px solid #e6e9ee;
+    box-shadow: 0 24px 60px rgb(16 24 40 / 22%);
+    overflow: hidden;
+  }
+}
+.patty-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 14px 14px 16px;
+  padding-top: max(14px, env(safe-area-inset-top));
+  background: linear-gradient(135deg, #00a884, #00876a);
+  color: #fff;
+}
+.patty-cabecera > span:nth-child(2) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+.patty-cabecera small {
+  opacity: 0.85;
+  font-size: 0.82rem;
+}
+.patty-cabecera button {
+  min-height: 36px !important;
+  padding: 4px 12px !important;
+  border-radius: 999px !important;
+  background: rgb(255 255 255 / 16%) !important;
+  border: 0 !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+.patty-cabecera .patty-cerrar {
+  font-size: 1.5rem;
+  line-height: 1;
+  width: 40px;
+  padding: 0 !important;
+}
+.patty-mensajes {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #f4f6f8;
+}
+.patty-bienvenida p {
+  font-size: 1.05rem;
+  margin: 4px 0 12px;
+}
+.patty-sugerencias {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.patty-sugerencias button {
+  text-align: left;
+  justify-content: flex-start;
+  min-height: 44px !important;
+  border-radius: 12px !important;
+  font-weight: 500 !important;
+  color: #00876a !important;
+  border-color: #cfe9e0 !important;
+}
+.patty-burbuja {
+  max-width: 88%;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 14px;
+  white-space: pre-wrap;
+  line-height: 1.45;
+  font-size: 0.98rem;
+}
+.patty-burbuja.mia {
+  align-self: flex-end;
+  background: #d9fdd3;
+  border-bottom-right-radius: 4px;
+}
+.patty-burbuja.suya {
+  align-self: flex-start;
+  background: #fff;
+  border: 1px solid #e6e9ee;
+  border-bottom-left-radius: 4px;
+}
+.patty-burbuja.pensando {
+  color: #5f6b76;
+  font-style: italic;
+}
+.patty-escribir {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+  border-top: 1px solid #e6e9ee;
+  background: #fff;
+}
+.patty-escribir textarea {
+  flex: 1;
+  resize: none;
+  min-height: 46px;
+  max-height: 140px;
+  border-radius: 23px !important;
+  padding: 12px 16px !important;
+}
+.patty-escribir button {
+  border-radius: 23px !important;
+}
+/* Que el botón flotante no tape lo último de la página */
+.tema .panel {
+  padding-bottom: 120px;
+}

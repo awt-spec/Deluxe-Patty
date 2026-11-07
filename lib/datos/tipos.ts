@@ -20,6 +20,8 @@ export interface Corredor {
   margen_visitas_min: number;
   /** De dónde sale el corredor cada día (por ejemplo, Lindora), para calcular traslados. */
   zona_base?: string | null;
+  /** Nombre de la asistente que ve el corredor (por ejemplo, Patty). */
+  nombre_asistente?: string;
   anticipacion_min_horas: number;
   horizonte_agenda_dias: number;
   hora_plan_dia: string;

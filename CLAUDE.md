@@ -97,6 +97,10 @@ letra y botones grandes, palabras de todos los días (nada de "borrador" ni "esc
 WhatsApp (letra del sistema, verde de WhatsApp para enviar). Inicio (`/panel`): arriba lo
 urgente (un botón "Revisar" con lo que espera al corredor), lo que hizo la asistente en 24 horas y "Qué hacer
 hoy" (visitas con hora de salida, recordatorios y clientes que no contestan), abajo todos los chats.
+**Patty · IA** (`corredores.nombre_asistente`, se cambia en Ajustes): botón flotante en cada página
+(`app/panel/patty.tsx`) que abre un chat del corredor con su asistente; `lib/panel/patty.ts` arma el contexto
+(plan de hoy, visitas de 7 días, clientes, dudas y casas) y `cerebro.conversarConCorredor` (`prompts/patty.md`)
+contesta sin escribir en la base ni mandar nada; la conversación vive en el navegador y respeta el tope diario.
 Agenda en calendario: día, semana, mes o lista (`?vista=`); se toca una hora libre para agendar
 (`/panel/agenda/nueva`), cada visita se abre para confirmarla, moverla o cancelarla con aviso al cliente
 (`/panel/agenda/visita/<id>`, `lib/panel/visitas.ts`), con color por zona y el traslado entre visitas. Revisar (`/panel/revisar`, `lib/panel/pendientes.ts`) muestra uno a la
