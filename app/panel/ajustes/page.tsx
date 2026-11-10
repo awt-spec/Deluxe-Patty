@@ -2,8 +2,9 @@ import { Volver } from "../volver";
 import Link from "next/link";
 import { fechaCorta } from "@/lib/formato";
 import { sesionConCorredor } from "@/lib/panel/sesion";
-import { desconectarGoogle, guardarAjustes, salir } from "../acciones";
+import { desconectarGoogle, guardarAjustes, probarWhatsApp, salir } from "../acciones";
 import { Aviso } from "../aviso";
+import { BotonEnviar } from "../boton-enviar";
 
 type Corredor = {
   zonas_e24: string[];
@@ -166,6 +167,21 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
       )}
 
       <h2>Cuenta</h2>
+      {corredor.whatsapp_phone_number_id && corredor.activo !== false && (
+        <section className="tarjeta pila">
+          <h2>Probar WhatsApp</h2>
+          <p className="suave">
+            Manda un mensaje de prueba de Meta a este celular, para comprobar que la conexión funciona. Con el número de
+            prueba, el celular tiene que estar registrado en Meta.
+          </p>
+          <form action={probarWhatsApp} className="pila">
+            <label htmlFor="telefono-prueba">Celular con código de país</label>
+            <input id="telefono-prueba" name="telefono" type="tel" inputMode="tel" autoComplete="tel" placeholder="+506 8888 8888" required />
+            <BotonEnviar texto="Mandar mensaje de prueba" pendiente="Enviando…" className="primario grande" />
+          </form>
+        </section>
+      )}
+
       <form action={salir} className="pila">
         <p className="suave">Entraste como {usuario.email}.</p>
         <button type="submit">Salir</button>
