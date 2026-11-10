@@ -8,7 +8,7 @@ export interface EnviadorWhatsApp {
   /** Documento (PDF) por enlace público. Solo dentro de la ventana de 24 horas. */
   documento(phoneNumberId: string, para: string, url: string, nombreArchivo: string, leyenda: string): Promise<string>;
   /** Plantilla aprobada por Meta: sirve fuera de la ventana de 24 horas. */
-  plantilla(phoneNumberId: string, para: string, nombre: string, parametros: string[]): Promise<string>;
+  plantilla(phoneNumberId: string, para: string, nombre: string, parametros: string[], idioma?: string): Promise<string>;
 }
 
 const VERSION_GRAPH = process.env.WHATSAPP_GRAPH_VERSION ?? "v23.0";
@@ -70,19 +70,17 @@ export function crearEnviadorWhatsApp(accessToken: string): EnviadorWhatsApp {
         type: "document",
         document: { link: url, filename: nombreArchivo, caption: leyenda },
       }),
-    plantilla: (phoneNumberId, para, nombre, parametros) =>
+    plantilla: (phoneNumberId, para, nombre, parametros, idioma = IDIOMA_PLANTILLAS) =>
       enviar(phoneNumberId, {
         to: para.replace(/^\+/, ""),
         type: "template",
         template: {
           name: nombre,
-          language: { code: IDIOMA_PLANTILLAS },
-          components: [
-            {
-              type: "body",
-              parameters: parametros.map((p) => ({ type: "text", text: limpiarParametro(p) })),
-            },
-          ],
+          language: { code: idioma },
+          // Sin parámetros no va el componente (Meta rechaza un body vacío, p. ej. en hello_world).
+          ...(parametros.length
+            ? { components: [{ type: "body", parameters: parametros.map((p) => ({ type: "text", text: limpiarParametro(p) })) }] }
+            : {}),
         },
       }),
   };
