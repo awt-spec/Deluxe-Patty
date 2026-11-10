@@ -13,6 +13,9 @@ import {
   type Resultado,
 } from "@/lib/panel/acciones";
 import { quitarConexion } from "@/lib/google/conexion";
+import { errorSeguro } from "@/lib/monitoreo/errores";
+import { normalizarTelefono } from "@/lib/panel/formularios";
+import { crearEnviadorWhatsApp } from "@/lib/whatsapp/enviar";
 import { COOKIE_CORREDOR, sesionConCorredor } from "@/lib/panel/sesion";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { clienteConSesion } from "@/lib/supabase/servidor";
@@ -213,4 +216,30 @@ export async function desconectarGoogle() {
   await quitarConexion(createAdminClient(), corredor.id);
   revalidatePath("/panel/ajustes");
   redirect(`/panel/ajustes?aviso=${encodeURIComponent("Google desconectado.")}`);
+}
+
+/**
+ * "Probar WhatsApp" (Ajustes): manda la plantilla hello_world de Meta (viene aprobada en todo número, en inglés) al
+ * celular que escriba el corredor, desde su propio número. Comprueba con su sesión quién es; en la demo (corredor
+ * inactivo) no sale nada. El aviso no lleva el teléfono ni el mensaje de Meta, solo tipo y código.
+ */
+export async function probarWhatsApp(f: FormData) {
+  const { corredor } = await sesionConCorredor();
+  const ruta = "/panel/ajustes";
+  const aviso = (m: string): never => {
+    revalidatePath(ruta);
+    redirect(`${ruta}?aviso=${encodeURIComponent(m)}`);
+  };
+  const para = normalizarTelefono(texto(f, "telefono"));
+  if (!para) aviso("Escribe el celular con código de país, por ejemplo +506 8888 8888.");
+  if (corredor.activo === false) aviso("Esta es una cuenta de demostración: no manda nada por WhatsApp.");
+  const token = process.env.WHATSAPP_ACCESS_TOKEN;
+  if (!token) aviso("Falta conectar WhatsApp: no está la llave de acceso en el servidor.");
+  if (!corredor.whatsapp_phone_number_id) aviso("Este corredor todavía no tiene número de WhatsApp conectado.");
+  try {
+    await crearEnviadorWhatsApp(token!).plantilla(corredor.whatsapp_phone_number_id!, para!, "hello_world", [], "en_US");
+  } catch (e) {
+    aviso(`WhatsApp no aceptó el mensaje (${errorSeguro(e)}). Revisa que el celular esté en la lista de prueba de Meta.`);
+  }
+  aviso("Mensaje de prueba enviado. Revisa ese WhatsApp.");
 }
