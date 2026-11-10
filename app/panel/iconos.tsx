@@ -229,6 +229,13 @@ export const IconoInicio = (p: Props) => (
   </Icono>
 );
 
+export const IconoMicrofono = (p: Props) => (
+  <Icono {...p}>
+    <rect x="9" y="3" width="6" height="11" rx="3" />
+    <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" />
+  </Icono>
+);
+
 export const IconoClip = (p: Props) => (
   <Icono {...p}>
     <path d="m20.5 11.5-8.6 8.6a5 5 0 0 1-7.1-7.1l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l7.9-7.9" />

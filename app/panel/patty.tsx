@@ -4,21 +4,26 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { separarPasos, useGuia, type Paso } from "./guia";
-import { IconoClip, IconoDobleCheck, IconoDocumento, IconoEnviar } from "./iconos";
-import { preguntarAPatty } from "./patty-acciones";
+import { IconoCamara, IconoClip, IconoDobleCheck, IconoDocumento, IconoEnviar, IconoMicrofono } from "./iconos";
+import { leerDocumento, preguntarAPatty, transcribirNota } from "./patty-acciones";
 
 // Chat del corredor con su asistente (Patty), como WhatsApp: burbujas con la hora, fondo de chat, caja
 // para escribir con botón para adjuntar fotos o PDF. Se usa en el botón flotante de cada página y en su
 // propia pantalla (/panel/patty). La conversación se guarda en este navegador (las fotos, solo en
 // miniatura); Patty lee los datos del negocio en cada pregunta.
 
-type Adjunto = { tipo: "imagen" | "pdf"; nombre: string; miniatura?: string };
+type Adjunto = { tipo: "imagen" | "pdf" | "texto"; nombre: string; miniatura?: string };
 type Turno = { autor: "corredor" | "asistente"; texto: string; hora?: string; adjuntos?: Adjunto[] };
-type ArchivoListo = Adjunto & { mediaType: string; datos: string; tamano: number };
+/** `grupo` junta los fotogramas de un mismo video: se ven y se quitan como uno solo. */
+type ArchivoListo = Adjunto & { mediaType: string; datos: string; tamano: number; grupo?: string };
 
 const CLAVE = "chat-patty";
-const MAX_ARCHIVOS = 4;
-const MAX_TOTAL = 3_900_000; // en base64, para no pasar los 4,5 MB de Vercel
+const MAX_ARCHIVOS = 10;
+const MAX_TOTAL = 3_900_000; // en base64 o texto, para no pasar los 4,5 MB de Vercel
+const FOTOGRAMAS = 6; // de un video
+const MAX_VIDEO_SEG = 300;
+const MAX_GRABACION_SEG = 180;
+const EXTENSIONES_DOCUMENTO = /\.(docx|xlsx|txt|csv|tsv|md)$/i;
 
 // Lo que se le puede pedir en cada pantalla (la primera que calce).
 const SUGERENCIAS: [RegExp, string, string[]][] = [
@@ -119,6 +124,71 @@ const aBase64 = (archivo: File) =>
     r.readAsDataURL(archivo);
   });
 
+const esperar = (el: HTMLVideoElement, evento: "loadedmetadata" | "seeked", ms: number) =>
+  new Promise<void>((ok, mal) => {
+    const t = setTimeout(() => mal(new Error("tiempo")), ms);
+    el.addEventListener(
+      evento,
+      () => {
+        clearTimeout(t);
+        ok();
+      },
+      { once: true },
+    );
+    el.addEventListener("error", () => mal(new Error("video")), { once: true });
+  });
+
+const minSeg = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+
+/** Fotogramas repartidos a lo largo de un video (no se manda el video: Claude lee fotos). Todo pasa en el teléfono. */
+async function fotogramasDeVideo(archivo: File, cuantos: number): Promise<{ datos: string; mini: string; segundo: number }[]> {
+  const url = URL.createObjectURL(archivo);
+  try {
+    const v = document.createElement("video");
+    v.muted = true;
+    v.playsInline = true;
+    v.preload = "auto";
+    v.src = url;
+    await esperar(v, "loadedmetadata", 20_000);
+    if (!Number.isFinite(v.duration) || v.duration <= 0) throw new Error("duracion");
+    if (v.duration > MAX_VIDEO_SEG) throw new Error("largo");
+    const salida: { datos: string; mini: string; segundo: number }[] = [];
+    const lienzo = document.createElement("canvas");
+    for (let i = 0; i < cuantos; i++) {
+      const segundo = (v.duration * (i + 0.5)) / cuantos;
+      v.currentTime = segundo;
+      await esperar(v, "seeked", 15_000);
+      const escala = Math.min(1, 1280 / Math.max(v.videoWidth, v.videoHeight));
+      lienzo.width = Math.round(v.videoWidth * escala);
+      lienzo.height = Math.round(v.videoHeight * escala);
+      lienzo.getContext("2d")!.drawImage(v, 0, 0, lienzo.width, lienzo.height);
+      const grande = lienzo.toDataURL("image/jpeg", 0.72);
+      const chica = document.createElement("canvas");
+      chica.width = 220;
+      chica.height = Math.max(1, Math.round((220 * lienzo.height) / lienzo.width));
+      chica.getContext("2d")!.drawImage(lienzo, 0, 0, chica.width, chica.height);
+      salida.push({ datos: grande.split(",")[1] ?? "", mini: chica.toDataURL("image/jpeg", 0.6), segundo });
+    }
+    return salida;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+/** Lo que se anota en los mensajes anteriores sobre lo que se adjuntó (los archivos solo viajan una vez). */
+function notaDeAdjuntos(a: { tipo: Adjunto["tipo"]; nombre: string }[]): string {
+  const fotos = a.filter((x) => x.tipo === "imagen" && !x.nombre.includes(" · ")).length;
+  const video = a.filter((x) => x.tipo === "imagen" && x.nombre.includes(" · ")).length;
+  return [
+    fotos ? (fotos === 1 ? "una foto" : `${fotos} fotos`) : null,
+    video ? `fotogramas de un video (${video})` : null,
+    ...a.filter((x) => x.tipo === "pdf").map((x) => `PDF "${x.nombre}"`),
+    ...a.filter((x) => x.tipo === "texto").map((x) => `archivo "${x.nombre}"`),
+  ]
+    .filter(Boolean)
+    .join(", ");
+}
+
 export function ChatPatty({
   nombre,
   corredor,
@@ -147,9 +217,15 @@ export function ChatPatty({
   const [archivos, setArchivos] = useState<ArchivoListo[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [preparando, setPreparando] = useState(false);
+  const [arrastrando, setArrastrando] = useState(false);
+  const [grabando, setGrabando] = useState(false);
+  const [segundos, setSegundos] = useState(0);
+  const [transcribiendo, setTranscribiendo] = useState(false);
   const [pensando, empezar] = useTransition();
   const fin = useRef<HTMLDivElement>(null);
   const entradaArchivo = useRef<HTMLInputElement>(null);
+  const entradaCamara = useRef<HTMLInputElement>(null);
+  const grabadora = useRef<{ rec: MediaRecorder; trozos: Blob[]; flujo: MediaStream; reloj: ReturnType<typeof setInterval>; cancelado: boolean } | null>(null);
   const clave = `${CLAVE}:${corredor}`;
   const [, aviso, sugerencias] = SUGERENCIAS.find(([r]) => r.test(ruta))!;
 
@@ -178,41 +254,140 @@ export function ChatPatty({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preguntaInicial]);
 
-  async function elegirArchivos(lista: FileList | null) {
+  /** Fotos, PDF, Word, Excel, texto y videos cortos. Entran del clip, la cámara, pegando o arrastrando. */
+  async function elegirArchivos(lista: ArrayLike<File> | null) {
     if (!lista?.length) return;
     setError(null);
     setPreparando(true);
     const nuevos: ArchivoListo[] = [];
+    const cupo = () => MAX_ARCHIVOS - archivos.length - nuevos.length;
+    let aviso: string | null = null;
     try {
-      for (const f of Array.from(lista).slice(0, MAX_ARCHIVOS - archivos.length)) {
+      for (const f of Array.from(lista)) {
+        if (cupo() <= 0) {
+          aviso = `Solo caben ${MAX_ARCHIVOS} archivos por mensaje.`;
+          break;
+        }
         if (f.type.startsWith("image/")) {
-          const grande = await achicar(f, 1600, 0.85);
+          // Más fotos, más chicas: 10 caben en un mensaje.
+          const grande = await achicar(f, 1400, 0.78);
           const mini = await achicar(f, 220, 0.7);
           const datos = grande.split(",")[1] ?? "";
-          nuevos.push({ tipo: "imagen", nombre: f.name, miniatura: mini, mediaType: "image/jpeg", datos, tamano: datos.length });
-        } else if (f.type === "application/pdf") {
+          nuevos.push({ tipo: "imagen", nombre: f.name || "foto.jpg", miniatura: mini, mediaType: "image/jpeg", datos, tamano: datos.length });
+        } else if (f.type.startsWith("video/")) {
+          const n = Math.min(FOTOGRAMAS, cupo());
+          try {
+            const cuadros = await fotogramasDeVideo(f, n);
+            const grupo = `v${Date.now()}${nuevos.length}`;
+            for (const c of cuadros)
+              nuevos.push({ tipo: "imagen", nombre: `${f.name} · ${minSeg(c.segundo)}`, miniatura: c.mini, mediaType: "image/jpeg", datos: c.datos, tamano: c.datos.length, grupo });
+          } catch (e) {
+            aviso =
+              e instanceof Error && e.message === "largo"
+                ? `"${f.name}" dura más de ${MAX_VIDEO_SEG / 60} minutos. Manda uno más corto.`
+                : `No pude abrir el video "${f.name}". Prueba con otro, o mándame algunas fotos de la casa.`;
+          }
+        } else if (f.type === "application/pdf" || /\.pdf$/i.test(f.name)) {
           if (f.size > 2_800_000) {
-            setError(`"${f.name}" pesa más de 2,8 MB. Manda uno más liviano o solo las páginas que importan.`);
+            aviso = `"${f.name}" pesa más de 2,8 MB. Manda uno más liviano o solo las páginas que importan.`;
             continue;
           }
           const datos = await aBase64(f);
           nuevos.push({ tipo: "pdf", nombre: f.name, mediaType: "application/pdf", datos, tamano: datos.length });
+        } else if (EXTENSIONES_DOCUMENTO.test(f.name)) {
+          // Word, Excel y texto se convierten a texto en el servidor.
+          const fd = new FormData();
+          fd.append("archivo", f);
+          const r = await leerDocumento(fd);
+          if (r.ok) nuevos.push({ tipo: "texto", nombre: r.nombre, mediaType: "text/plain", datos: r.texto, tamano: r.texto.length });
+          else aviso = r.motivo;
         } else {
-          setError("Solo se pueden adjuntar fotos y PDF.");
+          aviso = "Puedo leer fotos, videos cortos, PDF, Word (.docx), Excel (.xlsx) y texto (.txt, .csv).";
         }
       }
     } catch {
-      setError("No pude leer uno de los archivos.");
+      aviso = "No pude leer uno de los archivos.";
     }
     const todos = [...archivos, ...nuevos];
     if (todos.reduce((s, a) => s + a.tamano, 0) > MAX_TOTAL) {
       setError("Entre todos pesan demasiado. Manda menos archivos o más livianos.");
     } else {
       setArchivos(todos);
+      if (aviso) setError(aviso);
     }
     setPreparando(false);
-    if (entradaArchivo.current) entradaArchivo.current.value = "";
+    for (const r of [entradaArchivo, entradaCamara]) if (r.current) r.current.value = "";
   }
+
+  /** Nota de voz: se graba en el teléfono, se pasa a texto y queda en la caja para revisarla antes de enviar. */
+  async function empezarGrabacion() {
+    if (grabadora.current || grabando) return;
+    setError(null);
+    try {
+      const flujo = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const tipo = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"].find((t) => MediaRecorder.isTypeSupported(t));
+      const rec = new MediaRecorder(flujo, tipo ? { mimeType: tipo, audioBitsPerSecond: 32_000 } : { audioBitsPerSecond: 32_000 });
+      const trozos: Blob[] = [];
+      rec.ondataavailable = (e) => e.data.size && trozos.push(e.data);
+      rec.onstop = () => void terminarGrabacion();
+      let seg = 0;
+      const reloj = setInterval(() => {
+        seg += 1;
+        setSegundos(seg);
+        if (seg >= MAX_GRABACION_SEG) pararGrabacion(false);
+      }, 1000);
+      grabadora.current = { rec, trozos, flujo, reloj, cancelado: false };
+      setSegundos(0);
+      setGrabando(true);
+      rec.start();
+    } catch {
+      setError("No pude usar el micrófono. Revisa que el navegador tenga permiso para usarlo.");
+    }
+  }
+
+  function pararGrabacion(cancelar: boolean) {
+    const g = grabadora.current;
+    if (!g) return;
+    g.cancelado = cancelar;
+    clearInterval(g.reloj);
+    g.flujo.getTracks().forEach((t) => t.stop());
+    if (g.rec.state !== "inactive") g.rec.stop();
+    else void terminarGrabacion();
+    setGrabando(false);
+  }
+
+  async function terminarGrabacion() {
+    const g = grabadora.current;
+    grabadora.current = null;
+    if (!g || g.cancelado || g.trozos.length === 0) return;
+    const tipo = g.rec.mimeType || g.trozos[0].type || "audio/webm";
+    const blob = new Blob(g.trozos, { type: tipo });
+    setTranscribiendo(true);
+    try {
+      const fd = new FormData();
+      fd.append("audio", new File([blob], `nota.${tipo.includes("mp4") ? "m4a" : tipo.includes("ogg") ? "ogg" : "webm"}`, { type: tipo }));
+      const r = await transcribirNota(fd);
+      if (r.ok) {
+        setTexto((t) => (t.trim() ? `${t.trim()} ${r.texto}` : r.texto));
+      } else setError(r.motivo);
+    } catch {
+      setError("No se pudo mandar el audio. Inténtalo de nuevo.");
+    }
+    setTranscribiendo(false);
+  }
+
+  // Si se cierra el chat grabando, se suelta el micrófono.
+  useEffect(
+    () => () => {
+      const g = grabadora.current;
+      if (g) {
+        g.cancelado = true;
+        clearInterval(g.reloj);
+        g.flujo.getTracks().forEach((t) => t.stop());
+      }
+    },
+    [],
+  );
 
   function enviar(mensaje: string) {
     const limpio = mensaje.trim();
@@ -234,7 +409,7 @@ export function ChatPatty({
           // Los archivos solo viajan en su mensaje; en los anteriores queda la nota de qué se mandó.
           previos.map(({ autor, texto: t, adjuntos: a }) => ({
             autor,
-            texto: a?.length ? `${t}\n[Adjuntó: ${a.map((x) => (x.tipo === "pdf" ? `PDF "${x.nombre}"` : "una foto")).join(", ")}]`.trim() : t,
+            texto: a?.length ? `${t}\n[Adjuntó: ${notaDeAdjuntos(a)}]`.trim() : t,
           })),
           limpio,
           dondeEsta,
@@ -257,7 +432,25 @@ export function ChatPatty({
   };
 
   return (
-    <section className={`patty-chat ${modo}`} aria-label={`Chat con ${nombre}`}>
+    <section
+      className={`patty-chat ${modo}${arrastrando ? " arrastrando" : ""}`}
+      aria-label={`Chat con ${nombre}`}
+      onDragOver={(e) => {
+        if (e.dataTransfer.types.includes("Files")) {
+          e.preventDefault();
+          setArrastrando(true);
+        }
+      }}
+      onDragLeave={(e) => {
+        if (e.currentTarget === e.target) setArrastrando(false);
+      }}
+      onDrop={(e) => {
+        if (!e.dataTransfer.files.length) return;
+        e.preventDefault();
+        setArrastrando(false);
+        void elegirArchivos(e.dataTransfer.files);
+      }}
+    >
       <header className="patty-cabecera">
         {modo === "pagina" && (
           <Link href="/panel" className="patty-volver" aria-label="Volver">
@@ -292,8 +485,9 @@ export function ChatPatty({
         {turnos.length === 0 && (
           <div className="patty-bienvenida">
             <p className="patty-burbuja suya">
-              Hola, soy <strong>{nombre}</strong>. {aviso} ¿En qué te ayudo? Puedes mandarme fotos o un PDF de una casa
-              para analizarla, y si no sabes dónde está algo en el panel, te llevo.
+              Hola, soy <strong>{nombre}</strong>. {aviso} ¿En qué te ayudo? Puedes escribirme, mandarme una nota de voz
+              (el micrófono), fotos, un video corto, un PDF, un Word o un Excel de una casa para analizarla. Si no sabes
+              dónde está algo en el panel, te llevo.
             </p>
             <div className="patty-sugerencias">
               {sugerencias.map((s) => (
@@ -352,21 +546,33 @@ export function ChatPatty({
 
       {archivos.length > 0 && (
         <div className="patty-por-enviar">
-          {archivos.map((a, i) => (
-            <span key={i} className="patty-por-enviar-item">
-              {a.miniatura ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={a.miniatura} alt={a.nombre} />
-              ) : (
-                <span className="patty-archivo">
-                  <IconoDocumento tamano={18} /> {a.nombre}
+          {archivos
+            .map((a, i) => ({ a, i }))
+            // Los fotogramas de un video se ven como uno solo.
+            .filter(({ a, i }) => !a.grupo || archivos.findIndex((x) => x.grupo === a.grupo) === i)
+            .map(({ a, i }) => {
+              const miembros = a.grupo ? archivos.filter((x) => x.grupo === a.grupo).length : 1;
+              return (
+                <span key={i} className="patty-por-enviar-item">
+                  {a.miniatura ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={a.miniatura} alt={a.nombre} />
+                  ) : (
+                    <span className="patty-archivo">
+                      <IconoDocumento tamano={18} /> {a.nombre}
+                    </span>
+                  )}
+                  {a.grupo && <small className="patty-insignia">Video · {miembros}</small>}
+                  <button
+                    type="button"
+                    aria-label={`Quitar ${a.grupo ? "el video" : a.nombre}`}
+                    onClick={() => setArchivos((l) => (a.grupo ? l.filter((x) => x.grupo !== a.grupo) : l.filter((_, j) => j !== i)))}
+                  >
+                    ×
+                  </button>
                 </span>
-              )}
-              <button type="button" aria-label={`Quitar ${a.nombre}`} onClick={() => setArchivos((l) => l.filter((_, j) => j !== i))}>
-                ×
-              </button>
-            </span>
-          ))}
+              );
+            })}
         </div>
       )}
 
@@ -380,39 +586,84 @@ export function ChatPatty({
         <input
           ref={entradaArchivo}
           type="file"
-          accept="image/*,application/pdf"
+          accept="image/*,video/*,application/pdf,.pdf,.docx,.xlsx,.txt,.csv,.tsv,.md"
           multiple
           hidden
           onChange={(e) => void elegirArchivos(e.target.files)}
         />
-        <div className="patty-caja">
+        <input ref={entradaCamara} type="file" accept="image/*" capture="environment" hidden onChange={(e) => void elegirArchivos(e.target.files)} />
+        {grabando ? (
+          <div className="patty-grabando" role="status" aria-live="polite">
+            <button type="button" className="patty-grabar-cancelar" onClick={() => pararGrabacion(true)} aria-label="Cancelar la grabación">
+              Cancelar
+            </button>
+            <span className="patty-grabar-reloj">
+              <i aria-hidden /> Grabando {minSeg(segundos)}
+            </span>
+            <button type="button" className="patty-grabar-listo" onClick={() => pararGrabacion(false)} aria-label="Terminar y pasar a texto">
+              Listo
+            </button>
+          </div>
+        ) : (
+          <div className="patty-caja">
+            <button
+              type="button"
+              className="patty-adjuntar"
+              onClick={() => entradaArchivo.current?.click()}
+              disabled={preparando || archivos.length >= MAX_ARCHIVOS}
+              aria-label="Adjuntar fotos, video, PDF, Word o Excel"
+              title="Adjuntar fotos, video, PDF, Word o Excel"
+            >
+              <IconoClip tamano={22} />
+            </button>
+            <button
+              type="button"
+              className="patty-adjuntar sin-giro"
+              onClick={() => entradaCamara.current?.click()}
+              disabled={preparando || archivos.length >= MAX_ARCHIVOS}
+              aria-label="Tomar una foto"
+              title="Tomar una foto"
+            >
+              <IconoCamara tamano={22} />
+            </button>
+            <textarea
+              value={texto}
+              onChange={(e) => setTexto(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  enviar(texto);
+                }
+              }}
+              onPaste={(e) => {
+                // Pegar una captura o un archivo copiado lo adjunta.
+                if (e.clipboardData.files.length) {
+                  e.preventDefault();
+                  void elegirArchivos(e.clipboardData.files);
+                }
+              }}
+              placeholder={transcribiendo ? "Pasando tu nota de voz a texto…" : preparando ? "Preparando los archivos…" : "Mensaje"}
+              rows={1}
+              aria-label={`Mensaje para ${nombre}`}
+            />
+          </div>
+        )}
+        {!grabando && !texto.trim() && archivos.length === 0 ? (
           <button
             type="button"
-            className="patty-adjuntar"
-            onClick={() => entradaArchivo.current?.click()}
-            disabled={preparando || archivos.length >= MAX_ARCHIVOS}
-            aria-label="Adjuntar fotos o PDF"
-            title="Adjuntar fotos o PDF"
+            className="patty-enviar patty-microfono"
+            onClick={() => void empezarGrabacion()}
+            disabled={pensando || preparando || transcribiendo}
+            aria-label="Grabar una nota de voz"
+            title="Grabar una nota de voz"
           >
-            <IconoClip tamano={22} />
+            <IconoMicrofono tamano={22} />
           </button>
-          <textarea
-            value={texto}
-            onChange={(e) => setTexto(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                enviar(texto);
-              }
-            }}
-            placeholder={preparando ? "Preparando los archivos…" : "Mensaje"}
-            rows={1}
-            aria-label={`Mensaje para ${nombre}`}
-          />
-        </div>
-        <button type="submit" className="patty-enviar" disabled={pensando || preparando || (!texto.trim() && archivos.length === 0)} aria-label="Enviar">
-          <IconoEnviar tamano={22} />
-        </button>
+        ) : (
+          <button type="submit" className="patty-enviar" disabled={grabando || pensando || preparando || transcribiendo || (!texto.trim() && archivos.length === 0)} aria-label="Enviar">
+            <IconoEnviar tamano={22} />
+          </button>
+        )}
       </form>
     </section>
   );

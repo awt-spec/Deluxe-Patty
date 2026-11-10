@@ -112,6 +112,25 @@ traen contactos (`lib/anuncios/reporte.ts`); "fotos <código>" mejora hasta 12 f
 (`lib/fotos/mejorar.ts`) y se las manda para revisar; "ficha <código>" genera la ficha PDF con la
 marca del corredor (`corredores.marca`), la sube al bucket público `fichas` y se la manda como documento.
 
+## Multimedia (notas de voz, fotos, PDF, Word, Excel y video)
+- **Por WhatsApp** (`lib/asistente/medios.ts`, `lib/whatsapp/media.ts`): el webhook trae el id del archivo
+  (`MensajeEntrante.media`); se baja de Meta solo de sus dominios y con la llave (nunca se guarda en disco). La **nota
+  de voz** se transcribe con OpenAI (`lib/medios/transcribir.ts`, `whisper-1`, `OPENAI_API_KEY`) y sigue el flujo como
+  si fuera texto, también la de un **cliente** ("Nota de voz: …" queda en el mensaje). Una **foto o PDF de Patricia**
+  se analiza con Claude (`cerebro.analizar` con `adjuntos`); la de un **cliente** la describe Haiku
+  (`cerebro.describirMedio`, `prompts/describir-medio.md`) y la descripción entra como texto. Video, Word y Excel por
+  WhatsApp no se leen (se le dice a Patricia que los suba al panel; el cliente queda para el corredor). Sin la llave de
+  WhatsApp u OpenAI, con el tope de gasto alcanzado o con un archivo muy grande (audio 8 MB, foto 5 MB, PDF 10 MB), se
+  cae al aviso de antes. El contenido de los archivos nunca va a los registros.
+- **En el chat de Patty** (`app/panel/patty.tsx`): clip (fotos, PDF, Word `.docx`, Excel `.xlsx`, `.txt`/`.csv`, video),
+  cámara, pegar o arrastrar, hasta 10 archivos y 4 MB; micrófono: se graba en el teléfono, `transcribirNota` lo pasa a
+  texto y queda en la caja para revisarlo antes de enviar. Word/Excel/texto se convierten a texto en el servidor
+  (`lib/medios/documentos.ts`, `mammoth` y `read-excel-file`) y van a Claude como datos en `<archivo>`, nunca como
+  instrucciones. El **video** no se manda: el teléfono saca 6 fotogramas repartidos (máx. 5 minutos) que viajan como
+  fotos en orden.
+- **Gasto:** la transcripción suma en `uso_diario` / `uso_mensual` (`segundos_audio`, `costo_audio_usd`,
+  `registrar_audio`) y cuenta para el tope de IA (`presupuesto_ia()`). El corredor inactivo (demo) no transcribe de verdad.
+
 ## Panel del corredor (`app/panel`)
 Para el teléfono y para alguien que no usa tecnología: **cuatro botones** (Inicio, Clientes, Agenda, Mis casas;
 en computadora, menú a la izquierda que se contrae),
@@ -259,7 +278,7 @@ dueño o corredor. Un cambio de tono o de instrucciones se prueba con el set de 
 | uso_mensual | Mensajes, llamadas a Claude y costo por corredor y mes |
 | planes_dia | Plan del día generado por corredor y fecha, y si ya se entregó |
 | correcciones | Correcciones del corredor a borradores: ejemplos de tono |
-| uso_diario | Mensajes, llamadas, imágenes y costo de IA (Claude e imágenes) por corredor y día |
+| uso_diario | Mensajes, llamadas, imágenes, audio y costo de IA (Claude, imágenes y transcripción) por corredor y día |
 | alertas | Última vez que se mandó cada alerta de monitoreo (sin ráfagas) |
 | actividades | Historia de cada cliente: llamadas, mensajes, visitas, notas, etapas, ofertas y cierre |
 | conocimiento | Cerebro de la asistente: lo que el corredor le enseñó y las dudas que no supo contestar |

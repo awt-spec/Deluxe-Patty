@@ -61,6 +61,7 @@ export default async function WhatsApp({ searchParams }: { searchParams: Promise
           <Llave ok={llaves.secreto} nombre="WHATSAPP_APP_SECRET" ayuda="Clave secreta de la app: verifica la firma de Meta" />
           <Llave ok={llaves.verificacion} nombre="WHATSAPP_VERIFY_TOKEN" ayuda="La frase que Meta usa para verificar el webhook" />
           <Llave ok={llaves.urlApp} nombre="NEXT_PUBLIC_URL_APP" ayuda="Dirección pública de la app" />
+          <Llave ok={llaves.openai} nombre="OPENAI_API_KEY" ayuda="Transcribe las notas de voz y hace las imágenes con IA" />
           <Llave ok={llaves.soporte} nombre="SOPORTE_WHATSAPP + SOPORTE_PHONE_NUMBER_ID" ayuda="Opcional: alertas de fallas por WhatsApp" />
         </ul>
         <p className="adm-suave">Se ponen en Vercel → Settings → Environment Variables (Production) y después Redeploy.</p>

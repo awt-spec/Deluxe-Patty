@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 export const revalidate = 3600;
 
-const ACTUALIZADA = "7 de noviembre de 2026";
+const ACTUALIZADA = "10 de noviembre de 2026";
 
 export default async function Privacidad() {
   const marca = await marcaDeEntrada(null);
@@ -49,8 +49,10 @@ export default async function Privacidad() {
         </li>
       </ul>
       <p>
-        No se recogen datos sensibles. Los audios e imágenes que envíes no los procesa el asistente: se le avisan al
-        corredor para que los revise él.
+        No se recogen datos sensibles a propósito. Si mandas una nota de voz, se pasa a texto con inteligencia
+        artificial para entender tu mensaje; si mandas una foto o un PDF, se lee para saber de qué trata. Los
+        videos no se procesan: se le avisan al corredor para que los revise él. Los archivos no se guardan: solo
+        queda el texto de lo que se entendió en la conversación.
       </p>
 
       <h2>3. Para qué se usan</h2>
@@ -76,7 +78,8 @@ export default async function Privacidad() {
       <p>Solo con los proveedores que hacen funcionar el servicio, cada uno para su tarea:</p>
       <ul>
         <li>Meta (WhatsApp), para enviar y recibir los mensajes.</li>
-        <li>Anthropic (Claude), para procesar el texto de la conversación con inteligencia artificial.</li>
+        <li>Anthropic (Claude), para procesar el texto de la conversación con inteligencia artificial y leer fotos y PDF.</li>
+        <li>OpenAI, para pasar a texto las notas de voz y, cuando el corredor lo pide, para editar fotos de sus propiedades.</li>
         <li>Supabase y Vercel, para guardar los datos y alojar la aplicación.</li>
         <li>Google, si el corredor conecta su calendario o su correo, para agendar la visita y enviarte la invitación.</li>
       </ul>

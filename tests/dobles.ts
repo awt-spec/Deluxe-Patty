@@ -41,7 +41,7 @@ export function corredorBase(): Corredor {
 // Repositorio en memoria que imita las reglas de la base que importan aquí.
 export function repoEnMemoria(corredor: Corredor) {
   const mensajes: (NuevoMensaje & { id: string; creado?: Date })[] = [];
-  const costoDia = { usd: 0 };
+  const costoDia: { usd: number; segundosAudio?: number } = { usd: 0 };
   const conversaciones: (Conversacion & { ultimo_mensaje_cliente_at?: string })[] = [];
   const contactos: (Contacto & { es_corredor?: boolean; creado?: Date; anuncio_id?: string | null; origen?: string })[] = [];
   type AnuncioFila = Omit<AnuncioResumen, "contactos_periodo" | "contactos_total"> & {
@@ -110,6 +110,10 @@ export function repoEnMemoria(corredor: Corredor) {
     presupuestoIA: async () => ({ gastoDia: costoDia.usd, gastoMes: costoDia.usd, topeDia: 10, topeMes: 150 }),
     registrarImagenes: async (_c, _n, costo) => {
       costoDia.usd += costo;
+    },
+    registrarAudio: async (_c, segundos, costo) => {
+      costoDia.usd += costo;
+      costoDia.segundosAudio = (costoDia.segundosAudio ?? 0) + segundos;
     },
     entrantesDesde: async (_c, conversacionId, desde) =>
       mensajes.filter((m) => m.conversacion_id === conversacionId && m.direccion === "entrante" && (m.creado ?? new Date()) >= desde)

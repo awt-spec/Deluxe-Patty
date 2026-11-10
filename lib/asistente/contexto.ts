@@ -2,6 +2,7 @@ import type { Repositorio } from "../datos/repositorio";
 import type { AccionPendiente, Conversacion, Corredor, Intencion, UsoDelta, UsoMensual } from "../datos/tipos";
 import type { EditorFotos } from "../fotos/editor";
 import type { EnviadorWhatsApp } from "../whatsapp/enviar";
+import type { Medios } from "../whatsapp/media";
 import type { Cerebro } from "./cerebro";
 import type { Consumo } from "./costo";
 import { errorSeguro } from "../monitoreo/errores";
@@ -17,6 +18,8 @@ export interface Dependencias {
   registrar?: (evento: string, datos: Record<string, unknown>) => void;
   /** Mejora de fotos con IA; sin configurar si falta OPENAI_API_KEY. */
   fotos?: EditorFotos;
+  /** Descarga de archivos de WhatsApp y transcripción de notas de voz. Sin configurar: se avisa al corredor como antes. */
+  medios?: Medios;
   /** Reloj inyectable para pruebas. */
   ahora?: () => Date;
 }

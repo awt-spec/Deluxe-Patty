@@ -3,6 +3,14 @@
 
 export type TipoMensaje = "texto" | "imagen" | "audio" | "documento" | "ubicacion" | "otro";
 
+/** Archivo que viene con el mensaje (audio, imagen, documento o video): se descarga después con su id. */
+export interface MedioEntrante {
+  id: string;
+  mime: string;
+  clase: "audio" | "imagen" | "documento" | "video";
+  nombre?: string;
+}
+
 export interface MensajeEntrante {
   phoneNumberId: string;
   waMessageId: string;
@@ -11,6 +19,7 @@ export interface MensajeEntrante {
   tipo: TipoMensaje;
   texto: string | null;
   timestamp: Date;
+  media?: MedioEntrante;
 }
 
 export interface EstadoEntrega {
@@ -65,6 +74,12 @@ export function parsearWebhook(payload: any): EventosWebhook {
         else if (m.type === "interactive") {
           texto = m.interactive?.button_reply?.title ?? m.interactive?.list_reply?.title ?? null;
         } else if (m.type === "image" || m.type === "document") texto = m[m.type]?.caption ?? null;
+        const claseMedio = ({ audio: "audio", image: "imagen", document: "documento", video: "video", sticker: null } as Record<string, MedioEntrante["clase"] | null>)[m.type];
+        const bruto = claseMedio ? m[m.type] : null;
+        const media: MedioEntrante | undefined =
+          claseMedio && typeof bruto?.id === "string"
+            ? { id: bruto.id, mime: String(bruto.mime_type ?? ""), clase: claseMedio, ...(typeof bruto.filename === "string" ? { nombre: bruto.filename.slice(0, 120) } : {}) }
+            : undefined;
         mensajes.push({
           phoneNumberId,
           waMessageId: m.id,
@@ -73,6 +88,7 @@ export function parsearWebhook(payload: any): EventosWebhook {
           tipo: texto !== null && (m.type === "button" || m.type === "interactive") ? "texto" : tipo,
           texto,
           // Sin timestamp válido, la hora de llegada: un dato raro de Meta no debe tumbar el mensaje.
+          ...(media ? { media } : {}),
           timestamp: Number.isFinite(Number(m.timestamp)) && m.timestamp ? new Date(Number(m.timestamp) * 1000) : new Date(),
         });
       }

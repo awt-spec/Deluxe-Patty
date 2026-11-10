@@ -27,6 +27,9 @@ export interface UsoIA {
   costoImagenes: number;
   imagenes: number;
   llamadas: number;
+  /** Transcripción de notas de voz: segundos y costo. */
+  costoAudio: number;
+  segundosAudio: number;
 }
 
 export interface FilaAdmin {
@@ -67,8 +70,8 @@ export async function cargarCorredores(db: SupabaseClient, soloId?: string): Pro
   const dias = [...new Set(corredores.map((c) => fechaEn(c.zona_horaria)))];
   const meses = [...new Set(dias.map((d) => `${d.slice(0, 7)}-01`))];
   const [{ data: hoyData }, { data: mesData }] = await Promise.all([
-    db.from("uso_diario").select("corredor_id, dia, costo_claude_usd, costo_imagenes_usd, imagenes, llamadas_claude").in("dia", dias.length ? dias : ["1900-01-01"]),
-    db.from("uso_mensual").select("corredor_id, mes, mensajes_total, costo_claude_usd, costo_imagenes_usd, imagenes, llamadas_claude").in("mes", meses.length ? meses : ["1900-01-01"]),
+    db.from("uso_diario").select("corredor_id, dia, costo_claude_usd, costo_imagenes_usd, costo_audio_usd, segundos_audio, imagenes, llamadas_claude").in("dia", dias.length ? dias : ["1900-01-01"]),
+    db.from("uso_mensual").select("corredor_id, mes, mensajes_total, costo_claude_usd, costo_imagenes_usd, costo_audio_usd, segundos_audio, imagenes, llamadas_claude").in("mes", meses.length ? meses : ["1900-01-01"]),
   ]);
   type FilaUso = Record<string, unknown>;
   const usoDe = (filas: FilaUso[] | null, c: CorredorAdmin, clave: "dia" | "mes") => {
@@ -80,6 +83,8 @@ export async function cargarCorredores(db: SupabaseClient, soloId?: string): Pro
       costoImagenes: Number(f?.costo_imagenes_usd ?? 0),
       imagenes: Number(f?.imagenes ?? 0),
       llamadas: Number(f?.llamadas_claude ?? 0),
+      costoAudio: Number(f?.costo_audio_usd ?? 0),
+      segundosAudio: Number(f?.segundos_audio ?? 0),
     };
     return { uso, mensajes: Number(f?.mensajes_total ?? 0) };
   };
@@ -98,8 +103,8 @@ export async function cargarCorredores(db: SupabaseClient, soloId?: string): Pro
         hoy,
         mes: mes.uso,
         mensajesMes: mes.mensajes,
-        gastoHoy: hoy.costoClaude + hoy.costoImagenes,
-        gastoMes: mes.uso.costoClaude + mes.uso.costoImagenes,
+        gastoHoy: hoy.costoClaude + hoy.costoImagenes + hoy.costoAudio,
+        gastoMes: mes.uso.costoClaude + mes.uso.costoImagenes + mes.uso.costoAudio,
         topeDia: c.tope_ia_dia_usd ?? plataforma.topeDia,
         topeMes: c.tope_ia_mes_usd ?? plataforma.topeMes,
         entrantes24h: count ?? 0,
@@ -118,5 +123,7 @@ export function llavesWhatsApp() {
     verificacion: !!process.env.WHATSAPP_VERIFY_TOKEN,
     urlApp: !!process.env.NEXT_PUBLIC_URL_APP,
     soporte: !!process.env.SOPORTE_WHATSAPP && !!process.env.SOPORTE_PHONE_NUMBER_ID,
+    /** Hace falta para transcribir notas de voz y para las imágenes con IA. */
+    openai: !!process.env.OPENAI_API_KEY,
   };
 }
