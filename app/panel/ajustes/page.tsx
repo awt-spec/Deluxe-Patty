@@ -12,8 +12,8 @@ type Corredor = {
   precio_busqueda_max: number | null;
 };
 
-export default async function Ajustes({ searchParams }: { searchParams: Promise<{ aviso?: string }> }) {
-  const { aviso } = await searchParams;
+export default async function Ajustes({ searchParams }: { searchParams: Promise<{ aviso?: string; prueba?: string; ok?: string }> }) {
+  const { aviso, prueba, ok } = await searchParams;
   const { supabase, corredor, usuario } = await sesionConCorredor();
   const [{ data: google }, { data: extra }, { data: mes }, { data: dias }] = await Promise.all([
     supabase.from("google_conexiones").select("correo, conectado_at, ultimo_error").eq("corredor_id", corredor.id).maybeSingle(),
@@ -168,12 +168,17 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
 
       <h2>Cuenta</h2>
       {corredor.whatsapp_phone_number_id && corredor.activo !== false && (
-        <section className="tarjeta pila">
+        <section className="tarjeta pila" id="probar-whatsapp">
           <h2>Probar WhatsApp</h2>
           <p className="suave">
             Manda un mensaje de prueba de Meta a este celular, para comprobar que la conexión funciona. Con el número de
             prueba, el celular tiene que estar registrado en Meta.
           </p>
+          {prueba && (
+            <p className={ok === "1" ? "aviso" : "aviso error"} role="status">
+              {prueba}
+            </p>
+          )}
           <form action={probarWhatsApp} className="pila">
             <label htmlFor="telefono-prueba">Celular con código de país</label>
             <input id="telefono-prueba" name="telefono" type="tel" inputMode="tel" autoComplete="tel" placeholder="+506 8888 8888" required />
