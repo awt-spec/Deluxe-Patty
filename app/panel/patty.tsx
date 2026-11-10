@@ -150,6 +150,15 @@ async function fotogramasDeVideo(archivo: File, cuantos: number): Promise<{ dato
     v.preload = "auto";
     v.src = url;
     await esperar(v, "loadedmetadata", 20_000);
+    // Algunos videos (grabaciones de pantalla, webm) no declaran su duración: saltando al final el navegador la calcula.
+    if (!Number.isFinite(v.duration)) {
+      await new Promise<void>((ok) => {
+        const t = setTimeout(ok, 5000);
+        v.addEventListener("timeupdate", () => (clearTimeout(t), ok()), { once: true });
+        v.currentTime = 1e9;
+      });
+      v.currentTime = 0;
+    }
     if (!Number.isFinite(v.duration) || v.duration <= 0) throw new Error("duracion");
     if (v.duration > MAX_VIDEO_SEG) throw new Error("largo");
     const salida: { datos: string; mini: string; segundo: number }[] = [];
