@@ -7616,3 +7616,74 @@ body:has(.marco.tema) {
 .legal p, .legal ul { margin: 0 0 12px; }
 .legal ul { padding-left: 22px; }
 .legal-fecha { color: #6e6e73; font-size: 15px; }
+
+/* Entrada con contraseña: mismos campos que el correo, "Mostrar", enlace secundario y menos alto del logo en teléfono. */
+.entrada-tarjeta input[type="email"],
+.entrada-tarjeta input[type="password"],
+.entrada-tarjeta .campo-contrasena input {
+  width: 100%;
+  min-height: 54px;
+  font-size: 17px;
+  padding: 0 16px;
+  border-radius: 14px;
+  border: 1.5px solid var(--borde);
+  background: #fff;
+  color: var(--profundo);
+}
+.entrada-tarjeta .campo-contrasena {
+  position: relative;
+}
+.entrada-tarjeta .campo-contrasena input {
+  padding-right: 92px;
+}
+.entrada-tarjeta .campo-contrasena button {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  min-height: 44px;
+  min-width: 76px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #6b4f12;
+  font-size: 15px;
+  font-weight: 600;
+}
+.entrada-tarjeta label {
+  display: block;
+  margin: 10px 0 6px;
+  font-weight: 600;
+}
+.entrada-tarjeta form > label:first-of-type,
+.entrada-tarjeta form > input[type="hidden"] + label {
+  margin-top: 0;
+}
+.entrada-tarjeta .enlace-boton {
+  margin-top: 4px;
+  min-height: 48px;
+  border: 0;
+  background: transparent;
+  color: #6b4f12;
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.entrada-tarjeta .enlace-boton:disabled {
+  opacity: 0.6;
+}
+@media (max-height: 820px) {
+  .entrada-marca {
+    min-height: 96px;
+    max-height: 22vh;
+  }
+  .entrada-marca img {
+    width: min(132px, 36vw);
+  }
+  .entrada-tarjeta {
+    padding: 20px 20px 16px;
+  }
+}
