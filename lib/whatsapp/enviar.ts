@@ -14,6 +14,9 @@ export interface EnviadorWhatsApp {
 const VERSION_GRAPH = process.env.WHATSAPP_GRAPH_VERSION ?? "v23.0";
 // Solo para staging o pruebas locales: apunta los envíos a un servidor que imita a Meta.
 const BASE_GRAPH = process.env.WHATSAPP_GRAPH_BASE ?? "https://graph.facebook.com";
+// Idioma con que se crearon las plantillas en Meta. Tiene que coincidir exactamente ("es", "es_ES",
+// "es_MX"…): si no, Meta rechaza el envío con el código 132001 y el aviso al corredor no sale.
+export const IDIOMA_PLANTILLAS = process.env.WHATSAPP_PLANTILLA_IDIOMA ?? "es";
 
 export class ErrorWhatsApp extends Error {
   constructor(
@@ -73,7 +76,7 @@ export function crearEnviadorWhatsApp(accessToken: string): EnviadorWhatsApp {
         type: "template",
         template: {
           name: nombre,
-          language: { code: "es" },
+          language: { code: IDIOMA_PLANTILLAS },
           components: [
             {
               type: "body",

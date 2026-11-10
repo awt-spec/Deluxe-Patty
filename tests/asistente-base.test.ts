@@ -52,6 +52,13 @@ describe("Asistente Base", () => {
     expect(db.contactos[0]).toMatchObject({ telefono: PATRICIA, es_corredor: true });
   });
 
+  it("reconoce a Patricia aunque su número esté guardado con espacios, guiones o sin +", async () => {
+    corredor.whatsapp_corredor = "506 7000-0000";
+    const r = await procesarMensaje(deps, dePatricia("plan"));
+    expect(r).toMatchObject({ tipo: "corredor" });
+    expect(cerebro.clasificar).not.toHaveBeenCalled();
+  });
+
   it('"plan" le manda su plan del día con las visitas de hoy', async () => {
     await db.repo.crearCita({
       corredor_id: "c1",

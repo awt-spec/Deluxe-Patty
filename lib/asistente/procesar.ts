@@ -9,6 +9,8 @@ import { Contexto, type Dependencias } from "./contexto";
 import { SIN_CONSUMO, sumar, type Consumo } from "./costo";
 import { frenoCliente, type Freno } from "./limites";
 
+const soloDigitos = (t: string) => t.replace(/\D/g, "");
+
 export type { Dependencias } from "./contexto";
 
 export type Resultado =
@@ -47,7 +49,9 @@ export async function procesarMensaje(deps: Dependencias, entrante: MensajeEntra
   }
 
   // El corredor también le escribe a su asistente (análisis, plan del día): no es un cliente.
-  if (corredor.whatsapp_corredor && entrante.telefono === corredor.whatsapp_corredor) {
+  // Se comparan solo los dígitos: si el número del corredor quedó guardado con espacios, guiones o sin
+  // "+", igual se le reconoce (si no, sus propios mensajes se tratarían como de un cliente).
+  if (corredor.whatsapp_corredor && soloDigitos(entrante.telefono) === soloDigitos(corredor.whatsapp_corredor)) {
     return procesarMensajeCorredor(deps, corredor, entrante);
   }
 
