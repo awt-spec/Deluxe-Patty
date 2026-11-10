@@ -226,9 +226,11 @@ export async function desconectarGoogle() {
 export async function probarWhatsApp(f: FormData) {
   const { corredor } = await sesionConCorredor();
   const ruta = "/panel/ajustes";
-  const aviso = (m: string): never => {
+  // El resultado vuelve dentro de la tarjeta de la prueba (que está abajo): un aviso arriba de la página no se veía.
+  const aviso = (m: string, ok = false): never => {
+    console.info(JSON.stringify({ evento: "prueba_whatsapp", ok }));
     revalidatePath(ruta);
-    redirect(`${ruta}?aviso=${encodeURIComponent(m)}`);
+    redirect(`${ruta}?prueba=${encodeURIComponent(m)}&ok=${ok ? 1 : 0}#probar-whatsapp`);
   };
   const para = normalizarTelefono(texto(f, "telefono"));
   if (!para) aviso("Escribe el celular con código de país, por ejemplo +506 8888 8888.");
@@ -239,7 +241,8 @@ export async function probarWhatsApp(f: FormData) {
   try {
     await crearEnviadorWhatsApp(token!).plantilla(corredor.whatsapp_phone_number_id!, para!, "hello_world", [], "en_US");
   } catch (e) {
+    console.error(JSON.stringify({ evento: "error_prueba_whatsapp", error: errorSeguro(e) }));
     aviso(`WhatsApp no aceptó el mensaje (${errorSeguro(e)}). Revisa que el celular esté en la lista de prueba de Meta.`);
   }
-  aviso("Mensaje de prueba enviado. Revisa ese WhatsApp.");
+  aviso("Meta aceptó el mensaje de prueba. Si en un minuto no llega, revisa que el celular esté verificado en la lista de prueba de Meta.", true);
 }
