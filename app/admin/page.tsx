@@ -3,7 +3,7 @@ import { sesionSuperadmin } from "@/lib/admin/superadmin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Aviso } from "../panel/aviso";
 import { salir } from "../panel/acciones";
-import { guardarCorredor, guardarTopesPlataforma } from "./acciones";
+import { guardarCorredor, guardarTopesPlataforma, probarWhatsApp } from "./acciones";
 
 // Superadministrador: cuánto gasta en IA cada corredor (Claude + imágenes de OpenAI), hoy y en el mes,
 // y los topes que frenan ese gasto: los de la plataforma y, si hace falta, uno propio por corredor.
@@ -19,6 +19,7 @@ type FilaCorredor = {
   tope_ia_dia_usd: number | null;
   tope_ia_mes_usd: number | null;
   imagenes_activas: boolean;
+  whatsapp_phone_number_id: string | null;
 };
 type Uso = { corredor_id: string; costo_claude_usd: number; costo_imagenes_usd: number; imagenes: number; llamadas_claude: number };
 
@@ -40,7 +41,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
   const db = createAdminClient();
   const [{ data: plataforma }, { data: corredoresData }] = await Promise.all([
     db.from("plataforma").select("tope_ia_dia_usd, tope_ia_mes_usd, updated_at").eq("id", true).maybeSingle(),
-    db.from("corredores").select("id, nombre, activo, zona_horaria, tope_ia_dia_usd, tope_ia_mes_usd, imagenes_activas").order("activo", { ascending: false }).order("nombre"),
+    db.from("corredores").select("id, nombre, activo, zona_horaria, tope_ia_dia_usd, tope_ia_mes_usd, imagenes_activas, whatsapp_phone_number_id").order("activo", { ascending: false }).order("nombre"),
   ]);
   const corredores = (corredoresData ?? []) as FilaCorredor[];
   const topeDiaPlataforma = Number(plataforma?.tope_ia_dia_usd ?? 10);
@@ -184,6 +185,21 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
                 </label>
                 <button type="submit">Guardar</button>
               </form>
+              {c.activo && (
+                <form action={probarWhatsApp} className="admin-topes admin-prueba-wa">
+                  <input type="hidden" name="id" value={c.id} />
+                  <label>
+                    Probar WhatsApp{" "}
+                    <span className="suave">
+                      {c.whatsapp_phone_number_id ? `(número ${c.whatsapp_phone_number_id})` : "(sin número de WhatsApp en la base)"}
+                    </span>
+                    <input name="telefono" type="tel" inputMode="tel" placeholder="+506 8888 8888" required disabled={!c.whatsapp_phone_number_id} />
+                  </label>
+                  <button type="submit" disabled={!c.whatsapp_phone_number_id}>
+                    Mandar hello_world
+                  </button>
+                </form>
+              )}
             </article>
           ))}
           {filas.length === 0 && <p className="vacio">Todavía no hay corredores.</p>}
