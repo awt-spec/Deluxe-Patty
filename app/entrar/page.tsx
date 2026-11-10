@@ -2,6 +2,7 @@ import { BotonEnviar } from "@/app/panel/boton-enviar";
 import { IconoCorreo } from "@/app/panel/iconos";
 import { demoDisponible } from "@/lib/panel/demo";
 import { marcaDeEntrada, slugValido } from "@/lib/panel/marca";
+import { CampoContrasena } from "./campo-contrasena";
 import { entrarDemo, iniciarSesion, pedirEnlace } from "./acciones";
 import { OtroEnlace } from "./otro-enlace";
 import { PantallaEntrada } from "./pantalla";
@@ -37,7 +38,7 @@ export default async function Entrar({ searchParams }: { searchParams: Promise<{
   return (
     <PantallaEntrada marca={marca}>
       <h1>Entra a tu asistente</h1>
-      <p className="suave">Escribe tu correo y tu contraseña. Si no la tienes, te mandamos un enlace para entrar.</p>
+      <p className="suave">Escribe tu correo y tu contraseña.</p>
       {aviso && ERRORES[aviso] && (
         <p className="aviso error" role="alert">
           {ERRORES[aviso]}
@@ -58,12 +59,12 @@ export default async function Entrar({ searchParams }: { searchParams: Promise<{
           required
         />
         <label htmlFor="contrasena">Tu contraseña</label>
-        <input id="contrasena" name="contrasena" type="password" autoComplete="current-password" maxLength={200} />
+        <CampoContrasena />
         <BotonEnviar texto="Entrar" pendiente="Un momento…" className="primario grande" />
         <BotonEnviar
-          texto="Mejor mándame un enlace por correo"
+          texto="¿Sin contraseña? Mándame un enlace por correo"
           pendiente="Un momento…"
-          className="grande secundario"
+          className="enlace-boton"
           formAction={pedirEnlace}
         />
       </form>
