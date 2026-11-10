@@ -7,7 +7,9 @@ import { procesarMensajeCorredor, type ResultadoCorredor } from "./corredor";
 import { RechazoModelo } from "./cerebro";
 import { Contexto, type Dependencias } from "./contexto";
 import { SIN_CONSUMO, sumar, type Consumo } from "./costo";
+import { errorSeguro } from "../monitoreo/errores";
 import { frenoCliente, type Freno } from "./limites";
+import { NOMBRE_CLASE, leerMedio } from "./medios";
 
 const soloDigitos = (t: string) => t.replace(/\D/g, "");
 
@@ -96,10 +98,33 @@ export async function procesarMensaje(deps: Dependencias, entrante: MensajeEntra
 
   const nombreCliente = contacto.nombre ?? contacto.telefono;
 
+  // Notas de voz, fotos y PDF: se pasan a texto y siguen el flujo de siempre. Si no se pueden leer (video, Word,
+  // falta de llave o de presupuesto), el cliente queda para el corredor como antes.
+  if (entrante.media) {
+    const lectura = await leerMedio(deps, corredor, entrante);
+    let leido: string | null = null;
+    if (lectura.ok && lectura.clase === "audio") {
+      leido = lectura.texto;
+      await repo.actualizarMensaje(corredor.id, mensajeId, { contenido: `Nota de voz: ${lectura.texto}` });
+    } else if (lectura.ok) {
+      try {
+        const d = await deps.cerebro.describirMedio(corredor, lectura.adjunto);
+        await ctx.usoClaude(1, d.consumo);
+        const visto = `[El cliente mandó ${lectura.clase === "imagen" ? "una foto" : "un PDF"}. Lo que se ve: ${d.texto}]`;
+        leido = [entrante.texto, visto].filter(Boolean).join("\n");
+        await repo.actualizarMensaje(corredor.id, mensajeId, { contenido: leido });
+      } catch (error) {
+        if (error instanceof RechazoModelo) await ctx.usoClaude(1, error.consumo);
+        log("error_medio", { corredorId: corredor.id, error: errorSeguro(error) });
+      }
+    }
+    if (leido) entrante = { ...entrante, texto: leido };
+  }
+
   if (!entrante.texto) {
     await ctx.escalar(
       null,
-      `${nombreCliente} (${contacto.telefono}) mandó ${DESCRIPCION_TIPO[entrante.tipo]}. Revísalo en WhatsApp.`,
+      `${nombreCliente} (${contacto.telefono}) mandó ${entrante.media ? NOMBRE_CLASE[entrante.media.clase] : DESCRIPCION_TIPO[entrante.tipo]}. Revísalo en WhatsApp.`,
     );
     return { tipo: "escalado", intencion: null };
   }

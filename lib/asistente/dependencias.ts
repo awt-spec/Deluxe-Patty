@@ -4,7 +4,9 @@ import { createAdminClient } from "../supabase/admin";
 import { crearEditorOpenAI } from "../fotos/editor";
 import { crearAlertas, reclamarConSupabase, type Alertas } from "../monitoreo/alertas";
 import type { Corredor } from "../datos/tipos";
+import { crearTranscriptor } from "../medios/transcribir";
 import { crearEnviadorWhatsApp, enviadorDemo, enviadorSinConfigurar } from "../whatsapp/enviar";
+import { crearDescargador, mediosSinConfigurar, ErrorMedio, type Medios } from "../whatsapp/media";
 import { crearCerebroClaude } from "./cerebro";
 import type { Dependencias } from "./procesar";
 
@@ -39,6 +41,17 @@ export function alertasSoporte(): Alertas {
   return alertas;
 }
 
+/** Descargar archivos pide el token de WhatsApp; transcribir, la llave de OpenAI. Lo que falte falla como "sin llave". */
+export function crearMedios(): Medios {
+  const token = process.env.WHATSAPP_ACCESS_TOKEN;
+  const sin = mediosSinConfigurar();
+  const transcriptor = process.env.OPENAI_API_KEY ? crearTranscriptor() : null;
+  return {
+    descargar: token ? crearDescargador(token) : sin.descargar,
+    transcribir: transcriptor ?? (async () => Promise.reject(new ErrorMedio("sin_llave"))),
+  };
+}
+
 export function dependencias(): Dependencias {
   if (!deps) {
     // Sin token el panel sigue funcionando (casas, horario, probar la asistente); lo que tenga que salir
@@ -51,6 +64,7 @@ export function dependencias(): Dependencias {
       plantillaAviso: process.env.WHATSAPP_PLANTILLA_AVISO ?? "aviso_corredor",
       plantillaRecordatorio: process.env.WHATSAPP_PLANTILLA_RECORDATORIO ?? "recordatorio_visita",
       fotos: process.env.OPENAI_API_KEY ? crearEditorOpenAI() : undefined,
+      medios: crearMedios(),
       registrar: (evento, datos) => {
         const linea = JSON.stringify({ evento, ...datos });
         if (evento.startsWith("error_")) {

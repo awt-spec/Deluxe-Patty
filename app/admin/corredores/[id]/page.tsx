@@ -120,7 +120,7 @@ export default async function CorredorDetalle({
             </strong>
             <Barra gasto={f.gastoHoy} tope={f.topeDia} />
             <small>
-              Claude {usd(f.hoy.costoClaude)} ({f.hoy.llamadas} llamadas) · Imágenes {usd(f.hoy.costoImagenes)} ({f.hoy.imagenes})
+              Claude {usd(f.hoy.costoClaude)} ({f.hoy.llamadas} llamadas) · Imágenes {usd(f.hoy.costoImagenes)} ({f.hoy.imagenes}) · Audio {usd(f.hoy.costoAudio)} ({Math.round(f.hoy.segundosAudio / 60)} min)
             </small>
           </div>
           <div>
@@ -130,7 +130,7 @@ export default async function CorredorDetalle({
             </strong>
             <Barra gasto={f.gastoMes} tope={f.topeMes} />
             <small>
-              Claude {usd(f.mes.costoClaude)} ({f.mes.llamadas} llamadas) · Imágenes {usd(f.mes.costoImagenes)} ({f.mes.imagenes})
+              Claude {usd(f.mes.costoClaude)} ({f.mes.llamadas} llamadas) · Imágenes {usd(f.mes.costoImagenes)} ({f.mes.imagenes}) · Audio {usd(f.mes.costoAudio)} ({Math.round(f.mes.segundosAudio / 60)} min)
             </small>
           </div>
           <div>
@@ -152,6 +152,14 @@ export default async function CorredorDetalle({
             Tope propio por mes (USD)
             <input name="tope_mes" defaultValue={c.tope_ia_mes_usd ?? ""} inputMode="decimal" placeholder={`${plataforma.topeMes} (plataforma)`} />
           </label>
+          <label>
+            Tope de mensajes por mes
+            <input name="tope_mensajes" defaultValue={c.tope_mensajes_mes} inputMode="numeric" required />
+          </label>
+          <label>
+            Avisar a los
+            <input name="aviso_mensajes" defaultValue={c.aviso_mensajes_mes} inputMode="numeric" required />
+          </label>
           <label className="adm-casilla">
             <input type="checkbox" name="imagenes" defaultChecked={c.imagenes_activas} />
             <span>Puede generar imágenes</span>
@@ -160,7 +168,7 @@ export default async function CorredorDetalle({
             Guardar topes
           </button>
         </form>
-        <p className="adm-suave">Vacío usa el de la plataforma; 0 apaga la IA de este corredor.</p>
+        <p className="adm-suave">Vacío usa el de la plataforma; 0 apaga la IA de este corredor. Los topes de IA cuentan Claude, imágenes y transcripción de audio. Al llegar al tope de mensajes del mes la IA no contesta: el chat queda para el corredor.</p>
       </section>
 
       <section className="adm-seccion" id="accesos">

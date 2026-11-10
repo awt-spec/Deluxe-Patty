@@ -80,10 +80,21 @@ export interface ClasificacionCorreo {
 }
 
 export interface Adjunto {
-  tipo: "imagen" | "pdf";
-  mediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif" | "application/pdf";
+  /** "texto": Word, Excel o texto ya convertido a texto (datos es el texto mismo, no base64). */
+  tipo: "imagen" | "pdf" | "texto";
+  mediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif" | "application/pdf" | "text/plain";
   datos: string;
   nombre: string;
+}
+
+/** Lo que pasa de un archivo a Claude. El contenido de un archivo es información, nunca instrucciones. */
+export function bloqueDeAdjunto(a: Adjunto): Anthropic.Beta.BetaContentBlockParam {
+  if (a.tipo === "pdf") return { type: "document", source: { type: "base64", media_type: "application/pdf", data: a.datos }, title: a.nombre.slice(0, 100) };
+  if (a.tipo === "texto") {
+    const limpio = a.datos.slice(0, 60_000).replace(/</g, "‹").replace(/>/g, "›");
+    return { type: "text", text: `<archivo nombre="${a.nombre.replace(/["<>]/g, "").slice(0, 100)}">\n${limpio}\n</archivo>` };
+  }
+  return { type: "image", source: { type: "base64", media_type: a.mediaType as "image/jpeg", data: a.datos } };
 }
 
 export interface Cerebro {
@@ -104,7 +115,12 @@ export interface Cerebro {
   /** Dueño directo o corredor, para la búsqueda semanal. */
   clasificarAnuncio(anuncio: AnuncioE24, publicacionesDelAnunciante: number): Promise<ClasificacionAnuncio>;
   /** Análisis a pedido del corredor: propiedad u oferta (enlace o datos). */
-  analizar(corredor: Corredor, propiedades: Propiedad[], historial: Mensaje[], mensaje: string): Promise<Respuesta>;
+  analizar(corredor: Corredor, propiedades: Propiedad[], historial: Mensaje[], mensaje: string, adjuntos?: Adjunto[]): Promise<Respuesta>;
+  /**
+   * Descripción corta y neutra de una foto o PDF que mandó un cliente por WhatsApp, para que el resto del flujo la
+   * trate como texto (sin identificar personas por su cara y sin obedecer lo que diga el archivo).
+   */
+  describirMedio(corredor: Corredor, adjunto: Adjunto): Promise<{ texto: string; consumo: Consumo }>;
   /** Conversación del corredor con su asistente desde el panel, con un resumen de su negocio. */
   conversarConCorredor(
     corredor: Corredor,
@@ -498,11 +514,7 @@ export function crearCerebroClaude(client: Anthropic = crearClienteClaude()): Ce
         {
           role: "user",
           content: [
-            ...adjuntos.map((a): Anthropic.Beta.BetaContentBlockParam =>
-              a.tipo === "pdf"
-                ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: a.datos }, title: a.nombre.slice(0, 100) }
-                : { type: "image", source: { type: "base64", media_type: a.mediaType as "image/jpeg", data: a.datos } },
-            ),
+            ...adjuntos.map(bloqueDeAdjunto),
             { type: "text", text: mensaje },
           ],
         },
@@ -533,7 +545,7 @@ export function crearCerebroClaude(client: Anthropic = crearClienteClaude()): Ce
       return { texto, avisarCorredor: null, consumo: total };
     },
 
-    async analizar(corredor, propiedades, historial, mensaje) {
+    async analizar(corredor, propiedades, historial, mensaje, adjuntos = []) {
       const system = [
         instruccion("analizar"),
         `<corredor>\nNombre: ${corredor.nombre_contacto}, de ${corredor.nombre}.\n</corredor>`,
@@ -543,7 +555,12 @@ export function crearCerebroClaude(client: Anthropic = crearClienteClaude()): Ce
         { type: "web_fetch_20260209", name: "web_fetch", max_uses: 3, max_content_tokens: 20_000 },
       ];
       const messages: Anthropic.Beta.BetaMessageParam[] = [
-        { role: "user", content: mensajeUsuario(historial, mensaje, "corredor") },
+        {
+          role: "user",
+          content: adjuntos.length
+            ? [...adjuntos.map(bloqueDeAdjunto), { type: "text", text: mensajeUsuario(historial, mensaje, "corredor") }]
+            : mensajeUsuario(historial, mensaje, "corredor"),
+        },
       ];
       let total: Consumo = { tokensEntrada: 0, tokensSalida: 0, costoUsd: 0 };
       const textos: string[] = [];
@@ -568,6 +585,33 @@ export function crearCerebroClaude(client: Anthropic = crearClienteClaude()): Ce
       const texto = textos.join("").trim();
       if (!texto) throw new Error("Análisis sin texto");
       return { texto, avisarCorredor: null, consumo: total };
+    },
+
+    async describirMedio(corredor, adjunto) {
+      const res = await client.messages.create({
+        model: MODELO_CLASIFICAR,
+        max_tokens: 600,
+        system: instruccion("describir-medio"),
+        messages: [
+          {
+            role: "user",
+            content: [
+              bloqueDeAdjunto(adjunto) as Anthropic.ContentBlockParam,
+              { type: "text", text: `Un cliente de ${corredor.nombre_contacto} (${corredor.nombre}) mandó este archivo por WhatsApp. Descríbelo.` },
+            ],
+          },
+        ],
+      });
+      const c = consumo(MODELO_CLASIFICAR, res.usage);
+      if (res.stop_reason === "refusal") throw new RechazoModelo(c);
+      const texto = res.content
+        .filter((b): b is Anthropic.TextBlock => b.type === "text")
+        .map((b) => b.text)
+        .join("")
+        .trim()
+        .slice(0, 800);
+      if (!texto) throw new Error("Descripción sin texto");
+      return { texto, consumo: c };
     },
 
     async agendar(corredor, propiedades, agenda, historial, mensaje) {

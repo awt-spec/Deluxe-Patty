@@ -39,7 +39,7 @@ export interface Repositorio {
   actualizarMensaje(
     corredorId: string,
     id: string,
-    cambios: Partial<Pick<NuevoMensaje, "wa_message_id" | "estado_entrega" | "intencion">>,
+    cambios: Partial<Pick<NuevoMensaje, "wa_message_id" | "estado_entrega" | "intencion" | "contenido">>,
   ): Promise<void>;
   actualizarConversacion(
     corredorId: string,
@@ -57,6 +57,8 @@ export interface Repositorio {
   presupuestoIA(corredorId: string): Promise<PresupuestoIA>;
   /** Suma imágenes generadas o editadas con OpenAI y su costo (día y mes). */
   registrarImagenes(corredorId: string, cantidad: number, costoUsd: number): Promise<void>;
+  /** Suma segundos de audio transcritos (OpenAI) y su costo (día y mes). */
+  registrarAudio(corredorId: string, segundos: number, costoUsd: number): Promise<void>;
   /** Mensajes del cliente en una conversación desde un momento (para frenar ráfagas). */
   entrantesDesde(corredorId: string, conversacionId: string, desde: Date): Promise<number>;
   /** Marca el aviso de tope del mes. true solo para la llamada que lo marcó (evita avisos dobles). */
@@ -305,6 +307,11 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
     async registrarImagenes(corredorId, cantidad, costoUsd) {
       const { error } = await db.rpc("registrar_imagenes", { p_corredor_id: corredorId, p_cantidad: cantidad, p_costo_usd: costoUsd });
       verificar(error, "registrarImagenes");
+    },
+
+    async registrarAudio(corredorId, segundos, costoUsd) {
+      const { error } = await db.rpc("registrar_audio", { p_corredor_id: corredorId, p_segundos: Math.round(segundos), p_costo_usd: costoUsd });
+      verificar(error, "registrarAudio");
     },
 
     async entrantesDesde(corredorId, conversacionId, desde) {

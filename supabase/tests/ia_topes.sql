@@ -23,6 +23,15 @@ begin
   if (select imagenes from public.uso_mensual where corredor_id = '00000000-0000-4000-8000-000000000001') <> 2 then
     raise exception 'FALLA: el mes no contó las imágenes';
   end if;
+  -- Notas de voz: la transcripción suma al mismo presupuesto.
+  perform public.registrar_audio('00000000-0000-4000-8000-000000000001', 60, 0.2);
+  select * into p from public.presupuesto_ia('00000000-0000-4000-8000-000000000001');
+  if p.gasto_dia <> 1.0 or p.gasto_mes <> 1.0 then
+    raise exception 'FALLA: el gasto no suma el audio (% / %)', p.gasto_dia, p.gasto_mes;
+  end if;
+  if (select segundos_audio from public.uso_mensual where corredor_id = '00000000-0000-4000-8000-000000000001') <> 60 then
+    raise exception 'FALLA: el mes no contó los segundos de audio';
+  end if;
 end;
 $$;
 
@@ -43,6 +52,11 @@ begin
   begin
     perform public.presupuesto_ia('00000000-0000-4000-8000-000000000001');
     raise exception 'FALLA: el corredor puede llamar presupuesto_ia';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    perform public.registrar_audio('00000000-0000-4000-8000-000000000001', 10, 0.01);
+    raise exception 'FALLA: el corredor puede llamar registrar_audio';
   exception when insufficient_privilege then null;
   end;
   begin

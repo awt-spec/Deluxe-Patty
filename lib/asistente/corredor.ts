@@ -6,8 +6,9 @@ import type { Conversacion, Corredor } from "../datos/tipos";
 import { fichaDePropiedad } from "../fichas/comando";
 import { mejorarFotos } from "../fotos/mejorar";
 import type { MensajeEntrante } from "../whatsapp/parsear";
-import { RechazoModelo } from "./cerebro";
+import { RechazoModelo, type Adjunto } from "./cerebro";
 import { Contexto, type Dependencias } from "./contexto";
+import { mensajeMedioCorredor, leerMedio } from "./medios";
 import { armarPlan, datosDelPlan, fechaDelPlan } from "./plan";
 import { errorSeguro } from "../monitoreo/errores";
 
@@ -158,7 +159,23 @@ export async function procesarMensajeCorredor(
   // armado de nuevo porque pudo generarse horas antes.
   const fecha = fechaDelPlan(corredor, ahora);
   const pendiente = await repo.planPendiente(corredor.id, fecha);
-  const texto = entrante.texto?.trim() ?? "";
+  let texto = entrante.texto?.trim() ?? "";
+  // Notas de voz, fotos y PDF de Patricia: la nota de voz se trata como si lo hubiera escrito ("plan", "bloquear
+  // mañana…") y la foto o el PDF se analizan. Si no se puede leer, se le dice por qué.
+  let adjuntos: Adjunto[] = [];
+  let fallo: string | null = null;
+  if (entrante.media) {
+    const lectura = await leerMedio(deps, corredor, entrante);
+    if (lectura.ok && lectura.clase === "audio") {
+      texto = lectura.texto.trim();
+      await repo.actualizarMensaje(corredor.id, mensajeId, { contenido: `Nota de voz: ${lectura.texto}` });
+    } else if (lectura.ok) {
+      adjuntos = [lectura.adjunto];
+      if (!texto) texto = lectura.clase === "imagen" ? "Analiza esta foto." : "Analiza este documento.";
+    } else {
+      fallo = mensajeMedioCorredor(lectura.motivo, corredor.nombre_asistente ?? "Patty");
+    }
+  }
   if (pendiente !== null) {
     await responder(armarPlan(corredor, await datosDelPlan(deps, corredor, ahora), ahora));
     await repo.marcarPlanEnviado(corredor.id, fecha);
@@ -235,14 +252,14 @@ export async function procesarMensajeCorredor(
   }
 
   if (!texto) {
-    await responder(`Por ahora solo leo texto y enlaces. ${AYUDA}`);
+    await responder(fallo ?? `Por ahora solo leo texto y enlaces. ${AYUDA}`);
     return { tipo: "corredor", accion: "ayuda" };
   }
 
   const historial = (await repo.historial(corredor.id, conversacion.id, 11)).filter((m) => m.id !== mensajeId);
   try {
     const propiedades = await repo.propiedadesActivas(corredor.id);
-    const analisis = await deps.cerebro.analizar(corredor, propiedades, historial, texto);
+    const analisis = await deps.cerebro.analizar(corredor, propiedades, historial, texto, adjuntos);
     await ctx.usoClaude(1, analisis.consumo);
     await responder(analisis.texto);
     return { tipo: "corredor", accion: "analisis" };

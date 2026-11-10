@@ -56,9 +56,14 @@ export async function guardarTopesCorredor(f: FormData) {
   const dia = monto(f.get("tope_dia"), true);
   const mes = monto(f.get("tope_mes"), true);
   if (dia === "error" || mes === "error") ir(ruta, "Revisa los montos: números en dólares, de 0 a 10.000, o vacío para usar el de la plataforma.");
+  // Topes de mensajes de WhatsApp del mes: al llegar al tope la IA no contesta (el chat queda para el corredor).
+  const tope = Number(texto(f, "tope_mensajes"));
+  const aviso = Number(texto(f, "aviso_mensajes"));
+  if (!Number.isInteger(tope) || !Number.isInteger(aviso) || tope < 1 || tope > 100_000 || aviso < 1) ir(ruta, "Los mensajes del mes son números enteros: el tope de 1 a 100.000 y el aviso de 1 al tope.");
+  if (aviso > tope) ir(ruta, "El aviso no puede ser mayor que el tope de mensajes.");
   const { error } = await createAdminClient()
     .from("corredores")
-    .update({ tope_ia_dia_usd: dia, tope_ia_mes_usd: mes, imagenes_activas: f.get("imagenes") === "on" })
+    .update({ tope_ia_dia_usd: dia, tope_ia_mes_usd: mes, imagenes_activas: f.get("imagenes") === "on", tope_mensajes_mes: tope, aviso_mensajes_mes: aviso })
     .eq("id", id);
   registro("topes_corredor", !error);
   ir(ruta, error ? "No se pudo guardar." : "Topes guardados.", !error);
