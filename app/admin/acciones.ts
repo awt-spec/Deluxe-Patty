@@ -7,7 +7,7 @@ import { monto } from "@/lib/admin/montos";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizarTelefono } from "@/lib/panel/formularios";
 import { errorSeguro } from "@/lib/monitoreo/errores";
-import { crearEnviadorWhatsApp } from "@/lib/whatsapp/enviar";
+import { crearEnviadorWhatsApp, explicarErrorWhatsApp } from "@/lib/whatsapp/enviar";
 
 // Cambios del superadministrador. Cada acción vuelve a comprobar que quien la hace es superadmin y
 // escribe con el backend (plataforma y los topes de los corredores no los puede tocar nadie más).
@@ -43,6 +43,12 @@ export async function guardarCorredor(f: FormData) {
   volver(error ? "No se pudo guardar." : "Guardado.");
 }
 
+// El resultado de la prueba vuelve dentro de la tarjeta del corredor (que está abajo): un aviso arriba no se veía.
+function dePrueba(mensaje: string, id: string, ok = false): never {
+  revalidatePath("/admin");
+  redirect(`/admin?prueba=${encodeURIComponent(mensaje)}&ok=${ok ? 1 : 0}&c=${encodeURIComponent(id)}#c-${id}`);
+}
+
 /**
  * Mensaje de prueba por WhatsApp: la plantilla hello_world de Meta (viene aprobada en todo número, en inglés)
  * al celular que se escriba, desde el número del corredor elegido. Sirve para comprobar el token y el número
@@ -53,16 +59,16 @@ export async function probarWhatsApp(f: FormData) {
   const id = String(f.get("id") ?? "");
   if (!/^[0-9a-f-]{36}$/.test(id)) volver("No encontré ese corredor.");
   const para = normalizarTelefono(String(f.get("telefono") ?? ""));
-  if (!para) volver("Escribe el celular con código de país, p. ej. +506 8888 8888.");
+  if (!para) dePrueba("Escribe el celular con código de país, p. ej. +506 8888 8888.", id);
   const token = process.env.WHATSAPP_ACCESS_TOKEN;
-  if (!token) volver("Falta WHATSAPP_ACCESS_TOKEN en Vercel.");
+  if (!token) dePrueba("Falta WHATSAPP_ACCESS_TOKEN en Vercel.", id);
   const { data } = await createAdminClient().from("corredores").select("whatsapp_phone_number_id, activo").eq("id", id).maybeSingle();
-  if (!data?.whatsapp_phone_number_id) volver("Ese corredor no tiene número de WhatsApp (phone_number_id) en la base.");
-  if (!data.activo) volver("Un corredor inactivo no manda nada por WhatsApp.");
+  if (!data?.whatsapp_phone_number_id) dePrueba("Ese corredor no tiene número de WhatsApp (phone_number_id) en la base.", id);
+  if (!data.activo) dePrueba("Un corredor inactivo no manda nada por WhatsApp.", id);
   try {
     await crearEnviadorWhatsApp(token).plantilla(data.whatsapp_phone_number_id, para, "hello_world", [], "en_US");
   } catch (e) {
-    volver(`Meta rechazó el envío (${errorSeguro(e)}). Revisa el token, el número y que el celular esté en la lista de prueba.`);
+    dePrueba(`Meta rechazó el envío (${errorSeguro(e)}). ${explicarErrorWhatsApp(e)}`, id);
   }
-  volver("Mensaje de prueba enviado. Revisa el WhatsApp de ese celular.");
+  dePrueba("Meta aceptó el mensaje de prueba. Si en un minuto no llega, revisa que el celular esté verificado en la lista de prueba de Meta.", id, true);
 }

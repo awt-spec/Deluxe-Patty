@@ -27,6 +27,32 @@ export class ErrorWhatsApp extends Error {
   }
 }
 
+/** Qué significa un error de Meta y qué hacer, en palabras del corredor. Solo usa el código, nunca el texto de Meta. */
+export function explicarErrorWhatsApp(error: unknown): string {
+  const codigo = error instanceof ErrorWhatsApp ? error.codigo : undefined;
+  const estado = error instanceof ErrorWhatsApp ? error.status : undefined;
+  if (estado === 0) return "No está la llave de acceso de WhatsApp en el servidor.";
+  switch (codigo) {
+    case 190:
+      return "La llave de acceso venció o no es válida. Genera la permanente del usuario del sistema, ponla en Vercel y redespliega.";
+    case 133010:
+      return "El número todavía no está registrado en la API de WhatsApp (en Meta aparece como Pending). Termina el registro del número en Meta.";
+    case 131030:
+      return "Ese celular no está en la lista de destinatarios de prueba de Meta. Agrégalo y verifícalo con el código.";
+    case 131026:
+      return "Ese celular no tiene WhatsApp o no puede recibir el mensaje.";
+    case 131042:
+      return "La cuenta de WhatsApp Business no tiene método de pago. Agrégalo en Meta.";
+    case 132000:
+    case 132001:
+      return "La plantilla no existe en ese idioma. Revisa su nombre e idioma en Meta.";
+    case 100:
+      return "Meta no encontró el número o la llave no tiene permiso sobre él. Revisa el Phone number ID y los permisos del usuario del sistema.";
+    default:
+      return "Revisa la llave, el número y que el celular esté en la lista de prueba.";
+  }
+}
+
 // Meta rechaza parámetros de plantilla con saltos de línea, tabuladores o más de 4 espacios seguidos.
 export function limpiarParametro(valor: string, max = 900): string {
   const limpio = valor.replace(/[\r\n\t]+/g, " · ").replace(/ {4,}/g, "   ").trim();
