@@ -494,9 +494,10 @@ export function ChatPatty({
         {turnos.length === 0 && (
           <div className="patty-bienvenida">
             <p className="patty-burbuja suya">
-              Hola, soy <strong>{nombre}</strong>. {aviso} ¿En qué te ayudo? Puedes escribirme, mandarme una nota de voz
-              (el micrófono), fotos, un video corto, un PDF, un Word o un Excel de una casa para analizarla. Si no sabes
-              dónde está algo en el panel, te llevo.
+              <span className="patty-texto">
+                Hola, soy <strong>{nombre}</strong>. {aviso} ¿En qué te ayudo? Puedes escribirme, mandarme una nota de voz (el micrófono), fotos, un video
+                corto, un PDF, un Word o un Excel de una casa para analizarla. Si no sabes dónde está algo en el panel, te llevo.
+              </span>
             </p>
             <div className="patty-sugerencias">
               {sugerencias.map((s) => (

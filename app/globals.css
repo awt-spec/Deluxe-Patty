@@ -8472,3 +8472,12 @@ body:has(.marco.tema) {
     animation: none;
   }
 }
+
+/* Chat de Patty: "Grabando 0:02" en una sola línea. */
+.tema .patty-chat .patty-grabar-reloj {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.tema .patty-chat .patty-grabando {
+  gap: 4px;
+}
