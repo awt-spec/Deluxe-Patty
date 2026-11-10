@@ -104,6 +104,16 @@ export async function procesarMensaje(deps: Dependencias, entrante: MensajeEntra
     return { tipo: "escalado", intencion: null };
   }
 
+  // Derechos de privacidad (Ley 8968): quien escribe "Privacidad…" (lo que dice /privacidad) pasa directo al
+  // corredor, que tiene cinco días hábiles para responder. No lo contesta el modelo.
+  if (/^\s*privacidad\b/i.test(entrante.texto)) {
+    await ctx.escalar(
+      null,
+      `${nombreCliente} (${contacto.telefono}) hizo una solicitud de privacidad de sus datos (Ley 8968): "${entrante.texto.slice(0, 300)}". Respóndele en máximo 5 días hábiles.`,
+    );
+    return { tipo: "escalado", intencion: null };
+  }
+
   const historial = (await repo.historial(corredor.id, conversacion.id, MENSAJES_HISTORIAL + 1)).filter(
     (m) => m.id !== mensajeId,
   );
