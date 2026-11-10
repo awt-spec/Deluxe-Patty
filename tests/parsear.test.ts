@@ -27,6 +27,24 @@ describe("parsearWebhook", () => {
     ]);
   });
 
+  it("sin timestamp válido usa la hora de llegada en vez de una fecha inválida", () => {
+    const antes = Date.now();
+    const { mensajes } = parsearWebhook(
+      payload({
+        metadata: { phone_number_id: "PNID" },
+        messages: [
+          { id: "wamid.a", from: "50688880001", type: "text", text: { body: "Hola" } },
+          { id: "wamid.b", from: "50688880001", timestamp: "abc", type: "text", text: { body: "Hola" } },
+        ],
+      }),
+    );
+    for (const m of mensajes) {
+      expect(Number.isNaN(m.timestamp.getTime())).toBe(false);
+      expect(m.timestamp.getTime()).toBeGreaterThanOrEqual(antes);
+      expect(() => m.timestamp.toISOString()).not.toThrow();
+    }
+  });
+
   it("marca audios sin texto y respuestas de botón como texto", () => {
     const { mensajes } = parsearWebhook(
       payload({

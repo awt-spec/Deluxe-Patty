@@ -72,7 +72,8 @@ export function parsearWebhook(payload: any): EventosWebhook {
           nombrePerfil: nombres.get(m.from) ?? null,
           tipo: texto !== null && (m.type === "button" || m.type === "interactive") ? "texto" : tipo,
           texto,
-          timestamp: new Date(Number(m.timestamp) * 1000),
+          // Sin timestamp válido, la hora de llegada: un dato raro de Meta no debe tumbar el mensaje.
+          timestamp: Number.isFinite(Number(m.timestamp)) && m.timestamp ? new Date(Number(m.timestamp) * 1000) : new Date(),
         });
       }
 
