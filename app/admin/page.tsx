@@ -1,221 +1,144 @@
 import Link from "next/link";
-import { sesionSuperadmin } from "@/lib/admin/superadmin";
+import { cargarCorredores, llavesWhatsApp } from "@/lib/admin/datos";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { Aviso } from "../panel/aviso";
-import { salir } from "../panel/acciones";
-import { guardarCorredor, guardarTopesPlataforma, probarWhatsApp } from "./acciones";
+import { Cifra, Insignia, Mensaje, hace, usd } from "./ui";
 
-// Superadministrador: cuánto gasta en IA cada corredor (Claude + imágenes de OpenAI), hoy y en el mes,
-// y los topes que frenan ese gasto: los de la plataforma y, si hace falta, uno propio por corredor.
+// Resumen: lo primero que se ve. Cifras del mes, lo que pide atención (lo que falta o se está pasando) y las
+// últimas alertas de monitoreo.
 
-export const dynamic = "force-dynamic";
-export const metadata = { title: "Superadministrador", robots: { index: false } };
+type Atencion = { tono: "rojo" | "ambar" | "gris"; texto: string; href: string };
 
-type FilaCorredor = {
-  id: string;
-  nombre: string;
-  activo: boolean;
-  zona_horaria: string;
-  tope_ia_dia_usd: number | null;
-  tope_ia_mes_usd: number | null;
-  imagenes_activas: boolean;
-  whatsapp_phone_number_id: string | null;
-};
-type Uso = { corredor_id: string; costo_claude_usd: number; costo_imagenes_usd: number; imagenes: number; llamadas_claude: number };
-
-const usd = (n: number) => `$${n.toLocaleString("es-CR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const fechaEn = (zona: string, d = new Date()) => new Intl.DateTimeFormat("en-CA", { timeZone: zona }).format(d);
-
-function Barra({ gasto, tope }: { gasto: number; tope: number }) {
-  const pct = tope > 0 ? Math.min(100, (gasto / tope) * 100) : 100;
-  return (
-    <span className={`admin-barra${pct >= 100 ? " lleno" : pct >= 80 ? " cerca" : ""}`} title={`${Math.round(pct)}% del tope`}>
-      <span style={{ width: `${pct}%` }} />
-    </span>
-  );
-}
-
-export default async function Admin({ searchParams }: { searchParams: Promise<{ aviso?: string; prueba?: string; ok?: string; c?: string }> }) {
-  const { aviso, prueba, ok, c: corredorPrueba } = await searchParams;
-  const { correo } = await sesionSuperadmin();
+export default async function Resumen({ searchParams }: { searchParams: Promise<{ m?: string; ok?: string }> }) {
+  const { m, ok } = await searchParams;
   const db = createAdminClient();
-  const [{ data: plataforma }, { data: corredoresData }] = await Promise.all([
-    db.from("plataforma").select("tope_ia_dia_usd, tope_ia_mes_usd, updated_at").eq("id", true).maybeSingle(),
-    db.from("corredores").select("id, nombre, activo, zona_horaria, tope_ia_dia_usd, tope_ia_mes_usd, imagenes_activas, whatsapp_phone_number_id").order("activo", { ascending: false }).order("nombre"),
+  const [{ filas }, { data: alertas }] = await Promise.all([
+    cargarCorredores(db),
+    db.from("alertas").select("clave, enviada_at").order("enviada_at", { ascending: false }).limit(8),
   ]);
-  const corredores = (corredoresData ?? []) as FilaCorredor[];
-  const topeDiaPlataforma = Number(plataforma?.tope_ia_dia_usd ?? 10);
-  const topeMesPlataforma = Number(plataforma?.tope_ia_mes_usd ?? 150);
+  const llaves = llavesWhatsApp();
 
-  // Uso de hoy y del mes en la fecha local de cada corredor (la misma que usan los topes).
-  const dias = [...new Set(corredores.map((c) => fechaEn(c.zona_horaria)))];
-  const meses = [...new Set(dias.map((d) => `${d.slice(0, 7)}-01`))];
-  const [{ data: hoyData }, { data: mesData }] = await Promise.all([
-    db.from("uso_diario").select("corredor_id, dia, costo_claude_usd, costo_imagenes_usd, imagenes, llamadas_claude").in("dia", dias.length ? dias : ["1900-01-01"]),
-    db.from("uso_mensual").select("corredor_id, mes, costo_claude_usd, costo_imagenes_usd, imagenes, llamadas_claude").in("mes", meses.length ? meses : ["1900-01-01"]),
-  ]);
-  const usoDe = (filas: (Uso & { dia?: string; mes?: string })[] | null, c: FilaCorredor, clave: "dia" | "mes"): Uso => {
-    const hoy = fechaEn(c.zona_horaria);
-    const buscado = clave === "dia" ? hoy : `${hoy.slice(0, 7)}-01`;
-    const f = (filas ?? []).find((x) => x.corredor_id === c.id && x[clave] === buscado);
-    return {
-      corredor_id: c.id,
-      costo_claude_usd: Number(f?.costo_claude_usd ?? 0),
-      costo_imagenes_usd: Number(f?.costo_imagenes_usd ?? 0),
-      imagenes: Number(f?.imagenes ?? 0),
-      llamadas_claude: Number(f?.llamadas_claude ?? 0),
-    };
-  };
-  const filas = corredores.map((c) => {
-    const hoy = usoDe(hoyData as never, c, "dia");
-    const mes = usoDe(mesData as never, c, "mes");
-    return {
-      c,
-      hoy,
-      mes,
-      gastoHoy: hoy.costo_claude_usd + hoy.costo_imagenes_usd,
-      gastoMes: mes.costo_claude_usd + mes.costo_imagenes_usd,
-      topeDia: c.tope_ia_dia_usd ?? topeDiaPlataforma,
-      topeMes: c.tope_ia_mes_usd ?? topeMesPlataforma,
-    };
-  });
+  const activos = filas.filter((f) => f.c.activo);
   const totalHoy = filas.reduce((s, f) => s + f.gastoHoy, 0);
   const totalMes = filas.reduce((s, f) => s + f.gastoMes, 0);
+  const mensajesMes = filas.reduce((s, f) => s + f.mensajesMes, 0);
   const frenados = filas.filter((f) => f.gastoHoy >= f.topeDia || f.gastoMes >= f.topeMes).length;
 
+  // Lo que pide atención, de lo más grave a lo informativo.
+  const atencion: Atencion[] = [];
+  if (!llaves.token) atencion.push({ tono: "rojo", texto: "Falta WHATSAPP_ACCESS_TOKEN en Vercel: nada puede salir por WhatsApp.", href: "/admin/whatsapp" });
+  if (!llaves.secreto) atencion.push({ tono: "rojo", texto: "Falta WHATSAPP_APP_SECRET en Vercel: el webhook rechaza todo lo que llega.", href: "/admin/whatsapp" });
+  if (!llaves.verificacion) atencion.push({ tono: "rojo", texto: "Falta WHATSAPP_VERIFY_TOKEN en Vercel: Meta no puede verificar el webhook.", href: "/admin/whatsapp" });
+  for (const f of activos) {
+    const ruta = `/admin/corredores/${f.c.id}`;
+    if (!f.c.whatsapp_phone_number_id) atencion.push({ tono: "rojo", texto: `${f.c.nombre}: no tiene número de WhatsApp conectado (Phone number ID).`, href: ruta });
+    else if (!f.ultimoEntrante) atencion.push({ tono: "ambar", texto: `${f.c.nombre}: todavía no ha entrado ningún mensaje por WhatsApp. Revisa la conexión.`, href: "/admin/whatsapp" });
+    if (!f.c.whatsapp_corredor) atencion.push({ tono: "ambar", texto: `${f.c.nombre}: falta el celular del corredor. Sin él no recibe el plan del día ni los avisos, y sus mensajes se tratan como de un cliente.`, href: ruta });
+    if (f.gastoHoy >= f.topeDia || f.gastoMes >= f.topeMes) atencion.push({ tono: "rojo", texto: `${f.c.nombre}: frenado por tope de gasto de IA.`, href: ruta });
+    else if (f.gastoHoy >= f.topeDia * 0.8 || f.gastoMes >= f.topeMes * 0.8) atencion.push({ tono: "ambar", texto: `${f.c.nombre}: cerca del tope de gasto de IA.`, href: ruta });
+    if (f.mensajesMes >= f.c.aviso_mensajes_mes) atencion.push({ tono: "ambar", texto: `${f.c.nombre}: ${f.mensajesMes} de ${f.c.tope_mensajes_mes} mensajes del mes.`, href: ruta });
+    if (!f.c.respuesta_automatica) atencion.push({ tono: "gris", texto: `${f.c.nombre}: en piloto en sombra (las respuestas esperan su aprobación).`, href: ruta });
+  }
+  const orden = { rojo: 0, ambar: 1, gris: 2 } as const;
+  atencion.sort((a, b) => orden[a.tono] - orden[b.tono]);
+
   return (
-    <div className="marco tema">
-      <main className="panel admin">
-        <header className="encabezado">
-          <div>
-            <h1>Superadministrador</h1>
-            <p className="suave">{correo}</p>
-          </div>
-          <div className="botones">
-            <Link href="/panel" className="boton">
-              Ir al panel
-            </Link>
-            <form action={salir}>
-              <button type="submit">Salir</button>
-            </form>
-          </div>
-        </header>
-        <Aviso texto={aviso} />
+    <>
+      <Mensaje m={m} ok={ok} />
+      <header className="adm-encabezado">
+        <h1>Resumen</h1>
+        <p>Cómo va la plataforma hoy.</p>
+      </header>
 
-        <div className="cifras">
-          <div className="tarjeta cifra">
-            <strong>{usd(totalHoy)}</strong>
-            <span className="suave">gasto de IA hoy (todos)</span>
-          </div>
-          <div className="tarjeta cifra">
-            <strong>{usd(totalMes)}</strong>
-            <span className="suave">gasto de IA este mes</span>
-          </div>
-          <div className={`tarjeta cifra${frenados ? " alerta" : ""}`}>
-            <strong>{frenados}</strong>
-            <span className="suave">{frenados === 1 ? "corredor frenado por tope" : "corredores frenados por tope"}</span>
-          </div>
-        </div>
+      <div className="adm-cifras">
+        <Cifra valor={activos.length} etiqueta={activos.length === 1 ? "corredor activo" : "corredores activos"} />
+        <Cifra valor={mensajesMes.toLocaleString("es-CR")} etiqueta="mensajes este mes" />
+        <Cifra valor={usd(totalHoy)} etiqueta="gasto de IA hoy" />
+        <Cifra valor={usd(totalMes)} etiqueta="gasto de IA este mes" />
+        <Cifra valor={frenados} etiqueta={frenados === 1 ? "corredor frenado" : "corredores frenados"} tono={frenados ? "alerta" : undefined} />
+      </div>
 
-        <section className="tarjeta pila">
-          <h2>Topes de la plataforma</h2>
-          <p className="suave">
-            Se usan para todo corredor que no tenga uno propio. Al llegar al tope, la IA deja de responder (el chat queda para el
-            corredor) y no se generan imágenes hasta el día o el mes siguiente. Cuenta Claude más las imágenes de OpenAI.
-          </p>
-          <form action={guardarTopesPlataforma} className="admin-topes">
-            <label>
-              Por día (USD)
-              <input name="tope_dia" type="text" inputMode="decimal" defaultValue={topeDiaPlataforma} required />
-            </label>
-            <label>
-              Por mes (USD)
-              <input name="tope_mes" type="text" inputMode="decimal" defaultValue={topeMesPlataforma} required />
-            </label>
-            <button type="submit" className="primario">
-              Guardar
-            </button>
-          </form>
-        </section>
+      <section className="adm-seccion">
+        <h2>Atención</h2>
+        {atencion.length === 0 ? (
+          <p className="adm-vacio">Todo en orden. No hay nada pendiente.</p>
+        ) : (
+          <ul className="adm-lista">
+            {atencion.map((a, i) => (
+              <li key={i}>
+                <Insignia tono={a.tono}>{a.tono === "rojo" ? "Urgente" : a.tono === "ambar" ? "Revisar" : "Info"}</Insignia>
+                <span>{a.texto}</span>
+                <Link href={a.href} className="adm-enlace">
+                  Abrir
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
-        <section className="pila">
-          <h2>Corredores</h2>
-          {filas.map(({ c, hoy, mes, gastoHoy, gastoMes, topeDia, topeMes }) => (
-            <article key={c.id} id={`c-${c.id}`} className="tarjeta pila admin-corredor">
-              <div className="fila">
-                <h3>
-                  {c.nombre} {!c.activo && <span className="insignia">Demo / inactivo</span>}
-                </h3>
-                {(gastoHoy >= topeDia || gastoMes >= topeMes) && <span className="insignia alerta">Frenado por tope</span>}
-              </div>
-              <div className="admin-uso">
-                <div>
-                  <span className="suave">Hoy</span>
-                  <strong>
-                    {usd(gastoHoy)} <span className="suave">de {usd(topeDia)}</span>
-                  </strong>
-                  <Barra gasto={gastoHoy} tope={topeDia} />
-                  <small className="suave">
-                    Claude {usd(hoy.costo_claude_usd)} ({hoy.llamadas_claude} llamadas) · Imágenes {usd(hoy.costo_imagenes_usd)} ({hoy.imagenes})
-                  </small>
-                </div>
-                <div>
-                  <span className="suave">Este mes</span>
-                  <strong>
-                    {usd(gastoMes)} <span className="suave">de {usd(topeMes)}</span>
-                  </strong>
-                  <Barra gasto={gastoMes} tope={topeMes} />
-                  <small className="suave">
-                    Claude {usd(mes.costo_claude_usd)} ({mes.llamadas_claude} llamadas) · Imágenes {usd(mes.costo_imagenes_usd)} ({mes.imagenes})
-                  </small>
-                </div>
-              </div>
-              <form action={guardarCorredor} className="admin-topes">
-                <input type="hidden" name="id" value={c.id} />
-                <label>
-                  Tope propio por día
-                  <input name="tope_dia" type="text" inputMode="decimal" defaultValue={c.tope_ia_dia_usd ?? ""} placeholder={`${topeDiaPlataforma} (plataforma)`} />
-                </label>
-                <label>
-                  Tope propio por mes
-                  <input name="tope_mes" type="text" inputMode="decimal" defaultValue={c.tope_ia_mes_usd ?? ""} placeholder={`${topeMesPlataforma} (plataforma)`} />
-                </label>
-                <label className="casilla">
-                  <input type="checkbox" name="imagenes" defaultChecked={c.imagenes_activas} /> Puede generar imágenes
-                </label>
-                <button type="submit">Guardar</button>
-              </form>
-              {c.activo && (
-                <>
-                  {prueba && corredorPrueba === c.id && (
-                    <p className={ok === "1" ? "aviso" : "aviso error"} role="status">
-                      {prueba}
-                    </p>
-                  )}
-                <form action={probarWhatsApp} className="admin-topes admin-prueba-wa">
-                  <input type="hidden" name="id" value={c.id} />
-                  <label>
-                    Probar WhatsApp{" "}
-                    <span className="suave">
-                      {c.whatsapp_phone_number_id ? `(número ${c.whatsapp_phone_number_id})` : "(sin número de WhatsApp en la base)"}
+      <section className="adm-seccion">
+        <h2>Corredores</h2>
+        <div className="adm-scroll">
+          <table className="adm-tabla">
+            <thead>
+              <tr>
+                <th>Corredor</th>
+                <th>WhatsApp</th>
+                <th>Último mensaje</th>
+                <th>Mensajes del mes</th>
+                <th>IA hoy</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filas.map((f) => (
+                <tr key={f.c.id}>
+                  <td data-etiqueta="Corredor">
+                    <Link href={`/admin/corredores/${f.c.id}`} className="adm-enlace fuerte">
+                      {f.c.nombre}
+                    </Link>{" "}
+                    {!f.c.activo && <Insignia>Demo</Insignia>}
+                  </td>
+                  <td data-etiqueta="WhatsApp">{f.c.whatsapp_phone_number_id ? <Insignia tono="verde">Conectado</Insignia> : <Insignia tono="rojo">Sin número</Insignia>}</td>
+                  <td data-etiqueta="Último mensaje">{hace(f.ultimoEntrante)}</td>
+                  <td data-etiqueta="Mensajes del mes">
+                    <span className="adm-valor">
+                      {f.mensajesMes} <span className="adm-suave">de {f.c.tope_mensajes_mes}</span>
                     </span>
-                    <input name="telefono" type="tel" inputMode="tel" placeholder="+506 8888 8888" required disabled={!c.whatsapp_phone_number_id} />
-                  </label>
-                  <button type="submit" disabled={!c.whatsapp_phone_number_id}>
-                    Mandar hello_world
-                  </button>
-                </form>
-                </>
+                  </td>
+                  <td data-etiqueta="IA hoy">
+                    <span className="adm-valor">
+                      {usd(f.gastoHoy)} <span className="adm-suave">de {usd(f.topeDia)}</span>
+                    </span>
+                  </td>
+                </tr>
+              ))}
+              {filas.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="adm-vacio">
+                    Todavía no hay corredores.
+                  </td>
+                </tr>
               )}
-            </article>
-          ))}
-          {filas.length === 0 && <p className="vacio">Todavía no hay corredores.</p>}
-        </section>
-        <p className="suave">
-          El costo de Claude sale del uso de tokens; el de las imágenes es un estimado por el uso que informa OpenAI (precios en
-          las variables OPENAI_PRECIO_*). Un tope en 0 apaga la IA de ese corredor. Vacío: usa el de la plataforma.
-        </p>
-      </main>
-    </div>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="adm-seccion">
+        <h2>Alertas recientes</h2>
+        {(alertas ?? []).length === 0 ? (
+          <p className="adm-vacio">Sin alertas. El monitoreo no ha tenido que avisar nada.</p>
+        ) : (
+          <ul className="adm-lista simple">
+            {(alertas ?? []).map((a) => (
+              <li key={a.clave as string}>
+                <code>{String(a.clave).replace(/:\d+$/, "")}</code>
+                <span className="adm-suave">{hace(a.enviada_at as string)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </>
   );
 }

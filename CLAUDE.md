@@ -60,6 +60,8 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   borrador (`mensajes.estado_borrador = 'pendiente'`) hasta que el corredor las aprueba.
 - Datos personales de clientes y dueños (Ley 8968): nada de teléfonos, nombres ni contenido de mensajes
   en los registros de error.
+  Quien escribe «Privacidad…» por WhatsApp (lo que dice `/privacidad`) pasa directo al corredor, sin modelo, con
+  cinco días hábiles para responder.
 - El primer mensaje a un dueño directo lo manda el corredor a mano; la asistente nunca escribe en frío.
 - Las fotos mejoradas con IA se guardan aparte (`propiedades.fotos[i].mejorada_url`): la original nunca
   se reemplaza y el corredor las revisa antes de publicarlas, porque el modelo regenera la imagen y
@@ -74,6 +76,15 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   `lib/admin/superadmin.ts`; quién lo es: tabla `superadmins`, por correo): los de la plataforma (`plataforma`) y,
   si hace falta, uno propio por corredor (`corredores.tope_ia_dia_usd` / `tope_ia_mes_usd`, vacío = plataforma, 0 =
   apagado) y si puede usar imágenes (`imagenes_activas`). El corredor no los puede leer ni cambiar fuera de su fila.
+  `/admin` tiene cinco secciones (menú lateral; en el teléfono, pestañas): **Resumen** (cifras, "Atención" con lo
+  que falta o se pasa, alertas), **Corredores** (y `/admin/corredores/<id>`: Phone number ID, número de la asistente,
+  celular del corredor, activo, respuesta automática, topes, accesos y "Probar WhatsApp"), **WhatsApp** (diagnóstico
+  en vivo con la Graph API, `lib/whatsapp/graph.ts`: llaves puestas, estado de cada número, **registrar el número**
+  con PIN —error 133010—, **suscribir la app** a la cuenta y **conectar el webhook**), **Accesos** (crear usuarios con
+  contraseña, enlazar a un corredor, superadmins; nunca se quita el último ni a uno mismo) e **IA y topes**. Las
+  acciones (`app/admin/acciones.ts`) vuelven a comprobar al superadmin y no registran correos, teléfonos ni
+  contraseñas. El resultado de cada acción sale pegado arriba (`?m=&ok=`). `explicarErrorWhatsApp` traduce los
+  códigos de Meta (190, 133010, 131030, 131042, 132001…).
 - El corredor (rol `authenticated`) solo escribe lo que el panel le deja: ficha de sus propiedades (no las
   fotos), horario, bloqueos, corredores conocidos, leads y algunos ajustes. Mensajes, conversaciones,
   contactos, citas, anuncios y las fotos los escribe el backend tras comprobar con su sesión.
@@ -134,8 +145,8 @@ vez al día por navegador) y una línea al final del plan del día. Revisar (`/p
 vez lo que dijo el cliente y la respuesta propuesta, editable, con Enviar, Yo le escribo y No enviar (o
 "Escribirle por WhatsApp" y "Ya lo atendí" si pidió hablar con el corredor) y pasa al siguiente. Lo de
 poco uso (Dueños, Anuncios, Probar la asistente, Ajustes, Salir) está detrás de "Más" (`/panel/mas`). Íconos dibujados en `app/panel/iconos.tsx`
-(nada de emojis en la navegación); sobre Chats, el número de clientes que esperan. Entrada por enlace
-mágico de Supabase Auth (`/entrar`, sin crear usuarios: el acceso lo da `scripts/dar-acceso.mts`), con la
+(nada de emojis en la navegación); sobre Chats, el número de clientes que esperan. Entrada con correo y contraseña o por enlace
+mágico de Supabase Auth (`/entrar`, sin crear usuarios desde ahí: el acceso lo da `/admin` → Accesos o `scripts/dar-acceso.mts`), con la
 marca del corredor (`lib/panel/marca.ts`): la de `?c=<slug>` o la del único corredor si hay uno solo; el
 logo se sirve en `/marca/<slug>/logo`. Después de pedir el enlace, pantalla "Revisa tu correo" y otro
 enlace solo pasado un minuto. Con `DEMO_CORREO` aparece además "Ver la demo" (`lib/panel/demo.ts`): entra

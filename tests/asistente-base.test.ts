@@ -52,6 +52,14 @@ describe("Asistente Base", () => {
     expect(db.contactos[0]).toMatchObject({ telefono: PATRICIA, es_corredor: true });
   });
 
+  it('un cliente que escribe "Privacidad" pasa a Patricia sin llamar al modelo', async () => {
+    const r = await procesarMensaje(deps, entrante("Privacidad: borren mis datos", { telefono: "+50688880001" }));
+    expect(r).toEqual({ tipo: "escalado", intencion: null });
+    expect(cerebro.clasificar).not.toHaveBeenCalled();
+    expect(whatsapp.plantilla).toHaveBeenCalledWith("PNID", PATRICIA, "aviso_corredor", [expect.stringContaining("5 días hábiles")]);
+    expect(db.conversaciones[0]).toMatchObject({ estado: "escalada" });
+  });
+
   it("reconoce a Patricia aunque su número esté guardado con espacios, guiones o sin +", async () => {
     corredor.whatsapp_corredor = "506 7000-0000";
     const r = await procesarMensaje(deps, dePatricia("plan"));
