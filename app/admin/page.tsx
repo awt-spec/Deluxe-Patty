@@ -35,8 +35,8 @@ function Barra({ gasto, tope }: { gasto: number; tope: number }) {
   );
 }
 
-export default async function Admin({ searchParams }: { searchParams: Promise<{ aviso?: string }> }) {
-  const { aviso } = await searchParams;
+export default async function Admin({ searchParams }: { searchParams: Promise<{ aviso?: string; prueba?: string; ok?: string; c?: string }> }) {
+  const { aviso, prueba, ok, c: corredorPrueba } = await searchParams;
   const { correo } = await sesionSuperadmin();
   const db = createAdminClient();
   const [{ data: plataforma }, { data: corredoresData }] = await Promise.all([
@@ -141,7 +141,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
         <section className="pila">
           <h2>Corredores</h2>
           {filas.map(({ c, hoy, mes, gastoHoy, gastoMes, topeDia, topeMes }) => (
-            <article key={c.id} className="tarjeta pila admin-corredor">
+            <article key={c.id} id={`c-${c.id}`} className="tarjeta pila admin-corredor">
               <div className="fila">
                 <h3>
                   {c.nombre} {!c.activo && <span className="insignia">Demo / inactivo</span>}
@@ -186,6 +186,12 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
                 <button type="submit">Guardar</button>
               </form>
               {c.activo && (
+                <>
+                  {prueba && corredorPrueba === c.id && (
+                    <p className={ok === "1" ? "aviso" : "aviso error"} role="status">
+                      {prueba}
+                    </p>
+                  )}
                 <form action={probarWhatsApp} className="admin-topes admin-prueba-wa">
                   <input type="hidden" name="id" value={c.id} />
                   <label>
@@ -199,6 +205,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
                     Mandar hello_world
                   </button>
                 </form>
+                </>
               )}
             </article>
           ))}

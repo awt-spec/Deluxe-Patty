@@ -15,7 +15,8 @@ import {
 import { quitarConexion } from "@/lib/google/conexion";
 import { errorSeguro } from "@/lib/monitoreo/errores";
 import { normalizarTelefono } from "@/lib/panel/formularios";
-import { crearEnviadorWhatsApp } from "@/lib/whatsapp/enviar";
+import { reclamarConSupabase } from "@/lib/monitoreo/alertas";
+import { crearEnviadorWhatsApp, explicarErrorWhatsApp } from "@/lib/whatsapp/enviar";
 import { COOKIE_CORREDOR, sesionConCorredor } from "@/lib/panel/sesion";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { clienteConSesion } from "@/lib/supabase/servidor";
@@ -238,11 +239,15 @@ export async function probarWhatsApp(f: FormData) {
   const token = process.env.WHATSAPP_ACCESS_TOKEN;
   if (!token) aviso("Falta conectar WhatsApp: no está la llave de acceso en el servidor.");
   if (!corredor.whatsapp_phone_number_id) aviso("Este corredor todavía no tiene número de WhatsApp conectado.");
+  // Tope: una prueba cada 5 minutos por corredor. Sin él, cualquier usuario del panel podría mandar plantillas a
+  // cualquier número con la llave y el número de WhatsApp de la plataforma (costo y riesgo de que Meta lo marque).
+  const libre = await reclamarConSupabase(createAdminClient())(`prueba_whatsapp:${corredor.id}`, 5).catch(() => false);
+  if (!libre) aviso("Ya mandaste una prueba hace poco. Espera 5 minutos para mandar otra.");
   try {
     await crearEnviadorWhatsApp(token!).plantilla(corredor.whatsapp_phone_number_id!, para!, "hello_world", [], "en_US");
   } catch (e) {
     console.error(JSON.stringify({ evento: "error_prueba_whatsapp", error: errorSeguro(e) }));
-    aviso(`WhatsApp no aceptó el mensaje (${errorSeguro(e)}). Revisa que el celular esté en la lista de prueba de Meta.`);
+    aviso(`WhatsApp no aceptó el mensaje (${errorSeguro(e)}). ${explicarErrorWhatsApp(e)}`);
   }
   aviso("Meta aceptó el mensaje de prueba. Si en un minuto no llega, revisa que el celular esté verificado en la lista de prueba de Meta.", true);
 }
