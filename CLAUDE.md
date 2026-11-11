@@ -232,7 +232,9 @@ en una función cortada sin aviso.
 Errores (`registrar("error_…")`), fallas del webhook, crons fallidos, mensajes no entregados y costo de
 IA del día por encima de `COSTO_DIARIO_ALERTA_USD` llegan como alerta por WhatsApp a `SOPORTE_WHATSAPP`
 (plantilla de aviso), una por clave y hora como máximo (`reclamar_alerta`). En serverless, cada ruta
-espera las alertas pendientes (`esperarAlertas`). Prueba: `GET /api/monitoreo/prueba` con
+espera las alertas pendientes (`esperarAlertas`). Lo que falla sin cortar el flujo (Google Calendar no responde, una
+visita no se sincroniza) no se traga: `reportarFalla()` (`lib/monitoreo/fallas.ts`) lo registra y avisa a soporte; si
+Google no deja leer lo ocupado, además queda en `google_conexiones.ultimo_error` y el corredor lo ve en Ajustes. Prueba: `GET /api/monitoreo/prueba` con
 `Authorization: Bearer $CRON_SECRET`.
 
 ## Anuncios de Encuentra24

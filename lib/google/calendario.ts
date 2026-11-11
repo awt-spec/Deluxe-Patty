@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { errorSeguro } from "../monitoreo/errores";
+import { reportarFalla } from "../monitoreo/fallas";
 import { anotarError, type ConexionGoogle } from "./conexion";
 import { actualizarEvento, borrarEvento, crearEvento, ocupado, type EventoVisita } from "./google";
 
@@ -100,13 +101,22 @@ async function marcar(db: SupabaseClient, corredorId: string, citaId: string, ev
 
 /**
  * Lo que el corredor ya tiene ocupado en Google (sin contar las visitas que puso la asistente, que ya
- * están en la agenda). Si Google falla, la agenda sigue con lo propio: mejor ofrecer horarios que no
- * contestar.
+ * están en la agenda). Si Google falla, la agenda sigue con lo propio (mejor ofrecer horarios que no
+ * contestar), pero no en silencio: puede ofrecer una hora ocupada en Google, así que se registra, se
+ * avisa a soporte y queda anotado para que el corredor lo vea en Ajustes.
  */
-export async function ocupadoEnGoogle(conexion: ConexionGoogle, desde: Date, hasta: Date): Promise<{ inicio: Date; fin: Date }[]> {
+export async function ocupadoEnGoogle(
+  conexion: ConexionGoogle,
+  desde: Date,
+  hasta: Date,
+  db?: SupabaseClient,
+): Promise<{ inicio: Date; fin: Date }[]> {
   try {
     return await ocupado(await conexion.acceso(), conexion.calendario, desde, hasta);
-  } catch {
+  } catch (e) {
+    const error = errorSeguro(e);
+    reportarFalla("error_google_ocupado", { corredorId: conexion.corredorId, error });
+    if (db) await anotarError(db, conexion.corredorId, `No se pudo leer lo ocupado en Google Calendar (${error})`).catch(() => null);
     return [];
   }
 }
