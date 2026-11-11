@@ -241,6 +241,7 @@ export function ChatPatty({
   useEffect(() => {
     try {
       const g = JSON.parse(localStorage.getItem(clave) ?? "[]");
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage solo existe en el navegador: se lee al montar para no romper la hidratación.
       if (Array.isArray(g)) setTurnos(g.slice(-40));
     } catch {}
   }, [clave]);

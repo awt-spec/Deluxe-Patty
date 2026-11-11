@@ -1,5 +1,4 @@
 import { Volver } from "../../volver";
-import Link from "next/link";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Aviso } from "../../aviso";
 import { agregarCorredores, quitarCorredor } from "./acciones";

@@ -1,5 +1,4 @@
 import { Volver } from "../volver";
-import Link from "next/link";
 import { fechaCorta } from "@/lib/formato";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { desconectarGoogle, guardarAjustes, probarWhatsApp, salir } from "../acciones";

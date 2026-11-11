@@ -104,7 +104,7 @@ export type Inicio =
   | { ok: true; busqueda: string; siguiente: string; zonas: number }
   | { ok: false; motivo: "sin_corredor" | "sin_zonas" | "sin_presupuesto" };
 
-export async function iniciarBusqueda(d: DependenciasExtension, corredorId: string, ahora = new Date()): Promise<Inicio> {
+export async function iniciarBusqueda(d: DependenciasExtension, corredorId: string): Promise<Inicio> {
   const corredor = await d.almacen.corredor(corredorId);
   if (!corredor) return { ok: false, motivo: "sin_corredor" };
   if (corredor.zonas_e24.length === 0) return { ok: false, motivo: "sin_zonas" };

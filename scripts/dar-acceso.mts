@@ -7,7 +7,9 @@ if (!correo || !slug || !["corredor", "soporte"].includes(rol)) {
   console.error("Uso: npx tsx scripts/dar-acceso.mts <correo> <slug-del-corredor> [corredor|soporte]");
   process.exit(1);
 }
-const db = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
+const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+if (!url || !process.env.SUPABASE_SERVICE_ROLE_KEY) throw new Error("Faltan NEXT_PUBLIC_SUPABASE_URL (o SUPABASE_URL) y SUPABASE_SERVICE_ROLE_KEY en .env.local");
+const db = createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
 const { data: corredor, error: e1 } = await db.from("corredores").select("id, nombre").eq("slug", slug).single();
 if (e1 || !corredor) throw new Error(`No existe el corredor ${slug}`);

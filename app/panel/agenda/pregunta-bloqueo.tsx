@@ -29,6 +29,7 @@ export function PreguntaBloqueo({
   const [ver, setVer] = useState(false);
   useEffect(() => {
     try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage solo existe en el navegador: se lee al montar para no romper la hidratación.
       setVer(localStorage.getItem(CLAVE) !== hoy);
     } catch {
       setVer(true);

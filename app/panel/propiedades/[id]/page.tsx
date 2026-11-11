@@ -10,7 +10,7 @@ import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Aviso } from "../../aviso";
 import { PreguntarPatty } from "../../preguntar-patty";
 import { Avatar } from "../../avatar";
-import { NOMBRE_ETAPA, encaja, resumenBusca, telefonoBonito, type Busca, type Etapa } from "@/lib/crm/perfil";
+import { NOMBRE_ETAPA, encaja, telefonoBonito, type Busca, type Etapa } from "@/lib/crm/perfil";
 import { BotonEnviar } from "../../boton-enviar";
 import {
   cambiarEstado,
