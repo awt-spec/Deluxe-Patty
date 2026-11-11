@@ -1,4 +1,6 @@
 import { ocupadoEnGoogle } from "../google/calendario";
+import { errorSeguro } from "../monitoreo/errores";
+import { reportarFalla } from "../monitoreo/fallas";
 import { conexionDe } from "../google/conexion";
 import type { Busca, Etapa } from "../crm/perfil";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -364,8 +366,11 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
       verificar(bloqueos.error, "datosAgenda (bloqueos)");
       verificar(citas.error, "datosAgenda (citas)");
       // Lo que el corredor ya tiene ocupado en su Google Calendar (si lo conectó) también bloquea.
-      const google = await conexionDe(db, corredorId).catch(() => null);
-      const ocupadoGoogle = google ? await ocupadoEnGoogle(google, desde, hasta) : [];
+      const google = await conexionDe(db, corredorId).catch((e) => {
+        reportarFalla("error_google_conexion", { corredorId, error: errorSeguro(e) });
+        return null;
+      });
+      const ocupadoGoogle = google ? await ocupadoEnGoogle(google, desde, hasta, db) : [];
       const fechas = (filas: { inicio: string; fin: string }[] | null) =>
         (filas ?? []).map((f) => ({ inicio: new Date(f.inicio), fin: new Date(f.fin) }));
       return {

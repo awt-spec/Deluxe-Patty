@@ -3,6 +3,7 @@ import { crearRepositorioSupabase } from "../datos/repositorio";
 import { createAdminClient } from "../supabase/admin";
 import { crearEditorOpenAI } from "../fotos/editor";
 import { crearAlertas, reclamarConSupabase, type Alertas } from "../monitoreo/alertas";
+import { alAvisarFallas } from "../monitoreo/fallas";
 import type { Corredor } from "../datos/tipos";
 import { crearTranscriptor } from "../medios/transcribir";
 import { crearEnviadorWhatsApp, enviadorDemo, enviadorSinConfigurar } from "../whatsapp/enviar";
@@ -26,6 +27,9 @@ export function alertar(clave: string, texto: string) {
     .finally(() => pendientes.delete(p));
   pendientes.add(p);
 }
+
+// Las fallas que se reportan desde módulos de bajo nivel (Google, etc.) también llegan a soporte.
+alAvisarFallas(alertar);
 
 /** Alertas a soporte (SOPORTE_WHATSAPP) desde SOPORTE_PHONE_NUMBER_ID. */
 export function alertasSoporte(): Alertas {

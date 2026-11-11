@@ -1,3 +1,4 @@
+import { reportarFalla } from "../monitoreo/fallas";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Dependencias } from "../asistente/procesar";
 import { armarPlan, datosDelPlan, fechaDelPlan } from "../asistente/plan";
@@ -97,5 +98,9 @@ export async function mandarResumen(
 /** Después de cambiar una visita desde el panel: al calendario de Google sin esperar la tarea. */
 export async function sincronizarAhora(db: SupabaseClient, corredor: Corredor) {
   const conexion = await conexionDe(db, corredor.id);
-  if (conexion) await sincronizarVisitas(db, conexion, corredor).catch(() => null);
+  // La tarea de cada 15 minutos lo reintenta, pero la falla queda registrada y avisa a soporte.
+  if (conexion)
+    await sincronizarVisitas(db, conexion, corredor).catch((e) =>
+      reportarFalla("error_google_sincronizar", { corredorId: corredor.id, error: errorSeguro(e) }),
+    );
 }
