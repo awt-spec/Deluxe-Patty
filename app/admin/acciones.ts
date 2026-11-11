@@ -19,9 +19,11 @@ const UUID = /^[0-9a-f-]{36}$/;
 const ID_META = /^\d{5,25}$/;
 
 function ir(ruta: string, mensaje: string, ok = false): never {
-  revalidatePath(ruta.split("?")[0]);
-  const sep = ruta.includes("?") ? "&" : "?";
-  redirect(`${ruta}${sep}m=${encodeURIComponent(mensaje)}&ok=${ok ? 1 : 0}`);
+  // El mensaje va antes del ancla (#probar): lo que sigue a # nunca llega al servidor y la pantalla no lo vería.
+  const [camino, ancla] = ruta.split("#");
+  revalidatePath(camino.split("?")[0]);
+  const sep = camino.includes("?") ? "&" : "?";
+  redirect(`${camino}${sep}m=${encodeURIComponent(mensaje)}&ok=${ok ? 1 : 0}${ancla ? `#${ancla}` : ""}`);
 }
 
 const registro = (accion: string, ok: boolean) => console.info(JSON.stringify({ evento: "admin_accion", accion, ok }));
