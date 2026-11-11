@@ -39,6 +39,7 @@ export function Navegacion({
   const [plegado, setPlegado] = useState(false);
   useEffect(() => {
     try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage solo existe en el navegador: se lee al montar para no romper la hidratación.
       setPlegado(localStorage.getItem(CLAVE_PLEGADO) === "1");
     } catch {}
   }, []);

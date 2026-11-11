@@ -1,4 +1,4 @@
-import path from "node:path";
+import { rutaDeMarca } from "../marcas/archivo";
 import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 import QRCode from "qrcode";
 import { createElement, type ReactElement } from "react";
@@ -30,10 +30,9 @@ export async function generarFicha({ propiedad, marca, whatsappAsistente }: Opci
         },
       )
     : null;
-  // Un logo local (marcas/<corredor>/…) se resuelve desde la raíz del proyecto.
-  const logo = /^https?:\/\//.test(marca.logoSobreProfundo)
-    ? marca.logoSobreProfundo
-    : path.join(process.cwd(), marca.logoSobreProfundo);
+  // Un logo local (marcas/<corredor>/…) se resuelve solo dentro de marcas/.
+  const logo = /^https?:\/\//.test(marca.logoSobreProfundo) ? marca.logoSobreProfundo : rutaDeMarca(marca.logoSobreProfundo);
+  if (!logo) throw new Error("El logo de la marca no es un archivo de marcas/ ni una dirección https");
   const documento = createElement(FichaPropiedad, {
     propiedad,
     marca: { ...marca, logoSobreProfundo: logo },

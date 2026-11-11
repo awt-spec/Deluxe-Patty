@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { enlaceWhatsApp } from "@/lib/anuncios/atribucion";
 import { DIAS_REPORTE } from "@/lib/anuncios/reporte";
 import { crearRepositorioSupabase } from "@/lib/datos/repositorio";

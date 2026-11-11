@@ -10,7 +10,7 @@ import { sesionConCorredor } from "@/lib/panel/sesion";
 import { aprobar, descartar, devolver, escribir, tomar } from "../../acciones";
 import { Aviso } from "../../aviso";
 import { Avatar } from "../../avatar";
-import { IconoAtras, IconoEnviar, IconoTelefono } from "../../iconos";
+import { IconoAtras, IconoTelefono } from "../../iconos";
 
 type Mensaje = {
   id: string;
@@ -95,7 +95,6 @@ export default async function Conversacion({
     if (d === fechaIso(sumarDias(hoy, -1))) return "Ayer";
     return diaLargo(new Date(iso), zona);
   };
-  let diaAnterior = "";
 
   return (
     <>
@@ -145,15 +144,14 @@ export default async function Conversacion({
       <Aviso texto={aviso} />
 
       <section className="hilo fondo-wa" aria-label="Mensajes">
-        {lista.map((m) => {
+        {lista.map((m, i) => {
           const dia = diaDe(m.created_at);
           const separador =
-            dia !== diaAnterior ? (
+            i === 0 || dia !== diaDe(lista[i - 1].created_at) ? (
               <p className="dia-separador" key={`d-${m.id}`}>
                 {dia}
               </p>
             ) : null;
-          diaAnterior = dia;
           const hora = horaCorta(new Date(m.created_at), zona);
           if (m.estado_borrador === "pendiente") {
             return [

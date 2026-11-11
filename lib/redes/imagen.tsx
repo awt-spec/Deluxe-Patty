@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { rutaDeMarca } from "../marcas/archivo";
 import { ImageResponse } from "next/og";
 import type { Propiedad } from "../datos/tipos";
 import type { Marca } from "../fichas/marca";
@@ -19,9 +20,8 @@ async function fuente(paquete: string, archivo: string): Promise<ArrayBuffer> {
 async function logoComoDato(logo: string | undefined): Promise<{ src: string } | null> {
   if (!logo) return null;
   if (/^https:\/\//.test(logo)) return { src: logo };
-  const raiz = path.join(process.cwd(), "marcas");
-  const archivo = path.resolve(process.cwd(), logo);
-  if (!archivo.startsWith(raiz + path.sep)) return null;
+  const archivo = rutaDeMarca(logo);
+  if (!archivo) return null;
   try {
     const datos = await readFile(archivo);
     const tipo = archivo.endsWith(".png") ? "image/png" : "image/jpeg";
@@ -106,8 +106,9 @@ export async function imagenRedes(opciones: {
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: vertical ? 220 : 130, padding: "0 56px", background: fondoLogo, color: c.base }}>
           {logo ? (
+            // El logo se encaja en su caja sin deformarse, sea cuadrado o alargado. next/og arma la imagen con
+            // <img> (next/image no existe ahí).
             // eslint-disable-next-line @next/next/no-img-element
-            // El logo se encaja en su caja sin deformarse, sea cuadrado o alargado.
             <img
               src={logo.src}
               width={vertical ? 420 : 300}

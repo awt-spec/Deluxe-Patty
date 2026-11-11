@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse, type NextRequest } from "next/server";
+import { rutaDeMarca } from "@/lib/marcas/archivo";
 import { logoDeCorredor } from "@/lib/panel/marca";
 
 // Logo de un corredor para la pantalla de entrada. Si es un archivo de marcas/ se sirve desde aquí;
@@ -13,10 +14,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ slu
   if (!logo) return new NextResponse(null, { status: 404 });
   if (/^https:\/\//.test(logo)) return NextResponse.redirect(logo);
 
-  const raiz = path.join(process.cwd(), "marcas");
-  const archivo = path.resolve(process.cwd(), logo);
-  const tipo = TIPOS[path.extname(archivo).toLowerCase()];
-  if (!archivo.startsWith(raiz + path.sep) || !tipo) return new NextResponse(null, { status: 404 });
+  const archivo = rutaDeMarca(logo);
+  const tipo = archivo ? TIPOS[path.extname(archivo).toLowerCase()] : undefined;
+  if (!archivo || !tipo) return new NextResponse(null, { status: 404 });
   try {
     const datos = await readFile(archivo);
     return new NextResponse(new Uint8Array(datos), {

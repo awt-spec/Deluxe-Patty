@@ -1,4 +1,8 @@
 "use client";
+/* eslint-disable react-hooks/refs, react-hooks/immutability --
+   Simulación de fuerzas a propósito imperativa: las posiciones viven en un ref que el cuadro de animación
+   modifica 60 veces por segundo, y setCuadro fuerza el dibujo. Pasarlas a estado copiaría todo el grafo en
+   cada cuadro. Deuda anotada en el diagnóstico de salud: si el mapa crece, moverlo a un useSyncExternalStore. */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 

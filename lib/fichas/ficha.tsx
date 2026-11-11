@@ -103,11 +103,11 @@ export function FichaPropiedad({ propiedad: p, marca, whatsapp, qr, fotos }: Dat
   const [principal, ...resto] = fotos;
   const galeria = resto.slice(0, 6);
 
-  const Rombo = () => (
+  const rombo = () => (
     <View style={{ width: 4, height: 4, backgroundColor: c.principal, transform: "rotate(45deg)", marginRight: 8, marginTop: 4 }} />
   );
 
-  const Pie = ({ pagina }: { pagina: number }) => (
+  const pie = (pagina: number) => (
     <View style={s.pie} fixed>
       <View style={{ height: 0.75, backgroundColor: c.principal, marginBottom: 14 }} />
       <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -201,7 +201,7 @@ export function FichaPropiedad({ propiedad: p, marca, whatsapp, qr, fotos }: Dat
                   <Text style={[s.etiqueta, { marginBottom: 8 }]}>Amenidades</Text>
                   {p.amenidades.slice(0, 6).map((a) => (
                     <View key={a} style={{ flexDirection: "row", marginBottom: 5 }}>
-                      <Rombo />
+                      {rombo()}
                       <Text style={{ fontSize: 9.5 }}>{a.charAt(0).toUpperCase() + a.slice(1)}</Text>
                     </View>
                   ))}
@@ -210,7 +210,7 @@ export function FichaPropiedad({ propiedad: p, marca, whatsapp, qr, fotos }: Dat
             </View>
           </View>
         </View>
-        <Pie pagina={1} />
+        {pie(1)}
       </Page>
 
       {galeria.length > 0 && (
@@ -227,7 +227,7 @@ export function FichaPropiedad({ propiedad: p, marca, whatsapp, qr, fotos }: Dat
               <Image key={i} src={f} style={{ width: "49%", height: 172, objectFit: "cover", marginBottom: 8 }} />
             ))}
           </View>
-          <Pie pagina={2} />
+          {pie(2)}
         </Page>
       )}
     </Document>

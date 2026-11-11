@@ -9,8 +9,10 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
     "test:db": "scripts/test-db.sh",
     "test": "vitest run",
+    "test:cobertura": "vitest run --coverage",
     "eval:conversaciones": "tsx scripts/evaluar-conversaciones.mts",
     "duenos": "tsx --env-file=.env.local worker/busqueda-duenos.ts --visible",
     "duenos:prueba": "tsx worker/busqueda-duenos.ts --visible --prueba",
@@ -38,9 +40,17 @@
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@vitest/coverage-v8": "^5.0.5",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.4.1",
     "playwright": "^1.64.1",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
     "vitest": "^5.0.5"
+  },
+  "overrides": {
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.8"
+    }
   }
 }

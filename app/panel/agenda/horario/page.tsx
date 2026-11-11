@@ -1,7 +1,5 @@
 import { Volver } from "../../volver";
-import Link from "next/link";
-import { diaLargo, etiquetaHorario, rangoBloqueo } from "@/lib/agenda/formato";
-import { minutosLocales } from "@/lib/agenda/tiempo";
+import { rangoBloqueo } from "@/lib/agenda/formato";
 import {
   DIAS_SEMANA,
   TURNOS,
