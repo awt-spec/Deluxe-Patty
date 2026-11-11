@@ -12,3 +12,6 @@ evals/resultados/
 .perfil-encuentra24/
 public/extension/
 capturas/
+
+# Resultados del diagnóstico de salud del código (se generan en cada corrida)
+.salud/
