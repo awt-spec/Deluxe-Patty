@@ -8481,3 +8481,435 @@ body:has(.marco.tema) {
 .tema .patty-chat .patty-grabando {
   gap: 4px;
 }
+
+/* ================================================================================================
+   Menú lateral (computadora), rehecho: logo de la marca arriba, las cuatro secciones, "Herramientas"
+   (lo que en el teléfono está en Más) y abajo Ajustes, la cuenta y "Contraer". En el teléfono no cambia:
+   los grupos se disuelven (display: contents) y queda la barra de cuatro botones.
+   ================================================================================================ */
+.navegacion .nav-grupo {
+  display: contents;
+}
+@media (min-width: 900px) {
+  .marco.tema .navegacion {
+    gap: 2px;
+    padding: 16px 12px 12px;
+    overflow-y: auto;
+  }
+  .marco.tema .navegacion .nav-grupo {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  /* Marca */
+  .marco.tema .navegacion .nav-marca {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 10px 16px;
+    margin: 0 0 10px;
+    border-bottom: 1px solid var(--borde);
+    border-radius: 0;
+    background: none;
+    color: #1d2730;
+    font-size: 1rem;
+  }
+  .marco.tema .navegacion .nav-marca::before {
+    display: none;
+  }
+  .marco.tema .navegacion .nav-marca:hover {
+    background: none;
+  }
+  .nav-logo {
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    background: #0e7f42;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 0.02em;
+    box-shadow: 0 1px 2px rgb(16 24 40 / 12%);
+  }
+  .nav-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+  .nav-marca-texto {
+    display: grid;
+    gap: 1px;
+    min-width: 0;
+  }
+  .nav-marca-texto strong {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1d2730;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .nav-marca-texto small {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #6e6e73;
+  }
+  .nav-marca-texto .nav-demo {
+    justify-self: start;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: #fcefd2;
+    color: #7a4f00;
+    font-weight: 600;
+  }
+  /* Número de clientes que esperan: a la derecha del renglón, no encima del ícono. */
+  .marco.tema .navegacion .nav-grupo a {
+    position: relative;
+  }
+  .marco.tema .navegacion .nav-grupo .icono {
+    position: static;
+  }
+  .marco.tema .navegacion .nav-grupo .contador {
+    position: absolute;
+    left: auto;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+  /* Herramientas */
+  .marco.tema .navegacion .nav-herramientas {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    margin-top: 16px;
+    padding: 14px 0 0;
+    border-top: 1px solid var(--borde);
+    border-radius: 0;
+  }
+  .nav-titulo {
+    padding: 0 12px 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: #6e6e73;
+  }
+  .marco.tema .navegacion .nav-herramientas a,
+  .marco.tema .navegacion .nav-pie a {
+    min-height: 40px;
+    padding: 7px 12px;
+    font-size: 0.95rem;
+    gap: 12px;
+  }
+  .marco.tema .navegacion .nav-herramientas .icono,
+  .marco.tema .navegacion .nav-pie .icono {
+    width: 26px;
+    color: #6e6e73;
+  }
+  .marco.tema .navegacion .nav-herramientas a[aria-current="page"] .icono,
+  .marco.tema .navegacion .nav-pie a[aria-current="page"] .icono {
+    color: inherit;
+  }
+  /* Pie: Ajustes, la cuenta y Contraer */
+  .marco.tema .navegacion .nav-pie {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    margin-top: auto;
+    padding: 12px 0 0;
+    border-top: 1px solid var(--borde);
+    border-radius: 0;
+  }
+  .nav-cuenta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 4px 6px 12px;
+  }
+  .nav-cuenta form {
+    margin: 0;
+  }
+  .nav-correo {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #6e6e73;
+    font-size: 0.85rem;
+  }
+  .marco.tema .navegacion .nav-salir {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 36px;
+    height: auto;
+    padding: 0 10px;
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+    background: #fff;
+    color: #46525c;
+    font-size: 0.85rem;
+    font-weight: 600;
+    box-shadow: none;
+  }
+  .marco.tema .navegacion .nav-salir:hover {
+    background: #f3f4f6;
+  }
+  .marco.tema .navegacion .nav-pie .plegar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    min-height: 40px;
+    padding: 7px 12px;
+    border: 0;
+    border-radius: 12px;
+    background: none;
+    color: #6e6e73;
+    font-size: 0.9rem;
+    font-weight: 500;
+    box-shadow: none;
+  }
+  .marco.tema .navegacion .nav-pie .plegar:hover {
+    background: #f3f4f6;
+  }
+  .marco.tema .navegacion .nav-pie .plegar .icono {
+    width: 26px;
+    transform: rotate(90deg);
+  }
+  /* Contraído: solo íconos. */
+  .marco.tema.plegado .navegacion .nav-marca {
+    justify-content: center;
+    padding: 6px 0 14px;
+  }
+  .marco.tema.plegado .navegacion .nav-marca-texto,
+  .marco.tema.plegado .navegacion .nav-titulo,
+  .marco.tema.plegado .navegacion .nav-correo {
+    display: none;
+  }
+  .marco.tema.plegado .navegacion .nav-cuenta {
+    justify-content: center;
+    padding: 6px 0;
+  }
+  .marco.tema.plegado .navegacion .nav-salir {
+    padding: 0 8px;
+  }
+  .marco.tema.plegado .navegacion .nav-herramientas a,
+  .marco.tema.plegado .navegacion .nav-pie a,
+  .marco.tema.plegado .navegacion .nav-pie .plegar {
+    justify-content: center;
+    padding: 9px 0;
+  }
+  .marco.tema.plegado .navegacion .nav-pie .plegar .icono {
+    transform: rotate(-90deg);
+  }
+  .marco.tema.plegado .navegacion .nav-grupo .contador {
+    right: 8px;
+    top: 4px;
+    transform: none;
+    min-width: 18px;
+    height: 18px;
+    font-size: 0.7rem;
+  }
+}
+
+/* ================================================================================================
+   Agenda, rehecha: en Día una tira de la semana (como el calendario del iPhone), el resumen en una línea,
+   en el teléfono solo "+ Agendar" arriba y la cuadrícula con la primera hora completa y el horario de
+   visitas claramente distinto de las horas fuera de él.
+   ================================================================================================ */
+@media (max-width: 899px) {
+  .tema .solo-computadora {
+    display: none !important;
+  }
+}
+@media (min-width: 900px) {
+  .tema .solo-telefono {
+    display: none !important;
+  }
+}
+
+/* Cabecera de Día: tira de la semana y la fecha */
+.tema .dia-cabecera {
+  flex: 1 1 100%;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.tema .semana-tira {
+  display: grid;
+  grid-template-columns: 36px repeat(7, minmax(0, 1fr)) 36px;
+  align-items: center;
+  gap: 2px;
+  padding: 6px;
+  background: #fff;
+  border: 1px solid var(--borde);
+  border-radius: 16px;
+}
+.tema .semana-tira a {
+  text-decoration: none;
+  color: #1d2730;
+}
+.tema .semana-flecha {
+  display: grid;
+  place-items: center;
+  height: 44px;
+  border-radius: 10px;
+  font-size: 1.4rem;
+  color: #46525c !important;
+}
+.tema .semana-flecha:hover {
+  background: #f3f4f6;
+}
+.tema .semana-dia {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 6px 0 4px;
+  border-radius: 12px;
+  min-height: 56px;
+}
+.tema .semana-dia small {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #6e6e73;
+  text-transform: uppercase;
+}
+.tema .semana-dia strong {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  font-size: 1.05rem;
+  font-weight: 650;
+}
+.tema .semana-dia i {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+}
+.tema .semana-dia i.con {
+  background: #0e7f42;
+}
+.tema .semana-dia:hover {
+  background: #f6f7f8;
+}
+.tema .semana-dia.hoy strong {
+  color: #0e7f42;
+  box-shadow: inset 0 0 0 2px #0e7f42;
+}
+.tema .semana-dia[aria-current="date"] strong {
+  background: #0e7f42;
+  color: #fff;
+  box-shadow: none;
+}
+.tema .semana-dia[aria-current="date"] i.con {
+  background: #0e7f42;
+}
+.tema .dia-titulo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.tema .dia-titulo h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  line-height: 1.3;
+}
+
+/* Atajos del teléfono (Bloquear y Mi horario) */
+.tema .agenda-atajos {
+  display: flex;
+  gap: 8px;
+  margin: -2px 0 12px;
+}
+.tema .agenda-atajos .boton {
+  flex: 1 1 0;
+  justify-content: center;
+}
+
+/* Resumen en una línea */
+.tema .cal-resumen > span.cal-resumen-cuenta {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 0.95rem;
+}
+.tema .cal-resumen .pendientes {
+  color: #8a4b08;
+}
+
+/* Cuadrícula: la primera hora no queda cortada y fuera de horario se ve gris claro */
+.tema .cal .cal-cuerpo {
+  padding-top: 10px;
+}
+.tema .cal .cal-columna {
+  background-color: #eceff2;
+}
+.tema .cal .cal-columna.hoy {
+  background-color: color-mix(in srgb, #0e7f42 6%, #eceff2);
+}
+.tema .cal .cal-libre {
+  background: #fff;
+  box-shadow: inset 0 1px 0 var(--borde);
+}
+.tema .cal .cal-columna.hoy .cal-libre {
+  background: color-mix(in srgb, #0e7f42 3%, #fff);
+}
+
+@media (max-width: 899px) {
+  /* Teléfono: arriba el título y "+ Agendar" en una fila */
+  .tema .agenda-encabezado {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .tema .agenda-encabezado h1 {
+    margin: 0;
+  }
+  .tema .agenda-encabezado .botones {
+    flex: none;
+    margin: 0;
+  }
+  .tema .agenda-controles {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .tema .agenda-controles .cal-vistas {
+    width: 100%;
+  }
+  .tema .semana-tira {
+    grid-template-columns: 28px repeat(7, minmax(0, 1fr)) 28px;
+    padding: 4px;
+  }
+  .tema .semana-dia strong {
+    width: 30px;
+    height: 30px;
+    font-size: 1rem;
+  }
+  .tema .dia-titulo h2 {
+    font-size: 1.1rem;
+  }
+}
