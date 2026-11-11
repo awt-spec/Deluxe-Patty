@@ -297,8 +297,10 @@ dueño o corredor. Un cambio de tono o de instrucciones se prueba con el set de 
   `eslint.config.mjs` o en la línea) y `npm run build` — antes de cada push. El CI los corre en cada PR y main
   debería exigirlos (protección de rama: trabajos `app` y `db`).
 - `npm run test:cobertura` — las pruebas con cobertura (la corre el CI). Tiene un piso en `vitest.config.mts`
-  apenas debajo de lo medido (42 % de sentencias): si baja, el CI falla. Lo menos probado: las acciones del servidor
-  del panel y de `/admin`, Google y mover o cancelar visitas.
+  apenas debajo de lo medido (50 % de sentencias): si baja, el CI falla. Las **acciones del servidor** se prueban en
+  `tests/acciones/` sin Next ni Supabase (`entorno.ts`: Supabase en memoria que aplica los filtros y anota cada
+  escritura; `mocks/`: redirect, sesión, backend). Cada acción nueva lleva su prueba de "con datos de otro corredor no
+  hace nada" (y en `/admin`, de "sin ser superadmin, 404"). Lo menos probado: Google y mover o cancelar visitas.
 - `npm test` — pruebas unitarias (vitest) de `tests/`: firma de Meta, parseo del webhook y el flujo
   de la asistente y la agenda con dobles en memoria (`tests/dobles.ts`), disponibilidad, ICS, recordatorios, plan del día, mensajes del corredor, anuncios y búsqueda de dueños
   (`tests/fixtures/e24.ts` arma páginas con la estructura real y datos ficticios).
