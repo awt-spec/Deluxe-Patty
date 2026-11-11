@@ -8925,3 +8925,10 @@ body:has(.marco.tema) {
     font-size: 1.1rem;
   }
 }
+
+/* Teléfono, vista Día: el resumen repite lo que "Tu día" muestra justo abajo. */
+@media (max-width: 899px) {
+  .tema .panel:has(.dia-cabecera) .cal-resumen {
+    display: none;
+  }
+}
