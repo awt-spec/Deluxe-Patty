@@ -75,8 +75,11 @@ export default async function Agenda({
     primerDia = hoy;
     dias = 60;
   }
-  const desde = aUtc(primerDia, 0, zona);
-  const hasta = aUtc(sumarDias(primerDia, dias), 0, zona);
+  // En Día se cargan las visitas de toda la semana: la tira de arriba marca qué días tienen.
+  const lunesDe = (f: FechaLocal) => sumarDias(f, -((f.diaSemana + 6) % 7));
+  const rangoDesde = vista === "dia" ? lunesDe(base) : primerDia;
+  const desde = aUtc(rangoDesde, 0, zona);
+  const hasta = aUtc(sumarDias(rangoDesde, vista === "dia" ? 7 : dias), 0, zona);
 
   const [{ data }, { data: horariosData }, { data: bloqueosData }, { data: proximosData }] = await Promise.all([
     supabase
@@ -146,10 +149,15 @@ export default async function Agenda({
     porDia.set(dia, [...(porDia.get(dia) ?? []), c]);
   }
 
+  const diasVisibles = new Set(
+    vista === "dia" || vista === "semana" ? Array.from({ length: vista === "dia" ? 1 : 7 }, (_, i) => fechaIso(sumarDias(primerDia, i))) : [],
+  );
+  const visibles = diasVisibles.size ? citas.filter((c) => diasVisibles.has(fechaIso(fechaLocal(new Date(c.inicio), zona)))) : citas;
+
   // Horas que se dibujan: de 7 a 19, o más si alguna visita cae fuera.
   let horaMin = 7;
   let horaMax = 19;
-  for (const c of citas) {
+  for (const c of visibles) {
     horaMin = Math.min(horaMin, Math.floor(minutosLocales(new Date(c.inicio), zona) / 60));
     horaMax = Math.max(horaMax, Math.ceil(minutosLocales(new Date(c.fin), zona) / 60));
   }
@@ -312,10 +320,10 @@ export default async function Agenda({
           <Link data-patty="agenda-agendar" href={`/panel/agenda/nueva?fecha=${fechaIso(base)}`} className="boton primario">
             + Agendar
           </Link>
-          <Link data-patty="agenda-bloquear" href={`/panel/agenda/bloquear?fecha=${fechaIso(fechaIso(base) < fechaIso(hoy) ? hoy : base)}`} className="boton">
+          <Link data-patty="agenda-bloquear" href={`/panel/agenda/bloquear?fecha=${fechaIso(fechaIso(base) < fechaIso(hoy) ? hoy : base)}`} className="boton solo-computadora">
             Bloquear
           </Link>
-          <Link data-patty="agenda-horario" href="/panel/agenda/horario" className="boton">
+          <Link data-patty="agenda-horario" href="/panel/agenda/horario" className="boton solo-computadora">
             Mi horario
           </Link>
         </div>
@@ -324,7 +332,43 @@ export default async function Agenda({
       {!pedida && <VistaDelTelefono actual={vista} fecha={fechaPedida} />}
 
       <div className="agenda-controles">
-      {vista !== "lista" && (
+      {vista === "dia" && (
+        <div className="dia-cabecera">
+          <nav className="semana-tira" aria-label="Días de esta semana">
+            <Link href={enlaceA("dia", sumarDias(base, -7))} className="semana-flecha" aria-label="Semana anterior">
+              ‹
+            </Link>
+            {Array.from({ length: 7 }, (_, i) => sumarDias(lunesDe(base), i)).map((f) => {
+              const n = (porDia.get(fechaIso(f)) ?? []).length;
+              return (
+                <Link
+                  key={fechaIso(f)}
+                  href={enlaceA("dia", f)}
+                  className={`semana-dia${esHoy(f) ? " hoy" : ""}`}
+                  aria-current={fechaIso(f) === fechaIso(base) ? "date" : undefined}
+                  aria-label={`${capitalizar(DIAS_LARGOS[f.diaSemana])} ${f.dia}${n ? `, ${n} ${n === 1 ? "visita" : "visitas"}` : ""}`}
+                >
+                  <small>{DIAS_CORTOS[f.diaSemana].charAt(0)}</small>
+                  <strong>{f.dia}</strong>
+                  <i className={n ? "con" : undefined} aria-hidden />
+                </Link>
+              );
+            })}
+            <Link href={enlaceA("dia", sumarDias(base, 7))} className="semana-flecha" aria-label="Semana siguiente">
+              ›
+            </Link>
+          </nav>
+          <div className="dia-titulo">
+            <h2>{titulo}</h2>
+            {fechaIso(base) !== fechaIso(hoy) && (
+              <Link href={enlaceA("dia", hoy)} className="boton chico">
+                Hoy
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
+      {vista !== "lista" && vista !== "dia" && (
         <div className="cal-barra">
           <Link href={enlaceA(vista, anterior)} className="boton" aria-label="Anterior">
             ‹
@@ -346,21 +390,28 @@ export default async function Agenda({
         ))}
       </nav>
       </div>
+      <div className="agenda-atajos solo-telefono">
+        <Link href={`/panel/agenda/bloquear?fecha=${fechaIso(fechaIso(base) < fechaIso(hoy) ? hoy : base)}`} className="boton chico">
+          Bloquear un rato
+        </Link>
+        <Link href="/panel/agenda/horario" className="boton chico">
+          Mi horario
+        </Link>
+      </div>
 
-      {vista !== "lista" && (
+      {vista !== "lista" && visibles.length > 0 && (
         <div className="cal-resumen">
-          <span>
-            <strong>{citas.length}</strong> {citas.length === 1 ? "visita" : "visitas"}
-          </span>
-          <span>
-            <strong>{citas.filter((c) => c.estado === "confirmada").length}</strong>{" "}
-            {citas.filter((c) => c.estado === "confirmada").length === 1 ? "confirmada" : "confirmadas"}
-          </span>
-          <span className={citas.some((c) => c.estado !== "confirmada") ? "pendientes" : undefined}>
-            <strong>{citas.filter((c) => c.estado !== "confirmada").length}</strong> por confirmar
+          <span className="cal-resumen-cuenta">
+            <strong>{visibles.length}</strong> {visibles.length === 1 ? "visita" : "visitas"}
+            {visibles.some((c) => c.estado !== "confirmada") && (
+              <span className="pendientes">
+                {" · "}
+                <strong>{visibles.filter((c) => c.estado !== "confirmada").length}</strong> por confirmar
+              </span>
+            )}
           </span>
           {(() => {
-            const proxima = citas.find((c) => Date.parse(c.inicio) > Date.now());
+            const proxima = visibles.find((c) => Date.parse(c.inicio) > Date.now());
             if (!proxima) return null;
             const cl = uno(proxima.contactos);
             return (
@@ -475,7 +526,7 @@ export default async function Agenda({
             </div>
             {diasVista.map(columna)}
           </div>
-          {citas.length === 0 && (
+          {visibles.length === 0 && (
             <p className="vacio">{vista === "dia" ? "Este día no tienes visitas." : "Esta semana no tienes visitas."}</p>
           )}
         </div>

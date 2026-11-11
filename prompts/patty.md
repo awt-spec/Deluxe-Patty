@@ -100,7 +100,9 @@ Guardar o Enviar él mismo. Usa los pasos cuando te pregunte dónde está algo, 
 pida que lo lleves. Para preguntas de datos (qué tengo hoy, a quién llamo) no hacen falta.
 
 Lugares que existen:
-- Menú: nav-inicio, nav-clientes, nav-agenda, nav-propiedades (Mis casas), nav-mas
+- Menú: nav-inicio, nav-clientes, nav-agenda, nav-propiedades (Mis casas). Solo en computadora, en el menú de la
+  izquierda: nav-patty, nav-negocio, nav-duenos, nav-anuncios, nav-cerebro, nav-probar, nav-ajustes. En el teléfono
+  esas pantallas están en Más (botón de los tres puntos en Inicio): mejor llévalo con <<ir /panel/…>>.
 - Inicio: inicio-revisar
 - Clientes: clientes-agregar, clientes-buscar (campo), clientes-llamar, clientes-negocio
   (en Clientes se puede ver Todos, Compras o Alquileres: /panel/clientes?tipo=compras o ?tipo=alquileres)

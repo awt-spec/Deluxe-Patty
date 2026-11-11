@@ -36,6 +36,14 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
     supabase.from("mensajes").select("conversacion_id").eq("corredor_id", corredor.id).eq("estado_borrador", "pendiente"),
     supabase.from("conversaciones").select("id").eq("corredor_id", corredor.id).eq("estado", "escalada"),
   ]);
+  // Logo del corredor para el menú: una URL tal cual, o el archivo de marcas/ servido por /marca/<slug>/logo.
+  const logoMarca = corredor.marca?.logoSobreProfundo ?? null;
+  let logo: string | null = null;
+  if (logoMarca && /^https:\/\//.test(logoMarca)) logo = logoMarca;
+  else if (logoMarca) {
+    const { data: fila } = await supabase.from("corredores").select("slug").eq("id", corredor.id).maybeSingle();
+    if (fila?.slug) logo = `/marca/${fila.slug as string}/logo`;
+  }
   const teNecesitan = new Set([
     ...(borradores ?? []).map((b) => b.conversacion_id as string),
     ...(escaladas ?? []).map((c) => c.id as string),
@@ -51,7 +59,16 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
         </p>
       )}
       <main className="panel">{children}</main>
-      <Navegacion teNecesitan={teNecesitan} marca={corredor.nombre} />
+      <Navegacion
+        teNecesitan={teNecesitan}
+        marca={corredor.nombre}
+        logo={logo}
+        fondoLogo={corredor.marca?.fondoLogo ?? corredor.marca?.colores?.profundo ?? null}
+        demo={corredor.activo === false}
+        correo={usuario.email ?? ""}
+        asistente={corredor.nombre_asistente ?? "Patty"}
+        superadmin={await esSuperadmin(usuario.email)}
+      />
       <Patty nombre={corredor.nombre_asistente ?? "Patty"} corredor={corredor.id} />
     </div>
   );
