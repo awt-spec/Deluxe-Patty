@@ -9357,8 +9357,12 @@ body:has(.marco.tema) {
     flex-wrap: nowrap;
     overflow-x: auto;
     scrollbar-width: none;
-    margin-right: -16px;
-    padding-right: 16px;
+    max-width: 100%;
+  }
+  /* El resumen se desliza dentro de su caja: la caja no crece con él ni empuja el botón "…". */
+  .marco.tema .inicio .saludo > div {
+    flex: 1 1 auto;
+    min-width: 0;
   }
   .marco.tema .saludo-resumen::-webkit-scrollbar {
     display: none;
