@@ -7,7 +7,7 @@ import { aprobar, descartar, devolver, yoLeEscribo } from "../acciones";
 import { Aviso } from "../aviso";
 import { Avatar } from "../avatar";
 import { BotonEnviar } from "../boton-enviar";
-import { IconoCheck } from "../iconos";
+import { IconoFlecha, IconoCheck } from "../iconos";
 import { Volver } from "../volver";
 
 // Revisar lo que espera a la corredora, uno a la vez: lo que dijo el cliente, lo que la asistente le
@@ -43,20 +43,32 @@ export default async function Revisar({ searchParams }: { searchParams: Promise<
   }
 
   const nombre = p.contacto.nombre ?? p.contacto.telefono;
+  const asistente = corredor.nombre_asistente ?? "Patty";
   return (
     <>
       <div className="revisar-arriba">
         <Volver href="/panel" texto="Inicio" />
-        <span className="suave">{pendientes.length === 1 ? "Último" : `Quedan ${pendientes.length}`}</span>
+        <span className="revisar-quedan">
+          <span className="suave">{pendientes.length === 1 ? "El último" : `Quedan ${pendientes.length}`}</span>
+          {/* Un punto por cada uno que espera (hasta 8): se ve cuánto falta. */}
+          <span className="revisar-puntos" aria-hidden>
+            {pendientes.slice(0, 8).map((x, i) => (
+              <i key={x.conversacionId + i} className={i === 0 ? "actual" : undefined} />
+            ))}
+          </span>
+        </span>
       </div>
       <Aviso texto={aviso} />
 
       <article className="revisar">
         <Link href={`/panel/conversaciones/${p.conversacionId}`} className="revisar-quien">
           <Avatar nombre={p.contacto.nombre} telefono={p.contacto.telefono} />
-          <span>
+          <span className="revisar-quien-texto">
             <strong>{nombre}</strong>
-            <span className="suave">Ver el chat completo</span>
+            <span className={`revisar-tipo ${p.tipo}`}>{p.tipo === "respuesta" ? "Respuesta lista" : "Quiere hablar contigo"}</span>
+          </span>
+          <span className="revisar-ver">
+            Ver el chat <IconoFlecha tamano={16} />
           </span>
         </Link>
 
@@ -71,7 +83,7 @@ export default async function Revisar({ searchParams }: { searchParams: Promise<
             <input type="hidden" name="mensaje" value={p.mensajeId} />
             <input type="hidden" name="volver" value="/panel/revisar" />
             <label htmlFor="texto" className="revisar-etiqueta">
-              Respuesta
+              {asistente} le contestaría
             </label>
             <textarea
               id="texto"
@@ -80,19 +92,17 @@ export default async function Revisar({ searchParams }: { searchParams: Promise<
               rows={Math.min(10, Math.max(3, Math.ceil(p.propuesta.length / 34) + 1))}
             />
             {p.accion && <p className="suave">{queHace(p.accion, corredor.zona_horaria)}</p>}
-            {p.abierta ? (
-              <BotonEnviar texto={<><IconoCheck tamano={24} /> Enviar</>} pendiente="Enviando…" className="verde grande" />
-            ) : (
-              <p className="aviso">Pasó más de un día: contéstale desde tu WhatsApp.</p>
-            )}
-            <div className="botones">
-              <button type="submit" formAction={yoLeEscribo} name="conversacion" value={p.conversacionId}>
-                Yo le escribo
-              </button>
+            {!p.abierta && <p className="aviso">Pasó más de un día: contéstale desde tu WhatsApp.</p>}
+            <div className="revisar-botones">
               <button type="submit" formAction={descartar} className="peligro">
                 No enviar
               </button>
+              {p.abierta && <BotonEnviar texto={<><IconoCheck tamano={22} /> Enviar</>} pendiente="Enviando…" className="verde grande" />}
             </div>
+            <button type="submit" formAction={yoLeEscribo} name="conversacion" value={p.conversacionId} className="enlace revisar-yo">
+              Prefiero escribirle yo
+            </button>
+            <p className="suave revisar-ayuda">Puedes cambiar el texto antes de enviarlo.</p>
           </form>
         ) : (
           <div className="pila">

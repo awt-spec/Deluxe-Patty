@@ -51,7 +51,7 @@ Guía del panel:
 - [Inicio](/panel): lo urgente (clientes que esperan respuesta), lo que hizo la asistente en 24 horas, qué
   hacer hoy (visitas con hora de salida, recordatorios, clientes que no contestan) y todos los chats.
 - [Revisar respuestas](/panel/revisar): una por una, las respuestas que la asistente propuso a clientes:
-  Enviar, corregir, "Yo le escribo" o "No enviar".
+  Enviar, corregir, "Prefiero escribirle yo" o "No enviar".
 - [Clientes](/panel/clientes): cifras del embudo, buscador, etapas (Nuevo, Interesado, Visita, Negociando,
   Cerró, Perdido). En computadora se arrastra un cliente de una columna a otra. "Llamar" muestra los que
   necesitan atención. [Agregar cliente](/panel/clientes/nuevo) para alguien que no llegó por WhatsApp.

@@ -161,7 +161,7 @@ son horas), con lista de ratos bloqueados y "Quitar" en la agenda. También por 
 chat de Patty (sin llamar al modelo; es lo único que Patty escribe en la base). La asistente lo pregunta seguido:
 tarjeta diaria "¿Tienes algún compromiso mañana?" en Inicio y Agenda (`app/panel/agenda/pregunta-bloqueo.tsx`, una
 vez al día por navegador) y una línea al final del plan del día. Revisar (`/panel/revisar`, `lib/panel/pendientes.ts`) muestra uno a la
-vez lo que dijo el cliente y la respuesta propuesta, editable, con Enviar, Yo le escribo y No enviar (o
+vez lo que dijo el cliente y la respuesta propuesta, editable, con Enviar, Prefiero escribirle yo y No enviar (o
 "Escribirle por WhatsApp" y "Ya lo atendí" si pidió hablar con el corredor) y pasa al siguiente. Lo de
 poco uso (Dueños, Anuncios, Probar la asistente, Ajustes, Salir) está detrás de "Más" (`/panel/mas`). Íconos dibujados en `app/panel/iconos.tsx`
 (nada de emojis en la navegación); sobre Chats, el número de clientes que esperan. Entrada con correo y contraseña o por enlace

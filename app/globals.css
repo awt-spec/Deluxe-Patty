@@ -9470,3 +9470,130 @@ body:has(.marco.tema) {
   font-size: 0.8rem;
   text-align: center;
 }
+
+/* ================================================================================================
+   Revisar, pulido: puntos de cuánto falta, la tarjeta con quién es, qué espera y "Ver el chat" a la
+   derecha, la respuesta en verde como un mensaje que va a salir, No enviar y Enviar lado a lado (como
+   en el chat) y "Prefiero escribirle yo" como enlace. En el teléfono el botón de Patty no tapa nada.
+   ================================================================================================ */
+.marco.tema .revisar-arriba {
+  margin-bottom: 4px;
+}
+.marco.tema .revisar-quedan {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+}
+.marco.tema .revisar-puntos {
+  display: flex;
+  gap: 5px;
+}
+.marco.tema .revisar-puntos i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #d5dbe0;
+}
+.marco.tema .revisar-puntos i.actual {
+  width: 20px;
+  border-radius: 999px;
+  background: var(--principal);
+}
+.marco.tema .revisar {
+  margin: 0 auto;
+  width: 100%;
+  max-width: 680px;
+  gap: 12px;
+}
+.marco.tema .revisar-quien {
+  color: inherit;
+}
+.marco.tema .revisar-quien > .avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+}
+.marco.tema .revisar-quien-texto {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.marco.tema .revisar-quien-texto strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.marco.tema .revisar-tipo {
+  align-self: flex-start;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: #e6f6f1;
+  color: #00684f;
+}
+.marco.tema .revisar-tipo.hablar {
+  background: #fff1e6;
+  color: #b4541a;
+}
+.marco.tema .revisar-ver {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--principal);
+}
+.marco.tema .revisar .mini-hilo {
+  border-radius: 10px;
+}
+.marco.tema .revisar-etiqueta {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.92rem;
+  color: var(--principal);
+}
+.marco.tema .revisar textarea {
+  min-height: 0;
+}
+.marco.tema .revisar-botones {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+}
+.marco.tema .revisar-botones > * {
+  width: 100%;
+  min-height: 50px;
+  margin: 0;
+  white-space: nowrap;
+  padding-left: 18px;
+  padding-right: 18px;
+}
+.marco.tema .revisar-botones > :only-child {
+  grid-column: 1 / -1;
+}
+.marco.tema button.revisar-yo {
+  align-self: center;
+  min-height: 40px;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  color: var(--principal);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.marco.tema .revisar-ayuda {
+  margin: -6px 0 0;
+  font-size: 0.8rem;
+  text-align: center;
+}
+@media (max-width: 899px) {
+  .marco.tema:has(.revisar) .patty-boton {
+    display: none;
+  }
+}
