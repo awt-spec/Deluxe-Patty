@@ -9338,3 +9338,12 @@ body:has(.marco.tema) {
   color: #b42318;
   padding: 4px 2px;
 }
+@media (max-width: 699px) {
+  /* Teléfono: la ficha PDF a lo ancho y lo demás en pares (Anuncio y Redes, Waze y Maps); datos 2 por fila. */
+  .marco.tema .casa-acciones > form:first-child {
+    grid-column: 1 / -1;
+  }
+  .marco.tema .casa-datos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
