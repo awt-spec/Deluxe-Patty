@@ -76,13 +76,30 @@ interface Marca {
   clic: boolean;
 }
 
-export function useGuia(nombre: string, alEmpezar: () => void) {
+/** La respuesta en texto corto para el globo (sin markdown ni enlaces). */
+export function resumenParaGlobo(texto: string, max = 260): string {
+  const plano = texto
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/^\s*(?:#{1,6}|>|[-*]|\d+\.)\s+/gm, "")
+    .replace(/[*_`|]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return plano.length > max ? `${plano.slice(0, max - 1).trimEnd()}…` : plano;
+}
+
+/**
+ * La guía. `alEmpezar` se llama al arrancar y dice si el chat quedó fuera de la vista (en el teléfono el chat
+ * flotante se cierra; desde la pantalla de Patty se sale a otra): entonces la respuesta se muestra en un globo
+ * aparte, con "Ver en el chat" (`alVerChat`), para que no se pierda al cambiar de pantalla.
+ */
+export function useGuia(nombre: string, alEmpezar: (pasos: Paso[]) => boolean, alVerChat?: () => void) {
   const router = useRouter();
   const [marca, setMarca] = useState<Marca | null>(null);
   const [activa, setActiva] = useState(false);
+  const [nota, setNota] = useState<string | null>(null);
   const cancelada = useRef(false);
   const objetivo = useRef<HTMLElement | null>(null);
-
   // Si la página se mueve, el resaltado sigue al elemento.
   useEffect(() => {
     if (!marca?.caja) return;
@@ -117,11 +134,12 @@ export function useGuia(nombre: string, alEmpezar: () => void) {
   }, []);
 
   const guiar = useCallback(
-    async (pasos: Paso[]) => {
+    async (pasos: Paso[], respuesta?: string) => {
       if (!pasos.length) return;
       cancelada.current = false;
       setActiva(true);
-      alEmpezar();
+      const fueraDeVista = alEmpezar(pasos);
+      setNota(fueraDeVista && respuesta ? resumenParaGlobo(respuesta) : null);
       setMarca({ x: window.innerWidth - 60, y: window.innerHeight - 60, caja: null, texto: null, clic: false });
       await esperar(200);
       for (const p of pasos) {
@@ -160,15 +178,47 @@ export function useGuia(nombre: string, alEmpezar: () => void) {
     [alEmpezar, apuntar, router],
   );
 
-  const terminar = useCallback(() => {
+  /** Para el cursor y el resaltado; el globo con la respuesta queda hasta que lo cierre. */
+  const soltar = useCallback(() => {
     cancelada.current = true;
     setActiva(false);
     setMarca(null);
     objetivo.current = null;
   }, []);
 
-  const capa = marca ? (
+  const terminar = useCallback(() => {
+    soltar();
+    setNota(null);
+  }, [soltar]);
+
+  const globo = nota ? (
+    <div className="guia-nota" role="status">
+      <strong>{nombre}</strong>
+      <span>{nota}</span>
+      <span className="guia-nota-botones">
+        {alVerChat && (
+          <button
+            type="button"
+            onClick={() => {
+              terminar();
+              alVerChat();
+            }}
+          >
+            Ver en el chat
+          </button>
+        )}
+        <button type="button" className="secundario" onClick={() => setNota(null)}>
+          Cerrar
+        </button>
+      </span>
+    </div>
+  ) : null;
+
+  const capa = marca || nota ? (
     <div className="guia" aria-live="polite">
+      {globo}
+      {marca && (
+      <>
       {marca.caja && (
         <span
           className="guia-resalte"
@@ -190,15 +240,17 @@ export function useGuia(nombre: string, alEmpezar: () => void) {
           }}
         >
           {marca.texto}
-          <button type="button" onClick={terminar}>
+          <button type="button" onClick={soltar}>
             Entendido
           </button>
         </span>
       )}
       {activa && (
-        <button type="button" className="guia-parar" onClick={terminar}>
+        <button type="button" className="guia-parar" onClick={soltar}>
           Parar
         </button>
+      )}
+      </>
       )}
     </div>
   ) : null;

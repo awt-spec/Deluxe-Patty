@@ -143,7 +143,15 @@ hoy" (visitas con hora de salida, recordatorios y clientes que no contestan), ab
 pueden adjuntar hasta 4 fotos (achicadas en el navegador) o PDF, que van a Claude como imagen o documento solo en
 ese mensaje (no se guardan; en el navegador queda la miniatura); `lib/panel/patty.ts` arma el contexto
 (plan de hoy, visitas de 7 días, clientes, dudas y casas) y `cerebro.conversarConCorredor` (`prompts/patty.md`)
-contesta sin escribir en la base ni mandar nada (salvo "bloquear …", que resuelve el código); la conversación vive en el navegador y respeta el tope diario.
+contesta sin escribir en la base ni mandar nada, salvo dos cosas que resuelve el código: "bloquear …" y **cargar una
+casa** («agrega esta casa: …», `pideCargarCasa` en `lib/panel/casa-patty.ts`): el chat sigue la misma conversación de
+Agregar casa (`conversarCasa`, mismo tope y demo), pregunta lo esencial que falte, muestra la tarjeta "Así quedó. ¿Está
+bien?" con "Sí, guardarla" / "Cambiar algo" y **solo guarda al confirmar** (`guardarCasaConversada`); las fotos adjuntas
+se guardan en memoria en el original y, al guardar, suben a 2400 px a la casa (`app/panel/patty-casa.ts`, `pedirSubidas`
++ `registrarFotos`). La conversación y la casa en curso viven en el navegador y respetan el tope diario. Cada respuesta
+se guarda en el navegador antes de guiar (la guía puede cerrar el chat o salir de `/panel/patty`); desde esa pantalla la
+guía la corre el botón flotante del layout (evento `guiar-patty`) y, si el chat quedó fuera de la vista, la respuesta
+sale en un globo con "Ver en el chat".
 Sus respuestas se muestran ordenadas (`app/panel/patty-contenido.tsx`, lector propio `lib/panel/markdown.ts`, sin HTML):
 títulos, listas, tablas, citas y **diagramas** (bloques ```mermaid dibujados en el navegador con `mermaid`, modo estricto).
 Cada respuesta larga tiene Copiar y "Hacer PDF"; si el corredor pide un documento, Patty termina con `<<pdf Título>>`

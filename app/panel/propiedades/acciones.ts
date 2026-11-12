@@ -25,6 +25,7 @@ import {
   MAX_TEXTO_FICHA,
   conversarFicha,
   datosParaGuardar,
+  faltantes,
   fichaLimpia,
   resumenFicha,
 } from "@/lib/propiedades/conversar";
@@ -259,10 +260,15 @@ export async function conversarCasa(mensajesNavegador: unknown, fichaNavegador: 
   }
 }
 
-/** Guarda la casa conversada, con el siguiente código libre. */
-export async function guardarCasaConversada(fichaNavegador: unknown): Promise<{ id: string } | { error: string }> {
+/**
+ * Guarda la casa conversada, con el siguiente código libre. La llaman "Sí, guardarla" de Agregar casa y del chat
+ * de Patty (nunca sin que el corredor la confirme); devuelve el código y el título para contarle cómo quedó.
+ */
+export async function guardarCasaConversada(fichaNavegador: unknown): Promise<{ id: string; codigo: string; titulo: string } | { error: string }> {
   const { supabase, corredor } = await sesionConCorredor();
   const ficha = fichaLimpia(fichaNavegador);
+  // Lo esencial que la conversación exige antes de mostrar "Sí, guardarla" se vuelve a comprobar aquí.
+  if (faltantes(ficha).length > 0) return { error: "Todavía falta saber si es venta o alquiler, qué es, la zona o el precio." };
   for (let intento = 0; intento < 3; intento++) {
     const { data: codigos } = await supabase.from("propiedades").select("codigo").eq("corredor_id", corredor.id);
     const r = datosParaGuardar(ficha, siguienteCodigo((codigos ?? []).map((c) => c.codigo as string)));
@@ -274,7 +280,7 @@ export async function guardarCasaConversada(fichaNavegador: unknown): Promise<{ 
       .single();
     if (data) {
       revalidatePath("/panel/propiedades");
-      return { id: data.id as string };
+      return { id: data.id as string, codigo: r.valor.codigo, titulo: r.valor.titulo };
     }
     // Otro guardado tomó el mismo código al mismo tiempo: se reintenta con el siguiente.
     if (error?.code !== "23505") break;
