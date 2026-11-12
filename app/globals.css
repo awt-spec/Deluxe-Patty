@@ -10038,3 +10038,377 @@ body:has(.marco.tema) {
   border-color: #00a884;
   color: #fff;
 }
+
+/* ================================================================================================
+   Bloquear, rehecho: pasos numerados, el día en chips (Hoy, Mañana, los días de la semana) u "Otro día",
+   la parte del día en cuadritos, las horas solo si eligió "Horas exactas", el botón siempre a mano y abajo
+   lo que ya está bloqueado con "Quitar".
+   ================================================================================================ */
+.marco.tema .bloquear {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 640px;
+}
+.marco.tema .bloquear .encabezado {
+  margin: 0;
+}
+.marco.tema .bloquear .encabezado p {
+  margin: 4px 0 0;
+}
+.marco.tema .form-bloquear {
+  gap: 10px;
+  margin: 0;
+}
+.marco.tema .bloquear-paso {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 0;
+  font-size: 1.02rem;
+}
+.marco.tema .bloquear-paso span {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--principal);
+  color: #fff;
+  font-size: 0.8rem;
+}
+.marco.tema .elegir-dia {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.marco.tema .elegir-dia-chips {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+.marco.tema .elegir-dia-chips button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-height: 0;
+  padding: 8px 2px;
+  margin: 0;
+  border-radius: 12px;
+  border: 1px solid var(--borde);
+  background: #fff;
+  color: #1d2730;
+  box-shadow: none;
+}
+.marco.tema .elegir-dia-chips button small {
+  font-size: 0.68rem;
+  color: var(--suave);
+  white-space: nowrap;
+}
+.marco.tema .elegir-dia-chips button strong {
+  font-size: 1.15rem;
+}
+.marco.tema .elegir-dia-chips button.activo {
+  background: var(--principal);
+  border-color: var(--principal);
+  color: #fff;
+}
+.marco.tema .elegir-dia-chips button.activo small {
+  color: rgb(255 255 255 / 85%);
+}
+.marco.tema .elegir-dia-otro {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--suave);
+}
+.marco.tema .elegir-dia-otro input {
+  flex: 1;
+  margin: 0;
+  max-width: 220px;
+}
+.marco.tema .elegir-dia-otro.activo input {
+  border-color: var(--principal);
+  box-shadow: 0 0 0 1px var(--principal) inset;
+}
+.marco.tema .form-bloquear .bloquear-ratos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.marco.tema .bloquear-rato {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--borde);
+  background: #fff;
+  cursor: pointer;
+}
+.marco.tema .bloquear-rato.rato-todo {
+  grid-column: 1 / -1;
+}
+.marco.tema .bloquear-rato input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.marco.tema .bloquear-rato strong {
+  font-size: 1rem;
+}
+.marco.tema .bloquear-rato small {
+  color: var(--suave);
+  font-size: 0.8rem;
+}
+.marco.tema .bloquear-rato:has(input:checked) {
+  border-color: var(--principal);
+  background: color-mix(in srgb, var(--principal) 9%, #fff);
+  box-shadow: 0 0 0 1px var(--principal) inset;
+}
+.marco.tema .bloquear-rato:has(input:checked) strong {
+  color: color-mix(in srgb, var(--principal) 80%, #000);
+}
+.marco.tema .bloquear-rato:has(input:focus-visible) {
+  outline: 3px solid color-mix(in srgb, var(--principal) 40%, transparent);
+  outline-offset: 2px;
+}
+.marco.tema .form-bloquear .bloquear-horas {
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.marco.tema .bloquear-motivo-etiqueta {
+  margin-top: 4px;
+}
+.marco.tema .bloquear-motivo-etiqueta .suave {
+  font-weight: 400;
+}
+.marco.tema .bloquear-enviar {
+  position: sticky;
+  bottom: calc(76px + env(safe-area-inset-bottom));
+  padding-top: 6px;
+  background: linear-gradient(to top, #fff 75%, rgb(255 255 255 / 0%));
+}
+.marco.tema .bloquear-enviar button {
+  width: 100%;
+  margin: 0;
+}
+@media (min-width: 900px) {
+  .marco.tema .bloquear-enviar {
+    position: static;
+  }
+}
+.marco.tema .bloquear-lista {
+  gap: 4px;
+  margin: 0;
+}
+.marco.tema .bloquear-lista h2 {
+  margin: 0 0 4px;
+  font-size: 1.02rem;
+}
+.marco.tema .bloquear-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid #eef0f3;
+}
+.marco.tema .bloquear-item:first-of-type {
+  border-top: 0;
+}
+.marco.tema .bloquear-item-texto {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.marco.tema .bloquear-item button {
+  flex: none;
+  margin: 0;
+  min-height: 36px;
+  color: #b42318;
+}
+.marco.tema .bloquear-pie {
+  margin: 0;
+  font-size: 0.88rem;
+}
+@media (max-width: 899px) {
+  .marco.tema:has(.bloquear) .patty-boton {
+    display: none;
+  }
+}
+
+/* Lámina PNG de una respuesta de Patty: se arma fuera de la pantalla y se fotografía (html-to-image). */
+.patty-lamina {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  width: 900px;
+  background: #fff;
+  color: #1f2a30;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 18px;
+  line-height: 1.5;
+}
+.patty-lamina-franja {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 22px 40px;
+  background: var(--lamina-profundo);
+  color: #fff;
+}
+.patty-lamina-franja img {
+  width: 54px;
+  height: 54px;
+  border-radius: 10px;
+  object-fit: contain;
+}
+.patty-lamina-franja strong {
+  flex: 1;
+  font-family: "Playfair Display", Georgia, serif;
+  font-weight: 500;
+  font-size: 26px;
+  color: var(--lamina-principal);
+}
+.patty-lamina-franja small {
+  font-size: 15px;
+  opacity: 0.85;
+}
+.patty-lamina-cuerpo {
+  padding: 32px 40px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.patty-lamina-cuerpo h1 {
+  margin: 0;
+  font-family: "Playfair Display", Georgia, serif;
+  font-weight: 500;
+  font-size: 36px;
+  line-height: 1.2;
+  color: var(--lamina-profundo);
+}
+.patty-lamina-cuerpo h1::after {
+  content: "";
+  display: block;
+  width: 64px;
+  height: 3px;
+  margin-top: 12px;
+  background: var(--lamina-principal);
+}
+.patty-lamina .patty-contenido {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.patty-lamina .patty-contenido > * {
+  margin: 0;
+}
+.patty-lamina .patty-titulo-bloque {
+  margin: 8px 0 0;
+  font-size: 22px;
+  color: var(--lamina-profundo);
+}
+.patty-lamina h4.patty-titulo-bloque {
+  padding-left: 12px;
+  border-left: 4px solid var(--lamina-principal);
+}
+.patty-lamina ul,
+.patty-lamina ol {
+  padding-left: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.patty-lamina li::marker {
+  color: var(--lamina-principal);
+  font-weight: 700;
+}
+.patty-lamina blockquote {
+  margin: 0;
+  padding: 10px 16px;
+  border-left: 4px solid var(--lamina-principal);
+  background: #f7f8fa;
+  border-radius: 0 10px 10px 0;
+}
+.patty-lamina .patty-tabla {
+  border: 1px solid #dfe4e8;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.patty-lamina table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 16px;
+}
+.patty-lamina th {
+  background: var(--lamina-profundo);
+  color: #fff;
+  text-align: left;
+  font-weight: 600;
+}
+.patty-lamina th,
+.patty-lamina td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #edf0f2;
+}
+.patty-lamina tbody tr:nth-child(even) td {
+  background: #fafbfc;
+}
+.patty-lamina .patty-diagrama {
+  margin: 0;
+  padding: 16px;
+  border: 1px solid #e3e7ea;
+  border-radius: 12px;
+}
+.patty-lamina .patty-diagrama-svg {
+  display: flex;
+  justify-content: center;
+}
+.patty-lamina .patty-diagrama-svg svg {
+  max-width: 100%;
+  height: auto;
+}
+.patty-lamina .patty-enlace {
+  color: inherit;
+  text-decoration: none;
+  font-weight: 600;
+}
+.patty-lamina-pie {
+  padding: 16px 40px 24px;
+  border-top: 1px solid #eef0f3;
+  font-size: 14px;
+  color: #7a868e;
+}
+
+/* Visor: PNG */
+.patty-chat .patty-pdf-icono.png {
+  background: #2563eb;
+}
+.patty-visor-imagen {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 16px;
+  background: #3b4248;
+}
+.patty-visor-imagen img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  box-shadow: 0 8px 30px rgb(0 0 0 / 35%);
+  background: #fff;
+}

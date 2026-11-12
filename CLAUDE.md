@@ -149,7 +149,10 @@ títulos, listas, tablas, citas y **diagramas** (bloques ```mermaid dibujados en
 Cada respuesta larga tiene Copiar y "Hacer PDF"; si el corredor pide un documento, Patty termina con `<<pdf Título>>`
 y aparece la tarjeta del PDF. El PDF lo arma el servidor sin IA (`pdfDePatty`, `lib/panel/pdf-patty.tsx`,
 `@react-pdf/renderer`) con la marca del corredor y los diagramas que el navegador pasa a PNG; se ve en un visor y se
-descarga, y no se guarda. Favicon: `app/icon.svg` y `app/apple-icon.tsx`.
+descarga, y no se guarda. También en **PNG**: "Hacer imagen" (o `<<png Título>>` cuando la pide) arma en el navegador una
+lámina con la marca del corredor (`laminaPng`, `html-to-image`, `marcaParaLamina`), y cada diagrama se baja en PNG. Un pedido
+de imagen con sus datos (resumen, tabla, diagrama, infografía, PNG) no va a la IA de imágenes (`pideImagen`).
+Favicon: `app/icon.svg` y `app/apple-icon.tsx`.
 Patty sabe en qué pantalla está el corredor (`contextoPantalla`: en la ficha de un cliente, una visita o una casa
 lee sus datos y el chat), sugiere preguntas según la pantalla, trae una guía del panel en `prompts/patty.md` y
 contesta "¿dónde está…?" con enlaces `[Pantalla](/panel/...)` que se vuelven botones (solo rutas del panel).
@@ -161,8 +164,8 @@ Las pantallas principales tienen botones "Pregúntale" (`app/panel/preguntar-pat
 Agenda en calendario: día, semana, mes o lista (`?vista=`); se toca una hora libre para agendar
 (`/panel/agenda/nueva`), cada visita se abre para confirmarla, moverla o cancelarla con aviso al cliente
 (`/panel/agenda/visita/<id>`, `lib/panel/visitas.ts`), con color por zona y el traslado entre visitas.
-**Bloquear** (`/panel/agenda/bloquear`): un día, mañana, tarde, noche, horas exactas o varios días (uno por día si
-son horas), con lista de ratos bloqueados y "Quitar" en la agenda. También por texto, entendido por el código
+**Bloquear** (`/panel/agenda/bloquear`): el día en chips (Hoy, Mañana, la semana) u otro día, mañana, tarde, noche,
+horas exactas o varios días (uno por día si son horas), y abajo lo ya bloqueado con "Quitar" (también en la agenda). También por texto, entendido por el código
 (`lib/agenda/bloquear.ts`, `lib/agenda/apartar.ts`): "bloquear mañana en la tarde" por WhatsApp del corredor o en el
 chat de Patty (sin llamar al modelo; es lo único que Patty escribe en la base). La asistente lo pregunta seguido:
 tarjeta diaria "¿Tienes algún compromiso mañana?" en Inicio y Agenda (`app/panel/agenda/pregunta-bloqueo.tsx`, una

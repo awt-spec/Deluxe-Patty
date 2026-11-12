@@ -126,6 +126,10 @@ describe("imágenes desde el chat de Patty", () => {
     const { pideImagen } = await import("../lib/panel/imagenes-patty");
     expect(pideImagen("Hazme una imagen para Instagram de una casa con piscina")).toEqual({ tipo: "generar", formato: "cuadrada" });
     expect(pideImagen("Genérame una historia para anunciar el open house")).toEqual({ tipo: "generar", formato: "vertical" });
+    // Una imagen de sus datos la arma Patty con texto (lámina PNG con su marca), no la IA de imágenes.
+    expect(pideImagen("Hazme una imagen con el resumen de mis clientes")).toBeNull();
+    expect(pideImagen("Hazme un PNG con la tabla de mis casas")).toBeNull();
+    expect(pideImagen("Hazme una infografía de cómo va el mes")).toBeNull();
     expect(pideImagen("crea un banner para mi página")).toEqual({ tipo: "generar", formato: "horizontal" });
     expect(pideImagen("Amuebla esta sala en estilo moderno", [foto])).toMatchObject({ tipo: "editar" });
     expect(pideImagen("Quítale el carro a la foto", [foto])).toMatchObject({ tipo: "editar" });

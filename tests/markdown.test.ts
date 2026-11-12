@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bloques, esRutaDelPanel, separarPdf, trozos } from "@/lib/panel/markdown";
+import { bloques, esRutaDelPanel, separarPedido, trozos } from "@/lib/panel/markdown";
 
 describe("Lo que escribe Patty, en bloques", () => {
   it("separa títulos, párrafos, listas, tablas, citas y diagramas", () => {
@@ -49,8 +49,9 @@ describe("Lo que escribe Patty, en bloques", () => {
     expect(esRutaDelPanel("javascript:alert(1)")).toBe(false);
   });
 
-  it("el pedido de PDF sale del texto con su título", () => {
-    expect(separarPdf("# Informe\n\nTexto\n<<pdf Informe de noviembre>>")).toEqual({ texto: "# Informe\n\nTexto", pdf: "Informe de noviembre" });
-    expect(separarPdf("Sin pedido")).toEqual({ texto: "Sin pedido", pdf: null });
+  it("el pedido de PDF o de imagen sale del texto con su título", () => {
+    expect(separarPedido("# Informe\n\nTexto\n<<pdf Informe de noviembre>>")).toEqual({ texto: "# Informe\n\nTexto", pdf: "Informe de noviembre", png: null });
+    expect(separarPedido("Resumen\n<<png Clientes de hoy>>")).toEqual({ texto: "Resumen", pdf: null, png: "Clientes de hoy" });
+    expect(separarPedido("Sin pedido")).toEqual({ texto: "Sin pedido", pdf: null, png: null });
   });
 });

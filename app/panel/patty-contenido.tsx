@@ -83,11 +83,42 @@ function cargarMermaid(): Promise<Mermaid> {
         primaryColor: "#e7f8f0",
         primaryBorderColor: "#00a884",
         primaryTextColor: "#111b21",
-        lineColor: "#54656f",
+        lineColor: "#8696a0",
         secondaryColor: "#fff4e5",
+        secondaryBorderColor: "#f0a868",
         tertiaryColor: "#f0f2f5",
+        tertiaryBorderColor: "#c4cdd3",
         fontSize: "15px",
+        edgeLabelBackground: "#ffffff",
+        // Torta: colores que se distinguen bien entre sí y con el texto encima.
+        pie1: "#00a884",
+        pie2: "#53bdeb",
+        pie3: "#f5a623",
+        pie4: "#e5484d",
+        pie5: "#8b5cf6",
+        pie6: "#14b8a6",
+        pie7: "#f97316",
+        pie8: "#64748b",
+        pieStrokeColor: "#ffffff",
+        pieStrokeWidth: "2px",
+        pieOuterStrokeWidth: "0px",
+        pieSectionTextColor: "#ffffff",
+        pieSectionTextSize: "15px",
+        pieTitleTextSize: "18px",
+        pieLegendTextSize: "14px",
+        // Línea de tiempo y gantt en los mismos tonos.
+        cScale0: "#00a884",
+        cScale1: "#53bdeb",
+        cScale2: "#f5a623",
+        cScale3: "#8b5cf6",
+        cScaleLabel0: "#ffffff",
+        cScaleLabel1: "#ffffff",
+        cScaleLabel2: "#ffffff",
+        cScaleLabel3: "#ffffff",
       },
+      // Cajas redondeadas y algo de aire, como el resto del panel.
+      themeCSS:
+        ".node rect, .node polygon, .node circle { rx: 10px; ry: 10px; stroke-width: 1.6px; } .edgePath .path, .flowchart-link { stroke-width: 1.6px; } .nodeLabel, .label { font-weight: 500; }",
     });
     return m;
   });
@@ -116,15 +147,15 @@ function Diagrama({ codigo }: { codigo: string }) {
     };
   }, [codigo, id]);
 
-  function descargar() {
+  async function descargar() {
     const svg = caja.current?.querySelector("svg");
     if (!svg) return;
-    const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(svg)], { type: "image/svg+xml" }));
+    const png = await svgAPng(svg, 2000).catch(() => null);
+    if (!png) return;
     const a = document.createElement("a");
-    a.href = url;
-    a.download = "diagrama.svg";
+    a.href = png;
+    a.download = "diagrama.png";
     a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   if (estado === "error") {
@@ -141,8 +172,8 @@ function Diagrama({ codigo }: { codigo: string }) {
       <div ref={caja} className="patty-diagrama-svg" />
       {estado === "listo" && (
         <figcaption>
-          <button type="button" className="patty-mini" onClick={descargar}>
-            Descargar diagrama
+          <button type="button" className="patty-mini" onClick={() => void descargar()}>
+            Descargar PNG
           </button>
         </figcaption>
       )}
@@ -227,40 +258,111 @@ export function Contenido({ texto, alIr }: { texto: string; alIr: () => void }) 
   );
 }
 
+/** Un SVG dibujado, como PNG con fondo blanco (máximo `ancho` px de ancho). */
+export async function svgAPng(svg: SVGSVGElement, ancho = 1600): Promise<string> {
+  const caja = svg.viewBox.baseVal?.width ? svg.viewBox.baseVal : svg.getBBox();
+  const escala = Math.min(3, ancho / Math.max(1, caja.width));
+  const w = Math.round(caja.width * escala);
+  const h = Math.round(caja.height * escala);
+  const copia = svg.cloneNode(true) as SVGSVGElement;
+  copia.setAttribute("width", String(w));
+  copia.setAttribute("height", String(h));
+  copia.style.maxWidth = "none";
+  const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(copia)], { type: "image/svg+xml" }));
+  try {
+    const img = new Image();
+    await new Promise<void>((ok, mal) => {
+      img.onload = () => ok();
+      img.onerror = () => mal(new Error("svg"));
+      img.src = url;
+    });
+    const lienzo = document.createElement("canvas");
+    lienzo.width = w;
+    lienzo.height = h;
+    const ctx = lienzo.getContext("2d");
+    if (!ctx) throw new Error("canvas");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(img, 0, 0, w, h);
+    return lienzo.toDataURL("image/png");
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 /** Los diagramas ya dibujados dentro de un mensaje, como PNG (para meterlos en el PDF), en orden. */
 export async function diagramasComoPng(dentro: HTMLElement | null): Promise<string[]> {
   if (!dentro) return [];
-  const svgs = [...dentro.querySelectorAll<SVGSVGElement>(".patty-diagrama-svg svg")].slice(0, 6);
   const salida: string[] = [];
-  for (const svg of svgs) {
-    try {
-      const caja = svg.viewBox.baseVal?.width ? svg.viewBox.baseVal : svg.getBBox();
-      const escala = Math.min(2, 1600 / Math.max(1, caja.width));
-      const ancho = Math.round(caja.width * escala);
-      const alto = Math.round(caja.height * escala);
-      const copia = svg.cloneNode(true) as SVGSVGElement;
-      copia.setAttribute("width", String(ancho));
-      copia.setAttribute("height", String(alto));
-      const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(copia)], { type: "image/svg+xml" }));
-      const img = new Image();
-      await new Promise<void>((ok, mal) => {
-        img.onload = () => ok();
-        img.onerror = () => mal(new Error("svg"));
-        img.src = url;
-      });
-      const lienzo = document.createElement("canvas");
-      lienzo.width = ancho;
-      lienzo.height = alto;
-      const ctx = lienzo.getContext("2d");
-      if (!ctx) continue;
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, ancho, alto);
-      ctx.drawImage(img, 0, 0, ancho, alto);
-      URL.revokeObjectURL(url);
-      salida.push(lienzo.toDataURL("image/png"));
-    } catch {
-      // Si un diagrama no se puede pasar a imagen, el PDF lo deja fuera y sigue con lo demás.
-    }
+  for (const svg of [...dentro.querySelectorAll<SVGSVGElement>(".patty-diagrama-svg svg")].slice(0, 6)) {
+    // Si un diagrama no se puede pasar a imagen, el PDF lo deja fuera y sigue con lo demás.
+    const png = await svgAPng(svg).catch(() => null);
+    if (png) salida.push(png);
   }
   return salida;
+}
+
+export type MarcaLamina = {
+  nombre: string;
+  logo: string | null;
+  fondoLogo: string | null;
+  colores: { principal: string; soporte: string; profundo: string; base: string };
+  firma: string | null;
+};
+
+/**
+ * Lámina PNG de una respuesta (para mandarla por WhatsApp o subirla a redes): franja con la marca, título, el
+ * contenido tal como se ve en el chat (tablas y diagramas incluidos) y pie. Se arma en el navegador.
+ */
+export async function laminaPng(contenido: HTMLElement, titulo: string, marca: MarcaLamina, fecha: string): Promise<string> {
+  const { toPng } = await import("html-to-image");
+  const c = marca.colores;
+  const hoja = document.createElement("div");
+  hoja.className = "patty-lamina";
+  hoja.style.setProperty("--lamina-principal", c.principal);
+  hoja.style.setProperty("--lamina-profundo", c.profundo);
+  hoja.style.setProperty("--lamina-soporte", c.soporte);
+
+  const franja = document.createElement("div");
+  franja.className = "patty-lamina-franja";
+  if (marca.logo) {
+    const logo = document.createElement("img");
+    logo.src = marca.logo;
+    logo.alt = "";
+    logo.style.background = marca.fondoLogo ?? c.profundo;
+    franja.append(logo);
+  }
+  const nombre = document.createElement("strong");
+  nombre.textContent = marca.nombre;
+  const dia = document.createElement("small");
+  dia.textContent = fecha;
+  franja.append(nombre, dia);
+
+  const cuerpo = document.createElement("div");
+  cuerpo.className = "patty-lamina-cuerpo";
+  const h = document.createElement("h1");
+  h.textContent = titulo;
+  const copia = contenido.cloneNode(true) as HTMLElement;
+  // Fuera los botones (Descargar PNG): en la imagen solo va el contenido.
+  copia.querySelectorAll("button, figcaption, .patty-acciones-mensaje").forEach((b) => b.remove());
+  // Si el contenido ya empieza con el mismo título, no se repite.
+  const primero = copia.firstElementChild;
+  if (primero && /^H[3-5]$/.test(primero.tagName) && primero.textContent?.trim() === titulo.trim()) primero.remove();
+  cuerpo.append(h, copia);
+
+  const pie = document.createElement("div");
+  pie.className = "patty-lamina-pie";
+  pie.textContent = marca.firma ?? marca.nombre;
+
+  hoja.append(franja, cuerpo, pie);
+  document.body.append(hoja);
+  try {
+    // Que cargue el logo antes de la foto.
+    await Promise.all(
+      [...hoja.querySelectorAll("img")].map((im) => (im.complete ? Promise.resolve() : new Promise((ok) => ((im.onload = ok), (im.onerror = ok))))),
+    );
+    return await toPng(hoja, { pixelRatio: 2, backgroundColor: "#ffffff", cacheBust: true });
+  } finally {
+    hoja.remove();
+  }
 }

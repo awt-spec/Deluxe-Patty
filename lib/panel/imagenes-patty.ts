@@ -18,6 +18,9 @@ const ES_IMAGEN = /\b(?:imagen|imagenes|ilustracion|render|banner|flyer|afiche|d
 // Editar la foto adjunta: un verbo de editar y algo que se ve en una foto (no "cambia el tono del texto").
 const EDITAR = /^\s*(?:por favor,?\s*)?(?:amuebla\w*|decora\w*|quita\w*|borra\w*|elimina\w*|edita\w*|cambia\w*|pinta\w*|ponle|agrega\w*|limpia\w*|mejora\w*|convierte\w*)\b/;
 const VISUAL = /\b(?:foto|imagen|sala|cuarto|cocina|habitacion|bano|patio|fachada|jardin|terraza|pared|paredes|piso|pisos|techo|carro|carros|cielo|piscina|muebles?|cables?|basura|fondo|luz|colores?|amuebl\w*|decor\w*)\b/;
+// Una imagen de sus datos (resumen, tabla, diagrama, infografía, "en PNG"): la arma Patty con el texto y el panel la
+// convierte en lámina PNG con su marca; no es una imagen inventada por IA.
+const DE_SUS_DATOS = /\b(?:png|lamina|infografia|diagrama|grafico|esquema|tabla|resumen|informe|reporte|lista|comparacion|comparativo)\b/;
 // Una casa del corredor: para eso está "Imagen para redes", con la foto y los datos reales.
 const CASA_PROPIA = /\b(?:mi|mis|la|esta|esa|una de mis) (?:casa|casas|propiedad|propiedades|apartamento|lote)\b|\b[a-z]{2,5}-\d{1,4}\b/;
 
@@ -29,6 +32,7 @@ export type PedidoImagen =
 /** Si el mensaje pide una imagen (nueva o editar la foto adjunta). null si es una conversación normal. */
 export function pideImagen(texto: string, adjuntos: Adjunto[] = []): PedidoImagen | null {
   const t = sinTildes(texto);
+  if (DE_SUS_DATOS.test(t)) return null;
   const foto = adjuntos.find((a) => a.tipo === "imagen");
   if (foto && ((EDITAR.test(t) && VISUAL.test(t)) || (HACER.test(t) && ES_IMAGEN.test(t)))) return { tipo: "editar", foto };
   if ((HACER.test(t) && ES_IMAGEN.test(t)) || QUIERO.test(t)) {

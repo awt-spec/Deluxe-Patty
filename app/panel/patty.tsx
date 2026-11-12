@@ -6,9 +6,9 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { separarPasos, useGuia, type Paso } from "./guia";
 import { IconoCamara, IconoClip, IconoDobleCheck, IconoDocumento, IconoEnviar, IconoMicrofono } from "./iconos";
-import { separarPdf } from "@/lib/panel/markdown";
-import { leerDocumento, pdfDePatty, preguntarAPatty, transcribirNota } from "./patty-acciones";
-import { Contenido, diagramasComoPng } from "./patty-contenido";
+import { separarPedido } from "@/lib/panel/markdown";
+import { leerDocumento, marcaParaLamina, pdfDePatty, preguntarAPatty, transcribirNota } from "./patty-acciones";
+import { Contenido, diagramasComoPng, laminaPng, type MarcaLamina } from "./patty-contenido";
 
 // Chat del corredor con su asistente (Patty), como WhatsApp: burbujas con la hora, fondo de chat, caja
 // para escribir con botón para adjuntar fotos o PDF. Se usa en el botón flotante de cada página y en su
@@ -16,11 +16,11 @@ import { Contenido, diagramasComoPng } from "./patty-contenido";
 // miniatura); Patty lee los datos del negocio en cada pregunta.
 
 type Adjunto = { tipo: "imagen" | "pdf" | "texto"; nombre: string; miniatura?: string };
-/** `pdf`: título del documento que Patty preparó (se arma al tocar "Ver PDF"). */
-type Turno = { autor: "corredor" | "asistente"; texto: string; hora?: string; adjuntos?: Adjunto[]; pdf?: string | null };
+/** `pdf` / `png`: título del documento o la imagen que Patty preparó (se arma al tocar la tarjeta). */
+type Turno = { autor: "corredor" | "asistente"; texto: string; hora?: string; adjuntos?: Adjunto[]; pdf?: string | null; png?: string | null };
 
-/** PDF listo para ver: dirección local (blob) y nombre del archivo. */
-type Visor = { url: string; nombre: string };
+/** Documento listo para ver: dirección local (blob o data) y nombre del archivo. */
+type Visor = { url: string; nombre: string; tipo: "pdf" | "png" };
 
 const tituloDe = (texto: string) =>
   /^#{1,3}\s+(.+)$/m.exec(texto)?.[1]?.replace(/[*_`]/g, "").trim().slice(0, 100) || "Documento de Patty";
@@ -197,7 +197,8 @@ export function ChatPatty({
   const [transcribiendo, setTranscribiendo] = useState(false);
   const [pensando, empezar] = useTransition();
   const [visor, setVisor] = useState<Visor | null>(null);
-  const [armando, setArmando] = useState<number | null>(null);
+  const [armando, setArmando] = useState<{ i: number; tipo: "pdf" | "png" } | null>(null);
+  const marcaLamina = useRef<MarcaLamina | null>(null);
   const [copiado, setCopiado] = useState<number | null>(null);
   const burbujas = useRef<Map<number, HTMLDivElement>>(new Map());
   const fin = useRef<HTMLDivElement>(null);
@@ -396,8 +397,8 @@ export function ChatPatty({
         );
         if (r.ok) {
           const { texto: sinPasos, pasos } = separarPasos(r.texto);
-          const { texto: leible, pdf } = separarPdf(sinPasos);
-          setTurnos((t) => [...t, { autor: "asistente", texto: leible, hora: new Date().toISOString(), pdf }]);
+          const { texto: leible, pdf, png } = separarPedido(sinPasos);
+          setTurnos((t) => [...t, { autor: "asistente", texto: leible, hora: new Date().toISOString(), pdf, png }]);
           if (pasos.length) void guiar(pasos);
           if ("cambio" in r && r.cambio) router.refresh();
         } else setError(r.motivo);
@@ -411,7 +412,7 @@ export function ChatPatty({
   async function verPdf(i: number) {
     const t = turnos[i];
     if (!t || armando !== null) return;
-    setArmando(i);
+    setArmando({ i, tipo: "pdf" });
     setError(null);
     try {
       const diagramas = await diagramasComoPng(burbujas.current.get(i) ?? null);
@@ -420,15 +421,38 @@ export function ChatPatty({
         setError(r.motivo);
       } else {
         const bytes = Uint8Array.from(atob(r.datos), (c) => c.charCodeAt(0));
-        setVisor((v) => {
-          if (v) URL.revokeObjectURL(v.url);
-          return { url: URL.createObjectURL(new Blob([bytes], { type: "application/pdf" })), nombre: r.nombre };
-        });
+        abrirVisor({ url: URL.createObjectURL(new Blob([bytes], { type: "application/pdf" })), nombre: r.nombre, tipo: "pdf" });
       }
     } catch {
       setError("No pude armar el PDF. Inténtalo de nuevo.");
     }
     setArmando(null);
+  }
+
+  /** Arma la lámina PNG de una respuesta (con la marca del corredor) y la muestra para descargarla. */
+  async function verPng(i: number) {
+    const t = turnos[i];
+    const contenido = burbujas.current.get(i)?.querySelector<HTMLElement>(".patty-contenido");
+    if (!t || !contenido || armando !== null) return;
+    setArmando({ i, tipo: "png" });
+    setError(null);
+    try {
+      marcaLamina.current ??= await marcaParaLamina();
+      const titulo = t.png ?? tituloDe(t.texto);
+      const fecha = new Date().toLocaleDateString("es-CR", { weekday: "long", day: "numeric", month: "long" });
+      const png = await laminaPng(contenido, titulo, marcaLamina.current, fecha);
+      abrirVisor({ url: png, nombre: `${titulo.replace(/[\\/:*?"<>|]+/g, "").slice(0, 80)}.png`, tipo: "png" });
+    } catch {
+      setError("No pude armar la imagen. Inténtalo de nuevo.");
+    }
+    setArmando(null);
+  }
+
+  function abrirVisor(nuevo: Visor) {
+    setVisor((v) => {
+      if (v?.url.startsWith("blob:")) URL.revokeObjectURL(v.url);
+      return nuevo;
+    });
   }
 
   async function copiar(i: number) {
@@ -443,7 +467,7 @@ export function ChatPatty({
 
   const cerrarVisor = () =>
     setVisor((v) => {
-      if (v) URL.revokeObjectURL(v.url);
+      if (v?.url.startsWith("blob:")) URL.revokeObjectURL(v.url);
       return null;
     });
 
@@ -555,7 +579,18 @@ export function ChatPatty({
                 </span>
                 <span className="patty-pdf-texto">
                   <strong>{t.pdf}</strong>
-                  <small>{armando === i ? "Armando el PDF…" : "Toca para verlo y descargarlo"}</small>
+                  <small>{armando?.i === i && armando.tipo === "pdf" ? "Armando el PDF…" : "Toca para verlo y descargarlo"}</small>
+                </span>
+              </button>
+            )}
+            {t.autor === "asistente" && t.png && (
+              <button type="button" className="patty-pdf-tarjeta" onClick={() => void verPng(i)} disabled={armando !== null}>
+                <span className="patty-pdf-icono png" aria-hidden>
+                  PNG
+                </span>
+                <span className="patty-pdf-texto">
+                  <strong>{t.png}</strong>
+                  <small>{armando?.i === i && armando.tipo === "png" ? "Armando la imagen…" : "Toca para verla y descargarla"}</small>
                 </span>
               </button>
             )}
@@ -566,7 +601,12 @@ export function ChatPatty({
                 </button>
                 {!t.pdf && (
                   <button type="button" className="patty-mini" onClick={() => void verPdf(i)} disabled={armando !== null}>
-                    {armando === i ? "Armando…" : "Hacer PDF"}
+                    {armando?.i === i && armando.tipo === "pdf" ? "Armando…" : "Hacer PDF"}
+                  </button>
+                )}
+                {!t.png && (
+                  <button type="button" className="patty-mini" onClick={() => void verPng(i)} disabled={armando !== null}>
+                    {armando?.i === i && armando.tipo === "png" ? "Armando…" : "Hacer imagen"}
                   </button>
                 )}
               </span>
@@ -724,7 +764,7 @@ export function ChatPatty({
 
       {visor &&
         createPortal(
-        <div className="patty-visor" role="dialog" aria-modal="true" aria-label="Documento PDF">
+        <div className={`patty-visor ${visor.tipo}`} role="dialog" aria-modal="true" aria-label={visor.tipo === "pdf" ? "Documento PDF" : "Imagen"}>
           <div className="patty-visor-barra">
             <strong>{visor.nombre}</strong>
             <a href={visor.url} download={visor.nombre} className="patty-mini primario">
@@ -737,7 +777,14 @@ export function ChatPatty({
               Cerrar
             </button>
           </div>
-          <iframe src={visor.url} title={visor.nombre} />
+          {visor.tipo === "pdf" ? (
+            <iframe src={visor.url} title={visor.nombre} />
+          ) : (
+            <div className="patty-visor-imagen">
+              {/* eslint-disable-next-line @next/next/no-img-element -- imagen armada en el navegador (data:) */}
+              <img src={visor.url} alt={visor.nombre} />
+            </div>
+          )}
         </div>,
           document.body,
         )}
