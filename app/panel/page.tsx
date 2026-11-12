@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { diaLargo, etiquetaHorario, horaCorta } from "@/lib/agenda/formato";
+import { diaLargo, horaCorta } from "@/lib/agenda/formato";
 import { fechaIso, fechaLocal, limitesDia, sumarDias } from "@/lib/agenda/tiempo";
 import { minutosEntre } from "@/lib/agenda/zonas";
 import { encaja, telefonoBonito, type Busca } from "@/lib/crm/perfil";
@@ -179,9 +179,17 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
     return antes ? `Salir a las ${hora} (${min} min desde la visita anterior)` : `Salir de ${desde} a las ${hora} (${min} min)`;
   };
 
+  // Como en WhatsApp: la hora si es de hoy, "Ayer", el día de la semana si fue esta semana y si no, "11 nov.".
   const cuando = (iso: string) => {
     const d = new Date(iso);
-    return fechaIso(fechaLocal(d, zona)) === fechaIso(fechaLocal(ahora, zona)) ? horaCorta(d, zona) : etiquetaHorario(d, zona).split(",")[0];
+    const dia = fechaLocal(d, zona);
+    const hoy = fechaLocal(ahora, zona);
+    if (fechaIso(dia) === fechaIso(hoy)) return horaCorta(d, zona);
+    if (fechaIso(dia) === fechaIso(sumarDias(hoy, -1))) return "Ayer";
+    const SEMANA = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+    if (fechaIso(dia) > fechaIso(sumarDias(hoy, -7))) return SEMANA[dia.diaSemana];
+    const MESES = ["ene.", "feb.", "mar.", "abr.", "may.", "jun.", "jul.", "ago.", "sept.", "oct.", "nov.", "dic."];
+    return `${dia.dia} ${MESES[dia.mes - 1]}${dia.anio !== hoy.anio ? ` ${dia.anio}` : ""}`;
   };
   const hora = Number(new Intl.DateTimeFormat("es-CR", { hour: "numeric", hourCycle: "h23", timeZone: zona }).format(ahora));
   const saludo = hora < 12 ? "Buenos días" : hora < 19 ? "Buenas tardes" : "Buenas noches";
