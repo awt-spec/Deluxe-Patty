@@ -233,6 +233,20 @@ agenda y correcciones; la conversación, las citas de prueba y los avisos viven 
 navegador (`lib/simulador/estado.ts`). Nada se escribe en mensajes, citas ni conversaciones, nada sale por
 WhatsApp y no suma al tope; solo se registra el costo de Claude.
 
+## Sitio web del corredor (`lib/sitio/publico.ts`, `app/api/sitio/<slug>/…`)
+El sitio público del corredor (el de Deluxe está hecho en Lovable) usa el portal como fuente de verdad, por tres
+direcciones públicas con CORS abierto (los datos son públicos) y el corredor identificado por `corredores.slug`:
+- `GET casas`: casas activas con fotos, solo campos publicables (nunca notas, comisiones ni clientes), fotos originales
+  en orden y `whatsapp` (wa.me a la asistente con la referencia: "me interesa la propiedad DP-01… que vi en su sitio web").
+  Una casa vendida o pausada sale del sitio sola (caché de 60 s).
+- `GET horarios?casa=<id>`: horas libres de la agenda real (`horariosLibres`: horario, bloqueos, visitas y traslado a
+  la zona de la casa), agrupadas por día.
+- `POST visita` (JSON `{casa, inicio, nombre, telefono, correo, notas, acepta, empresa}`): valida (`leerPedido`; `empresa`
+  es trampa para robots y `acepta` el aviso de privacidad), frena ráfagas por conexión y por teléfono (`reclamar_alerta`
+  con huellas, sin guardar IP ni número), vuelve a comprobar que la hora sigue libre, crea o encuentra el cliente,
+  la visita "por confirmar" (`crearVisita`, sin escribirle al cliente), anota en la Historia que vino del sitio y le avisa
+  al corredor con la plantilla. El cliente queda con origen `whatsapp` (no hay origen "sitio" en la base todavía).
+
 ## Monitoreo (`lib/monitoreo/`)
 Cada llamada a Claude deja una traza `llamada_claude` (modelo, ms, tokens, caché leída y escrita, motivo de parada;
 nunca contenido) y tiene tiempo de espera de 90 s con 1 reintento (`lib/asistente/cliente-claude.ts`); OpenAI, 120 s y 1
