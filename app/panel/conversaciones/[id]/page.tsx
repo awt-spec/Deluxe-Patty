@@ -106,8 +106,8 @@ export default async function Conversacion({
         <Link href={`/panel/clientes/${contacto.id}`} className="barra-chat-nombre" aria-label="Ver la ficha del cliente">
           <strong>{contacto.nombre ?? contacto.telefono}</strong>
           <span>
-            <span className={`etapa etapa-${contacto.etapa}`}>{NOMBRE_ETAPA[contacto.etapa] ?? contacto.etapa}</span>{" "}
-            {resumenBusca(contacto.busca ?? {}) || "toca para ver su ficha"}
+            <span className={`etapa etapa-${contacto.etapa}`}>{NOMBRE_ETAPA[contacto.etapa] ?? contacto.etapa}</span>
+            <span className="barra-chat-busca">{resumenBusca(contacto.busca ?? {}) || "toca para ver su ficha"}</span>
           </span>
         </Link>
         <a href={`tel:${contacto.telefono}`} className="llamar" aria-label="Llamar">
@@ -157,7 +157,7 @@ export default async function Conversacion({
             return [
               separador,
               <form key={m.id} id="borrador" action={aprobar} className="borrador pila">
-                <span className="propuesta-titulo">La asistente le contestaría esto. ¿Se lo mando?</span>
+                <span className="propuesta-titulo">Respuesta propuesta · ¿se la mando?</span>
                 <p className="por-que">
                   {ultimaIntencion && <>Entendió: {INTENCION[ultimaIntencion] ?? ultimaIntencion}.</>}
                   {casasEn(m.contenido).length > 0 && (
@@ -176,24 +176,25 @@ export default async function Conversacion({
                 </p>
                 {m.accion && <p className="suave">{describirAccion(m.accion, zona)}</p>}
                 <input type="hidden" name="mensaje" value={m.id} />
-                <label htmlFor={`texto-${m.id}`} className="suave">
-                  Puedes cambiar el texto antes de enviarlo:
+                <label htmlFor={`texto-${m.id}`} className="oculto">
+                  Texto de la respuesta (puedes cambiarlo antes de enviarlo)
                 </label>
                 <textarea
                   id={`texto-${m.id}`}
                   name="texto"
                   defaultValue={m.contenido ?? ""}
                   // Alto según el largo, para leer el borrador completo sin desplazarse dentro del cuadro.
-                  rows={Math.min(12, Math.max(4, Math.ceil((m.contenido ?? "").length / 30) + 1))}
+                  rows={Math.min(12, Math.max(3, Math.ceil((m.contenido ?? "").length / 36)))}
                 />
-                <div className="botones">
-                  <button type="submit" className="verde grande" disabled={!ventanaAbierta}>
-                    <IconoCheck tamano={24} /> Enviar
-                  </button>
+                <div className="botones borrador-botones">
                   <button type="submit" formAction={descartar} className="peligro">
                     No enviar
                   </button>
+                  <button type="submit" className="verde grande" disabled={!ventanaAbierta}>
+                    <IconoCheck tamano={22} /> Enviar
+                  </button>
                 </div>
+                <p className="borrador-ayuda suave">Puedes cambiar el texto antes de enviarlo.</p>
               </form>,
             ];
           }
@@ -234,7 +235,7 @@ export default async function Conversacion({
       </section>
 
       {ventanaAbierta ? (
-        <Escribir conversacion={id} accion={escribir} />
+        <Escribir conversacion={id} accion={escribir} rapidas={!hayBorrador} />
       ) : (
         <div className="escribir-wa cerrado">
           <p>Pasó más de un día desde que te escribió: contéstale desde tu WhatsApp.</p>
