@@ -9454,10 +9454,13 @@ body:has(.marco.tema) {
 }
 .marco.tema .borrador-botones {
   display: grid;
-  grid-template-columns: 1fr 2fr;
+  grid-template-columns: auto 1fr;
   gap: 8px;
 }
 .marco.tema .borrador-botones button {
+  white-space: nowrap;
+  padding-left: 16px;
+  padding-right: 16px;
   width: 100%;
   min-height: 46px;
   margin: 0;
