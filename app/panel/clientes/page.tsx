@@ -149,16 +149,18 @@ export default async function Clientes({
     const r = recordatorio(c);
     return (
       <Link key={c.id} href={`/panel/clientes/${c.id}`} className="cliente-tarjeta">
-        <Avatar nombre={c.nombre} telefono={c.telefono} />
+        <span className="cliente-cabeza">
+          <Avatar nombre={c.nombre} telefono={c.telefono} />
+          <strong className="cliente-nombre">{c.nombre ?? telefonoBonito(c.telefono)}</strong>
+          {!elegida && <span className={`etapa etapa-${c.etapa}`}>{NOMBRE_ETAPA[c.etapa]}</span>}
+        </span>
         <span className="cliente-texto">
-          <strong>{c.nombre ?? telefonoBonito(c.telefono)}</strong>
           <span className="suave">{resumenBusca(c.busca ?? {}) || "Todavía no dijo qué busca"}</span>
           {casaDe.get(c.id) && <span className="suave">Le interesa: {casaDe.get(c.id)}</span>}
           {r && <span className={`seguimiento${r.vence ? " vence" : ""}`}>{r.texto}</span>}
           {c.etapa === "perdido" && c.motivo_perdida && <span className="suave">{c.motivo_perdida}</span>}
           {activo(c) && <span className={`dias-etapa${estancado(c) ? " estancado" : ""}`}>{textoDias(c)}</span>}
         </span>
-        {!elegida && <span className={`etapa etapa-${c.etapa}`}>{NOMBRE_ETAPA[c.etapa]}</span>}
       </Link>
     );
   };
@@ -194,17 +196,19 @@ export default async function Clientes({
 
   return (
     <>
-      <header className="encabezado">
+      <header className="encabezado clientes-encabezado">
         <div>
           <h1>Clientes</h1>
           <p className="suave">{todos.length === 1 ? "1 cliente" : `${todos.length} clientes`}</p>
         </div>
-        <Link href="/panel/negocio" className="boton" data-patty="clientes-negocio">
-          Cómo va el negocio
-        </Link>
-        <Link data-patty="clientes-agregar" href="/panel/clientes/nuevo" className="boton primario">
-          <IconoAgregar tamano={20} /> Agregar
-        </Link>
+        <div className="botones">
+          <Link href="/panel/negocio" className="boton solo-computadora" data-patty="clientes-negocio">
+            Cómo va el negocio
+          </Link>
+          <Link data-patty="clientes-agregar" href="/panel/clientes/nuevo" className="boton primario">
+            <IconoAgregar tamano={20} /> Agregar
+          </Link>
+        </div>
       </header>
 
       {todos.length > 0 && (
@@ -236,6 +240,9 @@ export default async function Clientes({
           </Link>
         </div>
       )}
+      <Link href="/panel/negocio" className="ver-negocio solo-telefono">
+        Ver cómo va el negocio ›
+      </Link>
       {(deCadaDiez !== null || motivoPrincipal) && (
         <p className="suave embudo-nota">
           {deCadaDiez !== null && `De cada 10 clientes que terminan, ${deCadaDiez} ${deCadaDiez === 1 ? "cierra" : "cierran"}. `}

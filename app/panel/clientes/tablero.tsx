@@ -124,11 +124,13 @@ export function Tablero({ columnas, comisionPct }: { columnas: ColumnaTablero[];
                     setEncima(null);
                   }}
                 >
-                  <span className="avatar" style={{ background: t.color }} aria-hidden>
-                    {t.inicial}
+                  <span className="cliente-cabeza">
+                    <span className="avatar" style={{ background: t.color }} aria-hidden>
+                      {t.inicial}
+                    </span>
+                    <strong className="cliente-nombre">{t.nombre}</strong>
                   </span>
                   <span className="cliente-texto">
-                    <strong>{t.nombre}</strong>
                     <span className="suave">{t.resumen}</span>
                     {t.casa && <span className="suave">Le interesa: {t.casa}</span>}
                     {t.recordatorio && (
