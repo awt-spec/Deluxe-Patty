@@ -10412,3 +10412,7 @@ body:has(.marco.tema) {
   box-shadow: 0 8px 30px rgb(0 0 0 / 35%);
   background: #fff;
 }
+.marco.tema .elegir-dia-chips button small {
+  font-size: 0.62rem;
+  letter-spacing: -0.01em;
+}
