@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { CORS, casasPublicas, corredorPorSlug } from "@/lib/sitio/publico";
+import { CORS, casasPublicas, corredorPorSlug, cuentaImportadas } from "@/lib/sitio/publico";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -9,9 +9,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ slu
   const db = createAdminClient();
   const corredor = await corredorPorSlug(db, (await params).slug);
   if (!corredor) return Response.json({ error: "No encontrado" }, { status: 404, headers: CORS });
-  const casas = await casasPublicas(db, corredor);
+  const [casas, importadas] = await Promise.all([casasPublicas(db, corredor), cuentaImportadas(db, corredor)]);
   return Response.json(
-    { corredor: corredor.marca?.nombre ?? corredor.nombre, casas },
+    { corredor: corredor.marca?.nombre ?? corredor.nombre, casas, importadas_del_sitio: importadas },
     // Un minuto en la CDN: una casa vendida o pausada desaparece del sitio enseguida.
     { headers: { ...CORS, "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } },
   );

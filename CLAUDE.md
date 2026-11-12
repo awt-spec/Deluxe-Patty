@@ -246,6 +246,12 @@ direcciones públicas con CORS abierto (los datos son públicos) y el corredor i
   con huellas, sin guardar IP ni número), vuelve a comprobar que la hora sigue libre, crea o encuentra el cliente,
   la visita "por confirmar" (`crearVisita`, sin escribirle al cliente), anota en la Historia que vino del sitio y le avisa
   al corredor con la plantilla. El cliente queda con origen `whatsapp` (no hay origen "sitio" en la base todavía).
+- **Importación cada hora** (`lib/sitio/importar.ts`, cron `/api/cron/sitio`): lee la exportación JSON del sitio
+  (`fuentesSitio()`: Deluxe → función `exportar-propiedades` de su Supabase; otras con `SITIO_FUENTES`) y crea o pone al
+  día cada casa por su código del sitio (`DP-XXXXXX`, el sitio manda en esas casas: los destacados van en la descripción),
+  copia las fotos al bucket propio (solo del servidor de la exportación, 80 por vuelta, `fotos[i].fuente`) y quita las que
+  allá ya no están; vendida allá → vendida/alquilada; oculta o desaparecida → pausada; borra las de ejemplo (`EJEMPLO-*`).
+  Las casas hechas en el portal no se tocan, y las importadas no se devuelven al sitio en `GET casas`.
 
 ## Monitoreo (`lib/monitoreo/`)
 Cada llamada a Claude deja una traza `llamada_claude` (modelo, ms, tokens, caché leída y escrita, motivo de parada;

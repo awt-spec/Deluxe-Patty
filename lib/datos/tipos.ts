@@ -225,6 +225,8 @@ export interface Foto {
   mejorada_url?: string;
   /** Versiones ilustrativas hechas con IA a partir de esta foto: amueblada o sin objetos que estorban. */
   variantes?: VarianteFoto[];
+  /** Si vino del sitio web del corredor: la dirección original (para no copiarla dos veces y quitarla si allá la quitan). */
+  fuente?: string;
 }
 
 export interface VarianteFoto {

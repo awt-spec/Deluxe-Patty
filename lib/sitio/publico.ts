@@ -11,6 +11,7 @@ import type { Corredor, Foto, Propiedad } from "../datos/tipos";
 import { crearVisita } from "../panel/visitas";
 import { ordenarFotos } from "../panel/formularios";
 import { errorSeguro } from "../monitoreo/errores";
+import { CODIGO_SITIO } from "./importar";
 
 // El sitio web público del corredor (hecho aparte, por ejemplo en Lovable) habla con el portal por aquí:
 //  - las casas activas, con solo lo que se puede publicar (nunca notas, comisiones ni clientes);
@@ -59,6 +60,12 @@ export function enlaceWhatsApp(numero: string | null, casa: { codigo: string; ti
   return `https://wa.me/${digitos}?text=${encodeURIComponent(texto)}`;
 }
 
+/** Cuántas casas vinieron del sitio y siguen activas (para comprobar desde afuera que la importación corre). */
+export async function cuentaImportadas(db: SupabaseClient, corredor: Corredor): Promise<number> {
+  const { data } = await db.from("propiedades").select("codigo").eq("corredor_id", corredor.id).eq("estado", "activa").like("codigo", "DP-%").limit(1000);
+  return ((data ?? []) as { codigo: string }[]).filter((p) => CODIGO_SITIO.test(p.codigo)).length;
+}
+
 export async function casasPublicas(db: SupabaseClient, corredor: Corredor): Promise<CasaPublica[]> {
   const { data } = await db
     .from("propiedades")
@@ -70,8 +77,9 @@ export async function casasPublicas(db: SupabaseClient, corredor: Corredor): Pro
     .order("created_at", { ascending: false })
     .limit(200);
   return ((data ?? []) as (Propiedad & { fotos: Foto[] })[])
-    // Sin fotos no se publica: el sitio no muestra casas vacías.
-    .filter((p) => (p.fotos ?? []).length > 0)
+    // Sin fotos no se publica: el sitio no muestra casas vacías. Las que vinieron del propio sitio (DP-XXXXXX) ya están
+    // allá con su ficha completa: no se devuelven (si no, el sitio mostraría la copia en vez de la suya).
+    .filter((p) => (p.fotos ?? []).length > 0 && !CODIGO_SITIO.test(p.codigo))
     .map((p) => ({
       id: p.id,
       codigo: p.codigo,

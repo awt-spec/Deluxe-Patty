@@ -24,6 +24,10 @@
     {
       "path": "/api/cron/google",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/sitio",
+      "schedule": "20 * * * *"
     }
   ]
 }

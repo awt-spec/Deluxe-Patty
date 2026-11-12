@@ -32,6 +32,8 @@ export interface SupabaseFalso {
   usuarios: { id: string; email: string; last_sign_in_at?: string | null }[];
   usuariosCreados: { email: string; password: string }[];
   contrasenas: { id: string; password: string }[];
+  /** Archivos subidos al almacenamiento (camino). */
+  subidas: string[];
   from: (tabla: string) => Consulta;
   rpc: (nombre: string, args: unknown) => Promise<{ data: unknown; error: null }>;
   auth: unknown;
@@ -50,6 +52,7 @@ export function supabaseFalso(tablas: Record<string, Fila[]> = {}): SupabaseFals
     usuarios: [],
     usuariosCreados: [],
     contrasenas: [],
+    subidas: [],
     from: (tabla) => consulta(db, tabla),
     rpc: async (nombre, args) => {
       db.rpcs.push({ nombre, args });
@@ -75,6 +78,10 @@ export function supabaseFalso(tablas: Record<string, Fila[]> = {}): SupabaseFals
       from: () => ({
         createSignedUploadUrl: async (camino: string) => ({ data: { signedUrl: `https://subida/${camino}`, token: "t" }, error: null }),
         getPublicUrl: (camino: string) => ({ data: { publicUrl: `https://fotos.publicas/${camino}` } }),
+        upload: async (camino: string) => {
+          db.subidas.push(camino);
+          return { data: { path: camino }, error: null };
+        },
       }),
     },
   };
@@ -129,6 +136,7 @@ function consulta(db: SupabaseFalso, tabla: string): Consulta {
     in: (c: unknown, l: unknown) => (enLista.push([c as string, l as unknown[]]), q),
     // Filtros que no cambian quién es dueño de qué: se aceptan sin filtrar.
     neq: () => q,
+    like: () => q,
     gte: () => q,
     gt: () => q,
     lte: () => q,
