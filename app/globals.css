@@ -9607,3 +9607,154 @@ body:has(.marco.tema) {
   margin-left: auto;
   margin-right: auto;
 }
+
+/* ================================================================================================
+   Ajustes, rehecho como los Ajustes del iPhone: cada tema en su tarjeta, el "contesta sola" como
+   interruptor, campos cortos donde el dato es corto, "Guardar cambios" siempre a mano (fijo abajo) y la
+   barra de cuántos mensajes van del mes.
+   ================================================================================================ */
+.marco.tema .ajustes {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 760px;
+}
+.marco.tema .ajustes-form {
+  gap: 14px;
+}
+.marco.tema .ajustes-grupo {
+  gap: 8px;
+  margin: 0;
+}
+.marco.tema .ajustes-grupo h2 {
+  margin: 0 0 2px;
+  font-size: 1.05rem;
+}
+.marco.tema .ajustes-grupo label {
+  margin-top: 4px;
+}
+.marco.tema .ajustes-grupo p {
+  margin: 0;
+}
+.marco.tema .ajustes-grupo .suave {
+  font-size: 0.85rem;
+}
+.marco.tema .ajustes input.corto {
+  max-width: 180px;
+}
+
+/* Interruptor como en iOS */
+.marco.tema label.interruptor {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 0;
+  cursor: pointer;
+}
+.marco.tema label.interruptor > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-weight: 400;
+}
+.marco.tema label.interruptor input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: none;
+  position: relative;
+  width: 52px;
+  height: 32px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: #d5dbe0;
+  transition: background 0.2s;
+  cursor: pointer;
+}
+.marco.tema label.interruptor input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s;
+}
+.marco.tema label.interruptor input[type="checkbox"]:checked {
+  background: var(--ios-verde-boton, #13984f);
+}
+.marco.tema label.interruptor input[type="checkbox"]:checked::after {
+  transform: translateX(20px);
+}
+.marco.tema label.interruptor input[type="checkbox"]:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--principal) 40%, transparent);
+  outline-offset: 2px;
+}
+
+/* Guardar siempre a mano */
+.marco.tema .ajustes-guardar {
+  position: sticky;
+  bottom: calc(76px + env(safe-area-inset-bottom));
+  z-index: 5;
+  padding: 10px 0;
+  background: linear-gradient(to top, var(--base, #f2f2f7) 70%, transparent);
+}
+.marco.tema .ajustes-guardar button {
+  width: 100%;
+  margin: 0;
+}
+@media (min-width: 900px) {
+  .marco.tema .ajustes-guardar {
+    bottom: 0;
+  }
+}
+
+/* Uso del mes */
+.marco.tema .ajustes-barra {
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: #eceff2;
+  overflow: hidden;
+}
+.marco.tema .ajustes-barra i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--principal);
+}
+.marco.tema .ajustes-barra.alta i {
+  background: #e2702f;
+}
+.marco.tema .ajustes-grupo .uso {
+  margin-top: 6px;
+}
+
+/* Cuenta */
+.marco.tema .ajustes-cuenta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.marco.tema .ajustes-cuenta span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.marco.tema .ajustes-cuenta button {
+  flex: none;
+  min-height: 40px;
+  margin: 0;
+}
+@media (max-width: 899px) {
+  .marco.tema:has(.ajustes) .patty-boton {
+    display: none;
+  }
+}
