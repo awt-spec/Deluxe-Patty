@@ -133,7 +133,7 @@ describe("Mis casas: solo las propias, y fotos solo en su carpeta", () => {
   it("los permisos de subida van a la carpeta del corredor y la casa, y tienen límite", async () => {
     const subidas = await casas.pedirSubidas(ID.casa, ["sala.JPG", "cocina.png"]);
     expect(Array.isArray(subidas) && subidas.every((s) => s.camino.startsWith(`${ID.deluxe}/${ID.casa}/originales/`))).toBe(true);
-    expect(await casas.pedirSubidas(ID.casa, Array.from({ length: 13 }, (_, i) => `${i}.jpg`))).toMatchObject({ error: expect.stringMatching(/hasta 12/) });
+    expect(await casas.pedirSubidas(ID.casa, Array.from({ length: 13 }, (_, i) => `${i}.jpg`))).toMatchObject({ error: expect.stringMatching(/hasta 30 fotos/) });
   });
 
   it("registrar fotos rechaza rutas fuera de la carpeta de la casa (otro corredor, otra casa, ../)", async () => {
@@ -147,8 +147,25 @@ describe("Mis casas: solo las propias, y fotos solo en su carpeta", () => {
       expect(await casas.registrarFotos(ID.casa, [bueno, malo]), malo).toEqual({ error: "Alguna foto no se reconoció." });
     }
     expect(estado.admin.escrituras).toEqual([]);
-    expect(await casas.registrarFotos(ID.casa, [bueno])).toEqual({});
+    expect(await casas.registrarFotos(ID.casa, [bueno])).toEqual({ guardadas: 1, descartadas: 0 });
     expect(estado.admin.escrituras[0]).toMatchObject({ tabla: "propiedades", filtros: [["corredor_id", ID.deluxe], ["id", ID.casa]] });
+  });
+
+  it("con la casa en 28 fotos y 5 nuevas guarda 2 y dice que descartó 3", async () => {
+    const fotos = Array.from({ length: 28 }, (_, i) => ({ url: `https://fotos.publicas/x/${i}.jpg`, orden: i + 1 }));
+    const filas = { propiedades: [{ id: ID.casa, corredor_id: ID.deluxe, codigo: "DP-1", fotos, estado: "activa" }] };
+    estado.sesion!.supabase = supabaseFalso(filas);
+    estado.admin = supabaseFalso(structuredClone(filas));
+    const caminos = Array.from({ length: 5 }, (_, i) => `${ID.deluxe}/${ID.casa}/originales/170000000${i}-abc123.jpg`);
+    expect(await casas.registrarFotos(ID.casa, caminos)).toEqual({ guardadas: 2, descartadas: 3 });
+    const e = estado.admin.escrituras[0] as { datos?: { fotos?: unknown[] } };
+    expect(JSON.stringify(e)).toContain("170000000");
+  });
+
+  it("registrar fotos de una casa ajena no escribe", async () => {
+    const caminos = [`${ID.otro}/${ID.casaAjena}/originales/1700000000-abc123.jpg`];
+    await expect(casas.registrarFotos(ID.casaAjena, caminos)).rejects.toMatchObject({ url: expect.stringMatching(/No%20encontr/) });
+    expect(estado.admin.escrituras).toEqual([]);
   });
 
   it("la cuenta de demostración no sube archivos", async () => {

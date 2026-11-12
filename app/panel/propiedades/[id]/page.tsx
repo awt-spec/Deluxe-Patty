@@ -5,7 +5,7 @@ import { Volver } from "../../volver";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Foto } from "@/lib/datos/tipos";
-import { MAX_FOTOS_PROPIEDAD, ordenarFotos } from "@/lib/panel/formularios";
+import { ordenarFotos } from "@/lib/panel/formularios";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Aviso } from "../../aviso";
 import { PreguntarPatty } from "../../preguntar-patty";
@@ -300,7 +300,7 @@ export default async function Propiedad({
                 </figure>
               ))}
             </div>
-            {fotos.length < MAX_FOTOS_PROPIEDAD && <SubirFotos propiedadId={p.id} />}
+            <SubirFotos propiedadId={p.id} actuales={fotos.length} />
             {fotosActivas && fotos.length > 0 && (
               <form action={mejorarFotosPanel} className="pila casa-mejorar">
                 <input type="hidden" name="id" value={p.id} />

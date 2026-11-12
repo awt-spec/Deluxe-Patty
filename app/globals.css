@@ -10416,3 +10416,7 @@ body:has(.marco.tema) {
   font-size: 0.62rem;
   letter-spacing: -0.01em;
 }
+
+.subir-fotos-ayuda {
+  font-size: 0.9rem;
+}
