@@ -73,8 +73,13 @@ describe("Casas del sitio web → portal", () => {
     fetchFotos();
     const db = supabaseFalso({ propiedades: [] });
     await sincronizarSitio(db as never, { id: ID.deluxe }, [casa()], HOST);
-    const r2 = await sincronizarSitio(db as never, { id: ID.deluxe }, [casa({ imagenes: [foto(2)] })], HOST);
+    // Sin cambios en la ficha no se escribe nada.
+    const escriturasAntes = db.escrituras.length;
+    expect(await sincronizarSitio(db as never, { id: ID.deluxe }, [casa()], HOST)).toMatchObject({ actualizadas: 0, fotosCopiadas: 0 });
+    expect(db.escrituras.length).toBe(escriturasAntes);
+    const r2 = await sincronizarSitio(db as never, { id: ID.deluxe }, [casa({ imagenes: [foto(2)], precio: 2100000 })], HOST);
     expect(r2).toMatchObject({ actualizadas: 1, fotosCopiadas: 0 });
+    expect(db.tablas.propiedades[0].precio).toBe(2100000);
     expect((db.tablas.propiedades[0].fotos as { fuente: string }[]).map((f) => f.fuente)).toEqual([foto(2)]);
     const r3 = await sincronizarSitio(db as never, { id: ID.deluxe }, [], HOST);
     expect(r3.pausadas).toBe(1);

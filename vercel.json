@@ -27,7 +27,7 @@
     },
     {
       "path": "/api/cron/sitio",
-      "schedule": "20 * * * *"
+      "schedule": "*/10 * * * *"
     }
   ]
 }
