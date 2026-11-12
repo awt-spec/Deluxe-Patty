@@ -5,6 +5,10 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { separarPasos, useGuia, type Paso } from "./guia";
+import type { FichaParcial } from "@/lib/datos/tipos";
+import { pideCargarCasa } from "@/lib/panel/casa-patty";
+import { anotarFotos, fotosAnotadas, olvidarFotos, subirFotosAnotadas } from "./patty-casa";
+import { conversarCasa, guardarCasaConversada } from "./propiedades/acciones";
 import { IconoCamara, IconoClip, IconoDobleCheck, IconoDocumento, IconoEnviar, IconoMicrofono } from "./iconos";
 import { separarPedido } from "@/lib/panel/markdown";
 import { leerDocumento, marcaParaLamina, pdfDePatty, preguntarAPatty, transcribirNota } from "./patty-acciones";
@@ -17,7 +21,24 @@ import { Contenido, diagramasComoPng, laminaPng, type MarcaLamina } from "./patt
 
 type Adjunto = { tipo: "imagen" | "pdf" | "texto"; nombre: string; miniatura?: string };
 /** `pdf` / `png`: título del documento o la imagen que Patty preparó (se arma al tocar la tarjeta). */
-type Turno = { autor: "corredor" | "asistente"; texto: string; hora?: string; adjuntos?: Adjunto[]; pdf?: string | null; png?: string | null };
+/** `casa`: resumen de una casa cargada desde el chat, para confirmarla (con `id`, el de su tarjeta). */
+type Turno = {
+  autor: "corredor" | "asistente";
+  texto: string;
+  hora?: string;
+  adjuntos?: Adjunto[];
+  pdf?: string | null;
+  png?: string | null;
+  casa?: string[];
+  id?: string;
+};
+
+/**
+ * Casa que el corredor está cargando desde el chat («agrega esta casa: …»): la misma conversación de Agregar casa
+ * (sus mensajes y la ficha que va armando Claude). `tarjeta`: la tarjeta "¿Está bien?" que se puede confirmar.
+ * Se guarda en este navegador con el chat; los archivos de las fotos, solo en memoria (patty-casa.ts).
+ */
+type CasaEnCurso = { ficha: FichaParcial | null; mensajes: { autor: "corredor" | "asistente"; texto: string }[]; tarjeta: string | null };
 
 /** Documento listo para ver: dirección local (blob o data) y nombre del archivo. */
 type Visor = { url: string; nombre: string; tipo: "pdf" | "png" };
@@ -25,9 +46,32 @@ type Visor = { url: string; nombre: string; tipo: "pdf" | "png" };
 const tituloDe = (texto: string) =>
   /^#{1,3}\s+(.+)$/m.exec(texto)?.[1]?.replace(/[*_`]/g, "").trim().slice(0, 100) || "Documento de Patty";
 /** `grupo` junta los fotogramas de un mismo video: se ven y se quitan como uno solo. */
-type ArchivoListo = Adjunto & { mediaType: string; datos: string; tamano: number; grupo?: string };
+/** `original`: el archivo de la foto tal cual, por si es una casa que se carga (no va al modelo ni a localStorage). */
+type ArchivoListo = Adjunto & { mediaType: string; datos: string; tamano: number; grupo?: string; original?: File };
 
 const CLAVE = "chat-patty";
+const MAX_TURNOS = 40;
+
+/** Guarda la conversación en este navegador; si no cabe (miniaturas), sin ellas. */
+function guardarTurnos(clave: string, turnos: Turno[]) {
+  const ultimos = turnos.slice(-MAX_TURNOS);
+  try {
+    localStorage.setItem(clave, JSON.stringify(ultimos));
+  } catch {
+    try {
+      localStorage.setItem(clave, JSON.stringify(ultimos.map((t) => ({ ...t, adjuntos: t.adjuntos?.map(({ miniatura: _, ...a }) => a) }))));
+    } catch {}
+  }
+}
+
+function guardarCasa(clave: string, casa: CasaEnCurso | null) {
+  try {
+    if (casa) localStorage.setItem(`${clave}:casa`, JSON.stringify(casa));
+    else localStorage.removeItem(`${clave}:casa`);
+  } catch {}
+}
+
+const SIN_FOTOS_CASA = "Súbele las fotos ahí: hasta 12 por vez y 30 por casa. La primera que subas será la principal.";
 const MAX_ARCHIVOS = 10;
 const MAX_TOTAL = 3_900_000; // en base64 o texto, para no pasar los 4,5 MB de Vercel
 const FOTOGRAMAS = 6; // de un video
@@ -179,7 +223,7 @@ export function ChatPatty({
   modo: "flotante" | "pagina";
   ruta: string;
   alCerrar?: () => void;
-  guiar: (pasos: Paso[]) => void;
+  guiar: (pasos: Paso[], respuesta?: string) => void;
   terminar: () => void;
   preguntaInicial?: string | null;
   alUsarPregunta?: () => void;
@@ -187,6 +231,13 @@ export function ChatPatty({
   const busqueda = useSearchParams();
   const router = useRouter();
   const [turnos, setTurnos] = useState<Turno[]>([]);
+  // Lo último que hay en la conversación, aunque React todavía no lo haya pintado (ver `agregarTurno`).
+  const vivos = useRef<Turno[]>([]);
+  const cargado = useRef(false);
+  const [casa, setCasaEstado] = useState<CasaEnCurso | null>(null);
+  const casaViva = useRef<CasaEnCurso | null>(null);
+  const guardandoCasa = useRef(false);
+  const cajaTexto = useRef<HTMLTextAreaElement>(null);
   const [texto, setTexto] = useState("");
   const [archivos, setArchivos] = useState<ArchivoListo[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -211,21 +262,43 @@ export function ChatPatty({
   useEffect(() => {
     try {
       const g = JSON.parse(localStorage.getItem(clave) ?? "[]");
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage solo existe en el navegador: se lee al montar para no romper la hidratación.
-      if (Array.isArray(g)) setTurnos(g.slice(-40));
+      if (Array.isArray(g)) {
+        vivos.current = g.slice(-MAX_TURNOS);
+        setTurnos(vivos.current);
+      }
+      const c = JSON.parse(localStorage.getItem(`${clave}:casa`) ?? "null");
+      if (c && typeof c === "object" && Array.isArray(c.mensajes)) {
+        casaViva.current = c as CasaEnCurso;
+        setCasaEstado(casaViva.current);
+      }
     } catch {}
+    cargado.current = true;
   }, [clave]);
   useEffect(() => {
-    try {
-      localStorage.setItem(clave, JSON.stringify(turnos.slice(-40)));
-    } catch {
-      // Si no cabe (miniaturas), se guarda sin ellas.
-      try {
-        localStorage.setItem(clave, JSON.stringify(turnos.slice(-40).map((t) => ({ ...t, adjuntos: t.adjuntos?.map(({ miniatura: _, ...a }) => a) }))));
-      } catch {}
-    }
+    vivos.current = turnos;
+    // Antes de leer lo guardado no se escribe: si no, el primer pintado (vacío) borraría la conversación.
+    if (cargado.current) guardarTurnos(clave, turnos);
     fin.current?.scrollIntoView({ block: "end" });
   }, [turnos, clave]);
+
+  /**
+   * Agrega un mensaje y lo guarda en el navegador en el acto, sin esperar a que React lo pinte. Cuando la
+   * respuesta trae pasos de la guía, guiar puede cerrar el chat (teléfono) o salir de esta pantalla (/panel/patty)
+   * en el mismo instante: si se esperara al efecto, el chat se desmontaría antes y la respuesta se perdería.
+   */
+  function agregarTurno(nuevo: Turno) {
+    const lista = [...vivos.current, nuevo].slice(-MAX_TURNOS);
+    vivos.current = lista;
+    guardarTurnos(clave, lista);
+    setTurnos(lista);
+  }
+
+  function ponerCasa(c: CasaEnCurso | null) {
+    casaViva.current = c;
+    guardarCasa(clave, c);
+    setCasaEstado(c);
+    if (!c) olvidarFotos(clave);
+  }
   useEffect(() => {
     if (preguntaInicial) {
       enviar(preguntaInicial);
@@ -253,7 +326,7 @@ export function ChatPatty({
           const grande = await achicar(f, 1400, 0.78);
           const mini = await achicar(f, 220, 0.7);
           const datos = grande.split(",")[1] ?? "";
-          nuevos.push({ tipo: "imagen", nombre: f.name || "foto.jpg", miniatura: mini, mediaType: "image/jpeg", datos, tamano: datos.length });
+          nuevos.push({ tipo: "imagen", nombre: f.name || "foto.jpg", miniatura: mini, mediaType: "image/jpeg", datos, tamano: datos.length, original: f });
         } else if (f.type.startsWith("video/")) {
           const n = Math.min(FOTOGRAMAS, cupo());
           try {
@@ -373,15 +446,19 @@ export function ChatPatty({
     const limpio = mensaje.trim();
     if ((!limpio && archivos.length === 0) || pensando) return;
     terminar();
-    const previos = turnos;
+    const previos = vivos.current;
     const adjuntos = archivos;
-    setTurnos([
-      ...previos,
-      { autor: "corredor", texto: limpio, hora: new Date().toISOString(), adjuntos: adjuntos.map(({ tipo, nombre, miniatura }) => ({ tipo, nombre, miniatura })) },
-    ]);
+    agregarTurno({ autor: "corredor", texto: limpio, hora: new Date().toISOString(), adjuntos: adjuntos.map(({ tipo, nombre, miniatura }) => ({ tipo, nombre, miniatura })) });
     setTexto("");
     setArchivos([]);
     setError(null);
+    // Una casa que se está cargando sigue con este mensaje; «agrega esta casa: …» empieza una (solo con fotos:
+    // un PDF, un Word o un video se los lee Patty como siempre).
+    const soloFotos = adjuntos.every((a) => a.tipo === "imagen" && !a.grupo);
+    if (casaViva.current || (soloFotos && pideCargarCasa(limpio))) {
+      seguirCasa(limpio, adjuntos);
+      return;
+    }
     const dondeEsta = `${ruta}${busqueda.toString() ? `?${busqueda}` : ""}`;
     empezar(async () => {
       try {
@@ -398,14 +475,107 @@ export function ChatPatty({
         if (r.ok) {
           const { texto: sinPasos, pasos } = separarPasos(r.texto);
           const { texto: leible, pdf, png } = separarPedido(sinPasos);
-          setTurnos((t) => [...t, { autor: "asistente", texto: leible, hora: new Date().toISOString(), pdf, png }]);
-          if (pasos.length) void guiar(pasos);
+          // Se guarda antes de guiar: guiar puede cerrar el chat o salir de esta pantalla en el acto.
+          agregarTurno({ autor: "asistente", texto: leible, hora: new Date().toISOString(), pdf, png });
+          if (pasos.length) void guiar(pasos, leible);
           if ("cambio" in r && r.cambio) router.refresh();
         } else setError(r.motivo);
       } catch {
         setError("No se pudo mandar. Si adjuntaste archivos, prueba con menos o más livianos.");
       }
     });
+  }
+
+  /**
+   * Cargar una casa desde el chat: la misma conversación de Agregar casa (conversarCasa: Claude llena la ficha,
+   * el código pregunta lo esencial que falta y respeta el tope de gasto). Nada se guarda hasta "Sí, guardarla".
+   */
+  function seguirCasa(limpio: string, adjuntos: ArchivoListo[]) {
+    const fotos = adjuntos.filter((a) => a.tipo === "imagen" && !a.grupo && a.original).map((a) => a.original!);
+    const antes = fotosAnotadas(clave);
+    const total = fotos.length ? anotarFotos(clave, fotos) : antes;
+    const base: CasaEnCurso = casaViva.current ?? { ficha: null, mensajes: [], tarjeta: null };
+    if (!limpio) {
+      // Solo fotos: se anotan para subirlas al guardar.
+      const entraron = total - antes;
+      agregarTurno({
+        autor: "asistente",
+        texto: entraron > 0
+          ? `Anoté ${entraron === 1 ? "la foto" : `las ${entraron} fotos`}: se las pongo a la casa al guardarla.`
+          : `Ya tengo ${total} fotos para esta casa (hasta 12 por vez). Las demás súbelas en la casa después de guardarla.`,
+        hora: new Date().toISOString(),
+      });
+      return;
+    }
+    const mensajes = [...base.mensajes, { autor: "corredor" as const, texto: limpio }];
+    empezar(async () => {
+      try {
+        const r = await conversarCasa(mensajes, base.ficha);
+        if ("error" in r) {
+          setError(r.error);
+          // Si ni siquiera empezó, las fotos no quedan anotadas para otra cosa.
+          if (!casaViva.current) olvidarFotos(clave);
+          return;
+        }
+        const id = r.lista ? `casa-${Date.now()}` : null;
+        ponerCasa({ ficha: r.ficha, mensajes: [...mensajes, { autor: "asistente", texto: r.mensaje }], tarjeta: id });
+        agregarTurno(
+          id
+            ? { autor: "asistente", texto: r.mensaje, hora: new Date().toISOString(), casa: r.resumen, id }
+            : { autor: "asistente", texto: r.mensaje, hora: new Date().toISOString() },
+        );
+      } catch {
+        setError("No se pudo conectar. Inténtalo de nuevo.");
+      }
+    });
+  }
+
+  /** "Sí, guardarla": la única forma de que la casa del chat se guarde (misma acción que Agregar casa). */
+  function confirmarCasa() {
+    const c = casaViva.current;
+    if (!c?.ficha || !c.tarjeta || pensando || guardandoCasa.current) return;
+    guardandoCasa.current = true;
+    setError(null);
+    empezar(async () => {
+      try {
+        const r = await guardarCasaConversada(c.ficha);
+        if ("error" in r) {
+          setError(r.error);
+          return;
+        }
+        let fotos: string | null = null;
+        try {
+          fotos = await subirFotosAnotadas(clave, r.id);
+        } catch {
+          fotos = "No pude subir las fotos. Súbelas en la casa.";
+        }
+        ponerCasa(null);
+        agregarTurno({
+          autor: "asistente",
+          texto: `Listo, guardé **${r.titulo}** (${r.codigo}). [Ver la casa](/panel/propiedades/${r.id})\n\n${fotos ?? SIN_FOTOS_CASA}`,
+          hora: new Date().toISOString(),
+        });
+        router.refresh();
+      } catch {
+        setError("No se pudo guardar. Inténtalo de nuevo.");
+      } finally {
+        guardandoCasa.current = false;
+      }
+    });
+  }
+
+  /** "Cambiar algo": el corredor escribe la corrección y la ficha se vuelve a armar con ella. */
+  function cambiarCasa() {
+    const c = casaViva.current;
+    if (!c) return;
+    ponerCasa({ ...c, tarjeta: null });
+    agregarTurno({ autor: "asistente", texto: "Dime qué cambio y la vuelvo a armar.", hora: new Date().toISOString() });
+    cajaTexto.current?.focus();
+  }
+
+  function dejarCasa() {
+    ponerCasa(null);
+    agregarTurno({ autor: "asistente", texto: "Listo, no la guardé. Cuando quieras, escríbeme «agrega esta casa: …».", hora: new Date().toISOString() });
   }
 
   /** Arma el PDF de una respuesta (con sus diagramas) y lo abre en el visor. */
@@ -509,7 +679,15 @@ export function ChatPatty({
           <small>{pensando ? "escribiendo…" : "en línea · conoce tu agenda, tus clientes y tus casas"}</small>
         </span>
         {turnos.length > 0 && (
-          <button type="button" className="patty-limpiar" onClick={() => setTurnos([])} title="Empezar una conversación nueva">
+          <button
+            type="button"
+            className="patty-limpiar"
+            onClick={() => {
+              ponerCasa(null);
+              setTurnos([]);
+            }}
+            title="Empezar una conversación nueva"
+          >
             Nueva
           </button>
         )}
@@ -594,6 +772,21 @@ export function ChatPatty({
                 </span>
               </button>
             )}
+            {t.autor === "asistente" && t.casa && (
+              <div className="patty-casa">
+                {t.casa.map((l, j) => (j === 0 ? <strong key={j}>{l}</strong> : <span key={j}>{l}</span>))}
+                {casa?.tarjeta === t.id && (
+                  <span className="patty-casa-botones">
+                    <button type="button" className="primario" onClick={confirmarCasa} disabled={pensando}>
+                      Sí, guardarla
+                    </button>
+                    <button type="button" onClick={cambiarCasa} disabled={pensando}>
+                      Cambiar algo
+                    </button>
+                  </span>
+                )}
+              </div>
+            )}
             {t.autor === "asistente" && t.texto.length > 40 && (
               <span className="patty-acciones-mensaje">
                 <button type="button" className="patty-mini" onClick={() => void copiar(i)}>
@@ -630,7 +823,16 @@ export function ChatPatty({
         <div ref={fin} />
       </div>
 
-      {turnos.length > 0 && !pensando && archivos.length === 0 && (
+      {casa && (
+        <div className="patty-casa-en-curso">
+          <span>Cargando una casa{casa.tarjeta ? "" : ": lo que escribas sigue con ella"}</span>
+          <button type="button" onClick={dejarCasa} disabled={pensando}>
+            Dejarla
+          </button>
+        </div>
+      )}
+
+      {turnos.length > 0 && !pensando && archivos.length === 0 && !casa && (
         <div className="patty-atajos">
           {sugerencias.slice(0, 3).map((s) => (
             <button key={s} type="button" onClick={() => (s.includes("adjunta") ? entradaArchivo.current?.click() : enviar(s))}>
@@ -723,6 +925,7 @@ export function ChatPatty({
               <IconoCamara tamano={22} />
             </button>
             <textarea
+              ref={cajaTexto}
               value={texto}
               onChange={(e) => setTexto(e.target.value)}
               onKeyDown={(e) => {
@@ -797,10 +1000,33 @@ export function Patty({ nombre, corredor }: { nombre: string; corredor: string }
   const ruta = usePathname();
   const [abierto, setAbierto] = useState(false);
   const [pendiente, setPendiente] = useState<string | null>(null);
-  // En el teléfono el chat tapa la pantalla: mientras Patty guía, se cierra y queda el botón.
-  const { guiar, terminar, capa } = useGuia(nombre, () => {
-    if (window.innerWidth < 900) setAbierto(false);
-  });
+  // En el teléfono el chat tapa la pantalla: mientras Patty guía, se cierra y queda el botón (y la respuesta, en
+  // un globo con "Ver en el chat"). Desde la pantalla de Patty la guía también corre aquí (evento "guiar-patty"):
+  // esa pantalla se desmonta al navegar y con ella se iría el cursor.
+  const desdePagina = useRef(false);
+  const { guiar, terminar, capa } = useGuia(
+    nombre,
+    () => {
+      if (desdePagina.current) return true;
+      if (window.innerWidth < 900) {
+        setAbierto(false);
+        return true;
+      }
+      return false;
+    },
+    () => setAbierto(true),
+  );
+
+  useEffect(() => {
+    const alGuiar = (e: Event) => {
+      const d = (e as CustomEvent<{ pasos: Paso[]; respuesta?: string } | null>).detail;
+      if (!d) return terminar();
+      desdePagina.current = true;
+      void guiar(d.pasos, d.respuesta).finally(() => (desdePagina.current = false));
+    };
+    window.addEventListener("guiar-patty", alGuiar);
+    return () => window.removeEventListener("guiar-patty", alGuiar);
+  }, [guiar, terminar]);
 
   useEffect(() => {
     const abrir = (e: Event) => {
@@ -850,14 +1076,15 @@ export function Patty({ nombre, corredor }: { nombre: string; corredor: string }
   );
 }
 
-/** Patty en su propia pantalla, a todo lo alto (como abrir un chat en WhatsApp). */
+/**
+ * Patty en su propia pantalla, a todo lo alto (como abrir un chat en WhatsApp). La guía la corre el botón flotante
+ * del layout (`Patty`), que sigue montado al ir a otra pantalla; esta se desmonta y su cursor se perdería.
+ */
+const guiarDesdePagina = (pasos: Paso[], respuesta?: string) =>
+  window.dispatchEvent(new CustomEvent("guiar-patty", { detail: { pasos, respuesta } }));
+const terminarDesdePagina = () => window.dispatchEvent(new CustomEvent("guiar-patty", { detail: null }));
+
 export function PattyPagina({ nombre, corredor }: { nombre: string; corredor: string }) {
   const ruta = usePathname();
-  const { guiar, terminar, capa } = useGuia(nombre, () => {});
-  return (
-    <>
-      {capa}
-      <ChatPatty nombre={nombre} corredor={corredor} modo="pagina" ruta={ruta} guiar={guiar} terminar={terminar} />
-    </>
-  );
+  return <ChatPatty nombre={nombre} corredor={corredor} modo="pagina" ruta={ruta} guiar={guiarDesdePagina} terminar={terminarDesdePagina} />;
 }

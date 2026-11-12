@@ -4800,6 +4800,101 @@ body:has(.marco.tema) {
   background: #111b21 !important;
 }
 
+/* La respuesta de Patty cuando la guía la saca de la vista (teléfono o pantalla de Patty) */
+.guia-nota {
+  position: fixed;
+  left: 50%;
+  bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  width: min(420px, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #fff;
+  color: #111b21;
+  border: 1.5px solid #00a884;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 22%);
+  font-size: 0.95rem;
+  line-height: 1.35;
+  pointer-events: auto;
+}
+.guia-nota strong {
+  color: #008069;
+}
+.guia-nota-botones {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.guia-nota-botones button {
+  min-height: 36px !important;
+  padding: 4px 14px !important;
+  border-radius: 999px !important;
+  border: 0 !important;
+  background: #00a884 !important;
+  color: #fff !important;
+  font-weight: 650 !important;
+  box-shadow: none !important;
+}
+.guia-nota-botones button.secundario {
+  background: #e9edef !important;
+  color: #111b21 !important;
+}
+
+/* Tarjeta de una casa cargada desde el chat de Patty */
+.patty-casa {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f0f2f5;
+  border: 1.5px solid #00a884;
+}
+.patty-casa strong {
+  font-size: 1rem;
+}
+.patty-casa-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+.patty-casa-botones button {
+  min-height: 40px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 0;
+  background: #e9edef;
+  color: #111b21;
+  font-weight: 650;
+}
+.patty-casa-botones button.primario {
+  background: #00a884;
+  color: #fff;
+}
+.patty-casa-en-curso {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 12px;
+  background: #e7fce3;
+  border-top: 1px solid #c8eccd;
+  font-size: 0.9rem;
+}
+.patty-casa-en-curso button {
+  min-height: 32px;
+  padding: 2px 12px;
+  border-radius: 999px;
+  border: 1px solid #c8d1d6;
+  background: #fff;
+  font-weight: 600;
+}
+
 /* Inicio: clientes que esperan, a todo lo ancho y con quiénes son */
 .tema .esperan {
   border-radius: 14px;
@@ -10415,4 +10510,8 @@ body:has(.marco.tema) {
 .marco.tema .elegir-dia-chips button small {
   font-size: 0.62rem;
   letter-spacing: -0.01em;
+}
+
+.subir-fotos-ayuda {
+  font-size: 0.9rem;
 }

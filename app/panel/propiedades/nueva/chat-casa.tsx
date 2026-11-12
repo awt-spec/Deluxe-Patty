@@ -122,6 +122,7 @@ export function ChatCasa() {
           <label htmlFor="mensaje-casa">Escribe aquí</label>
           <textarea
             id="mensaje-casa"
+            data-patty="casa-nueva-texto"
             rows={3}
             value={texto}
             maxLength={2000}

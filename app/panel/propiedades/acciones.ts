@@ -25,6 +25,7 @@ import {
   MAX_TEXTO_FICHA,
   conversarFicha,
   datosParaGuardar,
+  faltantes,
   fichaLimpia,
   resumenFicha,
 } from "@/lib/propiedades/conversar";
@@ -111,7 +112,7 @@ export async function pedirSubidas(propiedadId: string, nombres: string[]): Prom
   // En la demo cualquiera puede entrar: no se suben archivos al bucket público.
   if (corredor.activo === false) return { error: EN_LA_DEMO };
   if (nombres.length === 0 || nombres.length > 12 || propiedad.fotos.length + nombres.length > MAX_FOTOS_PROPIEDAD) {
-    return { error: `Sube hasta 12 fotos a la vez (cada casa lleva hasta ${MAX_FOTOS_PROPIEDAD}).` };
+    return { error: `Una casa lleva hasta ${MAX_FOTOS_PROPIEDAD} fotos (hasta 12 por vez). Quita alguna para subir otras.` };
   }
   const almacen = createAdminClient().storage.from("fotos");
   const subidas: Subida[] = [];
@@ -125,14 +126,19 @@ export async function pedirSubidas(propiedadId: string, nombres: string[]): Prom
 }
 
 /** Después de subirlas, las fotos se agregan a la propiedad en su orden. */
-export async function registrarFotos(propiedadId: string, caminos: string[]): Promise<{ error?: string }> {
+export async function registrarFotos(propiedadId: string, caminos: string[]): Promise<{ error?: string; guardadas?: number; descartadas?: number }> {
   const { corredor, propiedad } = await propiedadPropia(propiedadId);
   const prefijo = `${corredor.id}/`;
   const validos = caminos.filter((c) => c.startsWith(prefijo) && rutaDePropiedad(c.slice(prefijo.length), propiedadId));
   if (validos.length !== caminos.length) return { error: "Alguna foto no se reconoció." };
   const admin = createAdminClient();
   const almacen = admin.storage.from("fotos");
-  const urls = validos.map((c) => almacen.getPublicUrl(c).data.publicUrl);
+  const todas = validos.map((c) => almacen.getPublicUrl(c).data.publicUrl);
+  // Lo que no cabe en las 30 de la casa no se guarda en silencio: se cuenta y se informa.
+  const nuevas = todas.filter((u) => !propiedad.fotos.some((f) => f.url === u));
+  const cupo = Math.max(0, MAX_FOTOS_PROPIEDAD - propiedad.fotos.length);
+  const urls = nuevas.slice(0, cupo);
+  const descartadas = nuevas.length - urls.length;
   // Las fotos las escribe solo el backend (el corredor no puede escribir esa columna): la propiedad ya
   // se comprobó con su sesión y se filtra por su corredor_id.
   const { error } = await admin
@@ -141,7 +147,7 @@ export async function registrarFotos(propiedadId: string, caminos: string[]): Pr
     .eq("corredor_id", corredor.id)
     .eq("id", propiedadId);
   revalidatePath(`/panel/propiedades/${propiedadId}`);
-  return error ? { error: "No se pudieron guardar las fotos." } : {};
+  return error ? { error: "No se pudieron guardar las fotos." } : { guardadas: urls.length, descartadas };
 }
 
 const ACCIONES_FOTO = new Set(["principal", "subir", "bajar", "quitar"]);
@@ -254,10 +260,15 @@ export async function conversarCasa(mensajesNavegador: unknown, fichaNavegador: 
   }
 }
 
-/** Guarda la casa conversada, con el siguiente código libre. */
-export async function guardarCasaConversada(fichaNavegador: unknown): Promise<{ id: string } | { error: string }> {
+/**
+ * Guarda la casa conversada, con el siguiente código libre. La llaman "Sí, guardarla" de Agregar casa y del chat
+ * de Patty (nunca sin que el corredor la confirme); devuelve el código y el título para contarle cómo quedó.
+ */
+export async function guardarCasaConversada(fichaNavegador: unknown): Promise<{ id: string; codigo: string; titulo: string } | { error: string }> {
   const { supabase, corredor } = await sesionConCorredor();
   const ficha = fichaLimpia(fichaNavegador);
+  // Lo esencial que la conversación exige antes de mostrar "Sí, guardarla" se vuelve a comprobar aquí.
+  if (faltantes(ficha).length > 0) return { error: "Todavía falta saber si es venta o alquiler, qué es, la zona o el precio." };
   for (let intento = 0; intento < 3; intento++) {
     const { data: codigos } = await supabase.from("propiedades").select("codigo").eq("corredor_id", corredor.id);
     const r = datosParaGuardar(ficha, siguienteCodigo((codigos ?? []).map((c) => c.codigo as string)));
@@ -269,7 +280,7 @@ export async function guardarCasaConversada(fichaNavegador: unknown): Promise<{ 
       .single();
     if (data) {
       revalidatePath("/panel/propiedades");
-      return { id: data.id as string };
+      return { id: data.id as string, codigo: r.valor.codigo, titulo: r.valor.titulo };
     }
     // Otro guardado tomó el mismo código al mismo tiempo: se reintenta con el siguiente.
     if (error?.code !== "23505") break;
