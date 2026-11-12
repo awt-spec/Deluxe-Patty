@@ -220,12 +220,16 @@ export default async function Propiedades({
                 </span>
                 {datos.length > 0 && <span className="casa-item-datos">{datos.join(" · ")}</span>}
                 <span className="casa-item-pie">
-                  <span className={visitas ? "movimiento activo" : "movimiento"}>
-                    {visitas} {visitas === 1 ? "visita" : "visitas"}
-                  </span>
-                  <span className={interesados ? "movimiento activo" : "movimiento"}>
-                    {interesados} {interesados === 1 ? "interesado" : "interesados"}
-                  </span>
+                  {visitas > 0 && (
+                    <span className="movimiento activo">
+                      {visitas} {visitas === 1 ? "visita" : "visitas"}
+                    </span>
+                  )}
+                  {interesados > 0 && (
+                    <span className="movimiento activo">
+                      {interesados} {interesados === 1 ? "interesado" : "interesados"}
+                    </span>
+                  )}
                   {faltan.map((f) => (
                     <span key={f} className="falta">
                       {f}

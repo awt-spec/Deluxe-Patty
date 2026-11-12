@@ -191,8 +191,8 @@ export default async function Propiedad({
                 Ver en Encuentra24
               </a>
             )}
+            {p.zona && <ComoLlegar casa={{ zona: p.zona, canton: p.canton }} chico />}
           </div>
-          {p.zona && <ComoLlegar casa={{ zona: p.zona, canton: p.canton }} chico />}
         </div>
       </section>
 

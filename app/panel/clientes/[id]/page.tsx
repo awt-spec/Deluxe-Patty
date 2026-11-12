@@ -15,6 +15,7 @@ import { IconoAgenda, IconoCasa, IconoChats, IconoTelefono } from "../../iconos"
 import { Volver } from "../../volver";
 import { cambiarEtapa, guardarBusca, guardarCierre, guardarNotas, guardarOportunidad, guardarSeguimiento, unirCliente } from "../acciones";
 import { ZONAS_CONOCIDAS } from "@/lib/agenda/zonas";
+import { EtapaVisible } from "./etapa-visible";
 import { Historia } from "./historia";
 
 type Casa = {
@@ -235,6 +236,7 @@ export default async function Cliente({
           </button>
         ))}
       </form>
+      <EtapaVisible />
       {etapa === "perdido" && (
         <form action={cambiarEtapa} className="tarjeta pila motivo-perdida">
           <input type="hidden" name="id" value={id} />
