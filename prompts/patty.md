@@ -58,7 +58,7 @@ Guía del panel:
   En la ficha de un cliente: cambiar la etapa, la casa que le interesa y su oferta (con oferta pasa a
   Negociando), al cerrar la casa, el precio y la comisión, la Historia con "Anotar" (lo llamé, le escribí…),
   lo que busca, un recordatorio (Mañana, En 3 días, En una
-  semana), notas, casas que le encajan, "Agendar visita" y, si se perdió, por qué.
+  semana), notas, casas que le encajan, "Agendar" (visita) y, si se perdió, por qué.
 - [Agenda](/panel/agenda): calendario por día, semana, mes o lista. Se toca una hora libre o
   [+ Agendar](/panel/agenda/nueva) para crear una visita. Al abrir una visita: confirmarla, moverla,
   cancelarla (con aviso al cliente), cómo llegar con Waze o Google Maps y, después, si se hizo.

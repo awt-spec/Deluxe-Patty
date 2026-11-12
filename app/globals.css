@@ -9059,3 +9059,122 @@ body:has(.marco.tema) {
     overflow-x: auto;
   }
 }
+
+/* ================================================================================================
+   Ficha del cliente, rehecha: acciones como en Contactos del iPhone (círculo con ícono y nombre abajo),
+   los datos de arriba llevan a donde se cambian, las etapas en una fila (en el teléfono se desliza) y
+   el recordatorio primero en la columna lateral.
+   ================================================================================================ */
+.marco.tema .ficha-cabecera {
+  gap: 14px;
+}
+.marco.tema .ficha-acciones {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  grid-auto-flow: column;
+  gap: 8px;
+}
+.tema .ficha-accion {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 4px;
+  border-radius: 12px;
+  background: #f3f5f7;
+  color: var(--principal);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-decoration: none;
+  text-align: center;
+  white-space: nowrap;
+}
+.tema .ficha-accion:hover {
+  background: color-mix(in srgb, var(--principal) 10%, #fff);
+}
+.tema .ficha-accion-icono {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--principal);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+.tema .ficha-accion.principal .ficha-accion-icono {
+  background: var(--principal);
+  color: #fff;
+}
+
+.tema .ficha-datos > a {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #f6f8fa;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+.tema .ficha-datos > a:hover {
+  background: #eef2f5;
+}
+.tema .ficha-datos > a.vence {
+  background: #fff4e5;
+  box-shadow: inset 3px 0 0 #e2702f;
+}
+.tema .ficha-datos > a > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.tema #busca,
+.tema #juego,
+.tema #recordatorio,
+.tema #cierre {
+  scroll-margin-top: 16px;
+}
+
+/* Etapas: compactas, una fila */
+.marco.tema .etapas-selector {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+}
+.marco.tema .etapas-selector .etapa {
+  min-height: 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+.marco.tema .etapas-selector .etapa small {
+  font-size: 0.75rem;
+}
+@media (max-width: 899px) {
+  .marco.tema .etapas-selector {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    margin: 0 -16px 14px;
+    padding: 2px 16px 4px;
+    scrollbar-width: none;
+  }
+  .marco.tema .etapas-selector::-webkit-scrollbar {
+    display: none;
+  }
+  .marco.tema .etapas-selector .etapa {
+    flex: none;
+    scroll-snap-align: start;
+    border-radius: 999px;
+    border-top-width: 1px;
+    padding: 8px 16px;
+  }
+  .marco.tema .etapas-selector .etapa small {
+    display: none;
+  }
+  .marco.tema .ficha-datos {
+    gap: 8px;
+  }
+}

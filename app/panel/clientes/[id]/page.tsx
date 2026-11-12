@@ -156,18 +156,18 @@ export default async function Cliente({
           </div>
         </div>
         <div className="ficha-datos">
-          <div>
+          <a href="#busca">
             <span className="ficha-dato-titulo">Busca</span>
             <span>{resumen || "Todavía no lo dijo"}</span>
-          </div>
-          <div>
+          </a>
+          <a href={etapa === "cerrado" && !c.cierre_precio ? "#cierre" : "#juego"}>
             <span className="ficha-dato-titulo">{etapa === "cerrado" ? "Cerró en" : c.oferta_monto ? "Ofreció" : "En juego"}</span>
             <span>
               {etapa === "cerrado" ? (
                 c.cierre_precio ? (
                   `${montoExacto(Number(c.cierre_precio), monedaCierre)} · comisión ${montoExacto(Number(c.cierre_comision ?? 0), monedaCierre)}`
                 ) : (
-                  <a href="#cierre">Falta anotar el precio</a>
+                  "Falta anotar el precio"
                 )
               ) : valorEnJuego ? (
                 `${montoExacto(valorEnJuego, monedaEnJuego)}${alquiler ? " al mes" : ""} · comisión ${montoExacto(comisionEnJuego, monedaEnJuego)}`
@@ -175,30 +175,34 @@ export default async function Cliente({
                 "Sin casa elegida"
               )}
             </span>
-          </div>
-          <div className={venceRecordatorio ? "vence" : undefined}>
+          </a>
+          <a href="#recordatorio" className={venceRecordatorio ? "vence" : undefined}>
             <span className="ficha-dato-titulo">Recordatorio</span>
             <span>
               {c.seguimiento_fecha
                 ? `${venceRecordatorio ? "Hoy" : etiquetaHorario(new Date(`${c.seguimiento_fecha as string}T12:00:00`), zona).split(",")[0]}: ${(c.seguimiento_nota as string | null) ?? "escribirle"}`
                 : "Ninguno"}
             </span>
-          </div>
+          </a>
         </div>
-        <div className="cliente-acciones">
+        <div className="cliente-acciones ficha-acciones">
           {conv && (
-            <Link href={`/panel/conversaciones/${conv.id}`} className="boton primario">
-              <IconoChats tamano={20} /> Ver el chat
+            <Link href={`/panel/conversaciones/${conv.id}`} className="ficha-accion principal">
+              <span className="ficha-accion-icono"><IconoChats tamano={22} /></span>
+              Ver el chat
             </Link>
           )}
-          <a href={`https://wa.me/${(c.telefono as string).replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="boton">
-            <IconoChats tamano={20} /> WhatsApp
+          <a href={`https://wa.me/${(c.telefono as string).replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="ficha-accion">
+            <span className="ficha-accion-icono"><IconoChats tamano={22} /></span>
+            WhatsApp
           </a>
-          <Link data-patty="cliente-agendar" href={`/panel/agenda/nueva?cliente=${id}`} className="boton">
-            <IconoAgenda tamano={20} /> Agendar visita
+          <Link data-patty="cliente-agendar" href={`/panel/agenda/nueva?cliente=${id}`} className="ficha-accion">
+            <span className="ficha-accion-icono"><IconoAgenda tamano={22} /></span>
+            Agendar
           </Link>
-          <a href={`tel:${c.telefono as string}`} className="boton">
-            <IconoTelefono tamano={20} /> Llamar
+          <a href={`tel:${c.telefono as string}`} className="ficha-accion">
+            <span className="ficha-accion-icono"><IconoTelefono tamano={22} /></span>
+            Llamar
           </a>
         </div>
         <div className="preguntas-patty">
@@ -306,7 +310,42 @@ export default async function Cliente({
 
         {/* Columna lateral: los datos que se editan */}
         <aside className="ficha-lateral">
-          <section className="tarjeta pila oportunidad" data-patty="cliente-oportunidad">
+          <section id="recordatorio" className={`tarjeta pila${venceRecordatorio ? " recordatorio-vence" : ""}`}>
+            <h2 data-patty="cliente-recordatorio">Recordatorio</h2>
+            <form action={guardarSeguimiento} className="pila">
+              <input type="hidden" name="id" value={id} />
+              <input
+                data-patty="cliente-recordatorio-texto"
+                id="nota"
+                name="nota"
+                type="text"
+                aria-label="Qué tienes que hacer"
+                defaultValue={(c.seguimiento_nota as string | null) ?? ""}
+                placeholder="¿Qué tienes que hacer? Ej.: llamarla"
+              />
+              <div className="botones atajos">
+                <button type="submit" name="dias" value="1">Mañana</button>
+                <button type="submit" name="dias" value="3">En 3 días</button>
+                <button type="submit" name="dias" value="7">En 1 semana</button>
+              </div>
+              <details>
+                <summary>Otro día</summary>
+                <div className="fila campos">
+                  <input id="fecha" name="fecha" type="date" aria-label="Día" defaultValue={(c.seguimiento_fecha as string | null) ?? manana} />
+                  <button type="submit" className="primario chico">
+                    Guardar
+                  </button>
+                </div>
+              </details>
+              {c.seguimiento_fecha && (
+                <button type="submit" name="quitar" value="1" className="chico ya-lo-hice">
+                  Ya lo hice
+                </button>
+              )}
+            </form>
+          </section>
+
+          <section id="juego" className="tarjeta pila oportunidad" data-patty="cliente-oportunidad">
             {etapa === "cerrado" && c.cierre_precio ? (
               <>
                 <h2>Cerró</h2>
@@ -379,42 +418,7 @@ export default async function Cliente({
             )}
           </section>
 
-          <section className={`tarjeta pila${venceRecordatorio ? " recordatorio-vence" : ""}`}>
-            <h2 data-patty="cliente-recordatorio">Recordatorio</h2>
-            <form action={guardarSeguimiento} className="pila">
-              <input type="hidden" name="id" value={id} />
-              <input
-                data-patty="cliente-recordatorio-texto"
-                id="nota"
-                name="nota"
-                type="text"
-                aria-label="Qué tienes que hacer"
-                defaultValue={(c.seguimiento_nota as string | null) ?? ""}
-                placeholder="¿Qué tienes que hacer? Ej.: llamarla"
-              />
-              <div className="botones atajos">
-                <button type="submit" name="dias" value="1">Mañana</button>
-                <button type="submit" name="dias" value="3">En 3 días</button>
-                <button type="submit" name="dias" value="7">En 1 semana</button>
-              </div>
-              <details>
-                <summary>Otro día</summary>
-                <div className="fila campos">
-                  <input id="fecha" name="fecha" type="date" aria-label="Día" defaultValue={(c.seguimiento_fecha as string | null) ?? manana} />
-                  <button type="submit" className="primario chico">
-                    Guardar
-                  </button>
-                </div>
-              </details>
-              {c.seguimiento_fecha && (
-                <button type="submit" name="quitar" value="1" className="chico ya-lo-hice">
-                  Ya lo hice
-                </button>
-              )}
-            </form>
-          </section>
-
-          <section className="tarjeta pila">
+          <section id="busca" className="tarjeta pila">
             <h2 data-patty="cliente-busca">Qué busca</h2>
             <p>{resumen || "Todavía no lo dijo. La asistente lo anota sola cuando el cliente lo cuenta en el chat."}</p>
             <details>
