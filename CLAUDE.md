@@ -144,6 +144,12 @@ pueden adjuntar hasta 4 fotos (achicadas en el navegador) o PDF, que van a Claud
 ese mensaje (no se guardan; en el navegador queda la miniatura); `lib/panel/patty.ts` arma el contexto
 (plan de hoy, visitas de 7 días, clientes, dudas y casas) y `cerebro.conversarConCorredor` (`prompts/patty.md`)
 contesta sin escribir en la base ni mandar nada (salvo "bloquear …", que resuelve el código); la conversación vive en el navegador y respeta el tope diario.
+Sus respuestas se muestran ordenadas (`app/panel/patty-contenido.tsx`, lector propio `lib/panel/markdown.ts`, sin HTML):
+títulos, listas, tablas, citas y **diagramas** (bloques ```mermaid dibujados en el navegador con `mermaid`, modo estricto).
+Cada respuesta larga tiene Copiar y "Hacer PDF"; si el corredor pide un documento, Patty termina con `<<pdf Título>>`
+y aparece la tarjeta del PDF. El PDF lo arma el servidor sin IA (`pdfDePatty`, `lib/panel/pdf-patty.tsx`,
+`@react-pdf/renderer`) con la marca del corredor y los diagramas que el navegador pasa a PNG; se ve en un visor y se
+descarga, y no se guarda. Favicon: `app/icon.svg` y `app/apple-icon.tsx`.
 Patty sabe en qué pantalla está el corredor (`contextoPantalla`: en la ficha de un cliente, una visita o una casa
 lee sus datos y el chat), sugiere preguntas según la pantalla, trae una guía del panel en `prompts/patty.md` y
 contesta "¿dónde está…?" con enlaces `[Pantalla](/panel/...)` que se vuelven botones (solo rutas del panel).

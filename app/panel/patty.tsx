@@ -3,9 +3,12 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { separarPasos, useGuia, type Paso } from "./guia";
 import { IconoCamara, IconoClip, IconoDobleCheck, IconoDocumento, IconoEnviar, IconoMicrofono } from "./iconos";
-import { leerDocumento, preguntarAPatty, transcribirNota } from "./patty-acciones";
+import { separarPdf } from "@/lib/panel/markdown";
+import { leerDocumento, pdfDePatty, preguntarAPatty, transcribirNota } from "./patty-acciones";
+import { Contenido, diagramasComoPng } from "./patty-contenido";
 
 // Chat del corredor con su asistente (Patty), como WhatsApp: burbujas con la hora, fondo de chat, caja
 // para escribir con botón para adjuntar fotos o PDF. Se usa en el botón flotante de cada página y en su
@@ -13,7 +16,14 @@ import { leerDocumento, preguntarAPatty, transcribirNota } from "./patty-accione
 // miniatura); Patty lee los datos del negocio en cada pregunta.
 
 type Adjunto = { tipo: "imagen" | "pdf" | "texto"; nombre: string; miniatura?: string };
-type Turno = { autor: "corredor" | "asistente"; texto: string; hora?: string; adjuntos?: Adjunto[] };
+/** `pdf`: título del documento que Patty preparó (se arma al tocar "Ver PDF"). */
+type Turno = { autor: "corredor" | "asistente"; texto: string; hora?: string; adjuntos?: Adjunto[]; pdf?: string | null };
+
+/** PDF listo para ver: dirección local (blob) y nombre del archivo. */
+type Visor = { url: string; nombre: string };
+
+const tituloDe = (texto: string) =>
+  /^#{1,3}\s+(.+)$/m.exec(texto)?.[1]?.replace(/[*_`]/g, "").trim().slice(0, 100) || "Documento de Patty";
 /** `grupo` junta los fotogramas de un mismo video: se ven y se quitan como uno solo. */
 type ArchivoListo = Adjunto & { mediaType: string; datos: string; tamano: number; grupo?: string };
 
@@ -45,51 +55,6 @@ const SUGERENCIAS: [RegExp, string, string[]][] = [
 /** Abre el chat de Patty desde cualquier botón de la página, con una pregunta lista. */
 export function abrirPatty(pregunta?: string) {
   window.dispatchEvent(new CustomEvent("abrir-patty", { detail: pregunta ?? null }));
-}
-
-/**
- * Negritas (**así**), cursivas, enlaces del panel ([Agenda](/panel/agenda)) y sin separadores (---).
- * Solo se vuelven enlace las rutas del propio panel; lo demás queda como texto. Nunca se interpreta HTML.
- */
-const BASE_FOTOS = `${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""}/storage/v1/object/public/fotos/`;
-const esImagenPropia = (url: string) => !!process.env.NEXT_PUBLIC_SUPABASE_URL && url.startsWith(BASE_FOTOS) && !url.includes("..");
-
-function conFormato(texto: string, alIr: () => void) {
-  return texto
-    .replace(/^\s*-{3,}\s*$/gm, "")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim()
-    .split(/(!\[[^\]\n]*\]\([^)\s]+\)|\*\*[^*\n]+\*\*|\*[^*\s][^*\n]*\*|\[[^\]\n]+\]\([^)\s]+\))/g)
-    .map((parte, i) => {
-      // Imágenes que hizo Patty: solo del almacenamiento de fotos de la app, nunca de afuera.
-      const imagen = /^!\[([^\]]*)\]\(([^)\s]+)\)$/.exec(parte);
-      if (imagen) {
-        return esImagenPropia(imagen[2]) ? (
-          <span key={i} className="patty-imagen">
-            <a href={imagen[2]} target="_blank" rel="noreferrer">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imagen[2]} alt={imagen[1] || "Imagen"} loading="lazy" />
-            </a>
-            <a href={imagen[2]} download className="patty-enlace">
-              Descargar
-            </a>
-          </span>
-        ) : null;
-      }
-      if (/^\*\*[^*]+\*\*$/.test(parte)) return <strong key={i}>{parte.slice(2, -2)}</strong>;
-      if (/^\*[^*]+\*$/.test(parte)) return <em key={i}>{parte.slice(1, -1)}</em>;
-      const enlace = /^\[([^\]]+)\]\(([^)\s]+)\)$/.exec(parte);
-      if (enlace) {
-        return /^\/panel(\/[\w\-/?=&.]*)?$/.test(enlace[2]) ? (
-          <Link key={i} href={enlace[2]} className="patty-enlace" onClick={alIr}>
-            {enlace[1]}
-          </Link>
-        ) : (
-          enlace[1]
-        );
-      }
-      return parte;
-    });
 }
 
 const horaDe = (iso?: string) =>
@@ -231,6 +196,10 @@ export function ChatPatty({
   const [segundos, setSegundos] = useState(0);
   const [transcribiendo, setTranscribiendo] = useState(false);
   const [pensando, empezar] = useTransition();
+  const [visor, setVisor] = useState<Visor | null>(null);
+  const [armando, setArmando] = useState<number | null>(null);
+  const [copiado, setCopiado] = useState<number | null>(null);
+  const burbujas = useRef<Map<number, HTMLDivElement>>(new Map());
   const fin = useRef<HTMLDivElement>(null);
   const entradaArchivo = useRef<HTMLInputElement>(null);
   const entradaCamara = useRef<HTMLInputElement>(null);
@@ -426,8 +395,9 @@ export function ChatPatty({
           adjuntos.map(({ mediaType, datos, nombre: n }) => ({ mediaType, datos, nombre: n })),
         );
         if (r.ok) {
-          const { texto: leible, pasos } = separarPasos(r.texto);
-          setTurnos((t) => [...t, { autor: "asistente", texto: leible, hora: new Date().toISOString() }]);
+          const { texto: sinPasos, pasos } = separarPasos(r.texto);
+          const { texto: leible, pdf } = separarPdf(sinPasos);
+          setTurnos((t) => [...t, { autor: "asistente", texto: leible, hora: new Date().toISOString(), pdf }]);
           if (pasos.length) void guiar(pasos);
           if ("cambio" in r && r.cambio) router.refresh();
         } else setError(r.motivo);
@@ -436,6 +406,46 @@ export function ChatPatty({
       }
     });
   }
+
+  /** Arma el PDF de una respuesta (con sus diagramas) y lo abre en el visor. */
+  async function verPdf(i: number) {
+    const t = turnos[i];
+    if (!t || armando !== null) return;
+    setArmando(i);
+    setError(null);
+    try {
+      const diagramas = await diagramasComoPng(burbujas.current.get(i) ?? null);
+      const r = await pdfDePatty(t.pdf ?? tituloDe(t.texto), t.texto, diagramas);
+      if (!r.ok) {
+        setError(r.motivo);
+      } else {
+        const bytes = Uint8Array.from(atob(r.datos), (c) => c.charCodeAt(0));
+        setVisor((v) => {
+          if (v) URL.revokeObjectURL(v.url);
+          return { url: URL.createObjectURL(new Blob([bytes], { type: "application/pdf" })), nombre: r.nombre };
+        });
+      }
+    } catch {
+      setError("No pude armar el PDF. Inténtalo de nuevo.");
+    }
+    setArmando(null);
+  }
+
+  async function copiar(i: number) {
+    try {
+      await navigator.clipboard.writeText(turnos[i]?.texto ?? "");
+      setCopiado(i);
+      setTimeout(() => setCopiado((c) => (c === i ? null : c)), 1500);
+    } catch {
+      setError("No se pudo copiar. Mantén presionado el texto para copiarlo.");
+    }
+  }
+
+  const cerrarVisor = () =>
+    setVisor((v) => {
+      if (v) URL.revokeObjectURL(v.url);
+      return null;
+    });
 
   const alIr = () => {
     if (modo === "flotante" && window.innerWidth < 900) alCerrar?.();
@@ -510,7 +520,14 @@ export function ChatPatty({
           </div>
         )}
         {turnos.map((t, i) => (
-          <div key={i} className={`patty-burbuja ${t.autor === "corredor" ? "mia" : "suya"}`}>
+          <div
+            key={i}
+            className={`patty-burbuja ${t.autor === "corredor" ? "mia" : "suya"}`}
+            ref={(el) => {
+              if (el) burbujas.current.set(i, el);
+              else burbujas.current.delete(i);
+            }}
+          >
             {t.adjuntos && t.adjuntos.length > 0 && (
               <div className="patty-adjuntos-enviados">
                 {t.adjuntos.map((a, j) =>
@@ -525,7 +542,35 @@ export function ChatPatty({
                 )}
               </div>
             )}
-            {t.texto && <span className="patty-texto">{t.autor === "asistente" ? conFormato(t.texto, alIr) : t.texto}</span>}
+            {t.texto &&
+              (t.autor === "asistente" ? (
+                <Contenido texto={t.texto} alIr={alIr} />
+              ) : (
+                <span className="patty-texto">{t.texto}</span>
+              ))}
+            {t.autor === "asistente" && t.pdf && (
+              <button type="button" className="patty-pdf-tarjeta" onClick={() => void verPdf(i)} disabled={armando !== null}>
+                <span className="patty-pdf-icono" aria-hidden>
+                  PDF
+                </span>
+                <span className="patty-pdf-texto">
+                  <strong>{t.pdf}</strong>
+                  <small>{armando === i ? "Armando el PDF…" : "Toca para verlo y descargarlo"}</small>
+                </span>
+              </button>
+            )}
+            {t.autor === "asistente" && t.texto.length > 40 && (
+              <span className="patty-acciones-mensaje">
+                <button type="button" className="patty-mini" onClick={() => void copiar(i)}>
+                  {copiado === i ? "Copiado" : "Copiar"}
+                </button>
+                {!t.pdf && (
+                  <button type="button" className="patty-mini" onClick={() => void verPdf(i)} disabled={armando !== null}>
+                    {armando === i ? "Armando…" : "Hacer PDF"}
+                  </button>
+                )}
+              </span>
+            )}
             <span className="patty-hora">
               {horaDe(t.hora)}
               {t.autor === "corredor" && <IconoDobleCheck tamano={16} />}
@@ -676,6 +721,26 @@ export function ChatPatty({
           </button>
         )}
       </form>
+
+      {visor &&
+        createPortal(
+        <div className="patty-visor" role="dialog" aria-modal="true" aria-label="Documento PDF">
+          <div className="patty-visor-barra">
+            <strong>{visor.nombre}</strong>
+            <a href={visor.url} download={visor.nombre} className="patty-mini primario">
+              Descargar
+            </a>
+            <a href={visor.url} target="_blank" rel="noreferrer" className="patty-mini">
+              Abrir
+            </a>
+            <button type="button" className="patty-mini" onClick={cerrarVisor} aria-label="Cerrar el documento">
+              Cerrar
+            </button>
+          </div>
+          <iframe src={visor.url} title={visor.nombre} />
+        </div>,
+          document.body,
+        )}
     </section>
   );
 }

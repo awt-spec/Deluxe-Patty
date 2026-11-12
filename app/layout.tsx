@@ -12,12 +12,14 @@ export const metadata: Metadata = {
   // agrega algo después (la respuesta de la asistente), la página se cae.
   other: { google: "notranslate" },
   description: "Asistente IA para corredores inmobiliarios",
+  appleWebApp: { capable: true, title: "Asistente", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  themeColor: "#00a884",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -6,7 +6,9 @@ import { SIN_PRESUPUESTO, hayPresupuestoHoy } from "@/lib/asistente/limites";
 import { ErrorDocumento, LIMITE_DOCUMENTO, mensajeDeDocumento, textoDeDocumento } from "@/lib/medios/documentos";
 import { crearTranscriptor } from "@/lib/medios/transcribir";
 import { errorSeguro } from "@/lib/monitoreo/errores";
+import { diaLargo } from "@/lib/agenda/formato";
 import { hablarConPatty, type TurnoPatty } from "@/lib/panel/patty";
+import { generarPdfPatty } from "@/lib/panel/pdf-patty";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -91,4 +93,34 @@ export async function preguntarAPatty(historial: TurnoPatty[], mensaje: string, 
     typeof ruta === "string" && ruta.startsWith("/panel") ? ruta.slice(0, 200) : "/panel",
     archivos,
   );
+}
+
+const PNG = /^data:image\/png;base64,[A-Za-z0-9+/=]+$/;
+
+/**
+ * PDF con lo que preparó Patty en una respuesta (informe, comparación, resumen para un cliente), con la marca del
+ * corredor. No usa IA ni guarda nada: el PDF vuelve al navegador para verlo y descargarlo.
+ */
+export async function pdfDePatty(titulo: unknown, texto: unknown, diagramas?: unknown) {
+  const { corredor } = await sesionConCorredor();
+  const t = String(titulo ?? "").replace(/[\r\n]+/g, " ").trim().slice(0, 120) || "Documento";
+  const cuerpo = String(texto ?? "").slice(0, 40_000);
+  if (!cuerpo.trim()) return { ok: false as const, motivo: "No hay nada que poner en el PDF." };
+  const imagenes = (Array.isArray(diagramas) ? diagramas : []).filter((d): d is string => typeof d === "string" && PNG.test(d)).slice(0, 6);
+  if (imagenes.reduce((s, d) => s + d.length, 0) > 3_500_000) return { ok: false as const, motivo: "Los diagramas pesan demasiado para el PDF." };
+  try {
+    const pdf = await generarPdfPatty({
+      titulo: t,
+      texto: cuerpo,
+      diagramas: imagenes,
+      marca: corredor.marca ?? null,
+      corredor: corredor.nombre,
+      fecha: diaLargo(new Date(), corredor.zona_horaria),
+    });
+    const nombre = `${t.replace(/[\\/:*?"<>|]+/g, "").slice(0, 80)}.pdf`;
+    return { ok: true as const, datos: pdf.toString("base64"), nombre };
+  } catch (e) {
+    console.error(JSON.stringify({ evento: "error_pdf_patty", error: errorSeguro(e) }));
+    return { ok: false as const, motivo: "No pude armar el PDF. Inténtalo de nuevo." };
+  }
 }
