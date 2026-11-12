@@ -9178,3 +9178,25 @@ body:has(.marco.tema) {
     gap: 8px;
   }
 }
+@media (max-width: 899px) {
+  .marco.tema .etapas-selector {
+    flex-wrap: nowrap;
+  }
+  /* Como en Contactos: primero quién es y los botones; después los datos. */
+  .marco.tema .ficha-cabecera .ficha-acciones {
+    order: 1;
+  }
+  .marco.tema .ficha-cabecera .ficha-datos {
+    order: 2;
+  }
+  .marco.tema .ficha-cabecera .preguntas-patty {
+    order: 3;
+  }
+  .marco.tema .ficha-datos > a {
+    padding: 8px 12px;
+  }
+  .marco.tema .ficha-accion {
+    font-size: 0.8rem;
+    padding: 8px 2px;
+  }
+}
