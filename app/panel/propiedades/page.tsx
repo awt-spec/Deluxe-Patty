@@ -35,7 +35,7 @@ const FILTROS = [
   ["", "En oferta"],
   ["venta", "Venta"],
   ["alquiler", "Alquiler"],
-  ["todas", "Vendidas o pausadas"],
+  ["todas", "Otras"],
 ] as const;
 const sinTildes = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 

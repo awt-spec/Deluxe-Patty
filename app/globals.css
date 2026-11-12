@@ -9347,3 +9347,44 @@ body:has(.marco.tema) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* ================================================================================================
+   Inicio, pulido: el resumen del día en una sola fila (en el teléfono se desliza), las cifras de lo que
+   hizo la asistente compactas y en los chats la fecha corta como en WhatsApp ("Ayer", "Lunes", "11 nov.").
+   ================================================================================================ */
+@media (max-width: 899px) {
+  .marco.tema .saludo-resumen {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin-right: -16px;
+    padding-right: 16px;
+  }
+  .marco.tema .saludo-resumen::-webkit-scrollbar {
+    display: none;
+  }
+  .marco.tema .saludo-resumen span {
+    flex: none;
+    white-space: nowrap;
+  }
+}
+.marco.tema .inicio-cifras {
+  gap: 8px;
+}
+.marco.tema .inicio-cifras .cifra {
+  padding: 10px 12px;
+  gap: 4px;
+  justify-content: flex-start;
+}
+.marco.tema .inicio-cifras .cifra strong {
+  font-size: 1.45rem;
+  line-height: 1.15;
+}
+.marco.tema .inicio-cifras .cifra .suave {
+  font-size: 0.82rem;
+  line-height: 1.25;
+}
+.marco.tema .chat-lista .renglon .hora {
+  flex: none;
+  white-space: nowrap;
+}
