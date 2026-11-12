@@ -8966,10 +8966,11 @@ body:has(.marco.tema) {
   gap: 8px;
   margin-bottom: 6px;
 }
-.tema .embudo-cifras .cifra {
+.marco.tema .embudo-cifras .cifra {
   min-height: 0;
   padding: 10px 12px;
-  gap: 2px;
+  gap: 4px;
+  justify-content: flex-start;
 }
 .tema .embudo-cifras .cifra strong {
   font-size: 1.45rem;
