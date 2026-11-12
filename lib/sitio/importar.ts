@@ -71,6 +71,8 @@ const AMENIDADES: Record<string, string> = {
 };
 
 const numero = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : null);
+// Metros y precio en 0 en el sitio quieren decir "sin dato" (la base solo acepta mayores que 0).
+const positivo = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v > 0 ? v : null);
 const texto = (v: unknown, max: number) => (typeof v === "string" && v.trim() ? v.trim().slice(0, max) : null);
 
 /** Lo que se guarda en propiedades a partir de una casa del sitio (sin fotos). null si no se puede usar. */
@@ -91,7 +93,7 @@ export function filaDesdeSitio(c: CasaSitio): Record<string, unknown> | null {
     titulo,
     tipo: TIPOS[c.tipo] ?? "casa",
     operacion,
-    precio: numero(c.precio),
+    precio: positivo(c.precio),
     moneda: c.moneda === "CRC" ? "CRC" : "USD",
     provincia: texto(c.provincia, 80),
     canton: texto(c.canton, 80),
@@ -99,8 +101,8 @@ export function filaDesdeSitio(c: CasaSitio): Record<string, unknown> | null {
     zona: lugar ? normalizarZona(lugar) : null,
     habitaciones: numero(c.habitaciones),
     banos: numero(c.banos),
-    m2_construccion: numero(c.m2_construccion),
-    m2_terreno: numero(c.m2_terreno),
+    m2_construccion: positivo(c.m2_construccion),
+    m2_terreno: positivo(c.m2_terreno),
     descripcion: descripcion || null,
     amenidades: [...new Set((c.amenidades ?? []).map((a) => AMENIDADES[a] ?? null).filter((a): a is string => !!a))],
     url_e24: texto(c.url_e24, 500)?.startsWith("https://") ? texto(c.url_e24, 500) : null,

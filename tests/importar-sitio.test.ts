@@ -46,6 +46,8 @@ describe("Casas del sitio web → portal", () => {
     expect(filaDesdeSitio(casa({ estado: "sold", operacion: "rent" }))).toMatchObject({ estado: "alquilada", operacion: "alquiler" });
     expect(filaDesdeSitio(casa({ oculta: true }))).toMatchObject({ estado: "inactiva" });
     expect(filaDesdeSitio(casa({ codigo: "P-001" }))).toBeNull();
+    // 0 metros o precio 0 en el sitio = sin dato (la base solo acepta mayores que 0).
+    expect(filaDesdeSitio(casa({ m2_construccion: 0, m2_terreno: 0, precio: 0, habitaciones: 0 }))).toMatchObject({ m2_construccion: null, m2_terreno: null, precio: null, habitaciones: 0 });
     expect(CODIGO_SITIO.test("P-001")).toBe(false);
   });
 
