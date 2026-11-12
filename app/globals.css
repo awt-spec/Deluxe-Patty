@@ -9597,3 +9597,13 @@ body:has(.marco.tema) {
     display: none;
   }
 }
+.marco.tema .revisar-quien > .revisar-ver {
+  flex-direction: row;
+  white-space: nowrap;
+}
+.marco.tema .revisar-arriba {
+  width: 100%;
+  max-width: 680px;
+  margin-left: auto;
+  margin-right: auto;
+}

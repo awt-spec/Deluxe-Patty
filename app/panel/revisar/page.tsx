@@ -89,7 +89,7 @@ export default async function Revisar({ searchParams }: { searchParams: Promise<
               id="texto"
               name="texto"
               defaultValue={p.propuesta}
-              rows={Math.min(10, Math.max(3, Math.ceil(p.propuesta.length / 34) + 1))}
+              rows={Math.min(10, Math.max(3, Math.ceil(p.propuesta.length / 40)))}
             />
             {p.accion && <p className="suave">{queHace(p.accion, corredor.zona_horaria)}</p>}
             {!p.abierta && <p className="aviso">Pasó más de un día: contéstale desde tu WhatsApp.</p>}
