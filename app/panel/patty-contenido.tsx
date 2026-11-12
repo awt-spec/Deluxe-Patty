@@ -361,7 +361,15 @@ export async function laminaPng(contenido: HTMLElement, titulo: string, marca: M
     await Promise.all(
       [...hoja.querySelectorAll("img")].map((im) => (im.complete ? Promise.resolve() : new Promise((ok) => ((im.onload = ok), (im.onerror = ok))))),
     );
-    return await toPng(hoja, { pixelRatio: 2, backgroundColor: "#ffffff", cacheBust: true });
+    // La hoja está fuera de la pantalla para que no se vea; en la foto va en su lugar (si no, sale en blanco).
+    return await toPng(hoja, {
+      pixelRatio: 2,
+      backgroundColor: "#ffffff",
+      cacheBust: true,
+      width: hoja.offsetWidth,
+      height: hoja.offsetHeight,
+      style: { position: "static", left: "0", top: "0", margin: "0" },
+    });
   } finally {
     hoja.remove();
   }
