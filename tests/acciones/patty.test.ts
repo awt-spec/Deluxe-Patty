@@ -16,7 +16,7 @@ const acciones = await import("@/app/panel/patty-acciones");
 const { hablarConPatty } = await import("@/lib/panel/patty");
 const deps = await import("./mocks/dependencias");
 
-const corredor = { id: ID.deluxe, activo: true, nombre_asistente: "Patty" };
+const corredor = { id: ID.deluxe, activo: true, nombre_asistente: "Patty", nombre: "Deluxe", zona_horaria: "America/Costa_Rica", marca: null };
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -132,4 +132,18 @@ describe("Word, Excel y texto", () => {
     expect(await acciones.leerDocumento(archivo("x", "viejo.doc"))).toMatchObject({ ok: false, motivo: expect.stringMatching(/\.docx/) });
     expect(await acciones.leerDocumento(new FormData())).toMatchObject({ ok: false, motivo: "No llegó el archivo." });
   });
+});
+
+describe("PDF de una respuesta de Patty", () => {
+  it("arma un PDF de verdad con títulos, lista y tabla", async () => {
+    const r = await acciones.pdfDePatty("Informe", "# Informe\n\n## Visitas\n- Laura a las **10**\n\n| Casa | Precio |\n|---|---|\n| Escazú | $1 |", []);
+    expect(r).toMatchObject({ ok: true, nombre: "Informe.pdf" });
+    expect(Buffer.from((r as { datos: string }).datos, "base64").subarray(0, 5).toString()).toBe("%PDF-");
+  }, 30_000);
+
+  it("descarta imágenes que no son PNG en base64 y no arma un PDF vacío", async () => {
+    expect(await acciones.pdfDePatty("x", "   ")).toMatchObject({ ok: false });
+    const r = await acciones.pdfDePatty("A/B:C", "Hola", ["javascript:alert(1)", "data:image/svg+xml;base64,PHN2Zz4="]);
+    expect(r).toMatchObject({ ok: true, nombre: "ABC.pdf" });
+  }, 30_000);
 });

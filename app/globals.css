@@ -9758,3 +9758,283 @@ body:has(.marco.tema) {
     display: none;
   }
 }
+
+/* ================================================================================================
+   Respuestas de Patty ordenadas: títulos, listas, tablas, citas, código, diagramas dibujados y PDF con
+   visor (ver, abrir y descargar). Copiar y "Hacer PDF" debajo de cada respuesta larga.
+   ================================================================================================ */
+.patty-chat .patty-burbuja.suya:has(.patty-contenido) {
+  max-width: min(92%, 680px);
+}
+.patty-chat .patty-contenido {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.patty-chat .patty-contenido > * {
+  margin: 0;
+}
+.patty-chat .patty-contenido p {
+  line-height: 1.5;
+}
+.patty-chat .patty-titulo-bloque {
+  margin: 6px 0 0;
+  color: #111b21;
+  line-height: 1.3;
+}
+.patty-chat h3.patty-titulo-bloque {
+  font-size: 1.1rem;
+}
+.patty-chat h4.patty-titulo-bloque {
+  font-size: 1rem;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e9edef;
+}
+.patty-chat h5.patty-titulo-bloque {
+  font-size: 0.92rem;
+  color: #00806a;
+}
+.patty-chat .patty-contenido > :first-child {
+  margin-top: 0;
+}
+.patty-chat .patty-contenido ul,
+.patty-chat .patty-contenido ol {
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.patty-chat .patty-contenido li {
+  line-height: 1.45;
+}
+.patty-chat .patty-contenido ul li::marker {
+  color: #00a884;
+}
+.patty-chat .patty-contenido ol li::marker {
+  color: #00806a;
+  font-weight: 700;
+}
+.patty-chat .patty-contenido blockquote {
+  margin: 0;
+  padding: 6px 12px;
+  border-left: 3px solid #00a884;
+  background: #f3faf7;
+  border-radius: 0 8px 8px 0;
+}
+.patty-chat .patty-contenido code {
+  font-size: 0.88em;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #f0f2f5;
+}
+.patty-chat .patty-contenido pre {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f0f2f5;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+.patty-chat .patty-tabla {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid #e3e7ea;
+  border-radius: 8px;
+}
+.patty-chat .patty-tabla table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+.patty-chat .patty-tabla th {
+  background: #f0f2f5;
+  text-align: left;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.patty-chat .patty-tabla th,
+.patty-chat .patty-tabla td {
+  padding: 7px 10px;
+  border-bottom: 1px solid #edf0f2;
+  vertical-align: top;
+}
+.patty-chat .patty-tabla tr:last-child td {
+  border-bottom: 0;
+}
+.patty-chat .patty-tabla tbody tr:nth-child(even) td {
+  background: #fafbfc;
+}
+
+/* Diagramas */
+.patty-chat .patty-diagrama {
+  margin: 2px 0;
+  padding: 10px;
+  border: 1px solid #e3e7ea;
+  border-radius: 10px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.patty-chat .patty-diagrama-svg {
+  overflow-x: auto;
+  display: flex;
+  justify-content: center;
+}
+.patty-chat .patty-diagrama-svg svg {
+  max-width: 100%;
+  height: auto;
+}
+.patty-chat .patty-diagrama figcaption {
+  display: flex;
+  justify-content: flex-end;
+}
+.patty-chat .patty-diagrama.error small {
+  color: #8a4b0f;
+}
+
+/* Botoncitos de cada respuesta */
+.patty-chat .patty-acciones-mensaje {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+.patty-chat .patty-mini {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid #d1d7db;
+  background: #fff;
+  color: #00806a;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.patty-chat .patty-mini:hover {
+  background: #f3faf7;
+}
+.patty-chat .patty-mini.primario {
+  background: #00a884;
+  border-color: #00a884;
+  color: #fff;
+}
+.patty-chat .patty-mini:disabled {
+  opacity: 0.6;
+}
+
+/* Tarjeta del PDF, como un documento en WhatsApp */
+.patty-chat .patty-pdf-tarjeta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 0;
+  padding: 10px 12px;
+  margin: 2px 0;
+  border: 1px solid #e3e7ea;
+  border-radius: 10px;
+  background: #f7f8fa;
+  color: inherit;
+  text-align: left;
+  box-shadow: none;
+  cursor: pointer;
+}
+.patty-chat .patty-pdf-tarjeta:hover {
+  background: #eef1f4;
+}
+.patty-chat .patty-pdf-icono {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 48px;
+  border-radius: 6px;
+  background: #e5484d;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.patty-chat .patty-pdf-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.patty-chat .patty-pdf-texto strong {
+  font-size: 0.95rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.patty-chat .patty-pdf-texto small {
+  color: #667781;
+  font-size: 0.8rem;
+}
+
+/* Visor del PDF */
+.patty-visor {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  background: rgb(11 20 26 / 85%);
+  padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+}
+.patty-visor-barra {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #fff;
+}
+.patty-visor-barra strong {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.patty-visor iframe {
+  flex: 1;
+  width: 100%;
+  border: 0;
+  background: #525659;
+}
+@media (min-width: 900px) {
+  .patty-visor {
+    inset: 4vh 8vw;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgb(0 0 0 / 35%);
+  }
+}
+.patty-visor .patty-mini {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid #d1d7db;
+  background: #fff;
+  color: #00806a;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+.patty-visor .patty-mini.primario {
+  background: #00a884;
+  border-color: #00a884;
+  color: #fff;
+}
