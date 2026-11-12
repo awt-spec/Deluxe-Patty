@@ -9392,3 +9392,78 @@ body:has(.marco.tema) {
   flex: none;
   white-space: nowrap;
 }
+
+/* ================================================================================================
+   Chat con el cliente, pulido: lo que busca se corta con "…", la franja de quién contesta en una línea
+   con botones chicos, respuestas rápidas con nombre corto (y sin ellas mientras hay una respuesta
+   propuesta) y la propuesta como una burbuja del lado del corredor, con No enviar y Enviar lado a lado.
+   ================================================================================================ */
+.marco.tema .barra-chat-nombre > span {
+  min-width: 0;
+}
+.marco.tema .barra-chat-busca {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.marco.tema .quien-contesta {
+  flex-wrap: nowrap;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 0.92rem;
+}
+.marco.tema .quien-contesta p {
+  flex: 1 1 auto;
+  min-width: 0;
+  line-height: 1.25;
+}
+.marco.tema .quien-contesta form {
+  flex: none;
+}
+.marco.tema .quien-contesta button {
+  min-height: 36px;
+  padding: 6px 12px;
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+.marco.tema button.rapida {
+  min-height: 36px;
+  padding: 6px 14px;
+}
+
+.marco.tema .borrador {
+  align-self: flex-end;
+  width: min(100%, 560px);
+  margin-left: auto;
+  padding: 12px;
+  gap: 8px;
+  border-radius: 12px 12px 4px 12px;
+}
+.marco.tema .borrador .propuesta-titulo {
+  font-size: 0.9rem;
+}
+.marco.tema .borrador .por-que {
+  margin: 0;
+  font-size: 0.85rem;
+}
+.marco.tema .borrador textarea {
+  min-height: 0;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+.marco.tema .borrador-botones {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 8px;
+}
+.marco.tema .borrador-botones button {
+  width: 100%;
+  min-height: 46px;
+  margin: 0;
+}
+.marco.tema .borrador-ayuda {
+  margin: 0;
+  font-size: 0.8rem;
+  text-align: center;
+}
