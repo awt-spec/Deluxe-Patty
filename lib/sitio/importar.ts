@@ -153,7 +153,18 @@ export type ResultadoSincronizacion = {
   fallidos: number;
 };
 
-type Existente = { id: string; codigo: string; fotos: Foto[] | null; estado: string };
+type Existente = { id: string; codigo: string; fotos: Foto[] | null; estado: string } & Record<string, unknown>;
+
+const COLUMNAS = "id, codigo, fotos, estado, titulo, tipo, operacion, precio, moneda, provincia, canton, distrito, zona, habitaciones, banos, m2_construccion, m2_terreno, descripcion, amenidades, url_e24";
+
+/** ¿Cambió algo de la ficha? (los números de la base pueden venir como texto: se comparan como números). */
+function cambio(actual: Record<string, unknown>, nueva: Record<string, unknown>): boolean {
+  return Object.entries(nueva).some(([k, v]) => {
+    const a = actual[k];
+    if (typeof v === "number" || typeof a === "number") return Number(a ?? NaN) !== Number(v ?? NaN) && !(a == null && v == null);
+    return JSON.stringify(a ?? null) !== JSON.stringify(v ?? null);
+  });
+}
 
 export async function sincronizarSitio(
   db: SupabaseClient,
@@ -166,7 +177,7 @@ export async function sincronizarSitio(
   let presupuesto = opciones.maxFotos ?? 80;
   const hasta = opciones.hasta ?? Date.now() + 240_000;
 
-  const { data } = await db.from("propiedades").select("id, codigo, fotos, estado").eq("corredor_id", corredor.id).limit(1000);
+  const { data } = await db.from("propiedades").select(COLUMNAS).eq("corredor_id", corredor.id).limit(1000);
   const existentes = new Map(((data ?? []) as Existente[]).map((p) => [p.codigo.toUpperCase(), p]));
 
   // Las casas de ejemplo de la semilla: fuera (si algo las usa, se pausan).
@@ -188,9 +199,12 @@ export async function sincronizarSitio(
     try {
       let propiedad = existentes.get(codigo);
       if (propiedad) {
-        const { error } = await db.from("propiedades").update(fila).eq("corredor_id", corredor.id).eq("id", propiedad.id);
-        if (error) throw Object.assign(new Error("propiedad"), { operacion: "actualizar", code: error.code });
-        res.actualizadas++;
+        // Solo se escribe si algo cambió en el sitio (la vuelta corre seguido).
+        if (cambio(propiedad, fila)) {
+          const { error } = await db.from("propiedades").update(fila).eq("corredor_id", corredor.id).eq("id", propiedad.id);
+          if (error) throw Object.assign(new Error("propiedad"), { operacion: "actualizar", code: error.code });
+          res.actualizadas++;
+        }
       } else {
         const { data: nueva, error } = await db
           .from("propiedades")
