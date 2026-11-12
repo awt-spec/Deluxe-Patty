@@ -2,6 +2,7 @@ import "server-only";
 import { Document, Image, Page, StyleSheet, Text, View, renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 import type { ReactElement } from "react";
 import { registrarFuentes } from "../fichas/ficha";
+import { rutaDeMarca } from "../marcas/archivo";
 import type { Marca } from "../fichas/marca";
 import { bloques, trozos, type Bloque } from "./markdown";
 
@@ -30,20 +31,25 @@ export interface DatosPdfPatty {
   marca: Marca | null;
   corredor: string;
   fecha: string;
+  /** Logo ya resuelto (archivo local de marcas/ o https), o null. */
+  logo?: string | null;
 }
 
-function DocumentoPatty({ titulo, texto, diagramas, marca, corredor, fecha }: DatosPdfPatty) {
+function DocumentoPatty({ titulo, texto, diagramas, marca, corredor, fecha, logo }: DatosPdfPatty) {
   const c = marca?.colores ?? COLORES_NEUTROS;
   const e = StyleSheet.create({
     pagina: { fontFamily: "Inter", fontSize: 10.5, color: "#1f2a30", paddingTop: 0, paddingBottom: 48, paddingHorizontal: 0, lineHeight: 1.45 },
     franja: { backgroundColor: c.profundo, paddingHorizontal: 40, paddingVertical: 18, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+    marcaFila: { flexDirection: "row", alignItems: "center" },
+    logo: { width: 34, height: 34, marginRight: 10, borderRadius: 4, objectFit: "contain" },
     marca: { color: c.principal, fontFamily: "Playfair", fontSize: 15 },
+    resumen: { backgroundColor: c.base, borderLeftWidth: 3, borderLeftColor: c.principal, padding: 10, marginBottom: 10, fontSize: 11.5, color: c.profundo },
     fecha: { color: "#ffffff", fontSize: 9, opacity: 0.8 },
     cuerpo: { paddingHorizontal: 40, paddingTop: 24 },
     titulo: { fontFamily: "Playfair", fontSize: 22, lineHeight: 1.25, color: c.profundo, marginBottom: 8 },
     linea: { height: 2, width: 48, backgroundColor: c.principal, marginBottom: 16 },
     h1: { fontSize: 15, fontWeight: 600, color: c.profundo, marginTop: 12, marginBottom: 6 },
-    h2: { fontSize: 13, fontWeight: 600, color: c.profundo, marginTop: 10, marginBottom: 5 },
+    h2: { fontSize: 13, fontWeight: 600, color: c.profundo, marginTop: 12, marginBottom: 6, paddingLeft: 8, borderLeftWidth: 3, borderLeftColor: c.principal },
     h3: { fontSize: 11.5, fontWeight: 600, color: c.soporte, marginTop: 8, marginBottom: 4 },
     parrafo: { marginBottom: 7 },
     item: { flexDirection: "row", marginBottom: 3, paddingRight: 8 },
@@ -73,8 +79,9 @@ function DocumentoPatty({ titulo, texto, diagramas, marca, corredor, fecha }: Da
           </Text>
         );
       case "parrafo":
+        // La primera frase (la conclusión) va destacada como resumen.
         return (
-          <Text key={i} style={e.parrafo}>
+          <Text key={i} style={i === 0 ? e.resumen : e.parrafo}>
             <Linea texto={b.texto} color={c.profundo} />
           </Text>
         );
@@ -141,7 +148,11 @@ function DocumentoPatty({ titulo, texto, diagramas, marca, corredor, fecha }: Da
     <Document title={titulo} author={marca?.nombre ?? corredor} creator={marca?.nombre ?? corredor}>
       <Page size="A4" style={e.pagina}>
         <View style={e.franja} fixed>
-          <Text style={e.marca}>{marca?.nombre ?? corredor}</Text>
+          <View style={e.marcaFila}>
+            {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de react-pdf no lleva alt */}
+            {logo && <Image src={logo} style={[e.logo, { backgroundColor: marca?.fondoLogo ?? c.profundo }]} />}
+            <Text style={e.marca}>{marca?.nombre ?? corredor}</Text>
+          </View>
           <Text style={e.fecha}>{fecha}</Text>
         </View>
         <View style={e.cuerpo}>
@@ -160,5 +171,8 @@ function DocumentoPatty({ titulo, texto, diagramas, marca, corredor, fecha }: Da
 
 export async function generarPdfPatty(datos: DatosPdfPatty): Promise<Buffer> {
   registrarFuentes();
-  return renderToBuffer(<DocumentoPatty {...datos} /> as unknown as ReactElement<DocumentProps>);
+  // El logo: una URL https tal cual o un archivo de marcas/ (solo dentro de esa carpeta).
+  const archivo = datos.marca?.logoSobreProfundo ?? null;
+  const logo = datos.logo ?? (archivo ? (/^https:\/\//.test(archivo) ? archivo : rutaDeMarca(archivo)) : null);
+  return renderToBuffer(<DocumentoPatty {...datos} logo={logo} /> as unknown as ReactElement<DocumentProps>);
 }

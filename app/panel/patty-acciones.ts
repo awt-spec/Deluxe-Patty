@@ -124,3 +124,23 @@ export async function pdfDePatty(titulo: unknown, texto: unknown, diagramas?: un
     return { ok: false as const, motivo: "No pude armar el PDF. Inténtalo de nuevo." };
   }
 }
+
+/** Lo que necesita el navegador para armar una lámina PNG con la marca del corredor: nombre, colores y logo. */
+export async function marcaParaLamina() {
+  const { supabase, corredor } = await sesionConCorredor();
+  const marca = corredor.marca ?? null;
+  let logo: string | null = null;
+  const archivo = marca?.logoSobreProfundo ?? null;
+  if (archivo && /^https:\/\//.test(archivo)) logo = archivo;
+  else if (archivo) {
+    const { data } = await supabase.from("corredores").select("slug").eq("id", corredor.id).maybeSingle();
+    if (data?.slug) logo = `/marca/${data.slug as string}/logo`;
+  }
+  return {
+    nombre: marca?.nombre ?? corredor.nombre,
+    logo,
+    fondoLogo: marca?.fondoLogo ?? null,
+    colores: marca?.colores ?? { principal: "#00a884", soporte: "#54656f", profundo: "#111b21", base: "#ffffff" },
+    firma: marca?.firma ? `${marca.firma.nombre} · ${marca.firma.cargo}` : null,
+  };
+}

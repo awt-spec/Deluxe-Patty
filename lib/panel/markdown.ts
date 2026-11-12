@@ -137,14 +137,16 @@ export function trozos(texto: string): Trozo[] {
 /** Rutas a las que un enlace de Patty puede llevar: solo pantallas del panel. */
 export const esRutaDelPanel = (url: string) => /^\/panel(\/[\w\-/?=&.]*)?$/.test(url);
 
-/** Pedido de PDF: Patty termina con <<pdf Título>> cuando el corredor pidió un documento. */
-const PDF = /^<<\s*pdf\s+([^>]{1,120}?)\s*>>\s*$/gim;
+/** Pedido de documento: Patty termina con <<pdf Título>> o <<png Título>> cuando el corredor pidió un PDF o una imagen. */
+const PEDIDO = /^<<\s*(pdf|png)\s+([^>]{1,120}?)\s*>>\s*$/gim;
 
-export function separarPdf(texto: string): { texto: string; pdf: string | null } {
-  let titulo: string | null = null;
-  const limpio = texto.replace(PDF, (_, t: string) => {
-    titulo ??= t.trim();
+export function separarPedido(texto: string): { texto: string; pdf: string | null; png: string | null } {
+  let pdf: string | null = null;
+  let png: string | null = null;
+  const limpio = texto.replace(PEDIDO, (_, tipo: string, t: string) => {
+    if (tipo.toLowerCase() === "pdf") pdf ??= t.trim();
+    else png ??= t.trim();
     return "";
   });
-  return { texto: limpio.replace(/\n{3,}/g, "\n\n").trim(), pdf: titulo };
+  return { texto: limpio.replace(/\n{3,}/g, "\n\n").trim(), pdf, png };
 }
