@@ -58,7 +58,7 @@ const telefonoDelNavegador = (): Telefono =>
 function Elegir({ destino, elegir }: { destino: Destino; elegir: (d: Destino) => void }) {
   const { siguiente } = usePasos();
   return (
-    <div className="pasos-opciones" role="group" aria-label="Dónde lo vas a subir">
+    <div className="pap-opciones" role="group" aria-label="Dónde lo vas a subir">
       {(Object.keys(DESTINOS) as Destino[]).map((d) => (
         <button
           key={d}
@@ -93,7 +93,7 @@ export function GuiaSubir({ propiedadId, texto }: { propiedadId: string; texto: 
       titulo: "¿Dónde lo vas a subir?",
       contenido: (
         <>
-          <p className="pasos-instruccion">Toca uno. Si lo vas a poner en varios, empieza por uno y después vuelves.</p>
+          <p className="pap-instruccion">Toca uno. Si lo vas a poner en varios, empieza por uno y después vuelves.</p>
           <Elegir destino={destino} elegir={setDestino} />
         </>
       ),
@@ -105,7 +105,7 @@ export function GuiaSubir({ propiedadId, texto }: { propiedadId: string; texto: 
       ilustracion: <IlusGaleria android={tel === "android"} />,
       contenido: (
         <>
-          <div className="pasos-idioma" role="group" aria-label="Tu teléfono">
+          <div className="pap-idioma" role="group" aria-label="Tu teléfono">
             <button type="button" aria-pressed={tel === "iphone"} onClick={() => setTel("iphone")} data-patty="subir-iphone">
               iPhone
             </button>
@@ -114,7 +114,7 @@ export function GuiaSubir({ propiedadId, texto }: { propiedadId: string; texto: 
             </button>
           </div>
           {tel === "iphone" ? (
-            <ol className="pasos-subpasos">
+            <ol className="pap-subpasos">
               <li>
                 Abre la app <strong>Archivos</strong> y entra a <strong>Descargas</strong>.
               </li>
@@ -126,7 +126,7 @@ export function GuiaSubir({ propiedadId, texto }: { propiedadId: string; texto: 
               </li>
             </ol>
           ) : (
-            <ol className="pasos-subpasos">
+            <ol className="pap-subpasos">
               <li>
                 Abre la <strong>Galería</strong> (o Google Fotos).
               </li>
@@ -149,10 +149,10 @@ export function GuiaSubir({ propiedadId, texto }: { propiedadId: string; texto: 
       ilustracion: <IlusNuevaPublicacion app={d.app} boton={d.boton} />,
       contenido: (
         <>
-          <p className="pasos-instruccion">
+          <p className="pap-instruccion">
             Abre <strong>{d.app}</strong>. {d.abrir}
           </p>
-          <p className="pasos-nota">El video ya trae el precio, los datos y tu marca: no hace falta ponerle texto encima.</p>
+          <p className="pap-nota">El video ya trae el precio, los datos y tu marca: no hace falta ponerle texto encima.</p>
         </>
       ),
       ayuda: [{ p: `${d.app} no muestra el video`, r: <>Revisa que esté en {tel === "iphone" ? "Fotos (paso 2)" : "la Galería"} y vuelve a abrir la app.</> }],
@@ -166,12 +166,12 @@ export function GuiaSubir({ propiedadId, texto }: { propiedadId: string; texto: 
         <>
           {d.texto ? (
             <>
-              <p className="pasos-instruccion">
+              <p className="pap-instruccion">
                 Copia el texto de la casa y pégalo donde dice <strong>{destino === "estado" ? "Añade un comentario" : "descripción"}</strong>: deja apretado
                 el dedo y toca <strong>Pegar</strong>.
               </p>
-              <div className="pasos-copiable">
-                <div className="pasos-copiable-cabeza">
+              <div className="pap-copiable">
+                <div className="pap-copiable-cabeza">
                   <strong>Texto de la casa</strong>
                   <BotonCopiar texto={texto} etiqueta="Copiar el texto" patty="subir-copiar" principal />
                 </div>
@@ -179,16 +179,16 @@ export function GuiaSubir({ propiedadId, texto }: { propiedadId: string; texto: 
               </div>
             </>
           ) : (
-            <p className="pasos-instruccion">
+            <p className="pap-instruccion">
               Las Historias no llevan descripción. Si quieres, agrega un sticker de <strong>Enlace</strong> con tu WhatsApp.
             </p>
           )}
           {d.musica && (
-            <p className="pasos-nota">
+            <p className="pap-nota">
               <strong>¿Sin música?</strong> Si al hacer el video no le pusiste una canción, toca el botón de <strong>música</strong> en {d.app} y elige una.
             </p>
           )}
-          <p className="pasos-instruccion">
+          <p className="pap-instruccion">
             Toca <strong>{destino === "reels" || destino === "tiktok" ? "Compartir" : "Enviar"}</strong>.
           </p>
         </>
@@ -206,7 +206,7 @@ export function GuiaSubir({ propiedadId, texto }: { propiedadId: string; texto: 
         contenido: (
           <>
             <p>Si te escriben por el video, la asistente les contesta con los datos de la casa.</p>
-            <div className="pasos-acciones" style={{ justifyContent: "center" }}>
+            <div className="pap-acciones" style={{ justifyContent: "center" }}>
               <Link href={`/panel/propiedades/${propiedadId}/redes?ver=video`} className="boton primario" data-patty="subir-volver-video">
                 Volver al video
               </Link>

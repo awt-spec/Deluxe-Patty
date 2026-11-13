@@ -26,7 +26,7 @@
   .marco[data-fase="verificacion"] { box-shadow: inset 0 0 0 3px #e0a100, inset 0 0 0 4px rgb(255 255 255 / 55%), inset 0 0 36px rgb(224 161 0 / 22%); }
   .barra {
     position: fixed; left: 50%; top: 14px; transform: translateX(-50%);
-    width: max-content; max-width: min(720px, calc(100vw - 24px));
+    width: max-content; max-width: min(860px, calc(100vw - 24px));
     display: flex; align-items: center; gap: 12px; padding: 10px 10px 12px 12px; overflow: hidden;
     background: #fff; color: #111b21; border-radius: 16px;
     box-shadow: 0 10px 30px rgb(17 27 33 / 18%), 0 0 0 1px rgb(17 27 33 / 8%);
@@ -82,7 +82,7 @@
   .resalte {
     position: fixed; border-radius: 12px; pointer-events: none; opacity: 0;
     box-shadow: 0 0 0 3px rgb(0 168 132 / 85%), 0 0 0 8px rgb(0 168 132 / 14%); background: rgb(0 168 132 / 5%);
-    transition: top .45s cubic-bezier(.22,1,.36,1), left .45s cubic-bezier(.22,1,.36,1), width .45s, height .45s, opacity .3s;
+    transition: opacity .3s;
   }
   .resalte.ver { opacity: 1; }
   .solo-lector { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
@@ -257,12 +257,22 @@
     return lista;
   }
 
-  function resaltar(el) {
-    if (!el) return resalte.classList.remove("ver");
-    const r = el.getBoundingClientRect();
+  let resaltado = null;
+  function ubicarResalte() {
+    if (!resaltado) return;
+    const r = resaltado.getBoundingClientRect();
     Object.assign(resalte.style, { top: `${r.top - 6}px`, left: `${r.left - 6}px`, width: `${r.width + 12}px`, height: `${r.height + 12}px` });
+  }
+  function resaltar(el) {
+    resaltado = el ?? null;
+    if (!el) return resalte.classList.remove("ver");
+    ubicarResalte();
     resalte.classList.add("ver");
   }
+  // El recuadro acompaña al anuncio cuando la página se desplaza.
+  const alDesplazar = () => requestAnimationFrame(ubicarResalte);
+  addEventListener("scroll", alDesplazar, { passive: true });
+  addEventListener("resize", alDesplazar, { passive: true });
 
   /** Lee la página por tramos: baja hasta cada punto, mira uno o dos anuncios a la vista y sigue. */
   async function mirar(tramos) {
@@ -395,6 +405,8 @@
     animacion++;
     vigia.disconnect();
     for (const t of EVENTOS) removeEventListener(t, actividad, { capture: true });
+    removeEventListener("scroll", alDesplazar);
+    removeEventListener("resize", alDesplazar);
     try {
       chrome.runtime.onMessage.removeListener(oir);
     } catch {

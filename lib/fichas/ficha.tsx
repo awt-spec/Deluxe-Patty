@@ -151,14 +151,13 @@ export function FichaPropiedad({ propiedad: p, marca, logo, whatsapp, enlaceWhat
   const mitad = Math.ceil(amenidades.length / 2);
   const firmaPie = `${marca.nombre} · Ref. ${p.codigo}`;
 
-  const Encabezado = () => <EncabezadoDelgado izquierda={marca.nombre} derecha={`Ref. ${p.codigo}`} colores={c} marca={marca} />;
-  const Pie = () => <PieDePagina izquierda={firmaPie} colores={c} />;
+  const encabezado = <EncabezadoDelgado izquierda={marca.nombre} derecha={`Ref. ${p.codigo}`} colores={c} marca={marca} />;
+  const pie = <PieDePagina izquierda={firmaPie} colores={c} />;
   const paginaInterior = { backgroundColor: c.base, fontFamily: "Inter", color: c.profundo, fontSize: 9.5, paddingTop: ARRIBA, paddingBottom: ABAJO, paddingHorizontal: M };
 
-  const Logo = ({ tam }: { tam: number }) =>
+  const logoDe = (tam: number) =>
     logo ? (
       <View style={{ width: tam, height: tam, backgroundColor: fondoLogo, borderRadius: 2 }}>
-        {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de react-pdf no lleva alt */}
         <Image src={logo} style={{ width: tam, height: tam }} />
       </View>
     ) : (
@@ -169,7 +168,7 @@ export function FichaPropiedad({ propiedad: p, marca, logo, whatsapp, enlaceWhat
   // Degradado del color profundo hecho con franjas (los visores no respetan stopOpacity de react-pdf): solo donde
   // va el texto, la foto queda limpia. Se ancla con top o bottom, nunca con top + alto = alto de página: react-pdf
   // se queda paginando sin fin si un elemento absoluto toca justo el borde inferior por cálculo.
-  const Degradado = ({ alto, abajo, oscuro }: { alto: number; abajo?: boolean; oscuro: number }) => {
+  const degradado = (alto: number, oscuro: number, abajo = false) => {
     // Capas que se suman desde el extremo claro hasta el oscuro: cada una agrega lo justo para llegar a su tono,
     // sin franjas superpuestas que dejen líneas.
     const capas = 40;
@@ -192,17 +191,16 @@ export function FichaPropiedad({ propiedad: p, marca, logo, whatsapp, enlaceWhat
     );
   };
 
-  const Rotulo = () => (
+  const rotulo = (
     <View style={{ position: "absolute", left: 8, bottom: 8, backgroundColor: c.profundo, borderRadius: 2, paddingVertical: 3, paddingHorizontal: 6 }}>
       <Text style={{ fontSize: 6.5, color: c.base, letterSpacing: 0.6 }}>Imagen ilustrativa</Text>
     </View>
   );
 
-  const Foto = ({ foto, ancho, alto }: { foto: FotoFicha; ancho: number; alto: number }) => (
+  const fotoEn = (foto: FotoFicha, ancho: number, alto: number) => (
     <View style={{ width: ancho, height: alto, borderRadius: 3, overflow: "hidden", backgroundColor: suave }}>
-      {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de react-pdf no lleva alt */}
       <Image src={foto.src} style={{ width: ancho, height: alto, objectFit: "cover" }} />
-      {foto.ilustrativa && <Rotulo />}
+      {foto.ilustrativa && rotulo}
     </View>
   );
 
@@ -217,14 +215,13 @@ export function FichaPropiedad({ propiedad: p, marca, logo, whatsapp, enlaceWhat
       <Page size="A4" style={{ backgroundColor: c.profundo, fontFamily: "Inter" }}>
         {portada ? (
           <View style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0 }}>
-            {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de react-pdf no lleva alt */}
-            <Image src={portada.src} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <Image src={portada.src} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           </View>
         ) : (
           <View style={{ position: "absolute", left: 26, top: 26, right: 26, bottom: 26, borderWidth: 0.75, borderColor: c.principal }} />
         )}
-        {portada && <Degradado alto={190} oscuro={0.6} />}
-        {portada && <Degradado abajo alto={520} oscuro={0.93} />}
+        {portada && degradado(190, 0.6)}
+        {portada && degradado(520, 0.93, true)}
         {portada?.ilustrativa && (
           <View style={{ position: "absolute", right: M, top: 140 }}>
             <Text style={{ fontSize: 7, color: c.base, letterSpacing: 0.6 }}>Imagen ilustrativa</Text>
@@ -232,7 +229,7 @@ export function FichaPropiedad({ propiedad: p, marca, logo, whatsapp, enlaceWhat
         )}
 
         <View style={{ position: "absolute", top: 40, left: M, right: M, flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
-          <Logo tam={76} />
+          {logoDe(76)}
           <Text style={{ ...etiqueta, color: c.base, marginTop: 4 }}>Ref. {p.codigo}</Text>
         </View>
 
@@ -245,7 +242,7 @@ export function FichaPropiedad({ propiedad: p, marca, logo, whatsapp, enlaceWhat
             </Text>
             <Text style={{ ...etiqueta, fontSize: 7.5, color: c.base, paddingVertical: 4, paddingHorizontal: 9 }}>{tipo}</Text>
           </View>
-          <Text style={{ ...tituloSerif, fontSize: tamanoTitulo(p.titulo), lineHeight: 1.18, color: c.base, marginTop: 14 }} maxLines={4}>
+          <Text style={{ ...tituloSerif, fontSize: tamanoTitulo(p.titulo), lineHeight: 1.18, color: c.base, marginTop: 14 }}>
             {p.titulo}
           </Text>
           {ubicacionCorta && (
@@ -277,9 +274,9 @@ export function FichaPropiedad({ propiedad: p, marca, logo, whatsapp, enlaceWhat
 
       {/* Datos: cifras, descripción, ubicación y amenidades. */}
       <Page size="A4" style={paginaInterior}>
-        <Encabezado />
+        {encabezado}
         <Text style={{ ...etiqueta, color: c.principal, marginTop: 8 }}>La propiedad</Text>
-        <Text style={{ ...tituloSerif, fontSize: 21, lineHeight: 1.22, marginTop: 6 }} maxLines={3}>
+        <Text style={{ ...tituloSerif, fontSize: 21, lineHeight: 1.22, marginTop: 6 }}>
           {p.titulo}
         </Text>
         <View style={{ width: 48, height: 1, backgroundColor: c.principal, marginTop: 12, marginBottom: 18 }} />
@@ -368,13 +365,13 @@ export function FichaPropiedad({ propiedad: p, marca, logo, whatsapp, enlaceWhat
             </View>
           </View>
         )}
-        <Pie />
+        {pie}
       </Page>
 
       {/* Galería: retícula según cuántas fotos hay. */}
       {galeria.length > 0 && (
         <Page size="A4" style={paginaInterior}>
-          <Encabezado />
+          {encabezado}
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginTop: 8, marginBottom: 16 }}>
             <Text style={{ ...tituloSerif, fontSize: 19 }}>Galería</Text>
             <Text style={etiqueta}>{p.titulo.length > 60 ? `Ref. ${p.codigo}` : p.titulo}</Text>
@@ -388,24 +385,24 @@ export function FichaPropiedad({ propiedad: p, marca, logo, whatsapp, enlaceWhat
                   const foto = galeria[siguiente++];
                   return (
                     <View key={j} style={{ marginLeft: j === 0 ? 0 : separacion }}>
-                      <Foto foto={foto} ancho={ancho} alto={alto} />
+                      {fotoEn(foto, ancho, alto)}
                     </View>
                   );
                 })}
               </View>
             );
           })}
-          <Pie />
+          {pie}
         </Page>
       )}
 
       {/* Cierre: contacto del corredor, QR a WhatsApp con la referencia y nota legal. */}
       <Page size="A4" style={{ backgroundColor: c.profundo, fontFamily: "Inter", color: c.base, paddingHorizontal: M, paddingTop: 96, paddingBottom: ABAJO }}>
         <View style={{ alignItems: "center" }}>
-          <Logo tam={112} />
+          {logoDe(112)}
           <Text style={{ ...etiqueta, color: c.principal, marginTop: 34 }}>Agende su visita</Text>
           <Text style={{ ...tituloSerif, fontSize: 26, color: c.base, marginTop: 10, textAlign: "center" }}>Conozcamos esta propiedad</Text>
-          <Text style={{ fontSize: 9.5, color: mezclar(c.base, c.soporte, 0.4), marginTop: 10, textAlign: "center", maxWidth: 380 }} maxLines={2}>
+          <Text style={{ fontSize: 9.5, color: mezclar(c.base, c.soporte, 0.4), marginTop: 10, textAlign: "center", maxWidth: 380 }}>
             Ref. {p.codigo} · {p.titulo}
           </Text>
           <View style={{ width: 48, height: 1, backgroundColor: c.principal, marginTop: 22, marginBottom: 30 }} />
@@ -441,8 +438,7 @@ export function FichaPropiedad({ propiedad: p, marca, logo, whatsapp, enlaceWhat
           </View>
           {qr && (
             <View style={{ alignItems: "center", width: 112 }}>
-              {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de react-pdf no lleva alt */}
-              <Image src={qr} style={{ width: 96, height: 96 }} />
+                    <Image src={qr} style={{ width: 96, height: 96 }} />
               <Text style={{ fontSize: 7, color: c.soporte, marginTop: 6, textAlign: "center" }}>Escanee para escribir por WhatsApp con esta referencia</Text>
             </View>
           )}

@@ -30,7 +30,7 @@ function adivinar(): Aparato {
 function ElegirAparato({ aparato, elegir }: { aparato: Aparato; elegir: (a: Aparato) => void }) {
   const { siguiente } = usePasos();
   return (
-    <div className="pasos-opciones" role="group" aria-label="Tu teléfono">
+    <div className="pap-opciones" role="group" aria-label="Tu teléfono">
       {(Object.keys(NOMBRES) as Aparato[]).map((a) => (
         <button
           key={a}
@@ -60,12 +60,12 @@ export function GuiaCalendario({ enlace, https, google }: { enlace: string; http
   const enGoogle = `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcal)}`;
 
   const botonIphone = (
-    <a href={webcal} className="boton primario pasos-accion" data-patty="calendario-agregar">
+    <a href={webcal} className="boton primario pap-accion" data-patty="calendario-agregar">
       Agregar a mi calendario
     </a>
   );
   const botonGoogle = (
-    <a href={enGoogle} target="_blank" rel="noreferrer" className="boton primario pasos-accion" data-patty="calendario-agregar">
+    <a href={enGoogle} target="_blank" rel="noreferrer" className="boton primario pap-accion" data-patty="calendario-agregar">
       Agregar a Google Calendar
     </a>
   );
@@ -77,7 +77,7 @@ export function GuiaCalendario({ enlace, https, google }: { enlace: string; http
       titulo: "¿Qué teléfono tienes?",
       contenido: (
         <>
-          <p className="pasos-instruccion">
+          <p className="pap-instruccion">
             {adivinado ? (
               <>
                 Parece que estás en <strong>{NOMBRES[aparato].nombre}</strong>. Si no, elige el tuyo.
@@ -88,7 +88,7 @@ export function GuiaCalendario({ enlace, https, google }: { enlace: string; http
           </p>
           <ElegirAparato aparato={aparato} elegir={setAparato} />
           {google && (
-            <p className="pasos-nota pasos-nota-verde">
+            <p className="pap-nota pap-nota-verde">
               Ya conectaste Google ({google}): tus visitas ya van a tu Google Calendar. Si ese calendario está en tu teléfono, no hace falta esto.
             </p>
           )}
@@ -103,7 +103,7 @@ export function GuiaCalendario({ enlace, https, google }: { enlace: string; http
       contenido:
         aparato === "iphone" ? (
           <>
-            <p className="pasos-instruccion">
+            <p className="pap-instruccion">
               Ábrelo <strong>en el iPhone</strong>. Toca el botón verde y, cuando el teléfono pregunte, toca <strong>Suscribirse</strong> y luego{" "}
               <strong>OK</strong>.
             </p>
@@ -111,20 +111,20 @@ export function GuiaCalendario({ enlace, https, google }: { enlace: string; http
           </>
         ) : aparato === "android" ? (
           <>
-            <p className="pasos-instruccion">
+            <p className="pap-instruccion">
               Toca el botón verde. Se abre Google Calendar con tu cuenta: toca <strong>Agregar</strong>.
             </p>
             {botonGoogle}
-            <p className="pasos-nota">Si te pide entrar, usa la misma cuenta de Google que tienes en el teléfono.</p>
+            <p className="pap-nota">Si te pide entrar, usa la misma cuenta de Google que tienes en el teléfono.</p>
           </>
         ) : (
           <>
-            <p className="pasos-instruccion">
+            <p className="pap-instruccion">
               En la computadora, toca el botón verde y luego <strong>Agregar</strong>. Después aparece también en el teléfono si usas la misma cuenta de
               Google.
             </p>
             {botonGoogle}
-            <p className="pasos-instruccion">¿Usas Outlook u otro? Copia el enlace y pégalo donde diga «Suscribirse desde Internet» o «Desde URL».</p>
+            <p className="pap-instruccion">¿Usas Outlook u otro? Copia el enlace y pégalo donde diga «Suscribirse desde Internet» o «Desde URL».</p>
             <BotonCopiar texto={https} etiqueta="Copiar el enlace" patty="calendario-copiar" />
           </>
         ),
@@ -151,10 +151,10 @@ export function GuiaCalendario({ enlace, https, google }: { enlace: string; http
       ilustracion: <IlusCalendarioVisitas />,
       contenido: (
         <>
-          <p className="pasos-instruccion">
+          <p className="pap-instruccion">
             Busca un calendario nuevo con tus visitas. Ahí salen solas, con la casa y la zona; las que se agenden después aparecen en un rato.
           </p>
-          <p className="pasos-nota">
+          <p className="pap-nota">
             {aparato === "iphone"
               ? "El iPhone lo revisa cada tanto. Para que sea más seguido: Ajustes, Calendario, Cuentas, Obtener datos, cada 15 minutos."
               : "Google lo revisa cada pocas horas: una visita nueva puede tardar en aparecer. En el panel siempre está al momento."}

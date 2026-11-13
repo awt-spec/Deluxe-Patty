@@ -40,32 +40,32 @@ export default async function ContestarSola({ searchParams }: { searchParams: Pr
       titulo: "Cómo le ha ido",
       contenido: (
         <>
-          <p className="pasos-instruccion">Las respuestas que revisaste en los últimos 30 días:</p>
-          <div className="pasos-cifras" data-patty="sola-cifras">
-            <div className="pasos-cifra" data-tono="verde">
+          <p className="pap-instruccion">Las respuestas que revisaste en los últimos 30 días:</p>
+          <div className="pap-cifras" data-patty="sola-cifras">
+            <div className="pap-cifra" data-tono="verde">
               <strong>{r.aprobadas}</strong>
               <span>aprobaste sin cambios</span>
             </div>
-            <div className="pasos-cifra">
+            <div className="pap-cifra">
               <strong>{r.corregidas}</strong>
               <span>corregiste antes de mandar</span>
             </div>
-            <div className="pasos-cifra">
+            <div className="pap-cifra">
               <strong>{r.descartadas}</strong>
               <span>no mandaste</span>
             </div>
           </div>
           {v.total > 0 && (
-            <div className="pasos-barra" aria-hidden>
+            <div className="pap-barra" aria-hidden>
               <i className="b-bien" style={{ width: pct(r.aprobadas) }} />
               <i className="b-corr" style={{ width: pct(r.corregidas) }} />
               <i className="b-desc" style={{ width: pct(r.descartadas) }} />
             </div>
           )}
-          <p className={`pasos-nota${v.tono === "lista" ? " pasos-nota-verde" : v.tono === "todavia" ? " pasos-nota-ambar" : ""}`} role="status">
+          <p className={`pap-nota${v.tono === "lista" ? " pap-nota-verde" : v.tono === "todavia" ? " pap-nota-ambar" : ""}`} role="status">
             <strong>{v.titulo}.</strong> {v.detalle}
           </p>
-          <div className="pasos-acciones">
+          <div className="pap-acciones">
             <Link href="/panel/probar" className="boton" data-patty="sola-probar">
               Probarla yo
             </Link>
@@ -91,9 +91,9 @@ export default async function ContestarSola({ searchParams }: { searchParams: Pr
       ilustracion: <IlusTemas asistente={asistente} corredor={corredor.nombre_contacto ?? ""} />,
       contenido: (
         <>
-          <p className="pasos-instruccion">Aunque conteste sola, cuando un cliente toque uno de estos temas no contesta: te avisa.</p>
+          <p className="pap-instruccion">Aunque conteste sola, cuando un cliente toque uno de estos temas no contesta: te avisa.</p>
           {temas.length ? (
-            <ul className="pasos-lista" data-patty="sola-temas">
+            <ul className="pap-lista" data-patty="sola-temas">
               {temas.map((t) => (
                 <li key={t}>
                   <span style={{ display: "flex", minHeight: 52, alignItems: "center", padding: "8px 14px" }}>{t}</span>
@@ -101,12 +101,12 @@ export default async function ContestarSola({ searchParams }: { searchParams: Pr
               ))}
             </ul>
           ) : (
-            <p className="pasos-nota pasos-nota-ambar">Todavía no tienes temas: todo lo contestaría ella. Elígelos antes de encenderla.</p>
+            <p className="pap-nota pap-nota-ambar">Todavía no tienes temas: todo lo contestaría ella. Elígelos antes de encenderla.</p>
           )}
-          <Link href={temas.length ? "/panel/ajustes#reglas" : "/panel/empezar"} className="boton pasos-accion" data-patty="sola-editar-temas">
+          <Link href={temas.length ? "/panel/ajustes#reglas" : "/panel/empezar"} className="boton pap-accion" data-patty="sola-editar-temas">
             {temas.length ? "Cambiar mis temas" : "Elegir mis temas"}
           </Link>
-          <p className="pasos-nota">Audios, fotos y lo que no sepa también te llegan siempre.</p>
+          <p className="pap-nota">Audios, fotos y lo que no sepa también te llegan siempre.</p>
         </>
       ),
     },
@@ -118,11 +118,11 @@ export default async function ContestarSola({ searchParams }: { searchParams: Pr
       siguiente: null,
       contenido: (
         <>
-          <p className="pasos-instruccion">
+          <p className="pap-instruccion">
             Desde ahora contesta <strong>sin esperarte</strong>. Lo que esté en tus temas te lo sigue pasando, y ves cada conversación en Inicio.
           </p>
-          {interruptor(true, `Encender: que ${asistente} conteste sola`, "primario pasos-accion")}
-          <p className="pasos-nota">Para apagarla: en Ajustes, «La asistente contesta sola», o aquí mismo. Vuelve a dejarte cada respuesta para revisar.</p>
+          {interruptor(true, `Encender: que ${asistente} conteste sola`, "primario pap-accion")}
+          <p className="pap-nota">Para apagarla: en Ajustes, «La asistente contesta sola», o aquí mismo. Vuelve a dejarte cada respuesta para revisar.</p>
         </>
       ),
     },

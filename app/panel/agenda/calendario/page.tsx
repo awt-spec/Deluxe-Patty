@@ -30,7 +30,7 @@ export default async function Calendario() {
       {enlace ? (
         <>
           <GuiaCalendario enlace={enlace} https={`${protocolo}://${enlace}`} google={(google?.correo as string | undefined) ?? null} />
-          <form action={cambiarEnlaceCalendario} className="pasos-nota" style={{ marginTop: 24 }}>
+          <form action={cambiarEnlaceCalendario} className="pap-nota" style={{ marginTop: 24 }}>
             <p style={{ margin: "0 0 8px" }}>¿Compartiste el enlace sin querer? Cámbialo: el anterior deja de funcionar y hay que volver a agregarlo.</p>
             <button type="submit" className="chico">
               Cambiar el enlace
@@ -38,7 +38,7 @@ export default async function Calendario() {
           </form>
         </>
       ) : (
-        <p className="pasos-nota">No pude armar el enlace del calendario ahora. Vuelve a intentarlo en un rato.</p>
+        <p className="pap-nota">No pude armar el enlace del calendario ahora. Vuelve a intentarlo en un rato.</p>
       )}
     </div>
   );

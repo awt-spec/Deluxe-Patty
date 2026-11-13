@@ -69,7 +69,7 @@ export default async function Publicar({ params }: { params: Promise<{ id: strin
       ilustracion: <IlusCopiarCampos />,
       contenido: (
         <>
-          <p className="pasos-instruccion">
+          <p className="pap-instruccion">
             {asistente} escribió el título y la descripción{texto.en ? " en español e inglés" : ""}. La descripción termina con tu enlace de WhatsApp con la
             referencia <strong>{a.referencia}</strong>: así sabes qué clientes llegan por este anuncio.
           </p>
@@ -83,10 +83,10 @@ export default async function Publicar({ params }: { params: Promise<{ id: strin
       ilustracion: <IlusCopiarCampos />,
       contenido: es ? (
         <>
-          <p className="pasos-instruccion">Toca Copiar y pégalo en Encuentra24. Haz una parte a la vez.</p>
+          <p className="pap-instruccion">Toca Copiar y pégalo en Encuentra24. Haz una parte a la vez.</p>
           <CopiarAnuncio es={es} en={en} fotos={ordenTexto} />
           {orden.length > 0 && (
-            <ol className="pasos-fotos" aria-label="Orden de las fotos">
+            <ol className="pap-fotos" aria-label="Orden de las fotos">
               {orden.map((o, i) => (
                 <li key={`${o.foto}-${i}`}>
                   {o.url ? (
@@ -99,10 +99,10 @@ export default async function Publicar({ params }: { params: Promise<{ id: strin
               ))}
             </ol>
           )}
-          {!enlace && <p className="pasos-nota pasos-nota-ambar">Falta el número de la asistente: el texto no lleva el enlace de WhatsApp. Pídeselo a soporte.</p>}
+          {!enlace && <p className="pap-nota pap-nota-ambar">Falta el número de la asistente: el texto no lleva el enlace de WhatsApp. Pídeselo a soporte.</p>}
         </>
       ) : (
-        <p className="pasos-nota pasos-nota-ambar">Este anuncio no tiene texto preparado. Prepáralo otra vez desde la ficha de la casa.</p>
+        <p className="pap-nota pap-nota-ambar">Este anuncio no tiene texto preparado. Prepáralo otra vez desde la ficha de la casa.</p>
       ),
     },
     {
@@ -112,7 +112,7 @@ export default async function Publicar({ params }: { params: Promise<{ id: strin
       ilustracion: <IlusFormularioE24 />,
       contenido: (
         <>
-          <ol className="pasos-subpasos">
+          <ol className="pap-subpasos">
             <li>
               Abre Encuentra24, entra con tu cuenta y toca <strong>Publicar anuncio</strong>.
             </li>
@@ -121,14 +121,14 @@ export default async function Publicar({ params }: { params: Promise<{ id: strin
             </li>
             <li>Sube las fotos en el orden sugerido, completa precio y datos, y publica.</li>
           </ol>
-          <p className="pasos-nota pasos-nota-ambar">
+          <p className="pap-nota pap-nota-ambar">
             <strong>No borres el enlace de WhatsApp</strong> del final de la descripción: trae la referencia {a.referencia}, que dice de cuál anuncio viene
             cada cliente.
           </p>
-          <a href="https://www.encuentra24.com/costa-rica-es" target="_blank" rel="noreferrer" className="boton primario pasos-accion" data-patty="anuncio-abrir-e24">
+          <a href="https://www.encuentra24.com/costa-rica-es" target="_blank" rel="noreferrer" className="boton primario pap-accion" data-patty="anuncio-abrir-e24">
             Abrir Encuentra24
           </a>
-          <p className="pasos-nota">Se abre en otra pestaña. Deja esta abierta para volver.</p>
+          <p className="pap-nota">Se abre en otra pestaña. Deja esta abierta para volver.</p>
         </>
       ),
       ayuda: [
@@ -144,7 +144,7 @@ export default async function Publicar({ params }: { params: Promise<{ id: strin
       siguiente: null,
       contenido: (
         <>
-          <ol className="pasos-subpasos">
+          <ol className="pap-subpasos">
             <li>
               En Chrome de tu computadora, abre <strong>tu anuncio ya publicado</strong>.
             </li>
@@ -154,9 +154,9 @@ export default async function Publicar({ params }: { params: Promise<{ id: strin
             </li>
           </ol>
           {extension ? (
-            <p className="pasos-nota pasos-nota-verde">Tu extensión está conectada.</p>
+            <p className="pap-nota pap-nota-verde">Tu extensión está conectada.</p>
           ) : (
-            <p className="pasos-nota pasos-nota-ambar">
+            <p className="pap-nota pap-nota-ambar">
               {demo ? "En la demo no hay extensión conectada." : "Todavía no tienes la extensión conectada."}{" "}
               <Link href="/panel/duenos/extension" data-patty="anuncio-instalar-extension">
                 Instálala paso a paso
@@ -164,7 +164,7 @@ export default async function Publicar({ params }: { params: Promise<{ id: strin
               .
             </p>
           )}
-          <p className="pasos-instruccion">Cuando la leas, esta página se da cuenta sola y sigue.</p>
+          <p className="pap-instruccion">Cuando la leas, esta página se da cuenta sola y sigue.</p>
           <Comprobar activo={hecho} />
         </>
       ),
@@ -193,7 +193,7 @@ export default async function Publicar({ params }: { params: Promise<{ id: strin
                   ? "Cada cliente que escriba por el enlace del anuncio queda contado en Anuncios, y en su ficha verás de cuál anuncio vino."
                   : "Míralo en Anuncios."}
               </p>
-              <div className="pasos-acciones" style={{ justifyContent: "center" }}>
+              <div className="pap-acciones" style={{ justifyContent: "center" }}>
                 <Link href="/panel/anuncios" className="boton primario">
                   Ver mis anuncios
                 </Link>

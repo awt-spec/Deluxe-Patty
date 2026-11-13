@@ -17,11 +17,11 @@ export const EJEMPLOS_TONO = [
 export function FormTono({ actual }: { actual: string }) {
   const [tono, setTono] = useState(actual);
   return (
-    <form action={guardarAjustes} className="pasos-form" data-patty="empezar-tono-form">
+    <form action={guardarAjustes} className="pap-form" data-patty="empezar-tono-form">
       <input type="hidden" name="solo" value="tono" />
       <input type="hidden" name="volver" value="/panel/empezar" />
-      <p className="pasos-instruccion">Toca el que más se parece a ti. Después lo puedes cambiar con tus palabras.</p>
-      <div className="pasos-opciones una-columna" role="group" aria-label="Ejemplos de cómo escribir">
+      <p className="pap-instruccion">Toca el que más se parece a ti. Después lo puedes cambiar con tus palabras.</p>
+      <div className="pap-opciones una-columna" role="group" aria-label="Ejemplos de cómo escribir">
         {EJEMPLOS_TONO.map((e) => (
           <button key={e.nombre} type="button" aria-pressed={tono === e.texto} onClick={() => setTono(e.texto)} data-patty="empezar-tono-ejemplo">
             {e.nombre}
@@ -61,11 +61,11 @@ export function FormTemas({ actuales }: { actuales: string[] }) {
   const alternar = (t: string) => setElegidos((e) => (e.includes(t) ? e.filter((x) => x !== t) : [...e, t]));
   const lista = [...elegidos, ...(otro.trim() ? [otro.trim()] : [])];
   return (
-    <form action={guardarAjustes} className="pasos-form" data-patty="empezar-temas-form">
+    <form action={guardarAjustes} className="pap-form" data-patty="empezar-temas-form">
       <input type="hidden" name="solo" value="reglas" />
       <input type="hidden" name="volver" value="/panel/empezar" />
       <input type="hidden" name="reglas" value={lista.join("\n")} />
-      <fieldset className="pasos-casillas">
+      <fieldset className="pap-casillas">
         <legend className="solo-lector">Temas que te pasa a ti</legend>
         {[...TEMAS_SUGERIDOS, ...propios.map((tema) => ({ tema, ejemplo: "" }))].map((t) => (
           <label key={t.tema}>

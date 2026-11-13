@@ -148,20 +148,25 @@ export function EncabezadoDelgado({
 }
 
 /** Pie fijo con firma a la izquierda y "N de M" a la derecha. */
-export function PieDePagina({ izquierda, colores, desdePagina = 1 }: { izquierda: string; colores: Colores; desdePagina?: number }) {
+export function PieDePagina({ izquierda, colores }: { izquierda: string; colores: Colores }) {
   return (
     <View
       fixed
-      style={{ position: "absolute", bottom: 20, left: MARGEN, right: MARGEN }}
-      render={({ pageNumber, totalPages }) =>
-        pageNumber < desdePagina ? null : (
-          <View style={{ flexDirection: "row", justifyContent: "space-between", borderTopWidth: 0.6, borderTopColor: mezclar(colores.soporte, colores.base, 0.5), paddingTop: 7 }}>
-            <Text style={{ fontSize: 7.5, color: colores.soporte }}>{izquierda}</Text>
-            <Text style={{ fontSize: 7.5, color: colores.soporte }}>{`${pageNumber} de ${totalPages}`}</Text>
-          </View>
-        )
-      }
-    />
+      style={{
+        position: "absolute",
+        bottom: 20,
+        left: MARGEN,
+        right: MARGEN,
+        flexDirection: "row",
+        justifyContent: "space-between",
+        borderTopWidth: 0.6,
+        borderTopColor: mezclar(colores.soporte, colores.base, 0.5),
+        paddingTop: 7,
+      }}
+    >
+      <Text style={{ fontSize: 7.5, color: colores.soporte }}>{izquierda}</Text>
+      <Text style={{ fontSize: 7.5, color: colores.soporte }} render={({ pageNumber, totalPages }) => `${pageNumber} de ${totalPages}`} />
+    </View>
   );
 }
 

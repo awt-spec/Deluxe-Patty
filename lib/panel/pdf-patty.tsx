@@ -72,7 +72,7 @@ function DocumentoPatty({ titulo, texto, diagramas, marca: marcaDato, corredor, 
   const clave = cifrasClave(lista);
   let diagrama = 0;
 
-  const Logo = ({ tam }: { tam: number }) =>
+  const logoDe = (tam: number) =>
     logo ? (
       <View style={{ width: tam, height: tam, backgroundColor: fondoLogo, borderRadius: 3 }}>
         {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de react-pdf no lleva alt */}
@@ -80,14 +80,14 @@ function DocumentoPatty({ titulo, texto, diagramas, marca: marcaDato, corredor, 
       </View>
     ) : null;
 
-  const Tabla = ({ b }: { b: Extract<Bloque, { tipo: "tabla" }> }) => {
+  const tabla = (b: Extract<Bloque, { tipo: "tabla" }>, llave: number) => {
     const anchos = anchosColumnas(b.cabecera, b.filas);
     const numericas = columnasNumericas(b.filas, b.cabecera.length);
     const chica = b.cabecera.length > 5 ? 8 : 9;
     const celda = (j: number) => ({ width: `${anchos[j]}%`, lineHeight: 1.3, paddingVertical: 6, paddingHorizontal: 7, textAlign: (numericas[j] ? "right" : "left") as "right" | "left" });
     return (
       // Una tabla corta no se parte; una larga se parte entre filas y repite su cabecera.
-      <View wrap={b.filas.length > 8} style={{ marginTop: 6, marginBottom: 12, borderRadius: 4, borderWidth: 0.75, borderColor: linea }}>
+      <View key={llave} wrap={b.filas.length > 8} style={{ marginTop: 6, marginBottom: 12, borderRadius: 4, borderWidth: 0.75, borderColor: linea }}>
         {/* La cabecera se repite si la tabla sigue en la página siguiente. */}
         <View fixed style={{ flexDirection: "row", backgroundColor: c.profundo }} minPresenceAhead={30}>
           {b.cabecera.map((h, j) => (
@@ -178,7 +178,7 @@ function DocumentoPatty({ titulo, texto, diagramas, marca: marcaDato, corredor, 
             </View>
           );
         return (
-          <Text key={i} orphans={3} widows={3} style={{ marginBottom: 8 }}>
+          <Text key={i} orphans={3} widows={3} style={{ fontSize: 10.2, marginBottom: 8, lineHeight: 1.5 }}>
             <Linea texto={b.texto} color={c.profundo} />
           </Text>
         );
@@ -194,7 +194,7 @@ function DocumentoPatty({ titulo, texto, diagramas, marca: marcaDato, corredor, 
                     <Rombo color={c.principal} arriba={5} />
                   </View>
                 )}
-                <Text style={{ flex: 1 }}>
+                <Text style={{ flex: 1, fontSize: 10.2, lineHeight: 1.45 }}>
                   <Linea texto={it} color={c.profundo} />
                 </Text>
               </View>
@@ -202,7 +202,7 @@ function DocumentoPatty({ titulo, texto, diagramas, marca: marcaDato, corredor, 
           </View>
         );
       case "tabla":
-        return <Tabla key={i} b={b} />;
+        return tabla(b, i);
       case "cita":
         return (
           <View key={i} wrap={false} style={{ flexDirection: "row", marginVertical: 8 }}>
@@ -239,19 +239,20 @@ function DocumentoPatty({ titulo, texto, diagramas, marca: marcaDato, corredor, 
     return null;
   }
 
-  const paginaContenido = { fontFamily: "Inter", fontSize: 10.2, color: tinta, lineHeight: 1.5, paddingTop: 66, paddingBottom: 56, paddingHorizontal: M, backgroundColor: blanco };
+  // Sin lineHeight en la página: con él, react-pdf deja de dibujar el pie fijo. Cada texto lleva el suyo.
+  const paginaContenido = { fontFamily: "Inter", fontSize: 10.2, color: tinta, paddingTop: 66, paddingBottom: 56, paddingHorizontal: M, backgroundColor: blanco };
 
   return (
     <Document title={titulo} author={marca.nombre} creator={marca.nombre} language="es">
       {portadaCompleta && (
         <Page size="A4" style={{ backgroundColor: c.profundo, fontFamily: "Inter", color: c.base, paddingHorizontal: 56, paddingTop: 64, paddingBottom: 56 }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
-            {logo ? <Logo tam={84} /> : <Text style={{ ...serif, fontSize: 16, color: blanco }}>{marca.nombre}</Text>}
+            {logo ? logoDe(84) : <Text style={{ ...serif, fontSize: 16, color: blanco }}>{marca.nombre}</Text>}
             <Text style={{ ...etiqueta, color: mezclar(c.base, c.profundo, 0.35) }}>{fecha}</Text>
           </View>
           <View style={{ position: "absolute", left: 56, right: 56, top: 330 }}>
             <Text style={{ ...etiqueta, color: c.principal }}>Informe</Text>
-            <Text style={{ ...serif, fontSize: titulo.length > 70 ? 26 : 34, lineHeight: 1.18, color: blanco, marginTop: 12 }} maxLines={5}>
+            <Text style={{ ...serif, fontSize: titulo.length > 70 ? 26 : 34, lineHeight: 1.18, color: blanco, marginTop: 12 }}>
               {titulo}
             </Text>
             <View style={{ width: 64, height: 1.2, backgroundColor: c.principal, marginTop: 22, marginBottom: 18 }} />
@@ -269,17 +270,18 @@ function DocumentoPatty({ titulo, texto, diagramas, marca: marcaDato, corredor, 
 
       <Page size="A4" style={paginaContenido}>
         <EncabezadoDelgado izquierda={marca.nombre} derecha={titulo.length > 70 ? `${titulo.slice(0, 67)}…` : titulo} colores={{ ...c, base: blanco }} marca={marca} desdePagina={2} />
+        <PieDePagina izquierda={firma} colores={{ ...c, base: blanco }} />
         {!portadaCompleta && (
           // Portada ligera: la franja de la marca con el título (sube sobre el margen de arriba de la página).
           <View style={{ marginTop: -66, marginHorizontal: -M, backgroundColor: c.profundo, paddingHorizontal: M, paddingTop: 26, paddingBottom: 24, marginBottom: 22 }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
               <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <Logo tam={34} />
+                {logoDe(34)}
                 <Text style={{ ...serif, fontSize: 12.5, color: c.principal, marginLeft: logo ? 10 : 0 }}>{marca.nombre}</Text>
               </View>
               <Text style={{ fontSize: 8.5, color: mezclar(c.base, c.profundo, 0.3) }}>{fecha}</Text>
             </View>
-            <Text style={{ ...serif, fontSize: titulo.length > 70 ? 20 : 25, lineHeight: 1.2, color: blanco, marginTop: 22 }} maxLines={4}>
+            <Text style={{ ...serif, fontSize: titulo.length > 70 ? 20 : 25, lineHeight: 1.2, color: blanco, marginTop: 22 }}>
               {titulo}
             </Text>
             <View style={{ width: 48, height: 1.2, backgroundColor: c.principal, marginTop: 12, marginBottom: 9 }} />
@@ -287,7 +289,6 @@ function DocumentoPatty({ titulo, texto, diagramas, marca: marcaDato, corredor, 
           </View>
         )}
         {elementos}
-        <PieDePagina izquierda={firma} colores={{ ...c, base: blanco }} />
       </Page>
     </Document>
   );

@@ -127,9 +127,9 @@ export function AsistentePasos({ id, etiqueta, pasos, final, cumplidos, clave = 
 
   return (
     <ContextoPasos.Provider value={control}>
-      <div className="pasos" ref={raiz} data-paso={paso} data-patty={`${id}-guia`}>
-        <nav className="pasos-progreso" aria-label={etiqueta}>
-          <p className="pasos-cuenta">{paso === FINAL ? "Todo listo" : `Paso ${numero} de ${total}`}</p>
+      <div className="pap" ref={raiz} data-paso={paso} data-patty={`${id}-guia`}>
+        <nav className="pap-progreso" aria-label={etiqueta}>
+          <p className="pap-cuenta">{paso === FINAL ? "Todo listo" : `Paso ${numero} de ${total}`}</p>
           <ol>
             {pasos.map((p, i) => {
               const hecho = porDatos ? cumplido(p.id) : i < indiceActual;
@@ -143,10 +143,10 @@ export function AsistentePasos({ id, etiqueta, pasos, final, cumplidos, clave = 
                     disabled={!porDatos && i > indiceActual}
                     data-patty={`${id}-paso-${p.id}`}
                   >
-                    <span className="pasos-num" aria-hidden>
+                    <span className="pap-num" aria-hidden>
                       {hecho && !esActual ? <IconoCheck tamano={16} /> : i + 1}
                     </span>
-                    <span className="pasos-nombre">{p.nombre}</span>
+                    <span className="pap-nombre">{p.nombre}</span>
                     {hecho && <span className="solo-lector"> (hecho)</span>}
                   </button>
                 </li>
@@ -155,22 +155,22 @@ export function AsistentePasos({ id, etiqueta, pasos, final, cumplidos, clave = 
           </ol>
         </nav>
 
-        <div className="pasos-tarjeta">
+        <div className="pap-tarjeta">
           {actual ? (
-            <section className={`pasos-paso${actual.ilustracion ? "" : " sin-dibujo"}`} aria-labelledby={`${id}-paso-titulo`}>
-              <div className="pasos-texto">
+            <section className={`pap-paso${actual.ilustracion ? "" : " sin-dibujo"}`} aria-labelledby={`${id}-paso-titulo`}>
+              <div className="pap-texto">
                 <h2 id={`${id}-paso-titulo`} tabIndex={-1}>
                   {actual.titulo}
                 </h2>
                 {porDatos && cumplido(actual.id) && (
-                  <p className="pasos-hecho" role="status">
+                  <p className="pap-hecho" role="status">
                     <IconoCheck tamano={18} /> Esto ya está hecho.
                   </p>
                 )}
                 {actual.contenido}
-                <div className="pasos-botonera">
+                <div className="pap-botonera">
                   {indiceActual > 0 ? (
-                    <button type="button" className="pasos-atras" onClick={() => setEleccion(alAtras(ids, paso))} data-patty={`${id}-atras`}>
+                    <button type="button" className="pap-atras" onClick={() => setEleccion(alAtras(ids, paso))} data-patty={`${id}-atras`}>
                       <IconoAtras tamano={18} />
                       Atrás
                     </button>
@@ -180,7 +180,7 @@ export function AsistentePasos({ id, etiqueta, pasos, final, cumplidos, clave = 
                   {actual.siguiente !== null && (
                     <button
                       type="button"
-                      className={`pasos-siguiente${cumplido(actual.id) ? " primario" : ""}`}
+                      className={`pap-siguiente${cumplido(actual.id) ? " primario" : ""}`}
                       onClick={control.siguiente}
                       data-patty={`${id}-siguiente`}
                     >
@@ -190,7 +190,7 @@ export function AsistentePasos({ id, etiqueta, pasos, final, cumplidos, clave = 
                   )}
                 </div>
                 {actual.ayuda && actual.ayuda.length > 0 && (
-                  <details className="pasos-ayuda" data-patty={`${id}-ayuda`}>
+                  <details className="pap-ayuda" data-patty={`${id}-ayuda`}>
                     <summary>¿No te sale así?</summary>
                     <dl>
                       {actual.ayuda.map((a) => (
@@ -203,24 +203,24 @@ export function AsistentePasos({ id, etiqueta, pasos, final, cumplidos, clave = 
                   </details>
                 )}
               </div>
-              {actual.ilustracion && <div className="pasos-dibujo">{actual.ilustracion}</div>}
+              {actual.ilustracion && <div className="pap-dibujo">{actual.ilustracion}</div>}
             </section>
           ) : (
-            <section className="pasos-final" aria-labelledby={`${id}-paso-titulo`}>
-              <span className="pasos-final-check" aria-hidden>
+            <section className="pap-final" aria-labelledby={`${id}-paso-titulo`}>
+              <span className="pap-final-check" aria-hidden>
                 <IconoCheck tamano={34} />
               </span>
               <h2 id={`${id}-paso-titulo`} tabIndex={-1}>
                 {final.titulo}
               </h2>
-              {final.ilustracion && <div className="pasos-final-dibujo">{final.ilustracion}</div>}
+              {final.ilustracion && <div className="pap-final-dibujo">{final.ilustracion}</div>}
               {final.contenido}
             </section>
           )}
         </div>
 
         {indiceActual > 0 && (
-          <p className="pasos-empezar">
+          <p className="pap-empezar">
             <button type="button" className="enlace" onClick={() => setEleccion(alEmpezarDeNuevo(ids))} data-patty={`${id}-empezar-de-nuevo`}>
               Empezar de nuevo
             </button>
@@ -238,7 +238,7 @@ export function BotonCopiar({ texto, etiqueta = "Copiar", patty, principal = fal
     <>
       <button
         type="button"
-        className={`pasos-copiar${principal ? " primario" : ""}${copiado ? " copiado" : ""}`}
+        className={`pap-copiar${principal ? " primario" : ""}${copiado ? " copiado" : ""}`}
         data-patty={patty}
         onClick={async () => {
           try {

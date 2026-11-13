@@ -27,15 +27,15 @@ export default async function Empezar({ searchParams }: { searchParams: Promise<
       ilustracion: <IlusCasas asistente={asistente} />,
       contenido: (
         <>
-          <p className="pasos-instruccion">
+          <p className="pap-instruccion">
             {asistente} solo ofrece las casas que están en <strong>Mis casas</strong>. Cuéntale una con tus palabras y ella arma la ficha.
           </p>
           {datos.casas.length > 0 && (
-            <p className="pasos-nota">
+            <p className="pap-nota">
               Tienes {datos.casas.length} {datos.casas.length === 1 ? "casa disponible" : "casas disponibles"}.
             </p>
           )}
-          <Link href="/panel/propiedades/nueva" className="boton primario pasos-accion" data-patty="empezar-agregar-casa">
+          <Link href="/panel/propiedades/nueva" className="boton primario pap-accion" data-patty="empezar-agregar-casa">
             {datos.casas.length ? "Agregar otra casa" : "Agregar una casa"}
           </Link>
         </>
@@ -52,9 +52,9 @@ export default async function Empezar({ searchParams }: { searchParams: Promise<
       ilustracion: <IlusPrecioFotos />,
       contenido: (
         <>
-          <p className="pasos-instruccion">Sin precio ni fotos, {asistente} no puede contestar lo primero que preguntan los clientes.</p>
+          <p className="pap-instruccion">Sin precio ni fotos, {asistente} no puede contestar lo primero que preguntan los clientes.</p>
           {estado.incompletas.length > 0 ? (
-            <ul className="pasos-lista" data-patty="empezar-incompletas">
+            <ul className="pap-lista" data-patty="empezar-incompletas">
               {estado.incompletas.slice(0, 8).map((c) => (
                 <li key={c.id}>
                   <Link href={`/panel/propiedades/${c.id}${c.fotos === 0 ? "#fotos" : ""}`}>
@@ -68,9 +68,9 @@ export default async function Empezar({ searchParams }: { searchParams: Promise<
               ))}
             </ul>
           ) : datos.casas.length === 0 ? (
-            <p className="pasos-nota">Primero agrega una casa (paso 1).</p>
+            <p className="pap-nota">Primero agrega una casa (paso 1).</p>
           ) : null}
-          {estado.incompletas.length > 8 && <p className="pasos-nota">Y {estado.incompletas.length - 8} más en Mis casas.</p>}
+          {estado.incompletas.length > 8 && <p className="pap-nota">Y {estado.incompletas.length - 8} más en Mis casas.</p>}
         </>
       ),
       ayuda: [{ p: "Las fotos pesan mucho", r: <>Súbelas desde el teléfono: se achican solas antes de subir.</> }],
@@ -82,10 +82,10 @@ export default async function Empezar({ searchParams }: { searchParams: Promise<
       ilustracion: <IlusHorario />,
       contenido: (
         <>
-          <p className="pasos-instruccion">
+          <p className="pap-instruccion">
             Toca <strong>Mañana</strong> o <strong>Tarde</strong> en cada día. {asistente} solo ofrece visitas en esas horas y nunca encima de otra.
           </p>
-          <Link href="/panel/agenda/horario" className="boton primario pasos-accion" data-patty="empezar-horario">
+          <Link href="/panel/agenda/horario" className="boton primario pap-accion" data-patty="empezar-horario">
             Poner mi horario
           </Link>
         </>
@@ -106,11 +106,11 @@ export default async function Empezar({ searchParams }: { searchParams: Promise<
       ilustracion: <IlusTemas asistente={asistente} corredor={corredor.nombre_contacto ?? ""} />,
       contenido: (
         <>
-          <p className="pasos-instruccion">
+          <p className="pap-instruccion">
             Hay temas que prefieres contestar tú. Cuando un cliente los toca, {asistente} no contesta: le dice que lo consulta y te avisa.
           </p>
           <FormTemas actuales={corredor.reglas_escalamiento ?? []} />
-          <p className="pasos-nota">
+          <p className="pap-nota">
             También se cambian en <Link href="/panel/ajustes#reglas">Ajustes</Link>.
           </p>
         </>
@@ -124,24 +124,24 @@ export default async function Empezar({ searchParams }: { searchParams: Promise<
       siguiente: "Saltar este paso",
       contenido: (
         <>
-          <p className="pasos-instruccion">
+          <p className="pap-instruccion">
             <strong>Opcional.</strong> Con tu Gmail, {asistente} te deja las respuestas a correos de clientes listas en Gmail y pone las visitas en tu
             calendario de Google.
           </p>
           {datos.google ? (
-            <p className="pasos-nota pasos-nota-verde">Google ya está conectado.</p>
+            <p className="pap-nota pap-nota-verde">Google ya está conectado.</p>
           ) : (
             <>
-              <a href="/api/google/conectar" className="boton primario pasos-accion" data-patty="empezar-google">
+              <a href="/api/google/conectar" className="boton primario pap-accion" data-patty="empezar-google">
                 Conectar Google
               </a>
-              <p className="pasos-nota">Google te pide permiso y te devuelve a Ajustes. Para seguir aquí, abre Más y luego Puesta en marcha.</p>
+              <p className="pap-nota">Google te pide permiso y te devuelve a Ajustes. Para seguir aquí, abre Más y luego Puesta en marcha.</p>
             </>
           )}
-          <p className="pasos-instruccion">
+          <p className="pap-instruccion">
             <strong>Pruébala:</strong> escríbele como si fueras un cliente. Nada sale por WhatsApp.
           </p>
-          <Link href="/panel/probar" className="boton pasos-accion" data-patty="empezar-probar">
+          <Link href="/panel/probar" className="boton pap-accion" data-patty="empezar-probar">
             Probar la asistente
           </Link>
         </>
@@ -173,15 +173,15 @@ export default async function Empezar({ searchParams }: { searchParams: Promise<
           contenido: (
             <>
               <p>Ya conoce tus casas, tu horario, cómo escribes y qué te toca a ti. Mientras tanto, cada respuesta te espera en Revisar antes de salir.</p>
-              <div className="pasos-final-grilla">
-                <div className="pasos-final-item">
+              <div className="pap-final-grilla">
+                <div className="pap-final-item">
                   <h3>¿Que conteste sola?</h3>
                   <p>Cuando veas que casi no le corriges nada, revisa paso a paso si ya está lista.</p>
                   <Link href="/panel/empezar/sola" className="boton primario" data-patty="empezar-ir-sola">
                     {corredor.respuesta_automatica ? "Ya contesta sola: ver" : "Revisarlo"}
                   </Link>
                 </div>
-                <div className="pasos-final-item">
+                <div className="pap-final-item">
                   <h3>Enséñale lo de siempre</h3>
                   <p>Mascotas, formas de pago, parqueo: lo que más te preguntan.</p>
                   <Link href="/panel/cerebro#ensenar" className="boton">

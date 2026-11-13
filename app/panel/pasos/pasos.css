@@ -7,7 +7,7 @@
   margin-inline: auto;
 }
 
-.marco.tema main .pasos .solo-lector,
+.marco.tema main .pap .solo-lector,
 .marco.tema main .pasos-pagina .solo-lector {
   position: absolute;
   width: 1px;
@@ -17,34 +17,34 @@
   white-space: nowrap;
 }
 
-.marco.tema main .pasos {
+.marco.tema main .pap {
   scroll-margin-top: 12px;
 }
 
-.marco.tema main .pasos .primario,
+.marco.tema main .pap .primario,
 .marco.tema main .pasos-pagina .primario {
   background: #008069;
   border-color: #008069;
   color: #fff;
 }
-.marco.tema main .pasos .primario:hover,
+.marco.tema main .pap .primario:hover,
 .marco.tema main .pasos-pagina .primario:hover {
   background: #006e5a;
   border-color: #006e5a;
 }
-.marco.tema main .pasos :focus-visible {
+.marco.tema main .pap :focus-visible {
   outline: 3px solid #008069;
   outline-offset: 3px;
 }
-.marco.tema main .pasos h2[tabindex="-1"]:focus {
+.marco.tema main .pap h2[tabindex="-1"]:focus {
   outline: none;
 }
-.marco.tema main .pasos h2[tabindex="-1"]:focus-visible {
+.marco.tema main .pap h2[tabindex="-1"]:focus-visible {
   outline: 3px solid #008069;
   outline-offset: 4px;
   border-radius: 6px;
 }
-.marco.tema main .pasos button.enlace {
+.marco.tema main .pap button.enlace {
   background: none;
   border: 0;
   padding: 0 2px;
@@ -60,10 +60,10 @@
 
 /* --- Progreso ------------------------------------------------------------------------------------------- */
 
-.marco.tema main .pasos-progreso {
+.marco.tema main .pap-progreso {
   margin: 6px 0 14px;
 }
-.marco.tema main .pasos-cuenta {
+.marco.tema main .pap-cuenta {
   margin: 0 0 10px;
   font-size: 0.85rem;
   font-weight: 700;
@@ -71,7 +71,7 @@
   text-transform: uppercase;
   color: #00664f;
 }
-.marco.tema main .pasos-progreso ol {
+.marco.tema main .pap-progreso ol {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -79,12 +79,12 @@
   grid-auto-columns: minmax(0, 1fr);
   grid-auto-flow: column;
 }
-.marco.tema main .pasos-progreso li {
+.marco.tema main .pap-progreso li {
   position: relative;
   margin: 0;
   padding: 0;
 }
-.marco.tema main .pasos-progreso li + li::before {
+.marco.tema main .pap-progreso li + li::before {
   content: "";
   position: absolute;
   top: 17px;
@@ -94,11 +94,11 @@
   border-radius: 2px;
   background: #e2e6e9;
 }
-.marco.tema main .pasos-progreso li[data-estado="hecho"]::before,
-.marco.tema main .pasos-progreso li[data-estado="actual"]::before {
+.marco.tema main .pap-progreso li[data-estado="hecho"]::before,
+.marco.tema main .pap-progreso li[data-estado="actual"]::before {
   background: #008069;
 }
-.marco.tema main .pasos-progreso button {
+.marco.tema main .pap-progreso button {
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -113,12 +113,12 @@
   font: inherit;
   cursor: pointer;
 }
-.marco.tema main .pasos-progreso button:disabled {
+.marco.tema main .pap-progreso button:disabled {
   cursor: default;
   opacity: 1;
   color: #667781;
 }
-.marco.tema main .pasos-num {
+.marco.tema main .pap-num {
   width: 36px;
   height: 36px;
   border-radius: 50%;
@@ -130,29 +130,29 @@
   border: 2px solid #d1d7db;
   color: #667781;
 }
-.marco.tema main .pasos-progreso li[data-estado="hecho"] .pasos-num {
+.marco.tema main .pap-progreso li[data-estado="hecho"] .pap-num {
   background: #008069;
   border-color: #008069;
   color: #fff;
 }
-.marco.tema main .pasos-progreso li[data-estado="actual"] .pasos-num {
+.marco.tema main .pap-progreso li[data-estado="actual"] .pap-num {
   border-color: #008069;
   color: #00664f;
   box-shadow: 0 0 0 5px #d5f2e8;
 }
-.marco.tema main .pasos-nombre {
+.marco.tema main .pap-nombre {
   font-size: 0.88rem;
   text-align: center;
   line-height: 1.25;
 }
-.marco.tema main .pasos-progreso li[data-estado="actual"] .pasos-nombre {
+.marco.tema main .pap-progreso li[data-estado="actual"] .pap-nombre {
   color: #111b21;
   font-weight: 700;
 }
 
 /* --- La tarjeta del paso -------------------------------------------------------------------------------- */
 
-.marco.tema main .pasos-tarjeta {
+.marco.tema main .pap-tarjeta {
   background: #fff;
   border: 1px solid #e2e6e9;
   border-radius: 20px;
@@ -161,40 +161,40 @@
     0 1px 2px rgb(11 20 26 / 5%),
     0 10px 30px rgb(11 20 26 / 6%);
 }
-.marco.tema main .pasos-paso {
+.marco.tema main .pap-paso {
   display: grid;
   grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
   gap: 32px;
   align-items: start;
 }
-.marco.tema main .pasos-paso.sin-dibujo {
+.marco.tema main .pap-paso.sin-dibujo {
   grid-template-columns: minmax(0, 1fr);
   max-width: 640px;
 }
-.marco.tema main .pasos-texto {
+.marco.tema main .pap-texto {
   display: flex;
   flex-direction: column;
   gap: 14px;
   min-width: 0;
 }
-.marco.tema main .pasos-texto > p,
-.marco.tema main .pasos-texto > ol,
-.marco.tema main .pasos-texto > ul {
+.marco.tema main .pap-texto > p,
+.marco.tema main .pap-texto > ol,
+.marco.tema main .pap-texto > ul {
   margin: 0;
 }
-.marco.tema main .pasos-paso h2,
-.marco.tema main .pasos-final h2 {
+.marco.tema main .pap-paso h2,
+.marco.tema main .pap-final h2 {
   margin: 0;
   font-size: 1.6rem;
   line-height: 1.2;
   color: #111b21;
 }
-.marco.tema main .pasos-instruccion {
+.marco.tema main .pap-instruccion {
   font-size: 1.12rem;
   line-height: 1.55;
   color: #111b21;
 }
-.marco.tema main .pasos-nota {
+.marco.tema main .pap-nota {
   padding: 10px 14px;
   border-radius: 12px;
   background: #f0f2f5;
@@ -202,17 +202,17 @@
   font-size: 0.96rem;
   line-height: 1.45;
 }
-.marco.tema main .pasos-nota-verde {
+.marco.tema main .pap-nota-verde {
   background: #e7f7f1;
   color: #0b4f40;
   font-weight: 600;
 }
-.marco.tema main .pasos-nota-ambar {
+.marco.tema main .pap-nota-ambar {
   background: #fff6e0;
   color: #5c3b00;
   border: 1px solid #f1d79a;
 }
-.marco.tema main .pasos-hecho {
+.marco.tema main .pap-hecho {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -222,7 +222,7 @@
   color: #0b4f40;
   font-weight: 700;
 }
-.marco.tema main .pasos-accion {
+.marco.tema main .pap-accion {
   align-self: flex-start;
   min-height: 54px;
   padding: 0 28px;
@@ -235,13 +235,13 @@
   gap: 8px;
   text-decoration: none;
 }
-.marco.tema main .pasos-acciones {
+.marco.tema main .pap-acciones {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
 }
-.marco.tema main .pasos-dibujo,
-.marco.tema main .pasos-final-dibujo {
+.marco.tema main .pap-dibujo,
+.marco.tema main .pap-final-dibujo {
   border-radius: 16px;
   background: linear-gradient(160deg, #f6faf8, #eef2f5);
   border: 1px solid #e8edf0;
@@ -250,22 +250,22 @@
   flex-direction: column;
   gap: 12px;
 }
-.marco.tema main .pasos-final-dibujo {
+.marco.tema main .pap-final-dibujo {
   width: 100%;
   max-width: 420px;
 }
-.marco.tema main .pasos .ilus {
+.marco.tema main .pap .ilus {
   display: block;
   width: 100%;
   height: auto;
   font-family: inherit;
 }
-.marco.tema main .pasos-dibujo .ilus + .ilus {
+.marco.tema main .pap-dibujo .ilus + .ilus {
   padding-top: 12px;
   border-top: 1px solid #e3e9ec;
 }
 
-@keyframes pasos-latido {
+@keyframes pap-latido {
   0%,
   100% {
     opacity: 0.1;
@@ -274,17 +274,17 @@
     opacity: 0.3;
   }
 }
-.marco.tema main .pasos .ilus-halo {
-  animation: pasos-latido 1.8s ease-in-out infinite;
+.marco.tema main .pap .ilus-halo {
+  animation: pap-latido 1.8s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .marco.tema main .pasos .ilus-halo {
+  .marco.tema main .pap .ilus-halo {
     animation: none;
   }
 }
 
 /* Sub-pasos numerados */
-.marco.tema main .pasos-subpasos {
+.marco.tema main .pap-subpasos {
   padding-left: 0;
   list-style: none;
   counter-reset: sub;
@@ -292,7 +292,7 @@
   flex-direction: column;
   gap: 10px;
 }
-.marco.tema main .pasos-subpasos li {
+.marco.tema main .pap-subpasos li {
   counter-increment: sub;
   position: relative;
   padding-left: 40px;
@@ -300,7 +300,7 @@
   line-height: 1.5;
   min-height: 28px;
 }
-.marco.tema main .pasos-subpasos li::before {
+.marco.tema main .pap-subpasos li::before {
   content: counter(sub);
   position: absolute;
   left: 0;
@@ -317,12 +317,12 @@
 }
 
 /* Elegir entre opciones (iPhone/Android, destino del video, tono) */
-.marco.tema main .pasos-opciones {
+.marco.tema main .pap-opciones {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 10px;
 }
-.marco.tema main .pasos-opciones button {
+.marco.tema main .pap-opciones button {
   min-height: 56px;
   padding: 10px 14px;
   border-radius: 14px;
@@ -339,23 +339,23 @@
   gap: 2px;
   box-shadow: none;
 }
-.marco.tema main .pasos-opciones button small {
+.marco.tema main .pap-opciones button small {
   font-weight: 400;
   color: #3b4a54;
   font-size: 0.88rem;
   line-height: 1.35;
 }
-.marco.tema main .pasos-opciones button[aria-pressed="true"] {
+.marco.tema main .pap-opciones button[aria-pressed="true"] {
   border-color: #008069;
   background: #e7f7f1;
   box-shadow: 0 0 0 2px #008069 inset;
 }
-.marco.tema main .pasos-opciones.una-columna {
+.marco.tema main .pap-opciones.una-columna {
   grid-template-columns: 1fr;
 }
 
 /* Campo para copiar */
-.marco.tema main .pasos-copiable {
+.marco.tema main .pap-copiable {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -364,18 +364,18 @@
   padding: 12px 14px;
   background: #fafbfc;
 }
-.marco.tema main .pasos-copiable-cabeza {
+.marco.tema main .pap-copiable-cabeza {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
   flex-wrap: wrap;
 }
-.marco.tema main .pasos-copiable-cabeza strong {
+.marco.tema main .pap-copiable-cabeza strong {
   font-size: 1rem;
   color: #111b21;
 }
-.marco.tema main .pasos-copiable pre {
+.marco.tema main .pap-copiable pre {
   margin: 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -386,7 +386,7 @@
   max-height: 9.5em;
   overflow: auto;
 }
-.marco.tema main .pasos-copiar {
+.marco.tema main .pap-copiar {
   min-height: 44px;
   padding: 0 16px;
   border-radius: 12px;
@@ -399,12 +399,12 @@
   color: #00664f;
   box-shadow: none;
 }
-.marco.tema main .pasos-copiar.copiado {
+.marco.tema main .pap-copiar.copiado {
   background: #e7f7f1;
 }
 
 /* Atrás / Siguiente */
-.marco.tema main .pasos-botonera {
+.marco.tema main .pap-botonera {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -412,7 +412,7 @@
   margin-top: 6px;
   flex-wrap: wrap;
 }
-.marco.tema main .pasos-botonera button {
+.marco.tema main .pap-botonera button {
   min-height: 50px;
   display: inline-flex;
   align-items: center;
@@ -422,31 +422,31 @@
   border-radius: 14px;
   padding: 0 20px;
 }
-.marco.tema main .pasos-botonera .pasos-atras {
+.marco.tema main .pap-botonera .pap-atras {
   background: transparent;
   border-color: transparent;
   box-shadow: none;
   color: #3b4a54;
   padding-left: 6px;
 }
-.marco.tema main .pasos-botonera .pasos-atras:hover {
+.marco.tema main .pap-botonera .pap-atras:hover {
   background: #f0f2f5;
 }
-.marco.tema main .pasos-botonera .pasos-siguiente:not(.primario) {
+.marco.tema main .pap-botonera .pap-siguiente:not(.primario) {
   border: 1.5px solid #008069;
   color: #00664f;
   background: #fff;
 }
-.marco.tema main .pasos-botonera .pasos-siguiente:not(.primario):hover {
+.marco.tema main .pap-botonera .pap-siguiente:not(.primario):hover {
   background: #e7f7f1;
 }
 
 /* ¿No te sale así? */
-.marco.tema main .pasos-ayuda {
+.marco.tema main .pap-ayuda {
   border-top: 1px solid #e2e6e9;
   padding-top: 6px;
 }
-.marco.tema main .pasos-ayuda summary {
+.marco.tema main .pap-ayuda summary {
   cursor: pointer;
   color: #00664f;
   font-weight: 700;
@@ -457,36 +457,36 @@
   border: 0;
   padding: 0;
 }
-.marco.tema main .pasos-ayuda dl {
+.marco.tema main .pap-ayuda dl {
   margin: 4px 0 6px;
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
-.marco.tema main .pasos-ayuda dt {
+.marco.tema main .pap-ayuda dt {
   font-weight: 700;
   color: #111b21;
 }
-.marco.tema main .pasos-ayuda dd {
+.marco.tema main .pap-ayuda dd {
   margin: 2px 0 0;
   color: #3b4a54;
   line-height: 1.5;
 }
 
-.marco.tema main .pasos-empezar {
+.marco.tema main .pap-empezar {
   text-align: center;
   margin: 10px 0 0;
 }
 
 /* Final */
-.marco.tema main .pasos-final {
+.marco.tema main .pap-final {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   gap: 12px;
 }
-.marco.tema main .pasos-final-check {
+.marco.tema main .pap-final-check {
   width: 72px;
   height: 72px;
   border-radius: 50%;
@@ -497,13 +497,13 @@
   box-shadow: 0 0 0 10px #e7f7f1;
   margin: 6px 0 8px;
 }
-.marco.tema main .pasos-final > p {
+.marco.tema main .pap-final > p {
   margin: 0;
   font-size: 1.1rem;
   line-height: 1.55;
   max-width: 560px;
 }
-.marco.tema main .pasos-final-grilla {
+.marco.tema main .pap-final-grilla {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
@@ -511,7 +511,7 @@
   text-align: left;
   margin-top: 8px;
 }
-.marco.tema main .pasos-final-item {
+.marco.tema main .pap-final-item {
   border: 1px solid #e2e6e9;
   border-radius: 16px;
   padding: 16px 18px;
@@ -520,22 +520,22 @@
   flex-direction: column;
   gap: 8px;
 }
-.marco.tema main .pasos-final-item h3 {
+.marco.tema main .pap-final-item h3 {
   margin: 0;
   font-size: 1.1rem;
   color: #111b21;
 }
-.marco.tema main .pasos-final-item p {
+.marco.tema main .pap-final-item p {
   margin: 0;
   line-height: 1.5;
   color: #3b4a54;
 }
-.marco.tema main .pasos-final-item .boton {
+.marco.tema main .pap-final-item .boton {
   align-self: flex-start;
 }
 
 /* Lista de lo que falta (casas sin precio o fotos) */
-.marco.tema main .pasos-lista {
+.marco.tema main .pap-lista {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -543,10 +543,10 @@
   border-radius: 14px;
   overflow: hidden;
 }
-.marco.tema main .pasos-lista li + li {
+.marco.tema main .pap-lista li + li {
   border-top: 1px solid #e2e6e9;
 }
-.marco.tema main .pasos-lista a {
+.marco.tema main .pap-lista a {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -556,35 +556,35 @@
   color: #111b21;
   text-decoration: none;
 }
-.marco.tema main .pasos-lista a:hover {
+.marco.tema main .pap-lista a:hover {
   background: #f6faf8;
 }
-.marco.tema main .pasos-lista a span {
+.marco.tema main .pap-lista a span {
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
-.marco.tema main .pasos-lista a small {
+.marco.tema main .pap-lista a small {
   color: #a35f00;
   font-weight: 600;
   font-size: 0.9rem;
 }
-.marco.tema main .pasos-lista a svg {
+.marco.tema main .pap-lista a svg {
   flex: 0 0 auto;
   color: #00664f;
 }
 
 /* Formularios cortos dentro de un paso */
-.marco.tema main .pasos-form {
+.marco.tema main .pap-form {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
-.marco.tema main .pasos-form textarea {
+.marco.tema main .pap-form textarea {
   min-height: 96px;
   font-size: 1.05rem;
 }
-.marco.tema main .pasos-form .primario {
+.marco.tema main .pap-form .primario {
   align-self: flex-start;
   min-height: 52px;
   padding: 0 24px;
@@ -592,7 +592,7 @@
   font-weight: 700;
   font-size: 1.05rem;
 }
-.marco.tema main .pasos-casillas {
+.marco.tema main .pap-casillas {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -600,7 +600,7 @@
   padding: 0;
   border: 0;
 }
-.marco.tema main .pasos-casillas label {
+.marco.tema main .pap-casillas label {
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -612,34 +612,34 @@
   cursor: pointer;
   font-weight: 400;
 }
-.marco.tema main .pasos-casillas label:has(input:checked) {
+.marco.tema main .pap-casillas label:has(input:checked) {
   border-color: #008069;
   background: #e7f7f1;
 }
-.marco.tema main .pasos-casillas input {
+.marco.tema main .pap-casillas input {
   width: 22px;
   height: 22px;
   margin: 2px 0 0;
   flex: 0 0 22px;
   accent-color: #008069;
 }
-.marco.tema main .pasos-casillas label span {
+.marco.tema main .pap-casillas label span {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
-.marco.tema main .pasos-casillas label small {
+.marco.tema main .pap-casillas label small {
   color: #3b4a54;
   font-size: 0.9rem;
 }
 
 /* Cifras de "Cómo le ha ido" */
-.marco.tema main .pasos-cifras {
+.marco.tema main .pap-cifras {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
-.marco.tema main .pasos-cifra {
+.marco.tema main .pap-cifra {
   border: 1px solid #e2e6e9;
   border-radius: 14px;
   padding: 12px;
@@ -648,42 +648,42 @@
   flex-direction: column;
   gap: 2px;
 }
-.marco.tema main .pasos-cifra strong {
+.marco.tema main .pap-cifra strong {
   font-size: 1.7rem;
   line-height: 1.1;
   color: #111b21;
 }
-.marco.tema main .pasos-cifra span {
+.marco.tema main .pap-cifra span {
   font-size: 0.9rem;
   color: #3b4a54;
   line-height: 1.3;
 }
-.marco.tema main .pasos-cifra[data-tono="verde"] strong {
+.marco.tema main .pap-cifra[data-tono="verde"] strong {
   color: #00664f;
 }
-.marco.tema main .pasos-barra {
+.marco.tema main .pap-barra {
   display: flex;
   height: 14px;
   border-radius: 999px;
   overflow: hidden;
   background: #e2e6e9;
 }
-.marco.tema main .pasos-barra i {
+.marco.tema main .pap-barra i {
   display: block;
   height: 100%;
 }
-.marco.tema main .pasos-barra .b-bien {
+.marco.tema main .pap-barra .b-bien {
   background: #008069;
 }
-.marco.tema main .pasos-barra .b-corr {
+.marco.tema main .pap-barra .b-corr {
   background: #e3a008;
 }
-.marco.tema main .pasos-barra .b-desc {
+.marco.tema main .pap-barra .b-desc {
   background: #9aa6b1;
 }
 
 /* Miniaturas de fotos en orden */
-.marco.tema main .pasos-fotos {
+.marco.tema main .pap-fotos {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -691,7 +691,7 @@
   grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
   gap: 8px;
 }
-.marco.tema main .pasos-fotos li {
+.marco.tema main .pap-fotos li {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -700,14 +700,14 @@
   color: #3b4a54;
   line-height: 1.3;
 }
-.marco.tema main .pasos-fotos img {
+.marco.tema main .pap-fotos img {
   width: 100%;
   aspect-ratio: 4 / 3;
   object-fit: cover;
   border-radius: 10px;
   background: #eef1f4;
 }
-.marco.tema main .pasos-fotos b {
+.marco.tema main .pap-fotos b {
   position: absolute;
   top: 6px;
   left: 6px;
@@ -722,7 +722,7 @@
 }
 
 /* Idioma (español / inglés) */
-.marco.tema main .pasos-idioma {
+.marco.tema main .pap-idioma {
   display: inline-flex;
   align-self: flex-start;
   padding: 4px;
@@ -730,7 +730,7 @@
   border-radius: 999px;
   background: #f0f2f5;
 }
-.marco.tema main .pasos-idioma button {
+.marco.tema main .pap-idioma button {
   min-height: 44px;
   padding: 0 18px;
   border-radius: 999px;
@@ -740,7 +740,7 @@
   font-weight: 600;
   box-shadow: none;
 }
-.marco.tema main .pasos-idioma button[aria-pressed="true"] {
+.marco.tema main .pap-idioma button[aria-pressed="true"] {
   background: #fff;
   color: #00664f;
   box-shadow: 0 1px 3px rgb(11 20 26 / 15%);
@@ -846,58 +846,58 @@
 /* --- Pantallas medianas y teléfono ----------------------------------------------------------------------- */
 
 @media (min-width: 761px) {
-  .marco.tema main .pasos-dibujo {
+  .marco.tema main .pap-dibujo {
     position: sticky;
     top: 16px;
   }
 }
 
 @media (max-width: 760px) {
-  .marco.tema main .pasos-tarjeta {
+  .marco.tema main .pap-tarjeta {
     padding: 18px 16px;
     border-radius: 16px;
   }
-  .marco.tema main .pasos-paso {
+  .marco.tema main .pap-paso {
     grid-template-columns: 1fr;
     gap: 18px;
   }
-  .marco.tema main .pasos-dibujo {
+  .marco.tema main .pap-dibujo {
     order: -1;
     padding: 8px;
   }
-  .marco.tema main .pasos-paso h2,
-  .marco.tema main .pasos-final h2 {
+  .marco.tema main .pap-paso h2,
+  .marco.tema main .pap-final h2 {
     font-size: 1.35rem;
   }
-  .marco.tema main .pasos-nombre {
+  .marco.tema main .pap-nombre {
     display: none;
   }
-  .marco.tema main .pasos-progreso li[data-estado="actual"] .pasos-nombre {
+  .marco.tema main .pap-progreso li[data-estado="actual"] .pap-nombre {
     display: block;
     white-space: nowrap;
   }
-  .marco.tema main .pasos-progreso li:first-child[data-estado="actual"] .pasos-nombre {
+  .marco.tema main .pap-progreso li:first-child[data-estado="actual"] .pap-nombre {
     text-align: left;
     align-self: flex-start;
   }
-  .marco.tema main .pasos-progreso li:last-child[data-estado="actual"] .pasos-nombre {
+  .marco.tema main .pap-progreso li:last-child[data-estado="actual"] .pap-nombre {
     text-align: right;
     align-self: flex-end;
   }
-  .marco.tema main .pasos-accion,
-  .marco.tema main .pasos-form .primario {
+  .marco.tema main .pap-accion,
+  .marco.tema main .pap-form .primario {
     align-self: stretch;
   }
-  .marco.tema main .pasos-final-grilla {
+  .marco.tema main .pap-final-grilla {
     grid-template-columns: 1fr;
   }
-  .marco.tema main .pasos-botonera .pasos-siguiente {
+  .marco.tema main .pap-botonera .pap-siguiente {
     flex: 1;
     justify-content: center;
     white-space: nowrap;
     padding: 0 14px;
   }
-  .marco.tema main .pasos-cifra strong {
+  .marco.tema main .pap-cifra strong {
     font-size: 1.4rem;
   }
   .marco.tema main .puesta-tarjeta {
@@ -911,7 +911,7 @@
     justify-content: center;
   }
   /* La regla global de casillas en el teléfono (display:flex; min-height:44px) ya aplica; aquí más aire. */
-  .marco.tema main .pasos-casillas label {
+  .marco.tema main .pap-casillas label {
     min-height: 52px;
   }
 }
