@@ -1,0 +1,32 @@
+.modo-corredor-fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+}
+.modo-corredor-hoja {
+  width: 100%;
+  max-width: 520px;
+  background: #fff;
+  border-radius: 16px 16px 0 0;
+  padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+  display: grid;
+  gap: 12px;
+}
+.modo-corredor-hoja h2 { margin: 0; }
+.modo-corredor-hoja p { margin: 0; }
+.modo-corredor-hoja input {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+.modo-corredor-botones { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (min-width: 700px) {
+  .modo-corredor-fondo { align-items: center; }
+  .modo-corredor-hoja { border-radius: 16px; }
+}

@@ -164,7 +164,7 @@ Lugares que existen:
 - Agenda: agenda-agendar, agenda-bloquear (botón Apartar tiempo), agenda-bloqueos (tiempo apartado), agenda-horario, agenda-vista-dia, agenda-vista-semana, agenda-vista-mes,
   agenda-vista-lista
 - Apartar tiempo: bloquear-dia (campo, fecha), bloquear-rato, bloquear-motivo (campo)
-- Mis casas: casas-agregar, pregunta-ubicacion (tarjeta "¿Dónde queda esta casa?")
+- Mis casas: casa-modo-corredor (botón "Modo corredor" de la ficha: enlace de la casa sin tus datos de contacto, para otro corredor; solo casas del sitio), casas-agregar, pregunta-ubicacion (tarjeta "¿Dónde queda esta casa?")
 - Agregar casa (/panel/propiedades/nueva): casa-nueva-texto (campo donde se cuenta la casa; ve primero a
   /panel/propiedades/nueva)
 - Más: mas-negocio, mas-cerebro, mas-duenos, mas-anuncios, mas-probar, mas-ajustes
