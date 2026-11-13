@@ -79,6 +79,15 @@ describe("texto para redes con IA", () => {
     expect(textoDemo("vendedor", original)).toContain(original);
     expect(cifrasInventadas(textoDemo("corto", original), cifrasPermitidas(original))).toEqual([]);
   });
+
+  it("la demo no mete avisos en el texto, ni apila con pedidos seguidos", () => {
+    const uno = textoDemo("mejorar", original);
+    const dos = textoDemo("vendedor", uno);
+    const viejo = textoDemo("ingles", `(Demostración: aquí la IA dejaría tu texto más claro.)\n\n(Demo: here the AI would translate.)\n\n${original}`);
+    for (const t of [uno, dos, viejo]) expect(t).not.toMatch(/\(Demo/i);
+    expect(dos).toBe(uno);
+    expect(viejo).toBe(original.trim());
+  });
 });
 
 describe("guion del video", () => {

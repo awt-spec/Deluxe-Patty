@@ -132,6 +132,34 @@ function paso(nodos: Nodo[], aristas: Arista[], arrastrado: string | null) {
 
 const VISTA_INICIAL = { x: -480, y: -420, w: 960, h: 840 };
 
+/**
+ * Ventana que deja todo el grafo a la vista (con el margen de los textos) y con la misma proporción que el
+ * lienzo, para que no se recorte arriba ni abajo. Sin lienzo medido, la vista de siempre.
+ */
+function vistaQueAbarca(nodos: Nodo[], ancho: number, alto: number) {
+  if (!nodos.length || ancho < 50 || alto < 50) return VISTA_INICIAL;
+  let x0 = Infinity;
+  let y0 = Infinity;
+  let x1 = -Infinity;
+  let y1 = -Infinity;
+  for (const n of nodos) {
+    const r = n.tipo === "centro" ? 54 : n.tipo === "rama" ? 40 : 8;
+    // Los textos de las hojas salen hacia un lado: unos 6,5 unidades por letra.
+    const largo = n.tipo === "hoja" ? 14 + 6.5 * Math.min(n.texto.length, 26) : 0;
+    x0 = Math.min(x0, n.x - r - (n.x < 0 ? largo : 0));
+    x1 = Math.max(x1, n.x + r + (n.x >= 0 ? largo : 0));
+    y0 = Math.min(y0, n.y - r);
+    y1 = Math.max(y1, n.y + r + (n.tipo === "rama" ? 24 : 0));
+  }
+  const margen = 28;
+  let w = x1 - x0 + 2 * margen;
+  let h = y1 - y0 + 2 * margen;
+  const proporcion = ancho / alto;
+  if (w / h < proporcion) w = h * proporcion;
+  else h = w / proporcion;
+  return { x: (x0 + x1) / 2 - w / 2, y: (y0 + y1) / 2 - h / 2, w, h };
+}
+
 export function MapaCerebro({ ramas }: { ramas: Rama[] }) {
   const [activas, setActivas] = useState(() => new Set(ramas.map((r) => r.clave)));
   const [abiertas, setAbiertas] = useState<Set<string>>(() => new Set());
@@ -143,6 +171,9 @@ export function MapaCerebro({ ramas }: { ramas: Rama[] }) {
   const arrastre = useRef<{ id: string | null; movio: boolean; px: number; py: number } | null>(null);
   const punteros = useRef(new Map<number, { x: number; y: number }>());
   const animando = useRef(false);
+  // Mientras el corredor no mueva ni acerque el mapa, la vista se ajusta sola al grafo y al tamaño del lienzo.
+  const auto = useRef(true);
+  const ajustarRef = useRef<() => void>(() => {});
 
   const animar = useCallback(() => {
     if (animando.current) return;
@@ -153,7 +184,10 @@ export function MapaCerebro({ ramas }: { ramas: Rama[] }) {
       setCuadro((c) => c + 1);
       vueltas++;
       if ((energia > 0.5 || arrastre.current?.id) && vueltas < 600) requestAnimationFrame(cuadro);
-      else animando.current = false;
+      else {
+        animando.current = false;
+        ajustarRef.current();
+      }
     };
     requestAnimationFrame(cuadro);
   }, []);
@@ -176,6 +210,7 @@ export function MapaCerebro({ ramas }: { ramas: Rama[] }) {
   };
 
   const zoom = (factor: number, cx?: number, cy?: number) => {
+    auto.current = false;
     setVista((v) => {
       const w = Math.min(Math.max(v.w * factor, 300), 3000);
       const h = (w * v.h) / v.w;
@@ -234,6 +269,7 @@ export function MapaCerebro({ ramas }: { ramas: Rama[] }) {
       }
     } else {
       const r = svg.current!.getBoundingClientRect();
+      auto.current = false;
       setVista((v) => ({ ...v, x: v.x - ((e.clientX - antes.x) / r.width) * v.w, y: v.y - ((e.clientY - antes.y) / r.height) * v.h }));
     }
   };
@@ -258,9 +294,28 @@ export function MapaCerebro({ ramas }: { ramas: Rama[] }) {
     }
   };
 
+  const ajustar = () => {
+    const r = svg.current?.getBoundingClientRect();
+    setVista(vistaQueAbarca(grafo.current.nodos, r?.width ?? 0, r?.height ?? 0));
+  };
+  ajustarRef.current = () => {
+    if (auto.current) ajustar();
+  };
+  // Al montar y cuando cambia el tamaño del lienzo: el mismo ajuste que hace "Centrar".
+  useEffect(() => {
+    const el = svg.current;
+    if (!el) return;
+    ajustarRef.current();
+    if (typeof ResizeObserver === "undefined") return;
+    const o = new ResizeObserver(() => ajustarRef.current());
+    o.observe(el);
+    return () => o.disconnect();
+  }, []);
+
   const centrar = () => {
     for (const n of grafo.current.nodos) n.fijo = false;
-    setVista(VISTA_INICIAL);
+    auto.current = true;
+    ajustar();
     animar();
   };
 
