@@ -27,8 +27,9 @@ export async function POST(req: Request) {
         try {
           const r = await terminarBusqueda(d, corredorId, busqueda);
           if (r && "resumen" in r) console.log(JSON.stringify({ evento: "busqueda_extension", corredorId, ...r.resumen }));
-          // Ninguna página trajo anuncios: Encuentra24 pudo cambiar. Soporte se entera como con el worker.
-          if (r && "motivo" in r) {
+          // Ninguna página trajo anuncios: Encuentra24 pudo cambiar. Soporte se entera como con el worker, salvo en la
+          // búsqueda semanal sola: ahí suele ser la verificación de Cloudflare y se reintenta en el siguiente despertar.
+          if (r && "motivo" in r && !r.automatica) {
             console.error(JSON.stringify({ evento: "error_busqueda_extension", corredorId, detalle: r.mensaje }));
             alertar(`error_busqueda_extension:${corredorId}`, `Búsqueda desde la extensión sin anuncios: ${r.mensaje}`);
           }

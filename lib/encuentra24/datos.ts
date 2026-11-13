@@ -74,6 +74,8 @@ export async function guardarLeads(db: SupabaseClient, corredorId: string, seman
   verificar(error, "guardarLeads");
 }
 
+const claveHecha = (corredorId: string) => `busqueda_hecha:${corredorId}`;
+
 /** Datos de la extensión de Chrome (lib/encuentra24/extension.ts). */
 export function crearAlmacenExtension(db: SupabaseClient): AlmacenExtension {
   return {
@@ -228,5 +230,37 @@ export function crearAlmacenExtension(db: SupabaseClient): AlmacenExtension {
     },
 
     guardarLeads: (corredorId, semana, leads) => guardarLeads(db, corredorId, semana, leads),
+
+    // Sin tabla propia (no hay migraciones nuevas): la fecha de la última búsqueda terminada queda en `alertas`
+    // con la clave busqueda_hecha:<corredor> (reclamar_alerta con 0 minutos siempre la pone en "ahora").
+    async marcarBusquedaHecha(corredorId) {
+      const { error } = await db.rpc("reclamar_alerta", { p_clave: claveHecha(corredorId), p_minutos: 0 });
+      verificar(error, "marcarBusquedaHecha");
+    },
+
+    async ultimaBusqueda(corredorId) {
+      const { data: alerta, error } = await db.from("alertas").select("enviada_at").eq("clave", claveHecha(corredorId)).maybeSingle();
+      verificar(error, "ultimaBusqueda (alerta)");
+      // Las búsquedas de antes de esta marca (o las del worker) se reconocen por el último dueño guardado.
+      const { data: lead, error: e2 } = await db
+        .from("leads_duenos")
+        .select("created_at")
+        .eq("corredor_id", corredorId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      verificar(e2, "ultimaBusqueda (dueños)");
+      const fechas = [alerta?.enviada_at, lead?.created_at]
+        .filter((f): f is string => typeof f === "string")
+        .map((f) => new Date(f).getTime())
+        .filter(Number.isFinite);
+      return fechas.length ? new Date(Math.max(...fechas)) : null;
+    },
+
+    async reservarBusquedaAuto(corredorId, horas) {
+      const { data, error } = await db.rpc("reclamar_alerta", { p_clave: `busqueda_auto:${corredorId}`, p_minutos: horas * 60 });
+      verificar(error, "reservarBusquedaAuto");
+      return data === true;
+    },
   };
 }

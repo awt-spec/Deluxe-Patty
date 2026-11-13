@@ -33,6 +33,8 @@ export interface EstadoBusqueda {
   candidatos: number;
   /** La dirección que se le pidió a la extensión; solo se acepta esa. */
   esperada: string | null;
+  /** La empezó la extensión sola (búsqueda semanal): si Encuentra24 no deja leer, no se avisa a soporte. */
+  automatica?: boolean;
   /** Al terminar: cuántos dueños salieron, o por qué no. */
   resultado?: { resumen: Resumen } | { motivo: "sin_resultados" | "servidor"; mensaje?: string };
 }
@@ -60,6 +62,12 @@ export interface AlmacenExtension {
   anuncios(corredorId: string, id: string): Promise<AnuncioE24[]>;
   terminar(corredorId: string, id: string, ahora: Date): Promise<void>;
   guardarLeads(corredorId: string, semana: string, leads: LeadDueno[]): Promise<void>;
+  /** Anota que una búsqueda terminó bien (la usa la búsqueda semanal para saber cuándo toca otra). */
+  marcarBusquedaHecha(corredorId: string): Promise<void>;
+  /** Cuándo terminó la última búsqueda del corredor, o null si no se sabe. */
+  ultimaBusqueda(corredorId: string): Promise<Date | null>;
+  /** Reserva la búsqueda automática por unas horas (atómico): false si otra ya la tomó. */
+  reservarBusquedaAuto(corredorId: string, horas: number): Promise<boolean>;
 }
 
 export interface DependenciasExtension {
@@ -104,7 +112,7 @@ export type Inicio =
   | { ok: true; busqueda: string; siguiente: string; zonas: number }
   | { ok: false; motivo: "sin_corredor" | "sin_zonas" | "sin_presupuesto" };
 
-export async function iniciarBusqueda(d: DependenciasExtension, corredorId: string): Promise<Inicio> {
+export async function iniciarBusqueda(d: DependenciasExtension, corredorId: string, opciones: { automatica?: boolean } = {}): Promise<Inicio> {
   const corredor = await d.almacen.corredor(corredorId);
   if (!corredor) return { ok: false, motivo: "sin_corredor" };
   if (corredor.zonas_e24.length === 0) return { ok: false, motivo: "sin_zonas" };
@@ -116,6 +124,7 @@ export async function iniciarBusqueda(d: DependenciasExtension, corredorId: stri
     recorrido,
     candidatos: 0,
     esperada: urlListado(corredor.categoria_busqueda_e24, t.zona, t.pagina),
+    ...(opciones.automatica ? { automatica: true } : {}),
   };
   const busqueda = await d.almacen.crearBusqueda(corredorId, estado);
   return { ok: true, busqueda, siguiente: estado.esperada!, zonas: recorrido.activas.length };
@@ -197,6 +206,7 @@ export async function terminarBusqueda(d: DependenciasExtension, corredorId: str
       estado.resultado = {
         resumen: { duenos: r.leads.length, paginas: estado.recorrido.paginas, anuncios: leidos.length, candidatos: r.candidatos },
       };
+      await d.almacen.marcarBusquedaHecha(corredorId);
     }
   } catch (e) {
     estado.resultado = { motivo: "servidor" };
@@ -205,7 +215,7 @@ export async function terminarBusqueda(d: DependenciasExtension, corredorId: str
     await d.almacen.guardarEstado(corredorId, id, estado);
     await d.almacen.terminar(corredorId, id, ahora);
   }
-  return estado.resultado;
+  return { ...estado.resultado, automatica: estado.automatica === true };
 }
 
 export type Consulta =
@@ -220,4 +230,37 @@ export async function consultarBusqueda(d: DependenciasExtension, corredorId: st
   const r = estado.resultado;
   if (!r) return { ok: true, listo: false, paginas: estado.recorrido.paginas };
   return "resumen" in r ? { ok: true, listo: true, resumen: r.resumen } : { ok: false, ...r };
+}
+
+// --- Búsqueda semanal sola ---------------------------------------------------------------------------
+
+export const DIAS_ENTRE_BUSQUEDAS = 7;
+/** La extensión despierta cada ~6 horas: una vez que el servidor le dice "busca", no se lo repite en ese rato. */
+export const HORAS_RESERVA_AUTO = 6;
+const DIA_MS = 86_400_000;
+
+export interface Programa {
+  ok: true;
+  buscar: boolean;
+  /** Días desde la última búsqueda terminada (null si no hay ninguna). */
+  ultimaDias: number | null;
+}
+
+/**
+ * ¿Toca la búsqueda automática? Sí, si la última búsqueda terminada (manual o sola) fue hace más de 7 días. Al decir
+ * que sí se reserva el turno por 6 horas en la base (reclamar_alerta, atómico): dos Chrome conectados al mismo
+ * corredor no buscan a la vez, y si la búsqueda se corta (Cloudflare) se reintenta en el siguiente despertar.
+ * Con `soloVer` (el popup) solo informa y no reserva nada.
+ */
+export async function programaBusqueda(d: DependenciasExtension, corredorId: string, opciones: { soloVer?: boolean; ahora?: Date } = {}): Promise<Programa> {
+  const ahora = opciones.ahora ?? new Date();
+  const ultima = await d.almacen.ultimaBusqueda(corredorId);
+  const ultimaDias = ultima ? Math.max(0, Math.floor((ahora.getTime() - ultima.getTime()) / DIA_MS)) : null;
+  if (opciones.soloVer) return { ok: true, buscar: false, ultimaDias };
+  const vencida = !ultima || ahora.getTime() - ultima.getTime() >= DIAS_ENTRE_BUSQUEDAS * DIA_MS;
+  if (!vencida) return { ok: true, buscar: false, ultimaDias };
+  const corredor = await d.almacen.corredor(corredorId);
+  if (!corredor || corredor.zonas_e24.length === 0) return { ok: true, buscar: false, ultimaDias };
+  if (!(await hayPresupuestoHoy(d.repo, corredor))) return { ok: true, buscar: false, ultimaDias };
+  return { ok: true, buscar: await d.almacen.reservarBusquedaAuto(corredorId, HORAS_RESERVA_AUTO), ultimaDias };
 }

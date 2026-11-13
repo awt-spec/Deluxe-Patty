@@ -19,13 +19,20 @@
 
     <section id="conectada" hidden>
       <p class="suave" id="corredor"></p>
+      <div id="anuncio" hidden>
+        <button id="leer" class="primario">Leer este anuncio</button>
+        <p id="lectura" role="status" aria-live="polite" hidden></p>
+        <a id="abrir-casa" href="#" hidden>Abrir en el panel</a>
+      </div>
       <button id="buscar" class="primario">Buscar dueños</button>
+      <label class="interruptor"><input type="checkbox" id="buscar-sola" /> Buscar dueños sola cada semana</label>
+      <p class="suave" id="ultima" hidden></p>
     </section>
 
     <p id="mensaje" role="status" aria-live="polite" hidden></p>
 
     <footer id="pie" hidden>
-      <p class="suave">Una vez por semana. Se abre una pestaña de Encuentra24 y tarda unos 5 minutos; puedes seguir usando Chrome.</p>
+      <p class="suave">Una vez por semana. Se abre una pestaña de Encuentra24 y tarda unos 5 minutos; puedes seguir usando Chrome. Con el interruptor encendido lo hace sola, con Chrome abierto.</p>
       <button id="desconectar" class="enlace">Desconectar</button>
     </footer>
     <script src="popup.js" type="module"></script>

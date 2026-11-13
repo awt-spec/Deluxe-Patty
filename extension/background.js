@@ -1,14 +1,23 @@
 import { APP } from "./config.js";
+import { esPaginaDeAnuncio } from "./comun.js";
 
 // La extensión solo abre páginas: el servidor le dice qué dirección de Encuentra24 sigue, la abre en una
 // pestaña de este Chrome (con el internet de la casa, que Cloudflare deja pasar), le manda lo que trajo
 // la página y espera la próxima. Si Encuentra24 pide verificar que es una persona, se muestra la
 // pestaña para que la persona lo resuelva. Nada se disfraza: es un Chrome normal, con pausas.
+//
+// Además:
+//  - Búsqueda semanal sola: una alarma despierta cada ~6 horas (y al abrir Chrome) y le pregunta al servidor si
+//    toca (/api/extension/programa). Si toca, corre la misma búsqueda en una pestaña de fondo. Si Encuentra24 pide
+//    la verificación, se cancela sin molestar y se reintenta en el siguiente despertar. Se apaga en el popup.
+//  - "Leer este anuncio": manda al servidor lo que muestra la página del anuncio abierto (texto, JSON-LD, fotos).
 
 const PAUSA_MIN_MS = 6000;
 const PAUSA_MAX_MS = 12000;
 const ESPERA_VERIFICACION_MS = 5 * 60_000;
 const ESPERA_RESULTADO_MS = 6 * 60_000;
+const ALARMA = "busqueda-semanal";
+const CADA_MIN = 6 * 60;
 
 let corriendo = false;
 
@@ -22,13 +31,13 @@ async function progreso(cambios) {
   await chrome.storage.local.set({ progreso: { ...(actual ?? {}), ...cambios, latido: Date.now() } });
 }
 
-async function api(ruta, cuerpo, token) {
+async function api(ruta, cuerpo, token, metodo = "POST") {
   let r;
   try {
     r = await fetch(APP + ruta, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-      body: JSON.stringify(cuerpo ?? {}),
+      method: metodo,
+      headers: { ...(metodo === "POST" ? { "Content-Type": "application/json" } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      ...(metodo === "POST" ? { body: JSON.stringify(cuerpo ?? {}) } : {}),
     });
   } catch {
     return { ok: false, mensaje: "No hay conexión con el panel. Revisa el internet y vuelve a intentarlo." };
@@ -81,12 +90,14 @@ async function leerPestana(tabId) {
 const esVerificacion = (html) =>
   !html.includes("self.__next_f") && /cloudflare|cf-chl|challenge-platform|just a moment|un momento/i.test(html);
 
-async function abrir(tabId, url) {
+async function abrir(tabId, url, automatica) {
   const cargada = cuandoCargue(tabId);
   await chrome.tabs.update(tabId, { url });
   await cargada;
   await esperar(1500);
   let html = await leerPestana(tabId);
+  // En la búsqueda sola no se le pone la pestaña enfrente a la persona: se deja para el siguiente despertar.
+  if (esVerificacion(html) && automatica) throw new VerificacionPendiente();
   if (esVerificacion(html)) {
     const tab = await chrome.tabs.update(tabId, { active: true });
     await chrome.windows.update(tab.windowId, { focused: true });
@@ -118,25 +129,31 @@ async function esperarResultado(busqueda, token) {
   return { ok: false, mensaje: "La revisión tardó demasiado. Mira el panel en un rato; si no aparecen, vuelve a buscar." };
 }
 
-async function buscar() {
+async function buscar(automatica = false) {
   corriendo = true;
   let tabId = null;
+  // En la búsqueda sola, si algo sale mal se vuelve en silencio a lo que mostraba el popup antes.
+  const { progreso: antes } = await chrome.storage.local.get("progreso");
+  const fallar = (mensaje) =>
+    automatica ? chrome.storage.local.set({ progreso: antes ?? null }) : progreso({ fase: "error", mensaje });
   try {
     const { token } = await chrome.storage.local.get("token");
-    if (!token) return progreso({ fase: "error", mensaje: "Primero conecta la extensión con el código del panel." });
-    await chrome.storage.local.set({ progreso: { fase: "buscando", paginas: 0, mensaje: "Empezando…", latido: Date.now() } });
+    if (!token) return automatica ? undefined : progreso({ fase: "error", mensaje: "Primero conecta la extensión con el código del panel." });
+    await chrome.storage.local.set({
+      progreso: { fase: "buscando", paginas: 0, mensaje: automatica ? "Búsqueda de la semana: empezando…" : "Empezando…", latido: Date.now() },
+    });
 
-    const inicio = await api("/api/extension/busqueda", {}, token);
-    if (!inicio.ok) return progreso({ fase: "error", mensaje: inicio.mensaje });
+    const inicio = await api("/api/extension/busqueda", { automatica }, token);
+    if (!inicio.ok) return fallar(inicio.mensaje);
 
     tabId = (await chrome.tabs.create({ url: "about:blank", active: false })).id;
     let url = inicio.siguiente;
     for (let n = 1; url; n++) {
       if (n > 1) await esperar(PAUSA_MIN_MS + Math.random() * (PAUSA_MAX_MS - PAUSA_MIN_MS));
       await progreso({ fase: "buscando", paginas: n - 1, mensaje: `Leyendo la página ${n} de Encuentra24…` });
-      const html = await abrir(tabId, url);
+      const html = await abrir(tabId, url, automatica);
       const r = await api("/api/extension/pagina", { busqueda: inicio.busqueda, url, html }, token);
-      if (!r.ok) return progreso({ fase: "error", mensaje: r.mensaje });
+      if (!r.ok) return fallar(r.mensaje);
       url = r.siguiente;
     }
 
@@ -144,7 +161,7 @@ async function buscar() {
     tabId = null;
     await progreso({ fase: "revisando", mensaje: "Revisando cuáles son dueños directos…" });
     const r = await esperarResultado(inicio.busqueda, token);
-    if (!r.ok) return progreso({ fase: "error", mensaje: r.mensaje });
+    if (!r.ok) return fallar(r.mensaje);
     const n = r.resumen.duenos;
     await progreso({
       fase: "listo",
@@ -155,13 +172,11 @@ async function buscar() {
           : `Listo: ${n} ${n === 1 ? "dueño nuevo" : "dueños nuevos"}. Están en el panel, en Más, en Dueños directos.`,
     });
   } catch (e) {
-    await progreso({
-      fase: "error",
-      mensaje:
-        e instanceof VerificacionPendiente
-          ? "Encuentra24 siguió pidiendo la verificación. Vuelve a buscar cuando puedas resolverla en la pestaña."
-          : "La búsqueda se cortó. Vuelve a intentarlo.",
-    });
+    await fallar(
+      e instanceof VerificacionPendiente
+        ? "Encuentra24 siguió pidiendo la verificación. Vuelve a buscar cuando puedas resolverla en la pestaña."
+        : "La búsqueda se cortó. Vuelve a intentarlo.",
+    );
   } finally {
     corriendo = false;
     if (tabId !== null) chrome.tabs.remove(tabId).catch(() => {});
@@ -181,6 +196,118 @@ async function desconectar() {
   return { ok: true };
 }
 
+// --- Búsqueda semanal sola ----------------------------------------------------------------------------
+
+async function despertar() {
+  const { token, buscarSola } = await chrome.storage.local.get(["token", "buscarSola"]);
+  // Apagada en el popup, o sin conectar: no pregunta ni busca.
+  if (!token || buscarSola === false || corriendo) return;
+  const r = await api("/api/extension/programa", null, token, "GET");
+  if (!r?.ok) return;
+  if (typeof r.ultimaDias === "number") await chrome.storage.local.set({ ultimaDias: r.ultimaDias });
+  if (r.buscar && !corriendo) await buscar(true);
+}
+
+async function verUltima() {
+  const { token } = await chrome.storage.local.get("token");
+  if (!token) return { ok: false };
+  const r = await api("/api/extension/programa?ver=1", null, token, "GET");
+  if (r?.ok) await chrome.storage.local.set({ ultimaDias: r.ultimaDias ?? null });
+  return r;
+}
+
+function programarAlarma() {
+  // Crear la alarma con el mismo nombre la reemplaza: el primer despertar es al minuto de abrir Chrome.
+  chrome.alarms.create(ALARMA, { delayInMinutes: 1, periodInMinutes: CADA_MIN });
+}
+
+chrome.alarms.onAlarm.addListener((a) => {
+  if (a.name === ALARMA) despertar().catch(() => {});
+});
+chrome.runtime.onInstalled.addListener(programarAlarma);
+chrome.runtime.onStartup.addListener(programarAlarma);
+
+// --- Leer este anuncio ---------------------------------------------------------------------------------
+
+/**
+ * Corre dentro de la página del anuncio. Saca la dirección, el título, el texto visible, el JSON-LD, los enlaces de
+ * WhatsApp (ahí va la referencia de los anuncios de la asistente) y las fotos. Tolerante: si no reconoce la galería,
+ * manda todas las imágenes grandes de la página.
+ */
+function extraerAnuncio() {
+  const MAX_TEXTO = 20000;
+  const jsonld = [...document.querySelectorAll('script[type="application/ld+json"]')]
+    .map((s) => (s.textContent ?? "").trim())
+    .filter(Boolean)
+    .slice(0, 5)
+    .map((t) => t.slice(0, MAX_TEXTO));
+  const enlaces = [...document.querySelectorAll("a[href]")]
+    .map((a) => a.href)
+    .filter((h) => /wa\.me|whatsapp/i.test(h))
+    .slice(0, 50);
+
+  const fuente = (img) => img.currentSrc || img.src || img.dataset?.src || img.dataset?.lazy || "";
+  const ancho = (img) => img.naturalWidth || img.width || 0;
+  const alto = (img) => img.naturalHeight || img.height || 0;
+  const grande = (img, min) => ancho(img) >= min && alto(img) >= min * 0.6;
+  const GALERIA = '[class*="gallery" i], [class*="galeria" i], [class*="carousel" i], [class*="slider" i], [class*="swiper" i], [class*="photo" i], [id*="gallery" i]';
+  const imagenes = [...document.images];
+  // En la galería, una foto que todavía no carga (ancho 0) también cuenta; las miniaturas diminutas no.
+  const deGaleria = imagenes.filter((img) => img.closest(GALERIA) && (ancho(img) === 0 || grande(img, 300)));
+  const elegidas = deGaleria.length >= 2 ? deGaleria : imagenes.filter((img) => grande(img, 400));
+  const fotos = elegidas.map(fuente);
+  for (const t of jsonld) {
+    try {
+      const datos = [JSON.parse(t)].flat();
+      for (const d of datos) {
+        for (const i of [d?.image].flat()) {
+          if (typeof i === "string") fotos.push(i);
+          else if (typeof i?.url === "string") fotos.push(i.url);
+        }
+      }
+    } catch {
+      // JSON-LD roto: se ignora
+    }
+  }
+  // La verificación de Cloudflare en vez del anuncio.
+  const desafio =
+    !!document.querySelector('script[src*="challenge-platform"], #challenge-form, #cf-challenge-running') || /just a moment/i.test(document.title);
+  return {
+    desafio,
+    url: location.href,
+    titulo: document.title,
+    texto: (document.body?.innerText ?? "").slice(0, MAX_TEXTO),
+    jsonld,
+    enlaces,
+    fotos: [...new Set(fotos.filter((u) => typeof u === "string" && u.startsWith("https://") && !/\.svg(\?|$)/i.test(u)))].slice(0, 30),
+  };
+}
+
+async function leerAnuncio(tabId) {
+  // La lectura recuerda de qué página es: el popup solo la muestra en esa pestaña.
+  const tabUrl = await chrome.tabs.get(tabId).then((t) => t.url ?? "", () => "");
+  const fin = (fase, mensaje, ruta = null) => chrome.storage.local.set({ lectura: { fase, mensaje, ruta, url: tabUrl, fecha: Date.now() } });
+  const { token } = await chrome.storage.local.get("token");
+  if (!token) return fin("error", "Primero conecta la extensión con el código del panel.");
+  await fin("leyendo", "Leyendo el anuncio…");
+  let pagina;
+  try {
+    if (!esPaginaDeAnuncio(tabUrl)) return fin("error", "Abre la página de un anuncio de Encuentra24 y vuelve a tocar el botón.");
+    const [r] = await chrome.scripting.executeScript({ target: { tabId }, func: extraerAnuncio });
+    pagina = r?.result;
+  } catch {
+    pagina = null;
+  }
+  if (!pagina?.url) return fin("error", "No pude leer esta página. Recárgala y vuelve a intentarlo.");
+  if (pagina.desafio) {
+    return fin("error", "Encuentra24 pide verificar que eres una persona. Resuélvelo en la página y vuelve a tocar el botón.");
+  }
+  const { desafio: _desafio, ...datos } = pagina;
+  const r = await api("/api/extension/anuncio", datos, token);
+  const ruta = typeof r?.ruta === "string" && r.ruta.startsWith("/panel/") ? r.ruta : null;
+  return fin(r?.ok ? "listo" : "error", r?.mensaje || "No se pudo leer el anuncio. Vuelve a intentarlo.", ruta);
+}
+
 chrome.runtime.onMessage.addListener((m, _remitente, responder) => {
   if (m?.tipo === "conectar") {
     conectar(String(m.codigo ?? "")).then(responder);
@@ -194,13 +321,32 @@ chrome.runtime.onMessage.addListener((m, _remitente, responder) => {
     if (!corriendo) buscar();
     responder({ ok: true });
   }
+  if (m?.tipo === "leer_anuncio" && Number.isInteger(m.tabId)) {
+    leerAnuncio(m.tabId).catch(() =>
+      chrome.storage.local.set({ lectura: { fase: "error", mensaje: "No se pudo leer el anuncio. Vuelve a intentarlo.", fecha: Date.now() } }),
+    );
+    responder({ ok: true });
+  }
+  if (m?.tipo === "ver_ultima") {
+    verUltima().then(responder, () => responder({ ok: false }));
+    return true;
+  }
+  if (m?.tipo === "buscar_sola") {
+    // Al encenderla, el próximo despertar es en un minuto.
+    chrome.storage.local.set({ buscarSola: m.encendida === true }).then(() => {
+      if (m.encendida === true) programarAlarma();
+      responder({ ok: true });
+    });
+    return true;
+  }
   return false;
 });
 
-// Si Chrome cerró la extensión a media búsqueda, el aviso no queda en "buscando" para siempre.
+// Si Chrome cerró la extensión a media búsqueda o lectura, el aviso no queda en "buscando" para siempre.
 chrome.runtime.onStartup.addListener(async () => {
-  const { progreso: p } = await chrome.storage.local.get("progreso");
+  const { progreso: p, lectura } = await chrome.storage.local.get(["progreso", "lectura"]);
   if (p && ["buscando", "verificar", "revisando"].includes(p.fase)) {
     await progreso({ fase: "error", mensaje: "La búsqueda anterior se cortó. Vuelve a empezarla." });
   }
+  if (lectura?.fase === "leyendo") await chrome.storage.local.remove("lectura");
 });

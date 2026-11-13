@@ -37,7 +37,18 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   corre en el Chrome del corredor con la **extensión** `extension/` (Manifest V3): el servidor le dice qué
   página abrir (`/api/extension/*`, `lib/encuentra24/extension.ts`), la extensión la abre en una pestaña y
   le manda los scripts con los datos; al final Haiku revisa en segundo plano (`after()`) y la extensión
-  consulta el resultado. Se conecta con un código de un solo uso del panel (Más → Dueños directos) que se
+  consulta el resultado. **Busca sola cada semana**: `chrome.alarms` despierta cada ~6 h (y al abrir Chrome) y
+  pregunta `GET /api/extension/programa` (`programaBusqueda`): toca si la última búsqueda terminada (marca
+  `busqueda_hecha:<corredor>` en `alertas`, o el último `leads_duenos.created_at`) tiene más de 7 días, y el turno se
+  reserva 6 h con `reclamar_alerta('busqueda_auto:<corredor>')`; corre en una pestaña de fondo, y si Cloudflare pide
+  verificar se cancela en silencio (sin aviso a soporte) y se reintenta. Se apaga en el popup ("Buscar dueños sola
+  cada semana", `chrome.storage`). **Leer este anuncio** (popup, en la página de un anuncio): la extensión manda
+  dirección, título, texto, JSON-LD, enlaces wa.me y fotos a `POST /api/extension/anuncio` (`lib/encuentra24/anuncio.ts`);
+  si trae la referencia de un `anuncios_e24` del corredor, lo pasa a `activo` (url, `e24_id`, `publicado_en` si
+  faltaba) y llena `propiedades.url_e24`; si no, arma la ficha con `conversarFicha` (el texto va como dato, nunca
+  como instrucciones), no duplica por `url_e24` ni guarda si falta lo esencial, y la guarda **pausada** (`inactiva`)
+  con las fotos copiadas solo desde `*.encuentra24.com` (`lib/fotos/copiar.ts`). Frenos: una lectura cada 10 s por
+  corredor y el mismo anuncio una vez por minuto (`alertas`). Se conecta con un código de un solo uso del panel (Más → Dueños directos) que se
   canjea por un permiso; solo se guardan huellas (`extension_conexiones`). `npm run build` la empaca en
   `public/extension/buscador-duenos.zip` con la dirección de `NEXT_PUBLIC_URL_APP`
   (`scripts/empacar-extension.mts`); se instala "descomprimida" (paso a paso en `/panel/duenos/extension`).
@@ -278,7 +289,9 @@ Google no deja leer lo ocupado, además queda en `google_conexiones.ultimo_error
 Encuentra24 no tiene API: la asistente prepara y vigila, el corredor publica. Cada anuncio tiene una
 `referencia` que va en el enlace wa.me de la descripción; el primer mensaje del cliente la trae y
 `atribuirContacto` enlaza el contacto al anuncio. Un anuncio nace como `borrador` (sin `e24_id` ni `url`)
-y pasa a `activo` cuando la lectura del perfil lo encuentra publicado.
+y pasa a `activo` cuando el corredor abre el anuncio ya publicado en su Chrome y toca **Leer este anuncio** en la
+extensión: la página trae la referencia (en el enlace wa.me) y el servidor le pone `url`, `e24_id` y `publicado_en`.
+`vence_en` no se calcula todavía. Con un anuncio que no es suyo preparado, el mismo botón trae la casa a Mis casas, pausada.
 
 Lectura del sitio: las páginas son una app Next.js y cada anuncio viene como JSON en el payload de
 React Server Components; `lib/encuentra24/parsear.ts` lee ese JSON (no clases CSS). El campo

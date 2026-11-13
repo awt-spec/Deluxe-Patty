@@ -10,6 +10,7 @@ import {
   huella,
   iniciarBusqueda,
   nuevoCodigo,
+  programaBusqueda,
   recibirPagina,
   terminarBusqueda,
   type AlmacenExtension,
@@ -24,7 +25,11 @@ const CAT = "bienes-raices-venta-de-propiedades-casas";
 const ID = "c1";
 
 /** Almacén en memoria con el mismo contrato que el de Supabase. */
-function almacenEnMemoria(corredor: CorredorBusqueda | null, extra: { vistos?: string[]; bloqueados?: Bloqueado[] } = {}) {
+function almacenEnMemoria(
+  corredor: CorredorBusqueda | null,
+  extra: { vistos?: string[]; bloqueados?: Bloqueado[]; ultima?: Date | null; reservada?: boolean } = {},
+) {
+  const marcas = { hechas: 0, reservas: 0, ultima: extra.ultima ?? null, reservada: extra.reservada ?? false };
   const conexiones: { corredorId: string; codigo: string | null; vence: Date | null; token: string | null; revocada: boolean }[] = [];
   const busquedas = new Map<string, { corredorId: string; estado: EstadoBusqueda; terminada: boolean; anuncios: Map<string, AnuncioE24> }>();
   const leads: { semana: string; lead: LeadDueno }[] = [];
@@ -103,8 +108,21 @@ function almacenEnMemoria(corredor: CorredorBusqueda | null, extra: { vistos?: s
     async guardarLeads(_corredorId, semana, nuevos) {
       for (const lead of nuevos) leads.push({ semana, lead });
     },
+    async marcarBusquedaHecha() {
+      marcas.hechas++;
+      marcas.ultima = new Date();
+    },
+    async ultimaBusqueda(corredorId) {
+      return corredor && corredorId === corredor.id ? marcas.ultima : null;
+    },
+    async reservarBusquedaAuto() {
+      marcas.reservas++;
+      if (marcas.reservada) return false;
+      marcas.reservada = true;
+      return true;
+    },
   };
-  return { almacen, leads, busquedas, conexiones };
+  return { almacen, leads, busquedas, conexiones, marcas };
 }
 
 function corredor(extra: Partial<CorredorBusqueda> = {}): CorredorBusqueda {
@@ -297,5 +315,59 @@ describe("búsqueda desde la extensión", () => {
       ok: false,
       motivo: "no_encontrada",
     });
+  });
+});
+
+describe("búsqueda semanal sola (/api/extension/programa)", () => {
+  const AHORA = new Date("2026-11-13T15:00:00Z");
+  const haceDias = (n: number) => new Date(AHORA.getTime() - n * 86_400_000);
+
+  it("toca si la última búsqueda terminada fue hace más de 7 días (o nunca), y reserva el turno una sola vez", async () => {
+    const { almacen, marcas } = almacenEnMemoria(corredor(), { ultima: haceDias(8) });
+    const d = dependencias(almacen);
+    expect(await programaBusqueda(d, ID, { ahora: AHORA })).toEqual({ ok: true, buscar: true, ultimaDias: 8 });
+    // El siguiente despertar (u otro Chrome conectado) no vuelve a empezar mientras dura la reserva.
+    expect(await programaBusqueda(d, ID, { ahora: AHORA })).toEqual({ ok: true, buscar: false, ultimaDias: 8 });
+    expect(marcas.reservas).toBe(2);
+
+    const nunca = almacenEnMemoria(corredor());
+    expect(await programaBusqueda(dependencias(nunca.almacen), ID, { ahora: AHORA })).toEqual({ ok: true, buscar: true, ultimaDias: null });
+  });
+
+  it("no toca si buscó hace menos de 7 días, sin zonas, sin presupuesto, ni en modo solo ver", async () => {
+    const reciente = almacenEnMemoria(corredor(), { ultima: haceDias(3) });
+    expect(await programaBusqueda(dependencias(reciente.almacen), ID, { ahora: AHORA })).toEqual({ ok: true, buscar: false, ultimaDias: 3 });
+    expect(reciente.marcas.reservas).toBe(0);
+
+    const sinZonas = almacenEnMemoria(corredor({ zonas_e24: [] }), { ultima: haceDias(30) });
+    expect((await programaBusqueda(dependencias(sinZonas.almacen), ID, { ahora: AHORA })).buscar).toBe(false);
+    const sinPlata = almacenEnMemoria(corredor(), { ultima: haceDias(30) });
+    expect((await programaBusqueda(dependencias(sinPlata.almacen, 999), ID, { ahora: AHORA })).buscar).toBe(false);
+    const ver = almacenEnMemoria(corredor(), { ultima: haceDias(30) });
+    expect(await programaBusqueda(dependencias(ver.almacen), ID, { ahora: AHORA, soloVer: true })).toEqual({ ok: true, buscar: false, ultimaDias: 30 });
+    expect(ver.marcas.reservas).toBe(0);
+  });
+
+  it("sin permiso no hay corredor; una búsqueda que termina bien queda anotada y la automática no avisa a soporte", async () => {
+    const { almacen, marcas } = almacenEnMemoria(corredor({ zonas_e24: ["escazu"] }));
+    expect(await autenticar(almacen, null)).toBeNull();
+    expect(await autenticar(almacen, `Bearer ${"a".repeat(64)}`)).toBeNull();
+
+    const d = dependencias(almacen);
+    const { busqueda } = await recorrer(d);
+    expect(await terminarBusqueda(d, ID, busqueda)).toMatchObject({ resumen: { anuncios: 6 }, automatica: false });
+    expect(marcas.hechas).toBe(1);
+
+    const inicio = await iniciarBusqueda(d, ID, { automatica: true });
+    if (!inicio.ok) throw new Error();
+    let url: string | null = inicio.siguiente;
+    while (url) {
+      const r = await recibirPagina(d, ID, { busqueda: inicio.busqueda, url, html: "<title>Just a moment...</title> cf-chl" });
+      if (!r.ok) throw new Error();
+      url = r.siguiente;
+    }
+    expect(await terminarBusqueda(d, ID, inicio.busqueda)).toMatchObject({ motivo: "sin_resultados", automatica: true });
+    // Sin anuncios no cuenta como búsqueda hecha: la semanal se reintenta en el siguiente despertar.
+    expect(marcas.hechas).toBe(1);
   });
 });
