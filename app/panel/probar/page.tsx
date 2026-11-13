@@ -1,4 +1,3 @@
-import { Volver } from "../volver";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Chat } from "./chat";
 import { EncabezadoPagina } from "../piezas";
@@ -11,8 +10,11 @@ export default async function Probar() {
   const { corredor } = await sesionConCorredor();
   return (
     <>
-      <Volver href="/panel/mas" texto="Más" />
-      <EncabezadoPagina titulo="Probar la asistente" apoyo="Escríbele como si fueras un cliente. Nada se envía de verdad." />
+      <EncabezadoPagina
+        titulo="Probar la asistente"
+        apoyo="Escríbele como si fueras un cliente. Nada se envía de verdad."
+        atras={{ href: "/panel/mas", texto: "Más", soloTelefono: true }}
+      />
       <div className="chat-con-ayuda">
         <div className="chat-centro">
           <Chat nombreCorredor={corredor.nombre_contacto} corredorId={corredor.id} />

@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { resumenCampos } from "@/lib/panel/movil";
+import { resumenCampos, resumenPrecio } from "@/lib/panel/movil";
 
 // Una parte de un formulario largo. En el teléfono (< 900 px) se pliega: la línea dice el título y lo ya llenado
-// ("Precio · 450000 · Dólares"), y se abre al tocarla o si el navegador marca un campo de adentro como faltante. En
+// ("Precio · $450.000"), y se abre al tocarla o si el navegador marca un campo de adentro como faltante. En
 // computadora no existe: sus campos se ven como siempre (formulario-movil.css usa display: contents).
 
 /** Lo que muestra un campo en el resumen: el texto de la opción elegida o lo escrito. */
@@ -25,7 +25,13 @@ export function SeccionForm({ titulo, abierta: inicial = false, children }: { ti
   useEffect(() => {
     const el = cuerpo.current;
     if (!el) return;
-    const leer = () => setResumen(resumenCampos(Array.from(el.querySelectorAll("input, select, textarea"), valorVisible), 56));
+    const leer = () => {
+      const campos = Array.from(el.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>("input, select, textarea"));
+      const moneda = campos.find((c) => c.name === "moneda")?.value ?? "USD";
+      // El precio se resume con el formato de dinero del panel ("$350.000") y la moneda ya va en el símbolo.
+      const valores = campos.map((c) => (c.name === "precio" ? resumenPrecio(c.value, moneda) : c.name === "moneda" ? "" : valorVisible(c)));
+      setResumen(resumenCampos(valores, 56));
+    };
     const faltante = () => setAbierta(true);
     const r = requestAnimationFrame(leer);
     el.addEventListener("input", leer);

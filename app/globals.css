@@ -12153,6 +12153,52 @@ html body .marco.tema :is(main, .patty-panel, .patty-chat) :is(button, .boton):i
   html body .marco.tema main > p:has(> .volver) + .encabezado {
     margin-top: 0;
   }
+
+  /* ---- Remates de QA: contraste, letra de 13 px y objetivos de 44 px que quedaban cortos ---- */
+  /* El día de hoy: blanco sobre el verde de fondo (4,9:1; con el verde de la marca eran 3,0:1). */
+  html body .marco.tema :is(.cal-cabecera a.hoy strong, .cal-mes-celda.hoy strong, .elegir-dia-chips button.activo) {
+    background: var(--verde-fondo);
+  }
+  html body .marco.tema .elegir-dia-chips button.activo {
+    border-color: var(--verde-fondo);
+  }
+  html body .marco.tema .elegir-dia-chips button.activo small {
+    color: #fff;
+  }
+  /* La insignia de lo urgente en el Cerebro: ámbar más oscuro (5,1:1 con letra blanca). */
+  html body .marco.tema main .cer-n.urgente {
+    background: #a85a00;
+  }
+  /* "en línea…" del chat de Patty sin la transparencia que lo bajaba a 3,9:1. */
+  html body .marco.tema .patty-chat .patty-titulo small {
+    opacity: 1;
+  }
+  /* "Principal" sobre la foto: verde de texto (4,49 → 6,9:1 sobre el blanco de la etiqueta). */
+  html body .marco.tema .casa-foto-principal {
+    color: var(--verde-texto);
+  }
+  html body .marco.tema .cer-sobre,
+  html body .marco.tema main .cer-sobre {
+    font-size: 13px;
+  }
+  /* "Quitar" de cada foto: rojo. La regla de los botones chicos (!important) lo dejaba verde. */
+  html body .marco.tema main button.chico.peligro,
+  html body .marco.tema main .casa-foto-botones form:last-child button {
+    color: #b42318 !important;
+  }
+  /* Objetivos de 44 px: "No" de la pregunta de compromiso, la cámara del chat y el enlace a dueños en Negocio. */
+  html body .marco.tema main .pb-linea button {
+    min-width: 44px;
+  }
+  html body .marco.tema .patty-chat .patty-adjuntar {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  html body .marco.tema main .semana-flecha,
+  html body .marco.tema main .cal-semana-paso {
+    min-width: 44px;
+    min-height: 44px;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   html body .marco.tema .nav-patty-circulo {

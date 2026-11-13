@@ -6,6 +6,7 @@ import {
   diaInicialMes,
   puntosDelDia,
   resumenBusca,
+  resumenPrecio,
   resumenCampos,
   resumenListo,
 } from "@/lib/panel/movil";
@@ -89,5 +90,14 @@ describe("vista previa encima de la hoja", () => {
   });
   it("si no cabe, deja su borde de arriba bajo lo pegajoso", () => {
     expect(desplazamientoParaVer({ top: 500, alto: 600 }, 60, 400)).toBe(440);
+  });
+});
+
+describe("resumenPrecio", () => {
+  it("da formato de dinero del panel", () => {
+    expect(resumenPrecio("350000", "USD")).toBe("$350.000");
+    expect(resumenPrecio("350.000", "CRC")).toBe("₡350.000");
+    expect(resumenPrecio("", "USD")).toBe("");
+    expect(resumenPrecio("mucho", "USD")).toBe("mucho");
   });
 });

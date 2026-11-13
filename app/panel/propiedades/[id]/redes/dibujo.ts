@@ -265,7 +265,14 @@ const cortes = new Map<string, string[]>();
 
 /** Parte un texto en líneas que caben en `ancho` (como máximo `max`, con "…" si sobra). Guarda el resultado. */
 function lineas(ctx: CanvasRenderingContext2D, texto: string, ancho: number, max: number): string[] {
-  const clave = `${ctx.font}|${Math.round(ancho)}|${max}|${texto}`;
+  // La clave incluye si la tipografía ya cargó: un corte medido con la de respaldo (más angosta) no sirve con Playfair.
+  let lista = true;
+  try {
+    lista = typeof document === "undefined" || !document.fonts || document.fonts.check(ctx.font);
+  } catch {
+    lista = false;
+  }
+  const clave = `${lista ? "f" : "r"}|${ctx.font}|${Math.round(ancho)}|${max}|${texto}`;
   const hecho = cortes.get(clave);
   if (hecho) return hecho;
   const palabras = texto.split(/\s+/).filter(Boolean);
