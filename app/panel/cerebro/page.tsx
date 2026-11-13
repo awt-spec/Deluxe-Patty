@@ -5,6 +5,8 @@ import { Aviso } from "../aviso";
 import { Volver } from "../volver";
 import { archivar, ensenar, responderDuda } from "./acciones";
 import { MapaCerebro, type Rama } from "./mapa";
+import { IconoCheck, IconoIdea, IconoLapiz } from "../iconos";
+import { EncabezadoPagina, Vacio } from "../piezas";
 
 // Segundo cerebro de la asistente: qué sabe, de dónde aprende y qué no supo contestar. Cada duda que el
 // corredor responde pasa a ser algo que la asistente ya sabe y usa al contestar.
@@ -63,15 +65,41 @@ export default async function Cerebro({ searchParams }: { searchParams: Promise<
     </Link>
   );
 
+  // De dónde aprende: su pestaña y, en computadora, la columna de al lado de las listas.
+  const fuentes = (
+    <ul className="fuentes">
+      <li>
+        <Link href="/panel/propiedades">
+          <strong>{casas}</strong> casas en oferta <span className="suave">precios, zonas y datos de cada ficha</span>
+        </Link>
+      </li>
+      <li>
+        <Link href="/panel/cerebro?ver=sabe">
+          <strong>{sabe.length}</strong> cosas que le enseñaste <span className="suave">políticas y preguntas frecuentes</span>
+        </Link>
+      </li>
+      <li>
+        <Link href="/panel/cerebro?ver=errores">
+          <strong>{Math.min(errores.length, 8)}</strong> correcciones recientes <span className="suave">tu forma de escribir</span>
+        </Link>
+      </li>
+      <li>
+        <Link href="/panel/agenda/horario">
+          <strong>{franjas.length}</strong> horarios de visita <span className="suave">cuándo puede ofrecer citas</span>
+        </Link>
+      </li>
+      <li>
+        <Link href="/panel/ajustes">
+          <strong>{corredor.reglas_escalamiento.length}</strong> temas que te pasa a ti <span className="suave">y tu tono: “{corredor.tono || "sin definir"}”</span>
+        </Link>
+      </li>
+    </ul>
+  );
+
   return (
     <>
       <Volver href="/panel/mas" texto="Más" />
-      <header className="encabezado">
-        <div>
-          <h1>Cerebro de la asistente</h1>
-          <p className="suave">Lo que sabe para contestar, y lo que te pregunta.</p>
-        </div>
-      </header>
+      <EncabezadoPagina titulo="Cerebro de la asistente" apoyo="Lo que sabe para contestar, y lo que te pregunta." />
       <Aviso texto={aviso} />
       {errorCerebro && (
         <p className="aviso">No se pudo leer lo que sabe la asistente. Avísale a soporte con este código: {errorCerebro.code ?? "sin código"}.</p>
@@ -87,10 +115,15 @@ export default async function Cerebro({ searchParams }: { searchParams: Promise<
 
       {ver === "mapa" && <MapaCerebro ramas={ramas} />}
 
+      <div className={ver === "dudas" || ver === "sabe" || ver === "errores" ? "dos-columnas" : undefined}>
+        <div className="columna-principal">
+
       {ver === "dudas" && (
         <section className="pila">
           {dudas.length === 0 ? (
-            <p className="vacio">No tiene dudas. Cuando un cliente pregunte algo que no sabe, aparece aquí.</p>
+            <Vacio Icono={IconoCheck} titulo="No tiene dudas.">
+              Cuando un cliente pregunte algo que no sabe, aparece aquí.
+            </Vacio>
           ) : (
             dudas.map((d) => (
               <form key={d.id} action={responderDuda} className="tarjeta pila">
@@ -130,7 +163,11 @@ export default async function Cerebro({ searchParams }: { searchParams: Promise<
               Guardar
             </button>
           </form>
-          {sabe.length === 0 && <p className="vacio">Todavía no le enseñaste nada.</p>}
+          {sabe.length === 0 && (
+            <Vacio Icono={IconoIdea} compacto>
+              Todavía no le enseñaste nada.
+            </Vacio>
+          )}
           {sabe.map((k) => (
             <details key={k.id} className="tarjeta saber">
               <summary>
@@ -161,7 +198,11 @@ export default async function Cerebro({ searchParams }: { searchParams: Promise<
       {ver === "errores" && (
         <section className="pila">
           <p className="suave">Respuestas que cambiaste antes de enviar. Las últimas le enseñan tu forma de escribir.</p>
-          {errores.length === 0 && <p className="vacio">Todavía no has corregido ninguna respuesta.</p>}
+          {errores.length === 0 && (
+            <Vacio Icono={IconoLapiz} compacto>
+              Todavía no has corregido ninguna respuesta.
+            </Vacio>
+          )}
           {errores.map((e) => (
             <article key={e.id} className="tarjeta pila correccion">
               <span className="suave">{fechaCorta(e.created_at.slice(0, 10))}</span>
@@ -172,35 +213,16 @@ export default async function Cerebro({ searchParams }: { searchParams: Promise<
         </section>
       )}
 
-      {ver === "fuentes" && (
-        <ul className="fuentes">
-          <li>
-            <Link href="/panel/propiedades">
-              <strong>{casas}</strong> casas en oferta <span className="suave">precios, zonas y datos de cada ficha</span>
-            </Link>
-          </li>
-          <li>
-            <Link href="/panel/cerebro?ver=sabe">
-              <strong>{sabe.length}</strong> cosas que le enseñaste <span className="suave">políticas y preguntas frecuentes</span>
-            </Link>
-          </li>
-          <li>
-            <Link href="/panel/cerebro?ver=errores">
-              <strong>{Math.min(errores.length, 8)}</strong> correcciones recientes <span className="suave">tu forma de escribir</span>
-            </Link>
-          </li>
-          <li>
-            <Link href="/panel/agenda/horario">
-              <strong>{franjas.length}</strong> horarios de visita <span className="suave">cuándo puede ofrecer citas</span>
-            </Link>
-          </li>
-          <li>
-            <Link href="/panel/ajustes">
-              <strong>{corredor.reglas_escalamiento.length}</strong> temas que te pasa a ti <span className="suave">y tu tono: “{corredor.tono || "sin definir"}”</span>
-            </Link>
-          </li>
-        </ul>
-      )}
+      {ver === "fuentes" && fuentes}
+        </div>
+        {(ver === "dudas" || ver === "sabe" || ver === "errores") && (
+          <aside className="columna-lateral tarjeta pila ayuda-lateral solo-computadora" aria-label="De dónde aprende">
+            <h2>De dónde aprende</h2>
+            {fuentes}
+            <p className="suave">Cada duda que contestas pasa a lo que sabe y la usa desde ese momento.</p>
+          </aside>
+        )}
+      </div>
     </>
   );
 }

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { fechaCorta, precio } from "@/lib/formato";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Aviso } from "../aviso";
+import { IconoCasa, IconoChats, IconoCheck, IconoLlave } from "../iconos";
+import { Cifra, EncabezadoPagina, Vacio } from "../piezas";
 import { marcarLead } from "../acciones";
 import { desconectarExtension, pasarAMisCasas } from "./acciones";
 import { ConectarExtension } from "./conectar-extension";
@@ -67,35 +69,27 @@ export default async function Duenos({ searchParams }: { searchParams: Promise<{
 
   return (
     <>
-      <header className="encabezado">
-        <div>
-          <h1>Dueños directos</h1>
-          <p className="suave">Casas que venden sus dueños en Encuentra24. Les escribes tú.</p>
-        </div>
+      <EncabezadoPagina titulo="Dueños directos" apoyo="Casas que venden sus dueños en Encuentra24. Les escribes tú.">
         <Link href="/panel/duenos/corredores" className="boton">
           Corredores
         </Link>
-      </header>
+      </EncabezadoPagina>
       <Aviso texto={aviso} />
 
       {leads.length > 0 && (
         <div className="cifras embudo-cifras">
-          <div className="tarjeta cifra">
-            <strong>{cuantos("nuevo")}</strong>
-            <span className="suave">por escribirles</span>
-          </div>
-          <div className="tarjeta cifra">
-            <strong>{cuantos("contactado") + cuantos("respondio")}</strong>
-            <span className="suave">en conversación</span>
-          </div>
-          <div className="tarjeta cifra">
-            <strong>{cuantos("visitada") + cuantos("captado")}</strong>
-            <span className="suave">casas vistas o firmadas</span>
-          </div>
-          <div className="tarjeta cifra">
-            <strong>{cuantos("publicada")}</strong>
-            <span className="suave">{cuantos("publicada") === 1 ? "casa conseguida" : "casas conseguidas"}</span>
-          </div>
+          <Cifra Icono={IconoLlave} tono="verde" numero={cuantos("nuevo")}>
+            por escribirles
+          </Cifra>
+          <Cifra Icono={IconoChats} tono="azul" numero={cuantos("contactado") + cuantos("respondio")}>
+            en conversación
+          </Cifra>
+          <Cifra Icono={IconoCasa} tono="morado" numero={cuantos("visitada") + cuantos("captado")}>
+            casas vistas o firmadas
+          </Cifra>
+          <Cifra Icono={IconoCheck} tono="ambar" numero={cuantos("publicada")}>
+            {cuantos("publicada") === 1 ? "casa conseguida" : "casas conseguidas"}
+          </Cifra>
         </div>
       )}
 
@@ -108,8 +102,24 @@ export default async function Duenos({ searchParams }: { searchParams: Promise<{
       </nav>
       <p className="suave ayuda-etapa">{elegida.ayuda}</p>
 
-      {leads.length === 0 && <p className="vacio">Todavía no hay dueños directos. Corre la búsqueda desde Chrome (abajo).</p>}
-      {leads.length > 0 && visibles.length === 0 && <p className="vacio">Nadie en esta etapa.</p>}
+      {leads.length === 0 && (
+        <Vacio
+          Icono={IconoLlave}
+          titulo="Todavía no hay dueños directos."
+          accion={
+            <a href="#buscar-duenos" className="boton primario">
+              Cómo buscarlos
+            </a>
+          }
+        >
+          Corre la búsqueda desde Chrome (abajo).
+        </Vacio>
+      )}
+      {leads.length > 0 && visibles.length === 0 && (
+        <Vacio Icono={IconoLlave} compacto>
+          Nadie en esta etapa.
+        </Vacio>
+      )}
 
       <div className="duenos-lista">
         {visibles.map((l) => {
@@ -173,7 +183,7 @@ export default async function Duenos({ searchParams }: { searchParams: Promise<{
         })}
       </div>
 
-      <section className="tarjeta pila" style={{ marginTop: 20 }}>
+      <section id="buscar-duenos" className="tarjeta pila" style={{ marginTop: 20 }}>
         <h2>Buscar dueños desde Chrome</h2>
         {corredor.activo === false ? (
           <p className="suave">En la demo no se conecta la extensión: en una cuenta real, aquí la conectas.</p>

@@ -3,7 +3,10 @@ import { DIAS_REPORTE } from "@/lib/anuncios/reporte";
 import { crearRepositorioSupabase } from "@/lib/datos/repositorio";
 import { fechaCorta } from "@/lib/formato";
 import { sesionConCorredor } from "@/lib/panel/sesion";
+import Link from "next/link";
 import { Aviso } from "../aviso";
+import { IconoAnuncio, IconoCasa } from "../iconos";
+import { EncabezadoPagina, Vacio } from "../piezas";
 
 type Texto = {
   es?: { titulo: string; descripcion: string };
@@ -40,12 +43,23 @@ export default async function Anuncios({ searchParams }: { searchParams: Promise
 
   return (
     <>
-      <header className="encabezado">
-        <h1>Anuncios</h1>
-      </header>
+      <EncabezadoPagina titulo="Anuncios" apoyo={`Clientes que llegaron por cada anuncio en los últimos ${DIAS_REPORTE} días.`} />
       <Aviso texto={aviso} />
-      <p className="suave">Clientes que llegaron por cada anuncio en los últimos {DIAS_REPORTE} días.</p>
-      {anuncios.length === 0 && <p className="vacio">Todavía no hay anuncios.</p>}
+      <div className="dos-columnas">
+        <div className="columna-principal pila">
+      {anuncios.length === 0 && (
+        <Vacio
+          Icono={IconoAnuncio}
+          titulo="Todavía no hay anuncios."
+          accion={
+            <Link href="/panel/propiedades" className="boton primario">
+              <IconoCasa tamano={20} /> Ir a Mis casas
+            </Link>
+          }
+        >
+          Prepara uno desde la ficha de una casa (botón «Anuncio de Encuentra24») o escribiéndole a la asistente por WhatsApp «anuncio» y el código de la casa.
+        </Vacio>
+      )}
       {anuncios.map((a) => {
         const vence = a.vence_en && a.estado === "activo" ? a.vence_en : null;
         const pronto = vence !== null && vence <= new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
@@ -104,6 +118,17 @@ export default async function Anuncios({ searchParams }: { searchParams: Promise
           </article>
         );
       })}
+        </div>
+        <aside className="columna-lateral tarjeta pila ayuda-lateral" aria-label="Cómo funcionan los anuncios">
+          <h2>Cómo funciona</h2>
+          <ol className="pasos-ayuda">
+            <li>La asistente prepara el título y la descripción en español e inglés, con un enlace a su WhatsApp.</li>
+            <li>Tú lo publicas en Encuentra24 y, ya publicado, tocas «Leer este anuncio» en la extensión de Chrome.</li>
+            <li>Cada cliente que escribe por ese enlace queda contado aquí, en su anuncio.</li>
+          </ol>
+          <p className="suave">Un anuncio publicado sin contactos en {DIAS_REPORTE} días pide revisar la foto principal, el título o el precio.</p>
+        </aside>
+      </div>
     </>
   );
 }

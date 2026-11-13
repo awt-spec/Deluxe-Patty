@@ -6,6 +6,7 @@ import { Aviso } from "../../aviso";
 import { crearPropiedad } from "../acciones";
 import { FormularioPropiedad } from "../formulario";
 import { ChatCasa } from "./chat-casa";
+import { EncabezadoPagina } from "../../piezas";
 
 // Cada turno del chat llama a Claude.
 export const maxDuration = 300;
@@ -21,13 +22,24 @@ export default async function NuevaPropiedad({
     return (
       <>
         <Volver href="/panel/propiedades" texto="Mis casas" />
-        <header className="encabezado">
-          <h1>Agregar casa</h1>
-        </header>
-        <ChatCasa />
-        <p className="suave" style={{ marginTop: 16 }}>
-          <Link href="/panel/propiedades/nueva?formulario=1">Prefiero llenar el formulario</Link>
-        </p>
+        <EncabezadoPagina titulo="Agregar casa" apoyo="Cuéntala con tus palabras: la asistente arma la ficha y te pregunta lo que falte." />
+        <div className="chat-con-ayuda">
+          <div className="chat-centro">
+            <ChatCasa />
+            <p className="suave" style={{ marginTop: 16 }}>
+              <Link href="/panel/propiedades/nueva?formulario=1">Prefiero llenar el formulario</Link>
+            </p>
+          </div>
+          <aside className="tarjeta pila ayuda-lateral solo-computadora" aria-label="Qué contarle">
+            <h2>Qué contarle</h2>
+            <ul className="pasos-ayuda">
+              <li>Si es venta o alquiler, y qué es: casa, apartamento, lote…</li>
+              <li>La zona y el precio.</li>
+              <li>Cuartos, baños, metros y lo que la hace especial.</li>
+            </ul>
+            <p className="suave">Antes de guardar te muestra el resumen para que lo revises. Las fotos se suben después.</p>
+          </aside>
+        </div>
       </>
     );
   }

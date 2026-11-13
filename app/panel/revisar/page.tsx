@@ -9,6 +9,7 @@ import { Avatar } from "../avatar";
 import { BotonEnviar } from "../boton-enviar";
 import { IconoFlecha, IconoCheck } from "../iconos";
 import { Volver } from "../volver";
+import { EncabezadoPagina } from "../piezas";
 
 // Revisar lo que espera a la corredora, uno a la vez: lo que dijo el cliente, lo que la asistente le
 // contestaría (se puede cambiar ahí mismo) y tres botones. Al resolver uno aparece el siguiente.
@@ -59,6 +60,7 @@ export default async function Revisar({ searchParams }: { searchParams: Promise<
         </span>
       </div>
       <Aviso texto={aviso} />
+      <EncabezadoPagina titulo="Revisar" apoyo={`Uno a la vez: lo que dijo el cliente y lo que ${asistente} le contestaría.`} className="revisar-encabezado" />
 
       <article className="revisar">
         <Link href={`/panel/conversaciones/${p.conversacionId}`} className="revisar-quien">

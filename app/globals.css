@@ -10515,3 +10515,714 @@ body:has(.marco.tema) {
 .subir-fotos-ayuda {
   font-size: 0.9rem;
 }
+
+/* ================================================================================================
+   Sistema visual del panel (noviembre, segunda vuelta): un solo juego de medidas para todas las
+   pantallas. Fondo apenas verdoso en vez de gris plano, tarjetas con borde fino y sombra suave en dos
+   niveles, esquinas de 14 px, una escala de títulos, estados al pasar, tocar y enfocar, y piezas
+   comunes de app/panel/piezas.tsx: encabezado de página, cifras con ícono y estados vacíos.
+   Va al final y con `.marco.tema` delante para mandar sobre las capas anteriores sin tocarlas.
+   ================================================================================================ */
+.marco.tema {
+  --fondo-pagina: #f3f6f4;
+  --borde: #e2e8e4;
+  --borde-fuerte: #cfd8d3;
+  --radio-g: 14px;
+  --sombra-1: 0 1px 2px rgb(17 27 33 / 4%), 0 1px 3px rgb(17 27 33 / 6%);
+  --sombra-2: 0 8px 24px rgb(17 27 33 / 9%), 0 2px 6px rgb(17 27 33 / 5%);
+  --titulo: #111b21;
+  --texto-2: #46525c;
+  --rapido: 160ms;
+  --ios-fondo: var(--fondo-pagina);
+  background: var(--fondo-pagina);
+}
+body:has(.marco.tema) {
+  background: var(--fondo-pagina, #f3f6f4);
+}
+.marco.tema .panel {
+  background: transparent;
+}
+
+/* Títulos: uno solo por pantalla, del mismo tamaño en todas (28 px en computadora, 26 en el teléfono) */
+.marco.tema main h1,
+.marco.tema main .saludo h1,
+.marco.tema main .casa-portada-datos h1,
+.marco.tema main .ficha-nombre h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--titulo);
+}
+@media (max-width: 899px) {
+  .marco.tema main h1,
+  .marco.tema main .saludo h1,
+  .marco.tema main .casa-portada-datos h1,
+  .marco.tema main .ficha-nombre h1 {
+    font-size: 1.625rem;
+  }
+}
+.marco.tema main h2 {
+  color: var(--titulo);
+}
+
+/* Encabezado de página: título, una línea de apoyo y las acciones a la derecha (en el teléfono, debajo) */
+.marco.tema main .encabezado-pagina {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px 20px;
+  margin: 0 0 20px;
+}
+.marco.tema main .encabezado-pagina .encabezado-texto {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+.marco.tema main .encabezado-pagina h1 {
+  margin: 0;
+}
+.marco.tema main .encabezado > div > p.suave,
+.marco.tema main .encabezado-pagina .encabezado-texto > p.suave {
+  margin: 4px 0 0;
+  font-size: 0.98rem;
+  line-height: 1.4;
+  color: var(--suave);
+}
+.marco.tema main .encabezado-pagina .encabezado-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+@media (max-width: 899px) {
+  .marco.tema main .encabezado-pagina {
+    flex-direction: column;
+    align-items: stretch;
+    margin-bottom: 16px;
+  }
+  .marco.tema main .encabezado-pagina .encabezado-texto {
+    flex: none;
+  }
+}
+
+/* Tarjetas: blanco sobre el fondo, borde fino y sombra suave; al pasar el mouse, un nivel más */
+.marco.tema main .tarjeta,
+.marco.tema main .chat-lista,
+.marco.tema main .hoy-lista,
+.marco.tema main .opciones,
+.marco.tema main .cal,
+.marco.tema main .cal-mes,
+.marco.tema main .tablero-columna {
+  border-radius: var(--radio-g);
+}
+.marco.tema main .tarjeta,
+.marco.tema main .chat-lista,
+.marco.tema main .hoy-lista,
+.marco.tema main .opciones {
+  background-color: #fff;
+  border: 1px solid var(--borde) !important;
+  box-shadow: var(--sombra-1) !important;
+}
+@media (hover: hover) {
+  .marco.tema main a.tarjeta:hover,
+  .marco.tema main a.cliente-tarjeta:hover {
+    box-shadow: var(--sombra-2) !important;
+    border-color: var(--borde-fuerte) !important;
+  }
+}
+
+/* Botones y enlaces: respuesta visible al pasar, tocar y enfocar */
+.marco.tema button,
+.marco.tema .boton,
+.marco.tema main a {
+  transition:
+    background-color var(--rapido),
+    border-color var(--rapido),
+    box-shadow var(--rapido),
+    color var(--rapido),
+    transform var(--rapido);
+}
+.marco.tema main button:not(:disabled):active,
+.marco.tema main .boton:active {
+  transform: scale(0.98);
+}
+.marco.tema :is(a, button, summary, select, input, textarea, [tabindex]):focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--principal) 45%, transparent);
+  outline-offset: 2px;
+}
+
+/* Campos de lista: el mismo aspecto que las cajas de texto, con su flecha dibujada */
+.marco.tema select:not([multiple]):not([size]) {
+  -webkit-appearance: none;
+  appearance: none;
+  min-height: 46px;
+  padding: 10px 40px 10px 14px !important;
+  border: 1px solid var(--borde-fuerte) !important;
+  border-radius: 10px !important;
+  background: #fff
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%235f6b76' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat right 12px center / 18px !important;
+  color: var(--titulo);
+  font: inherit;
+  font-size: 1rem;
+  cursor: pointer;
+}
+.marco.tema select:not([multiple]):not([size]):hover {
+  border-color: #b5c1ba !important;
+}
+.marco.tema select:not([multiple]):not([size]):focus {
+  border-color: var(--principal) !important;
+}
+
+/* Computadora: el contenido centrado, hasta 1200 px */
+@media (min-width: 900px) {
+  .marco.tema .panel:not(:has(.barra-chat)) {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+}
+
+/* Dos columnas con sentido: la lista y, al lado, la ayuda o el contexto */
+.marco.tema .dos-columnas,
+.marco.tema .chat-con-ayuda {
+  display: grid;
+  gap: 20px;
+  align-items: start;
+}
+.marco.tema .columna-principal,
+.marco.tema .chat-centro {
+  min-width: 0;
+}
+@media (min-width: 1100px) {
+  .marco.tema .dos-columnas {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 24px;
+  }
+  .marco.tema .chat-con-ayuda {
+    grid-template-columns: minmax(0, 760px) 300px;
+    justify-content: center;
+    gap: 28px;
+  }
+  .marco.tema .chat-con-ayuda ~ *,
+  .marco.tema .panel:has(.chat-con-ayuda) > .encabezado-pagina,
+  .marco.tema .panel:has(.chat-con-ayuda) > p:has(> .volver) {
+    max-width: 1088px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .marco.tema .columna-lateral,
+  .marco.tema .chat-con-ayuda > aside {
+    position: sticky;
+    top: 56px;
+  }
+}
+@media (min-width: 900px) and (max-width: 1099px) {
+  .marco.tema .chat-centro {
+    max-width: 760px;
+    margin: 0 auto;
+    width: 100%;
+  }
+}
+.marco.tema .ayuda-lateral {
+  gap: 10px;
+}
+.marco.tema .ayuda-lateral h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.marco.tema .ayuda-lateral > .suave {
+  margin: 0;
+  font-size: 0.92rem;
+}
+.marco.tema .pasos-ayuda {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: paso;
+  display: grid;
+  gap: 10px;
+}
+.marco.tema .pasos-ayuda li {
+  counter-increment: paso;
+  position: relative;
+  padding-left: 36px;
+  color: var(--texto-2);
+  line-height: 1.45;
+}
+.marco.tema .pasos-ayuda li::before {
+  content: counter(paso);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--principal-claro, #e6f6f1);
+  color: #00735a;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.marco.tema ul.pasos-ayuda li::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  top: 8px;
+  left: 9px;
+  background: var(--principal);
+}
+.marco.tema .ayuda-lateral .fuentes {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+.marco.tema .ayuda-lateral .fuentes a {
+  padding: 10px 4px;
+  border-radius: 8px;
+}
+.marco.tema .ayuda-lateral .fuentes a:hover {
+  background: color-mix(in srgb, var(--principal) 6%, transparent);
+}
+.marco.tema main .fuentes {
+  border-radius: var(--radio-g);
+}
+
+/* Botón principal en computadora: el verde de WhatsApp un punto más oscuro para que la letra blanca
+   se lea (4,9 a 1; con #00a884 daba 3 a 1). En el teléfono ya va #0e7f42. */
+@media (min-width: 900px) {
+  .marco.tema :is(button.primario, .boton.primario, button.verde, .boton.verde) {
+    background: #008069;
+    border-color: #008069;
+    color: #fff;
+  }
+  .marco.tema :is(button.primario, .boton.primario, button.verde, .boton.verde):hover {
+    background: #006e5a;
+    border-color: #006e5a;
+  }
+}
+.marco.tema .columna-principal > .tarjeta + .tarjeta {
+  margin-top: 12px;
+}
+
+/* Cifras: ícono chico con el color de su tipo, número grande y qué es */
+.marco.tema main .cifras .cifra {
+  --acento: #00876a;
+  --acento-claro: #e3f4ee;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 4px;
+  min-height: 0;
+  padding: 14px 16px 14px;
+  border-radius: var(--radio-g);
+  background: #fff;
+  border: 1px solid var(--borde) !important;
+  box-shadow: var(--sombra-1) !important;
+  color: inherit;
+  text-decoration: none;
+}
+.marco.tema main .cifras .cifra::before {
+  display: none;
+}
+.marco.tema main .cifras .cifra[data-tono="azul"] {
+  --acento: #2f6f99;
+  --acento-claro: #e6eff7;
+}
+.marco.tema main .cifras .cifra[data-tono="morado"] {
+  --acento: #6b4fa0;
+  --acento-claro: #efe9f8;
+}
+.marco.tema main .cifras .cifra[data-tono="ambar"] {
+  --acento: #9a5b00;
+  --acento-claro: #fcf0da;
+}
+.marco.tema main .cifras .cifra[data-tono="rojo"] {
+  --acento: #b93e0c;
+  --acento-claro: #fde9df;
+  border-color: #f4c9b5 !important;
+}
+.marco.tema main .cifras .cifra .cifra-icono {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--acento-claro);
+  color: var(--acento);
+}
+.marco.tema main .cifras .cifra strong {
+  max-width: calc(100% - 40px);
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--titulo);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.marco.tema main .cifras .cifra[data-tono="rojo"] strong {
+  color: var(--acento);
+}
+.marco.tema main .cifras .cifra .suave {
+  font-size: 0.88rem;
+  line-height: 1.3;
+  color: var(--texto-2);
+}
+@media (max-width: 899px) {
+  .marco.tema main .cifras .cifra {
+    padding: 12px 12px 12px 14px;
+  }
+  .marco.tema main .cifras .cifra .cifra-icono {
+    top: 10px;
+    right: 10px;
+    width: 28px;
+    height: 28px;
+    border-radius: 9px;
+  }
+  .marco.tema main .cifras .cifra .cifra-icono svg {
+    width: 16px;
+    height: 16px;
+  }
+  .marco.tema main .cifras .cifra strong {
+    max-width: calc(100% - 32px);
+    font-size: 1.45rem;
+  }
+  .marco.tema main .cifras .cifra .suave {
+    font-size: 0.82rem;
+  }
+}
+@media (hover: hover) {
+  .marco.tema main .cifras a.cifra:hover {
+    box-shadow: var(--sombra-2) !important;
+    border-color: var(--borde-fuerte) !important;
+  }
+}
+
+/* Estados vacíos: ícono grande y suave, qué pasa y lo que sigue */
+.marco.tema .vacio-bloque {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin: 8px 0 16px;
+  padding: 32px 20px;
+  text-align: center;
+  background: #fff;
+  border: 1px dashed var(--borde-fuerte);
+  border-radius: var(--radio-g);
+}
+.marco.tema .vacio-bloque .vacio-icono {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  margin-bottom: 4px;
+  background: var(--principal-claro, #e6f6f1);
+  color: #00735a;
+}
+.marco.tema .vacio-bloque p {
+  margin: 0;
+}
+.marco.tema .vacio-bloque .vacio-titulo {
+  font-size: 1.08rem;
+  font-weight: 650;
+  color: var(--titulo);
+}
+.marco.tema .vacio-bloque .vacio-texto {
+  max-width: 46ch;
+  color: var(--texto-2);
+  line-height: 1.45;
+}
+.marco.tema .vacio-bloque .vacio-accion {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.marco.tema .vacio-bloque .vacio-accion > a:not(.boton) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 600;
+  color: #00735a;
+}
+.marco.tema .vacio-bloque.compacto {
+  padding: 20px 16px;
+  gap: 6px;
+}
+.marco.tema .vacio-bloque.compacto .vacio-icono {
+  width: 52px;
+  height: 52px;
+}
+.marco.tema .vacio-bloque.compacto .vacio-accion {
+  margin-top: 2px;
+}
+/* Dentro de una tarjeta, sin otra caja alrededor */
+.marco.tema .tarjeta .vacio-bloque {
+  margin: 4px 0 0;
+  border: 0;
+  background: color-mix(in srgb, var(--fondo-pagina) 60%, #fff);
+}
+.marco.tema .tablero-vacia {
+  margin: 4px 0 0;
+  padding: 14px 10px;
+  border: 1px dashed var(--borde-fuerte);
+  border-radius: 10px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--suave);
+}
+
+/* Más: en computadora, una cuadrícula de tarjetas con ícono y lo que hace cada una */
+@media (min-width: 900px) {
+  .marco.tema .panel:has(> .mas-grupos) {
+    display: block;
+  }
+  .marco.tema .mas-grupos {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .marco.tema .mas-grupos > ul.opciones {
+    display: contents;
+  }
+  .marco.tema .mas-grupos > ul.opciones > li {
+    border: 1px solid var(--borde) !important;
+    border-radius: var(--radio-g);
+    background: #fff;
+    box-shadow: var(--sombra-1);
+    overflow: hidden;
+    transition: box-shadow var(--rapido), border-color var(--rapido), transform var(--rapido);
+  }
+  .marco.tema .mas-grupos > ul.opciones > li:hover {
+    box-shadow: var(--sombra-2);
+    border-color: var(--borde-fuerte) !important;
+    transform: translateY(-1px);
+  }
+  .marco.tema .mas-grupos > ul.opciones a {
+    min-height: 96px;
+    padding: 18px;
+    align-items: flex-start;
+  }
+  .marco.tema .mas-grupos .opcion-icono {
+    width: 46px;
+    height: 46px;
+    background: var(--principal-claro, #e6f6f1);
+    color: #00735a;
+  }
+  .marco.tema .mas-grupos .opcion-texto .suave {
+    margin-top: 4px;
+  }
+  .marco.tema .mas-grupos .opcion-flecha {
+    align-self: center;
+  }
+  .marco.tema .panel:has(> .mas-grupos) > form.opciones,
+  .marco.tema .panel:has(> .mas-grupos) > ul.opciones {
+    max-width: 380px;
+  }
+}
+
+/* Revisar: en computadora, la tarjeta centrada y más ancha */
+@media (min-width: 900px) {
+  .marco.tema .panel:has(> .revisar) > .revisar-arriba,
+  .marco.tema .panel:has(> .revisar) > .revisar-encabezado,
+  .marco.tema .panel:has(> .revisar) > .aviso,
+  .marco.tema .panel:has(> .revisar) > .revisar {
+    max-width: 760px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+@media (max-width: 899px) {
+  .marco.tema .revisar-encabezado {
+    margin-bottom: 10px;
+  }
+  .marco.tema .revisar-encabezado .encabezado-texto > p.suave {
+    display: none;
+  }
+}
+
+/* Mis casas en el teléfono: el buscador medía 240 px de alto. En la barra en columna, la base de
+   240 px de su flex (pensada para ancho) se volvía alto y dejaba un hueco blanco a media lista. */
+@media (max-width: 899px) {
+  .marco.tema .casas-barra .casas-buscar {
+    flex: 0 0 auto;
+  }
+}
+
+/* Casa sin foto: un marcador cuidado que invita a subirlas */
+.marco.tema .casa-item-foto .sin-foto {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 4px;
+  width: 100%;
+  height: 100%;
+  padding: 8px;
+  text-align: center;
+  color: #00735a;
+  background:
+    linear-gradient(135deg, rgb(0 168 132 / 7%), rgb(0 168 132 / 14%)),
+    #f4f8f6;
+  box-shadow: inset 0 0 0 1.5px rgb(0 135 106 / 22%);
+  border-radius: inherit;
+}
+.marco.tema .casa-item-foto .sin-foto-texto {
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+/* Filas de chips que se deslizan: se desvanecen en el borde para que se note que hay más */
+@media (max-width: 899px) {
+  .marco.tema main .filtro-etapas,
+  .marco.tema main .casas-filtros,
+  .marco.tema main .rapidas,
+  .marco.tema main .etapas-selector,
+  .marco.tema .escribir-wa .rapidas {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);
+    padding-right: 32px;
+    scroll-snap-type: x proximity;
+    scroll-padding-left: 16px;
+  }
+  .marco.tema main .filtro-etapas > *,
+  .marco.tema main .rapidas > *,
+  .marco.tema main .etapas-selector > * {
+    scroll-snap-align: start;
+  }
+}
+
+/* Agenda, semana en el teléfono: unos cuatro días y medio a la vista, la columna de horas fija, los
+   días encajan al deslizar y el borde derecho se desvanece para que se vea que hay más. */
+@media (max-width: 899px) {
+  .marco.tema .cal.cal-semana {
+    scroll-snap-type: x proximity;
+    scroll-padding-left: 54px;
+    -webkit-mask-image: linear-gradient(to left, transparent 0, #000 28px);
+    mask-image: linear-gradient(to left, transparent 0, #000 28px);
+  }
+  .marco.tema .cal-semana .cal-cabecera,
+  .marco.tema .cal-semana .cal-cuerpo {
+    grid-template-columns: 54px repeat(7, minmax(68px, 1fr));
+    min-width: calc(54px + 7 * 68px);
+  }
+  .marco.tema .cal-semana .cal-cabecera > a,
+  .marco.tema .cal-semana .cal-cuerpo > .cal-columna {
+    scroll-snap-align: start;
+  }
+  .marco.tema .cal-semana .cal-cabecera > :first-child,
+  .marco.tema .cal-semana .cal-cuerpo > .cal-horas {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    background: #fff;
+    box-shadow: 1px 0 0 var(--borde);
+  }
+}
+
+/* Teléfono: que el botón de Patty no tape lo último de la página */
+@media (max-width: 899px) {
+  .marco.tema .panel:not(:has(.barra-chat)):not(:has(.patty-chat.pagina)) {
+    padding-bottom: calc(168px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Mientras carga: la forma de lo que viene, en gris suave */
+.marco.tema .esqueleto {
+  display: grid;
+  gap: 16px;
+}
+.marco.tema .esqueleto-encabezado {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.marco.tema .esqueleto-cifras {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.marco.tema .esqueleto-lista,
+.marco.tema .esqueleto-tarjetas {
+  display: grid;
+  gap: 10px;
+}
+@media (min-width: 900px) {
+  .marco.tema .esqueleto-cifras {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .marco.tema .esqueleto-tarjetas {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+  }
+}
+.marco.tema .hueso {
+  display: block;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #e6ebe8 0%, #f1f4f2 50%, #e6ebe8 100%);
+  background-size: 200% 100%;
+}
+.marco.tema .hueso.titulo {
+  width: min(260px, 60%);
+  height: 30px;
+}
+.marco.tema .hueso.linea {
+  width: min(380px, 80%);
+  height: 14px;
+}
+.marco.tema .hueso.cifra {
+  height: 84px;
+  border-radius: var(--radio-g);
+}
+.marco.tema .hueso.fila {
+  height: 76px;
+  border-radius: var(--radio-g);
+}
+.marco.tema .esqueleto-tarjetas .hueso.fila {
+  height: 140px;
+}
+.marco.tema .hueso.calendario {
+  height: 520px;
+  border-radius: var(--radio-g);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .marco.tema .hueso {
+    animation: hueso-brillo 1.4s ease-in-out infinite;
+  }
+}
+@keyframes hueso-brillo {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+/* Menos movimiento si el teléfono lo pide */
+@media (prefers-reduced-motion: reduce) {
+  .marco.tema *,
+  .marco.tema *::before,
+  .marco.tema *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+  .marco.tema main button:active,
+  .marco.tema main .boton:active,
+  .marco.tema .mas-grupos > ul.opciones > li:hover {
+    transform: none;
+  }
+}

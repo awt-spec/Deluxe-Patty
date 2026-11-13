@@ -998,6 +998,7 @@ export function ChatPatty({
 /** Botón flotante con el chat, en cada página del panel (menos donde ya hay otra caja de texto). */
 export function Patty({ nombre, corredor }: { nombre: string; corredor: string }) {
   const ruta = usePathname();
+  const router = useRouter();
   const [abierto, setAbierto] = useState(false);
   const [pendiente, setPendiente] = useState<string | null>(null);
   // En el teléfono el chat tapa la pantalla: mientras Patty guía, se cierra y queda el botón (y la respuesta, en
@@ -1014,7 +1015,14 @@ export function Patty({ nombre, corredor }: { nombre: string; corredor: string }
       }
       return false;
     },
-    () => setAbierto(true),
+    () => {
+      // Donde no hay chat flotante (un chat con un cliente, "Probar") se va a la pantalla de Patty, que guarda la
+      // conversación; en la propia pantalla de Patty el chat ya está a la vista.
+      const aqui = window.location.pathname;
+      if (aqui.startsWith("/panel/patty")) return;
+      if (aqui.startsWith("/panel/conversaciones/") || aqui.startsWith("/panel/probar")) return router.push("/panel/patty");
+      setAbierto(true);
+    },
   );
 
   useEffect(() => {
