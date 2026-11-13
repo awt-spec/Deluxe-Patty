@@ -142,6 +142,9 @@ export function escenaFoto(foto: FotoEscena, texto = "", duracion = 3): Escena {
   return { id: nuevoId("foto"), tipo: "foto", foto, texto: textoCorto(texto), duracion: limitar(duracion) };
 }
 
+/** Escena de datos nueva (el encabezado se puede cambiar; los datos los pone la ficha). */
+export const escenaDatos = (): Escena => ({ id: nuevoId("datos"), tipo: "datos", texto: "Lo que tiene", duracion: 4 });
+
 /** Guion sin IA: portada con la primera foto, una escena por cada otra foto, los datos y el cierre. */
 export function guionPorDefecto(fotos: FotoEscena[], datos: Pick<DatosVideo, "titulo">, max = 7): Escena[] {
   if (fotos.length === 0) return [];

@@ -311,3 +311,270 @@
   align-items: stretch;
   gap: 4px;
 }
+
+/* ---- "Pídeselo a …": chat del estudio --------------------------------------------------------------
+   Teléfono y tableta: barra fija abajo (sobre las pestañas de abajo) que se abre como hoja.
+   Computadora ancha: panel a la derecha del editor, siempre abierto. */
+
+.redes-con-chat {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+.redes-con-chat > :first-child {
+  min-width: 0;
+}
+
+.redes-chat {
+  --chat-abajo: calc(90px + env(safe-area-inset-bottom));
+  position: fixed;
+  left: 8px;
+  right: 8px;
+  bottom: var(--chat-abajo);
+  z-index: 9;
+}
+.redes-chat .redes-chat-barra {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  padding: 6px 14px 6px 6px;
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  background: var(--superficie, #fff);
+  color: var(--suave);
+  font-size: 1rem;
+  text-align: left;
+  box-shadow: 0 4px 18px rgb(0 0 0 / 18%);
+}
+.redes-chat-punto {
+  flex: 0 0 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--principal);
+  color: var(--onyx, #111);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.redes-chat-cuerpo {
+  display: none;
+}
+.redes-chat.abierto .redes-chat-barra.redes-chat-barra {
+  display: none;
+}
+.redes-chat.abierto .redes-chat-cuerpo {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  gap: 8px;
+  max-height: min(72vh, 560px);
+  padding: 10px;
+  border: 1px solid var(--borde);
+  border-radius: 18px;
+  background: var(--superficie, #fff);
+  box-shadow: 0 6px 28px rgb(0 0 0 / 24%);
+}
+.redes-chat-cabeza {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 2px;
+}
+.redes-chat-acciones {
+  display: flex;
+  gap: 6px;
+}
+.redes-chat-acciones .boton {
+  min-height: 40px;
+  padding: 6px 12px;
+}
+.redes-chat-turnos {
+  list-style: none;
+  margin: 0;
+  padding: 2px;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  overflow-y: auto;
+  min-height: 60px;
+  overscroll-behavior: contain;
+}
+.redes-chat-turno {
+  max-width: 88%;
+  padding: 8px 12px;
+  border-radius: 14px;
+  line-height: 1.35;
+}
+.redes-chat-turno p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+.redes-chat-turno.corredor {
+  justify-self: end;
+  background: color-mix(in srgb, var(--principal) 18%, var(--superficie, #fff));
+}
+.redes-chat-turno.asistente {
+  justify-self: start;
+  background: var(--superficie-alta, #f0f2f5);
+}
+.redes-chat-turno.error {
+  background: color-mix(in srgb, #d93025 12%, var(--superficie, #fff));
+}
+.redes-chat-turno.pensando {
+  opacity: 0.75;
+  font-style: italic;
+}
+.redes-chat-cambios {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+.redes-chat-ayuda {
+  font-size: 0.92rem;
+  line-height: 1.4;
+  color: var(--suave);
+  padding: 2px 4px;
+}
+.redes-chat-confirmar {
+  padding: 10px 12px;
+  border: 2px solid var(--principal);
+  border-radius: 14px;
+  background: var(--superficie, #fff);
+}
+.redes-chat-confirmar p {
+  margin: 0 0 6px;
+}
+.redes-chat-si-no {
+  display: flex;
+  gap: 8px;
+}
+.redes-chat-si-no .boton {
+  flex: 1;
+  min-height: 46px;
+}
+.redes-chat-fin {
+  height: 0;
+}
+.redes-chat-sugerencias {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+.redes-chat-sugerencias .chip {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 6px 12px;
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  background: var(--superficie, #fff);
+  font-size: 0.92rem;
+  white-space: nowrap;
+}
+.redes-chat-caja {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+.redes-chat-caja textarea {
+  flex: 1;
+  min-width: 0;
+  min-height: 48px;
+  max-height: 120px;
+  padding: 12px 14px;
+  border-radius: 24px;
+  resize: none;
+  font-size: 1rem;
+  field-sizing: content;
+}
+.redes-chat .redes-chat-mic,
+.redes-chat .redes-chat-enviar {
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  min-height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+.redes-chat .redes-chat-mic {
+  background: var(--superficie-alta, #f0f2f5);
+  color: var(--profundo, #111);
+}
+.redes-chat .redes-chat-mic.grabando {
+  background: #d93025;
+  color: #fff;
+}
+.redes-chat .redes-chat-enviar {
+  background: var(--ok, #00a884);
+  color: #fff;
+}
+.redes-chat-enviar:disabled,
+.redes-chat-mic:disabled {
+  opacity: 0.45;
+}
+
+/* Con la barra del chat, el botón flotante de Patty sobra en esta pantalla (teléfono y tableta). */
+@media (max-width: 1099px) {
+  body .marco.tema:has(.redes-chat) .patty-boton {
+    display: none;
+  }
+}
+
+/* Tableta o computadora angosta: el menú está a la izquierda, no abajo. */
+@media (min-width: 900px) and (max-width: 1099px) {
+  .redes-chat {
+    --chat-abajo: 16px;
+    left: calc(var(--lateral, 0px) + 16px);
+    right: 16px;
+  }
+}
+
+/* Computadora ancha: el chat es una columna a la derecha. */
+@media (min-width: 1100px) {
+  .redes-con-chat {
+    grid-template-columns: minmax(0, 1fr) 320px;
+    align-items: start;
+  }
+  .redes-chat {
+    position: sticky;
+    top: 76px;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    z-index: 1;
+  }
+  .redes-chat .redes-chat-barra,
+  .redes-chat .redes-chat-cerrar {
+    display: none;
+  }
+  .redes-chat .redes-chat-cuerpo,
+  .redes-chat.abierto .redes-chat-cuerpo {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    gap: 8px;
+    height: min(calc(100vh - 110px), 640px);
+    max-height: none;
+    padding: 12px;
+    border: 1px solid var(--borde);
+    border-radius: 18px;
+    background: var(--superficie, #fff);
+    box-shadow: 0 2px 12px rgb(0 0 0 / 8%);
+  }
+  .redes-chat-sugerencias {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+  /* El video tiene vista previa y escenas: con el chat al lado, una debajo de la otra hasta pantallas muy anchas. */
+  .redes-con-chat .redes-video-cuerpo {
+    grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+  }
+}

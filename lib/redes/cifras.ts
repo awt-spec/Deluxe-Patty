@@ -39,3 +39,13 @@ export function traeCifra(texto: string, cifra: number | string): boolean {
   const buscada = normalizarCifra(String(cifra));
   return encontradas(texto).some((c) => c.entera === buscada || c.partes.includes(buscada));
 }
+
+/**
+ * Las permitidas más las cifras que escribió el propio corredor en su pedido («agrégale que tiene 2 parqueos»):
+ * son su palabra, no un invento del modelo, así que se aceptan esas mismas cifras y ninguna otra.
+ */
+export function conCifrasDichas(permitidas: Set<string>, dichoPorCorredor: string | null | undefined): Set<string> {
+  const s = new Set(permitidas);
+  cifrasPermitidas(dichoPorCorredor).forEach((c) => s.add(c));
+  return s;
+}

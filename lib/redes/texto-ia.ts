@@ -1,5 +1,5 @@
 import type { Propiedad } from "../datos/tipos";
-import { cifrasInventadas, cifrasPermitidas, traeCifra } from "./cifras";
+import { cifrasInventadas, cifrasPermitidas, conCifrasDichas, traeCifra } from "./cifras";
 import { lineaContacto, precioCasa } from "./texto";
 
 // "Mejorar el texto con IA" de la imagen para redes. Claude reescribe el texto del corredor (que entra como
@@ -34,13 +34,24 @@ export const MOTIVO_CIFRAS =
  */
 export function revisarTextoIA(
   propuesto: string,
-  o: { ficha: string; anterior: string; casa: CasaTexto; contacto: Contacto; modo: ModoTexto },
+  o: {
+    ficha: string;
+    anterior: string;
+    casa: CasaTexto;
+    contacto: Contacto;
+    modo: ModoTexto;
+    /** Lo que pidió el corredor con sus palabras (chat): sus cifras se aceptan, las demás no. */
+    dichoPorCorredor?: string;
+  },
 ): RevisionTexto {
   let texto = propuesto.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
   if (!texto) return { ok: false, motivo: "La IA no devolvió texto. Inténtalo de nuevo." };
   if (texto.length > MAX_TEXTO_REDES + 200) return { ok: false, motivo: "La IA lo dejó demasiado largo. Inténtalo de nuevo." };
 
-  const permitidas = cifrasPermitidas(o.ficha, o.anterior, o.contacto.whatsapp, lineaContacto(o.casa, o.contacto), precioCasa(o.casa));
+  const permitidas = conCifrasDichas(
+    cifrasPermitidas(o.ficha, o.anterior, o.contacto.whatsapp, lineaContacto(o.casa, o.contacto), precioCasa(o.casa)),
+    o.dichoPorCorredor,
+  );
   if (cifrasInventadas(texto, permitidas).length > 0) return { ok: false, motivo: MOTIVO_CIFRAS };
 
   // Lo que nunca se pierde: el precio, el código de la casa y el contacto. Si faltan, el código los repone.

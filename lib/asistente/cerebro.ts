@@ -4,6 +4,7 @@ import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
 import type { Correccion, Corredor, FichaParcial, Intencion, Mensaje, Propiedad, PropiedadConFotos , Conocimiento } from "../datos/tipos";
 import type { AnuncioE24 } from "../encuentra24/parsear";
+import { OPS_IMAGEN, OPS_VIDEO, type OperacionCruda, type TurnoChat } from "../redes/chat";
 import { MODOS_TEXTO, type ModoTexto } from "../redes/texto-ia";
 import { crearClienteClaude } from "./cliente-claude";
 import { consumo, sumar as sumarConsumo, type Consumo } from "./costo";
@@ -153,6 +154,37 @@ export interface Cerebro {
     fotos: { id: string; nombre: string; url: string; ilustrativa: boolean }[],
     conImagenes: boolean,
   ): Promise<{ escenas: { foto: string; texto: string }[]; consumo: Consumo }>;
+  /**
+   * "Pídeselo a …" del estudio de redes (video o imagen): devuelve operaciones que el código valida y aplica, nunca
+   * ediciones directas. Opcional para que los dobles de prueba que no lo usan sigan sirviendo.
+   */
+  chatRedes?(corredor: Corredor, pedido: PedidoChatRedes, conImagenes: boolean): Promise<RespuestaChatRedes>;
+  /** "Pídeselo a …" en la pestaña Texto: reescribe el texto según lo que pidió el corredor con sus palabras. */
+  textoRedesPedido?(
+    corredor: Corredor,
+    ficha: string,
+    texto: string,
+    pedido: string,
+    historial: TurnoChat[],
+  ): Promise<{ texto: string; respuesta: string; consumo: Consumo }>;
+}
+
+export interface PedidoChatRedes {
+  pestana: "video" | "imagen";
+  ficha: string;
+  /** Lo que hay ahora (armado por el código). */
+  estado: string;
+  fotos: { id: string; nombre: string; url: string; ilustrativa: boolean }[];
+  historial: TurnoChat[];
+  pedido: string;
+}
+
+export interface RespuestaChatRedes {
+  respuesta: string;
+  operaciones: OperacionCruda[];
+  /** Pestaña Imagen: si la edición con IA que pide es permitida (quitar cosas sueltas o poner muebles). */
+  edicion: { permitido: boolean; razon: string | null; tipo: "quitar" | "amueblar" | "mejorar" | "ninguna" } | null;
+  consumo: Consumo;
 }
 
 /** El modelo se negó a responder (stop_reason "refusal"); el mensaje se pasa al corredor. */
@@ -244,6 +276,29 @@ const EsquemaTextoRedes = z.object({ texto: z.string() });
 const EsquemaGuion = z.object({
   escenas: z.array(z.object({ foto: z.string(), texto: z.string() })),
 });
+
+const EsquemaChatRedes = z.object({
+  respuesta: z.string(),
+  operaciones: z.array(
+    z.object({
+      op: z.enum([...OPS_VIDEO, ...OPS_IMAGEN]),
+      escena: z.string().nullable(),
+      posicion: z.number().int().nullable(),
+      foto: z.string().nullable(),
+      texto: z.string().nullable(),
+      segundos: z.number().nullable(),
+      valor: z.string().nullable(),
+    }),
+  ),
+  edicion: z
+    .object({ permitido: z.boolean(), razon: z.string().nullable(), tipo: z.enum(["quitar", "amueblar", "mejorar", "ninguna"]) })
+    .nullable(),
+});
+
+const EsquemaTextoPedido = z.object({ texto: z.string(), respuesta: z.string() });
+
+const conversacionRedes = (h: TurnoChat[]) =>
+  h.length ? h.map((t) => `${t.autor === "corredor" ? "Corredor" : "Asistente"}: ${comoDato(t.texto)}`).join("\n") : "(ninguna)";
 
 /** Texto de afuera (del corredor o de la ficha) que no puede cerrar la etiqueta ni abrir otras. */
 const comoDato = (t: string) => t.replace(/</g, "‹").replace(/>/g, "›");
@@ -734,6 +789,88 @@ export function crearCerebroClaude(client: Anthropic = crearClienteClaude()): Ce
       if (res.stop_reason === "refusal") throw new RechazoModelo(c);
       if (!res.parsed_output) throw new Error(`Guion sin salida (stop_reason ${res.stop_reason})`);
       return { escenas: res.parsed_output.escenas, consumo: c };
+    },
+
+    async chatRedes(corredor, p, conImagenes) {
+      // Video: Sonnet (también escribe textos de escena). Imagen: Haiku (entender qué foto y si se puede).
+      const modelo = p.pestana === "video" ? MODELO_REDACTAR : MODELO_CLASIFICAR;
+      const pedir = async (verFotos: boolean) => {
+        const fotos: Anthropic.Beta.BetaContentBlockParam[] = [{ type: "text", text: "<fotos>" }];
+        for (const f of p.fotos) {
+          fotos.push({ type: "text", text: `${f.id}: ${comoDato(f.nombre)}${f.ilustrativa ? " (ilustrativa, hecha con IA)" : ""}` });
+          if (verFotos) fotos.push({ type: "image", source: { type: "url", url: f.url } });
+        }
+        fotos.push({ type: "text", text: "</fotos>" });
+        return client.beta.messages.parse({
+          model: modelo,
+          max_tokens: 3000,
+          ...(modelo === MODELO_REDACTAR ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const } : {}),
+          output_config: { effort: "low", format: betaZodOutputFormat(EsquemaChatRedes) },
+          system: `${instruccion("redes-chat")}\n\n<corredor>\n${corredor.nombre_contacto}, de ${corredor.nombre}. Su asistente se llama ${corredor.nombre_asistente ?? "Patty"}.\n</corredor>`,
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: `<pestana>${p.pestana}</pestana>\n\n<ficha>\n${comoDato(p.ficha)}\n</ficha>` },
+                ...fotos,
+                {
+                  type: "text",
+                  text: [
+                    `<estado>\n${comoDato(p.estado)}\n</estado>`,
+                    `<conversacion>\n${conversacionRedes(p.historial)}\n</conversacion>`,
+                    `<pedido>\n${comoDato(p.pedido)}\n</pedido>`,
+                  ].join("\n\n"),
+                },
+              ],
+            },
+          ],
+        });
+      };
+      let res;
+      try {
+        res = await pedir(conImagenes && p.fotos.length > 0);
+      } catch (error) {
+        // Una foto que la API no puede descargar hace fallar todo el pedido: se reintenta solo con los nombres.
+        if (!conImagenes || !(error instanceof Anthropic.BadRequestError)) throw error;
+        res = await pedir(false);
+      }
+      const c = consumo(res.model, res.usage);
+      if (res.stop_reason === "refusal") throw new RechazoModelo(c);
+      if (!res.parsed_output) throw new Error(`Chat de redes sin salida (stop_reason ${res.stop_reason})`);
+      const o = res.parsed_output;
+      return { respuesta: o.respuesta.trim().slice(0, 600), operaciones: o.operaciones, edicion: o.edicion, consumo: c };
+    },
+
+    async textoRedesPedido(corredor, ficha, texto, pedido, historial) {
+      const res = await client.beta.messages.parse({
+        model: MODELO_REDACTAR,
+        max_tokens: 3000,
+        betas: ["server-side-fallback-2026-07-01"],
+        fallbacks: "default",
+        output_config: { effort: "low", format: betaZodOutputFormat(EsquemaTextoPedido) },
+        system: [
+          instruccion("redes-texto"),
+          instruccion("redes-chat"),
+          `<corredor>\n${corredor.nombre_contacto}, de ${corredor.nombre}.\n</corredor>`,
+          `<tono>\n${corredor.tono || "Cordial, cercano y profesional."}\n</tono>`,
+        ].join("\n\n"),
+        messages: [
+          {
+            role: "user",
+            content: [
+              "<pestana>texto</pestana>",
+              `<ficha>\n${comoDato(ficha)}\n</ficha>`,
+              `<texto_actual>\n${comoDato(texto)}\n</texto_actual>`,
+              `<conversacion>\n${conversacionRedes(historial)}\n</conversacion>`,
+              `<pedido>\n${comoDato(pedido)}\n</pedido>`,
+            ].join("\n\n"),
+          },
+        ],
+      });
+      const c = consumo(res.model, res.usage);
+      if (res.stop_reason === "refusal") throw new RechazoModelo(c);
+      if (!res.parsed_output) throw new Error(`Texto pedido sin salida (stop_reason ${res.stop_reason})`);
+      return { texto: res.parsed_output.texto, respuesta: res.parsed_output.respuesta.trim().slice(0, 600), consumo: c };
     },
   };
 }

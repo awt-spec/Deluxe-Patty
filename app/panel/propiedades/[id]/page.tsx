@@ -12,6 +12,8 @@ import { PreguntarPatty } from "../../preguntar-patty";
 import { Avatar } from "../../avatar";
 import { NOMBRE_ETAPA, encaja, telefonoBonito, type Busca, type Etapa } from "@/lib/crm/perfil";
 import { BotonEnviar } from "../../boton-enviar";
+import { ModoCorredor } from "./modo-corredor";
+import { enlaceModoCorredorDeCasa } from "@/lib/sitio/modo-corredor";
 import {
   cambiarEstado,
   generarFicha,
@@ -115,6 +117,7 @@ export default async function Propiedad({
   ].filter((d): d is { valor: string; nombre: string } => !!d);
   const principal = fotos[0];
   // Casa del sitio con la ubicación por confirmar: la marca y la misma pregunta que en Mis casas.
+  const enlaceCorredor = await enlaceModoCorredorDeCasa(supabase, corredor.id, { codigo: p.codigo, estado: p.estado });
   const [porUbicar] = await casasPorUbicar(supabase, corredor.id, [{ id: p.id, codigo: p.codigo, zona: p.zona }]);
 
   return (
@@ -193,6 +196,7 @@ export default async function Propiedad({
                 Imagen para redes
               </Link>
             )}
+            {enlaceCorredor && <ModoCorredor enlace={enlaceCorredor} titulo={p.titulo} />}
             {p.url_e24 && (
               <a href={p.url_e24} target="_blank" rel="noreferrer" className="boton">
                 Ver en Encuentra24

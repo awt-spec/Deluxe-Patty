@@ -241,3 +241,35 @@ export const IconoClip = (p: Props) => (
     <path d="m20.5 11.5-8.6 8.6a5 5 0 0 1-7.1-7.1l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l7.9-7.9" />
   </Icono>
 );
+
+/** Botón de la asistente en el menú: globo de chat con un destello. */
+export const IconoAsistente = (p: Props) => (
+  <Icono {...p}>
+    <path d="M17.5 13.5a7 7 0 0 1-10.2 6.2L3.5 21l1.2-3.8a7 7 0 1 1 12.8-3.7Z" />
+    <path d="M19 2.5 19.8 4.7 22 5.5l-2.2.8L19 8.5l-.8-2.2-2.2-.8 2.2-.8.8-2.2Z" />
+    <path d="M7.5 13.5h.01M10.5 13.5h.01M13.5 13.5h.01" strokeWidth={2.4} />
+  </Icono>
+);
+
+/** Contraer el menú: chevron hacia la izquierda (rotado, hacia la derecha para abrirlo). */
+export const IconoContraer = (p: Props) => (
+  <Icono {...p}>
+    <path d="m14.5 6-6 6 6 6" strokeWidth={2} />
+  </Icono>
+);
+
+/** Abrir el menú de la cuenta: dos chevrones (arriba y abajo). */
+export const IconoSelector = (p: Props) => (
+  <Icono {...p}>
+    <path d="m8 9.5 4-4 4 4M8 14.5l4 4 4-4" strokeWidth={1.8} />
+  </Icono>
+);
+
+/** Sitio, pantalla de la asistente: ventana con un globo. */
+export const IconoPantalla = (p: Props) => (
+  <Icono {...p}>
+    <rect x="3.5" y="4.5" width="17" height="13" rx="2" />
+    <path d="M8.5 20.5h7M12 17.5v3" />
+    <path d="M8 9.5h8M8 12.5h5" />
+  </Icono>
+);
