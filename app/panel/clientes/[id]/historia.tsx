@@ -6,6 +6,7 @@ import { ANOTAR, NOMBRE_ACTIVIDAD, type TipoActividad } from "@/lib/crm/activida
 import { Vacio } from "../../piezas";
 import { IconoAgenda, IconoChats, IconoCheck, IconoCorreo, IconoEnviar, IconoEstrella, IconoFlecha, IconoLapiz, IconoMas, IconoReloj, IconoTelefono } from "../../iconos";
 import { anotarActividad } from "../acciones";
+import { BotonesAnotar } from "./botones-anotar";
 import { agruparPorDia } from "./que-sigue";
 
 // Historia del cliente: lo que anotó el corredor, cambios de etapa, ofertas, visitas, correos y los días
@@ -166,13 +167,7 @@ export function Historia({
       <form action={anotarActividad} className="fc-anotar" id="anotar">
         <input type="hidden" name="id" value={contactoId} />
         <input name="texto" type="text" maxLength={500} placeholder="¿Qué pasó? Ej.: le gustó la casa pero quiere bajar el precio" aria-label="Qué pasó" />
-        <div className="fc-anotar-botones">
-          {ANOTAR.map((a) => (
-            <button key={a.tipo} type="submit" name="tipo" value={a.tipo} className={a.tipo === "llamada" ? "primario" : undefined}>
-              {a.nombre}
-            </button>
-          ))}
-        </div>
+        <BotonesAnotar botones={ANOTAR.map((a) => ({ tipo: a.tipo, nombre: a.nombre }))} />
       </form>
       {eventos.length === 0 ? (
         <Vacio Icono={IconoReloj} titulo="Todavía no hay nada" compacto>

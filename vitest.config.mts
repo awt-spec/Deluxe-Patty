@@ -18,6 +18,9 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["lib/**", "app/**/*.ts"],
+      // dibujo.ts pinta el video en un <canvas> y graba con MediaRecorder: solo corre en el navegador. Sus reglas
+      // (escenas, tiempos, estilos) están en lib/redes/ y esas sí se prueban.
+      exclude: ["app/panel/propiedades/[[]id]/redes/dibujo.ts"],
       reporter: ["text-summary", "json-summary"],
       reportsDirectory: ".salud/cobertura",
       thresholds: { statements: 48, branches: 40, functions: 47, lines: 50 },

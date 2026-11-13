@@ -48,6 +48,28 @@ beforeEach(() => {
 
 const escrituras = () => [...estado.sesion!.supabase.escrituras, ...estado.admin.escrituras];
 
+describe("Clientes: anotar en la Historia", () => {
+  const anotaciones = () => estado.admin.tablas.actividades ?? [];
+
+  it("un doble toque idéntico crea una sola anotación", async () => {
+    await redirigeA(clientes.anotarActividad(formulario({ id: ID.cliente, tipo: "llamada" })));
+    await redirigeA(clientes.anotarActividad(formulario({ id: ID.cliente, tipo: "llamada" })));
+    expect(anotaciones()).toHaveLength(1);
+    expect(anotaciones()[0]).toMatchObject({ corredor_id: ID.deluxe, contacto_id: ID.cliente, tipo: "llamada" });
+  });
+
+  it("otro tipo o texto distinto sí se anota", async () => {
+    await redirigeA(clientes.anotarActividad(formulario({ id: ID.cliente, tipo: "llamada" })));
+    await redirigeA(clientes.anotarActividad(formulario({ id: ID.cliente, tipo: "mensaje" })));
+    expect(anotaciones()).toHaveLength(2);
+  });
+
+  it("con un cliente de otro corredor no escribe nada", async () => {
+    await redirigeA(clientes.anotarActividad(formulario({ id: ID.clienteAjeno, tipo: "llamada" })));
+    expect(escrituras()).toEqual([]);
+  });
+});
+
 describe("Clientes: solo los del propio corredor", () => {
   it("cambiar la etapa de un cliente ajeno no escribe nada", async () => {
     await redirigeA(clientes.cambiarEtapa(formulario({ id: ID.clienteAjeno, etapa: "perdido" })));

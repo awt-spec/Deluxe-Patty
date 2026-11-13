@@ -68,6 +68,7 @@ export default async function Redes({ params, searchParams }: { params: Promise<
           colores={marca?.colores ?? MARCA_NEUTRA}
           fondoLogo={marca?.fondoLogo ?? marca?.colores.profundo ?? MARCA_NEUTRA.profundo}
           logo={logo}
+          conMarca={!!marca}
           sinMejorar={sinMejorar}
           pestana={PESTANAS.includes(ver as Pestana) ? (ver as Pestana) : "imagen"}
         />

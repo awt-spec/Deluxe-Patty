@@ -26,6 +26,8 @@ export interface DatosEstudio {
   colores: Colores;
   fondoLogo: string;
   logo: string | null;
+  /** Si el corredor tiene marca propia (si no, el video usa colores neutros y el estilo Moderno). */
+  conMarca: boolean;
   /** null si se puede mejorar fotos con IA; si no, por qué. */
   sinMejorar: string | null;
   pestana: Pestana;

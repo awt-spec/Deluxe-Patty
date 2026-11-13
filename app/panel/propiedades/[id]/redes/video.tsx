@@ -19,13 +19,16 @@ import {
   type Escena,
   type FormatoVideo,
 } from "@/lib/redes/video";
+import { COLORES_NEUTROS, ESTILOS_LISTA, ESTILOS_VIDEO, cifrasFueraDeFicha, coloresDelVideo, estiloPorDefecto, type EstiloVideo } from "@/lib/redes/estilo-video";
 import { proponerGuionVideo } from "./acciones";
-import { cargarFoto, dibujarCuadro, formatoDeGrabacion, grabarVideo, type Recursos } from "./dibujo";
+import { MUSICA_MAX_MB, cargarFoto, dibujarCuadro, formatoDeGrabacion, grabarVideo, prepararFuentes, revisarMusica, type Recursos } from "./dibujo";
 import type { DatosEstudio } from "./estudio";
 
 // Editor del video para redes: escenas en orden (portada, fotos, datos y cierre), texto y duración de cada
 // una, formato, vista previa en el lienzo y "Descargar video". Todo pasa en el teléfono: las fotos son las
-// reales de la casa y el video se graba del lienzo con MediaRecorder. La IA solo propone el guion.
+// reales de la casa y el video se graba del lienzo con MediaRecorder. La IA solo propone el guion. Tres estilos
+// (Elegante, Moderno, Limpio) con miniatura de su portada, y música opcional: un archivo del corredor que se
+// mezcla en el teléfono (no se sube ni se guarda).
 
 const NOMBRE: Record<Escena["tipo"], string> = { portada: "Portada", foto: "Foto", datos: "Datos de la casa", cierre: "Cierre" };
 const AYUDA: Record<Escena["tipo"], string> = {
@@ -57,6 +60,10 @@ export function EditorVideo(d: DatosEstudio) {
   const [pensando, setPensando] = useState(false);
   const [cargando, setCargando] = useState(true);
   const [agregando, setAgregando] = useState(false);
+  const [estilo, setEstilo] = useState<EstiloVideo>(() => estiloPorDefecto(d.conMarca));
+  const [musica, setMusica] = useState<{ archivo: File; nombre: string; duracion: number } | null>(null);
+  const [leyendoMusica, setLeyendoMusica] = useState(false);
+  const miniaturas = useRef(new Map<EstiloVideo, HTMLCanvasElement>());
 
   const lienzo = useRef<HTMLCanvasElement>(null);
   const fotos = useRef(new Map<string, HTMLImageElement>());
@@ -66,9 +73,12 @@ export function EditorVideo(d: DatosEstudio) {
 
   const total = duracionTotal(escenas);
   const { ancho, alto } = FORMATOS_VIDEO[formato];
+  // Sin marca propia: colores neutros (no el verde del panel).
+  const colores = useMemo(() => coloresDelVideo(d.conMarca, d.colores), [d.conMarca, d.colores]);
+  const fondoLogo = d.conMarca ? d.fondoLogo : COLORES_NEUTROS.profundo;
   const recursos = useCallback(
-    (): Recursos => ({ fotos: fotos.current, logo: logo.current, colores: d.colores, fondoLogo: d.fondoLogo }),
-    [d.colores, d.fondoLogo],
+    (e: EstiloVideo = estilo): Recursos => ({ fotos: fotos.current, logo: logo.current, colores, fondoLogo, estilo: e }),
+    [colores, fondoLogo, estilo],
   );
   const pintar = useCallback(
     (t: number) => {
@@ -86,9 +96,7 @@ export function EditorVideo(d: DatosEstudio) {
     (async () => {
       setCargando(true);
       await Promise.all([
-        document.fonts?.load(`500 60px "Playfair Display"`).catch(() => null),
-        document.fonts?.load(`600 60px Inter`).catch(() => null),
-        document.fonts?.load(`700 60px Inter`).catch(() => null),
+        prepararFuentes(),
         ...faltan.map((u) =>
           cargarFoto(u, alterna(u))
             .then((img) => fotos.current.set(u, img))
@@ -109,8 +117,19 @@ export function EditorVideo(d: DatosEstudio) {
 
   // Cuadro quieto cuando no se reproduce.
   useEffect(() => {
-    if (!reproduciendo && grabando === null) pintar(Math.min(tiempo, total));
-  }, [pintar, tiempo, total, reproduciendo, grabando, cargando, formato]);
+    // Quieto al principio, se muestra la portada ya con su título (no el primer cuadro, todavía sin texto).
+    if (!reproduciendo && grabando === null) pintar(tiempo === 0 && escenas[0] ? Math.min(2.6, escenas[0].duracion - 0.4) : Math.min(tiempo, total));
+  }, [pintar, tiempo, total, reproduciendo, grabando, cargando, formato, escenas]);
+
+  // Miniatura de cada estilo: la portada de este video en ese estilo, ya con el título puesto.
+  useEffect(() => {
+    if (cargando || escenas.length === 0) return;
+    const t = Math.min(2.6, escenas[0].duracion - 0.4);
+    for (const e of ESTILOS_LISTA) {
+      const ctx = miniaturas.current.get(e)?.getContext("2d");
+      if (ctx) dibujarCuadro(ctx, escenas, d.datosVideo, recursos(e), t);
+    }
+  }, [cargando, escenas, formato, d.datosVideo, recursos]);
 
   // Vista previa: se reproduce en el lienzo.
   useEffect(() => {
@@ -175,7 +194,7 @@ export function EditorVideo(d: DatosEstudio) {
     cancelar.current = false;
     setGrabando(0);
     try {
-      const r = await grabarVideo(lienzo.current, total, pintar, { alAvanzar: setGrabando, cancelado: () => cancelar.current });
+      const r = await grabarVideo(lienzo.current, total, pintar, { alAvanzar: setGrabando, cancelado: () => cancelar.current, musica: musica?.archivo ?? null });
       const nombre = `${d.codigo}-video-${formato}.${r.extension}`;
       const url = URL.createObjectURL(r.archivo);
       setArchivo({ url, extension: r.extension, nombre, h264: r.h264 });
@@ -184,11 +203,32 @@ export function EditorVideo(d: DatosEstudio) {
       a.download = nombre;
       a.click();
     } catch (e) {
-      if (!(e instanceof Error && e.message === "cancelado")) setAviso({ texto: "No se pudo grabar el video en este navegador. Prueba en Chrome o Safari actualizados.", error: true });
+      if (e instanceof Error && e.message === "musica_invalida")
+        setAviso({ texto: "No se pudo leer la canción. Prueba con otro archivo MP3 o M4A, o quítala.", error: true });
+      else if (!(e instanceof Error && e.message === "cancelado"))
+        setAviso({ texto: "No se pudo grabar el video en este navegador. Prueba en Chrome o Safari actualizados.", error: true });
     } finally {
       setGrabando(null);
       setTiempo(0);
     }
+  };
+
+  const elegirMusica = async (archivo: File | undefined) => {
+    if (!archivo) return;
+    setAviso(null);
+    if (archivo.size > MUSICA_MAX_MB * 1024 * 1024) {
+      setAviso({ texto: `Esa canción pesa mucho (más de ${MUSICA_MAX_MB} MB). Prueba con otra.`, error: true });
+      return;
+    }
+    setLeyendoMusica(true);
+    const duracion = await revisarMusica(archivo).catch(() => null);
+    setLeyendoMusica(false);
+    if (duracion === null) {
+      setAviso({ texto: "No se pudo leer esa canción. Prueba con un archivo MP3 o M4A.", error: true });
+      return;
+    }
+    setMusica({ archivo, nombre: archivo.name, duracion });
+    setArchivo(null);
   };
 
   if (reales.length === 0 && d.opciones.length === 0) return null;
@@ -196,10 +236,36 @@ export function EditorVideo(d: DatosEstudio) {
 
   return (
     <div className="redes-video pila">
-      <p className="suave">
-        Un video corto con las fotos reales de la casa. Ordena las escenas, cambia los textos y descárgalo. Sin música: agrégala en
-        Instagram o TikTok.
-      </p>
+      <p className="suave">Un video corto con las fotos reales de la casa. Elige un estilo, ordena las escenas, cambia los textos y descárgalo.</p>
+
+      <div className="redes-estilos" role="radiogroup" aria-label="Estilo del video" data-patty="redes-video-estilo">
+        {ESTILOS_LISTA.map((e) => (
+          <label key={e} className={`redes-estilo ${estilo === e ? "elegido" : ""}`}>
+            <input
+              type="radio"
+              name="estilo-video"
+              checked={estilo === e}
+              disabled={ocupado}
+              onChange={() => {
+                setEstilo(e);
+                setArchivo(null);
+              }}
+            />
+            <canvas
+              ref={(c) => {
+                if (c) miniaturas.current.set(e, c);
+                else miniaturas.current.delete(e);
+              }}
+              width={216}
+              height={formato === "vertical" ? 384 : 216}
+              className={formato}
+              aria-hidden="true"
+            />
+            <span className="redes-estilo-nombre">{ESTILOS_VIDEO[e].nombre}</span>
+            <span className="redes-estilo-desc">{ESTILOS_VIDEO[e].descripcion}</span>
+          </label>
+        ))}
+      </div>
 
       <div className="redes-formato" role="radiogroup" aria-label="Formato del video" data-patty="redes-video-formato">
         {(Object.keys(FORMATOS_VIDEO) as FormatoVideo[]).map((f) => (
@@ -217,6 +283,36 @@ export function EditorVideo(d: DatosEstudio) {
             {FORMATOS_VIDEO[f].nombre}
           </label>
         ))}
+      </div>
+
+      <div className="redes-musica pila" data-patty="redes-video-musica">
+        {musica ? (
+          <p className="aviso" role="status">
+            Música: <strong>{musica.nombre}</strong>
+            {musica.duracion < total ? " (se repite hasta el final)" : " (se recorta al largo del video)"}. Entra y sale suave.{" "}
+            <button type="button" className="boton" onClick={() => (setMusica(null), setArchivo(null))} disabled={ocupado}>
+              Quitar música
+            </button>
+          </p>
+        ) : (
+          <label className={`boton grande redes-musica-boton ${ocupado || leyendoMusica ? "apagado" : ""}`}>
+            {leyendoMusica ? "Leyendo la canción…" : "Agregar música (un archivo tuyo)"}
+            <input
+              type="file"
+              accept="audio/mpeg,audio/mp4,audio/x-m4a,audio/aac,audio/wav,.mp3,.m4a,.aac,.wav"
+              disabled={ocupado || leyendoMusica}
+              onChange={(ev) => {
+                void elegirMusica(ev.target.files?.[0]);
+                ev.target.value = "";
+              }}
+            />
+          </label>
+        )}
+        <p className="suave">
+          {musica
+            ? "La canción se mezcla aquí en tu teléfono: no se sube a ningún lado. Usa música que tengas derecho a usar."
+            : "Sin música el video sale en silencio: puedes ponerle música después en Instagram o TikTok."}
+        </p>
       </div>
 
       <div className="redes-video-cuerpo">
@@ -316,6 +412,9 @@ export function EditorVideo(d: DatosEstudio) {
                     {i + 1}. {NOMBRE[e.tipo]}
                     {e.foto?.ilustrativa && <span className="redes-ilustrativa">Imagen ilustrativa</span>}
                   </p>
+                  {cifrasFueraDeFicha(e.texto, d.datosVideo).length > 0 && (
+                    <p className="aviso error redes-escena-aviso">Ese número no está en la ficha de la casa: este texto no saldrá en el video.</p>
+                  )}
                   <input
                     value={e.texto}
                     maxLength={MAX_TEXTO_ESCENA}

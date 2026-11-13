@@ -1,5 +1,5 @@
 import type { Propiedad } from "../datos/tipos";
-import { cifrasInventadas } from "./cifras";
+import { cifrasInventadas, cifrasPermitidas } from "./cifras";
 import { datosCortos, etiquetaCasa, precioCasa } from "./texto";
 
 // Video corto para redes armado con las fotos reales de la casa (sin IA que genere video: inventaría
@@ -19,8 +19,6 @@ export const DURACION_MAX = 6;
 export const TOTAL_MAX = 45;
 export const MAX_TEXTO_ESCENA = 60;
 export const MAX_FOTOS_VIDEO = 12;
-/** Segundos del fundido con la escena anterior. */
-export const FUNDIDO = 0.6;
 
 export type TipoEscena = "portada" | "foto" | "datos" | "cierre";
 
@@ -45,11 +43,44 @@ export interface DatosVideo {
   etiqueta: string;
   precio: string | null;
   operacion: string;
+  /** "En venta" o "En alquiler". */
+  operacionCorta: string;
+  /** Zona o cantón, para la portada (con el ícono de ubicación). */
+  lugar: string | null;
   datos: string[];
+  /** Los mismos datos con su cifra, para la escena de datos (íconos y números que cuentan). Solo lo que trae la ficha. */
+  cifras: DatoCifra[];
   extras: string[];
   codigo: string;
   contacto: string | null;
   nombreCorredor: string;
+  /** Cifras que pueden salir en el video: las de la ficha, el contacto y el código. */
+  permitidas: string[];
+}
+
+export type IconoDato = "cuartos" | "banos" | "construccion" | "terreno";
+
+export interface DatoCifra {
+  icono: IconoDato;
+  valor: number;
+  decimales: 0 | 1;
+  /** "m²" o vacío. */
+  unidad: string;
+  etiqueta: string;
+}
+
+/** Cada dato con cifra que trae la ficha (y ninguno que no traiga). */
+export function cifrasDeCasa(p: Pick<CasaVideo, "habitaciones" | "banos" | "m2_construccion" | "m2_terreno">): DatoCifra[] {
+  const n = (v: number | null | undefined) => (v === null || v === undefined || !Number.isFinite(Number(v)) || Number(v) <= 0 ? null : Number(v));
+  const lista: (DatoCifra | null)[] = [
+    n(p.habitaciones) ? { icono: "cuartos", valor: n(p.habitaciones)!, decimales: 0, unidad: "", etiqueta: n(p.habitaciones) === 1 ? "Habitación" : "Habitaciones" } : null,
+    n(p.banos)
+      ? { icono: "banos", valor: n(p.banos)!, decimales: Number.isInteger(n(p.banos)) ? 0 : 1, unidad: "", etiqueta: n(p.banos) === 1 ? "Baño" : "Baños" }
+      : null,
+    n(p.m2_construccion) ? { icono: "construccion", valor: n(p.m2_construccion)!, decimales: 0, unidad: "m²", etiqueta: "Construcción" } : null,
+    n(p.m2_terreno) ? { icono: "terreno", valor: n(p.m2_terreno)!, decimales: 0, unidad: "m²", etiqueta: "Terreno" } : null,
+  ];
+  return lista.filter((x): x is DatoCifra => !!x);
 }
 
 type CasaVideo = Pick<
@@ -60,16 +91,37 @@ type CasaVideo = Pick<
 export function datosDelVideo(p: CasaVideo, contacto: string | null, nombreCorredor: string): DatosVideo {
   const datos = datosCortos(p);
   if (p.m2_construccion && p.m2_terreno) datos.push(`${Number(p.m2_terreno).toLocaleString("es-CR")} m² de terreno`);
+  const extras = (p.amenidades ?? []).slice(0, 4);
+  const precio = precioCasa(p);
+  const cifras = cifrasDeCasa(p);
   return {
     titulo: p.titulo,
     etiqueta: etiquetaCasa(p),
-    precio: precioCasa(p),
+    precio,
     operacion: p.operacion === "alquiler" ? "EN ALQUILER" : "EN VENTA",
+    operacionCorta: p.operacion === "alquiler" ? "En alquiler" : "En venta",
+    lugar: p.zona ?? p.canton ?? null,
     datos,
-    extras: (p.amenidades ?? []).slice(0, 4),
+    cifras,
+    extras,
     codigo: p.codigo,
     contacto,
     nombreCorredor,
+    permitidas: [
+      ...cifrasPermitidas(
+        p.titulo,
+        precio,
+        p.precio === null || p.precio === undefined ? null : String(p.precio),
+        ...datos,
+        ...cifras.map((c) => String(c.valor)),
+        ...extras,
+        p.codigo,
+        contacto,
+        nombreCorredor,
+        p.zona,
+        p.canton,
+      ),
+    ],
   };
 }
 

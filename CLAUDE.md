@@ -23,7 +23,10 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   foto con IA" usa `mejorarFotos(…, soloUrl)`), Texto editable con IA (`mejorarTextoRedes`, `cerebro.textoRedes`,
   `prompts/redes-texto.md`) y **Video**, que se arma en el navegador con canvas + MediaRecorder (`dibujo.ts`,
   `lib/redes/video.ts`) con las fotos reales: portada, fotos (zoom lento y fundido), datos y cierre con la marca; 9:16 o
-  1:1, hasta 45 s, sin audio; prefiere MP4 H.264 y si no cae a WebM. La IA solo propone el guion (`proponerGuionVideo`,
+  1:1, hasta 45 s; prefiere MP4 H.264 y si no cae a WebM. Tiene 3 estilos (Elegante, Moderno, Limpio; reglas puras en
+  `lib/redes/estilo-video.ts`: foto por proporción —llena, paneo o completa sobre su fondo desenfocado—, transiciones,
+  zonas seguras 14 %/20 %), datos con íconos y cifras de la ficha, y música opcional del corredor (archivo propio,
+  mezclado en el teléfono; no se sube ni se guarda). La IA solo propone el guion (`proponerGuionVideo`,
   `prompts/redes-video.md`: orden de fotos por id y textos de hasta 60 caracteres); precio y datos los escribe el código.
   `lib/redes/cifras.ts` descarta lo que traiga cifras fuera de la ficha y repone precio, código y contacto; en la demo la
   respuesta es simulada. Las fotos para el canvas se cargan con CORS y, si no, por `redes/foto?img=` (solo fotos de esa casa).

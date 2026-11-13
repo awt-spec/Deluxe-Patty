@@ -184,7 +184,23 @@ export async function anotarActividad(f: FormData) {
   const tipo = texto(f, "tipo") as TipoActividad;
   if (!["llamada", "mensaje", "visita", "nota"].includes(tipo)) volverA(id, "Elige qué pasó.");
   const nota = texto(f, "texto");
-  const ok = await anotar(createAdminClient(), corredor.id, id, tipo, nota || POR_DEFECTO[tipo] || "");
+  const admin = createAdminClient();
+  const cuerpo = (nota || POR_DEFECTO[tipo] || "").trim().slice(0, 500);
+  // Un doble toque no crea dos anotaciones: la misma (cliente, tipo y texto) de hace menos de 10 s se ignora.
+  if (cuerpo) {
+    const { data: repetida } = await admin
+      .from("actividades")
+      .select("id")
+      .eq("corredor_id", corredor.id)
+      .eq("contacto_id", id)
+      .eq("tipo", tipo)
+      .eq("texto", cuerpo)
+      .eq("autor", "corredor")
+      .gte("created_at", new Date(Date.now() - 10_000).toISOString())
+      .limit(1);
+    if (repetida && repetida.length > 0) volverA(id, "Anotado.");
+  }
+  const ok = await anotar(admin, corredor.id, id, tipo, cuerpo);
   volverA(id, ok ? "Anotado." : "Escribe qué pasó.");
 }
 
