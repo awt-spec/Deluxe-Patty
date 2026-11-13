@@ -13,16 +13,16 @@ export async function apartar(
 ): Promise<{ ok: true; texto: string } | { ok: false; texto: string }> {
   if (pedido.fin <= ahora) return { ok: false, texto: `Ese rato (${describirBloqueo(pedido)}) ya pasó.` };
   const { citas, bloqueos } = await repo.datosAgenda(corredorId, pedido.inicio, pedido.fin);
-  // Si ya estaba bloqueado entero (lo pidió dos veces), no se repite.
+  // Si ya estaba apartado entero (lo pidió dos veces), no se repite.
   if (bloqueos.some((b) => b.inicio <= pedido.inicio && b.fin >= pedido.fin)) {
-    return { ok: true, texto: `Eso ya estaba bloqueado: ${describirBloqueo(pedido)} no se agendan visitas.` };
+    return { ok: true, texto: `Eso ya estaba apartado: ${describirBloqueo(pedido)} no se agendan visitas.` };
   }
   await repo.crearBloqueo(corredorId, pedido.inicio, pedido.fin, pedido.motivo);
   const encima = citas.filter((c) => c.inicio < pedido.fin && c.fin > pedido.inicio).length;
   return {
     ok: true,
     texto:
-      `Listo, bloqueé ${describirBloqueo(pedido)}${pedido.motivo ? ` (${pedido.motivo})` : ""}: no voy a agendar visitas ahí.` +
+      `Listo, aparté ${describirBloqueo(pedido)}${pedido.motivo ? ` (${pedido.motivo})` : ""}: no voy a agendar visitas ahí.` +
       (encima ? ` Ojo: ya tenías ${encima} ${encima === 1 ? "visita" : "visitas"} en ese rato; siguen en pie, revísalas en la Agenda.` : ""),
   };
 }

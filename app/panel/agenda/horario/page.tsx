@@ -205,9 +205,9 @@ export default async function Horario({
       </details>
 
       <details>
-        <summary>Bloquear varios días o unas horas</summary>
+        <summary>Apartar varios días o unas horas</summary>
         <form action={agregarBloqueo} className="pila tarjeta">
-          <h3>Bloquear fechas</h3>
+          <h3>Apartar fechas</h3>
           <div className="fila campos">
             <div className="pila" style={{ flex: 1 }}>
               <label htmlFor="fecha_desde">Desde el</label>

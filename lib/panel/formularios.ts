@@ -1,4 +1,5 @@
 import { aUtc, minutosDe, type FechaLocal } from "../agenda/tiempo";
+import { zonaParaGuardar } from "../sitio/ubicacion";
 import type { Foto } from "../datos/tipos";
 
 // Lectura y validación de los formularios del panel. Funciones puras: las server actions solo guardan
@@ -125,7 +126,8 @@ export function leerPropiedad(f: Campos): Validado<DatosPropiedad> {
       provincia: opcional(f, "provincia"),
       canton: opcional(f, "canton"),
       distrito: opcional(f, "distrito"),
-      zona: opcional(f, "zona"),
+      // La zona se escribe como en la lista ("escazu" → "Escazú"); sin zona, la más precisa de cantón y distrito.
+      zona: zonaParaGuardar({ zona: opcional(f, "zona"), canton: opcional(f, "canton"), distrito: opcional(f, "distrito"), titulo }),
       habitaciones: numeros.habitaciones,
       banos: numeros.banos,
       m2_construccion: numeros.m2_construccion,

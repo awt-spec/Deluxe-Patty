@@ -4,6 +4,7 @@ import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
 import type { Correccion, Corredor, FichaParcial, Intencion, Mensaje, Propiedad, PropiedadConFotos , Conocimiento } from "../datos/tipos";
 import type { AnuncioE24 } from "../encuentra24/parsear";
+import { MODOS_TEXTO, type ModoTexto } from "../redes/texto-ia";
 import { crearClienteClaude } from "./cliente-claude";
 import { consumo, sumar as sumarConsumo, type Consumo } from "./costo";
 import { instruccion } from "./instrucciones";
@@ -143,6 +144,15 @@ export interface Cerebro {
     historial: Mensaje[],
     mensaje: string,
   ): Promise<DecisionAgenda>;
+  /** Imagen para redes: reescribe el texto de la publicación con los datos de la ficha (el código revisa las cifras). */
+  textoRedes(corredor: Corredor, ficha: string, texto: string, modo: ModoTexto): Promise<{ texto: string; consumo: Consumo }>;
+  /** Video para redes: orden de fotos (por id corto) y un texto corto por foto. El precio y los datos los pone el código. */
+  guionVideo(
+    corredor: Corredor,
+    ficha: string,
+    fotos: { id: string; nombre: string; url: string; ilustrativa: boolean }[],
+    conImagenes: boolean,
+  ): Promise<{ escenas: { foto: string; texto: string }[]; consumo: Consumo }>;
 }
 
 /** El modelo se negó a responder (stop_reason "refusal"); el mensaje se pasa al corredor. */
@@ -228,6 +238,15 @@ const EsquemaAgenda = z.object({
   avisar_corredor: z.boolean(),
   motivo_aviso: z.string().nullable(),
 });
+
+const EsquemaTextoRedes = z.object({ texto: z.string() });
+
+const EsquemaGuion = z.object({
+  escenas: z.array(z.object({ foto: z.string(), texto: z.string() })),
+});
+
+/** Texto de afuera (del corredor o de la ficha) que no puede cerrar la etiqueta ni abrir otras. */
+const comoDato = (t: string) => t.replace(/</g, "‹").replace(/>/g, "›");
 
 /** Con quién habla la asistente: un cliente o el propio corredor. */
 type Interlocutor = "cliente" | "corredor";
@@ -654,6 +673,67 @@ export function crearCerebroClaude(client: Anthropic = crearClienteClaude()): Ce
         avisarCorredor: o.avisar_corredor ? o.motivo_aviso?.trim() || "Revisar conversación" : null,
         consumo: c,
       };
+    },
+
+    async textoRedes(corredor, ficha, texto, modo) {
+      const res = await client.beta.messages.parse({
+        model: MODELO_REDACTAR,
+        max_tokens: 3000,
+        betas: ["server-side-fallback-2026-07-01"],
+        fallbacks: "default",
+        output_config: { effort: "low", format: betaZodOutputFormat(EsquemaTextoRedes) },
+        system: [
+          instruccion("redes-texto"),
+          `<corredor>\n${corredor.nombre_contacto}, de ${corredor.nombre}.\n</corredor>`,
+          `<tono>\n${corredor.tono || "Cordial, cercano y profesional."}\n</tono>`,
+        ].join("\n\n"),
+        messages: [
+          {
+            role: "user",
+            content: [
+              `<ficha>\n${comoDato(ficha)}\n</ficha>`,
+              `<texto_actual>\n${comoDato(texto)}\n</texto_actual>`,
+              `<pedido>\n${MODOS_TEXTO[modo].pedido}\n</pedido>`,
+            ].join("\n\n"),
+          },
+        ],
+      });
+      const c = consumo(res.model, res.usage);
+      if (res.stop_reason === "refusal") throw new RechazoModelo(c);
+      if (!res.parsed_output) throw new Error(`Texto para redes sin salida (stop_reason ${res.stop_reason})`);
+      return { texto: res.parsed_output.texto, consumo: c };
+    },
+
+    async guionVideo(corredor, ficha, fotos, conImagenes) {
+      const pedir = async (verFotos: boolean) => {
+        const contenido: Anthropic.Beta.BetaContentBlockParam[] = [];
+        for (const f of fotos) {
+          contenido.push({ type: "text", text: `${f.id}: ${comoDato(f.nombre)}${f.ilustrativa ? " (ilustrativa, hecha con IA)" : ""}` });
+          if (verFotos) contenido.push({ type: "image", source: { type: "url", url: f.url } });
+        }
+        contenido.push({ type: "text", text: `<ficha>\n${comoDato(ficha)}\n</ficha>` });
+        return client.beta.messages.parse({
+          model: MODELO_REDACTAR,
+          max_tokens: 3000,
+          betas: ["server-side-fallback-2026-07-01"],
+          fallbacks: "default",
+          output_config: { effort: "low", format: betaZodOutputFormat(EsquemaGuion) },
+          system: `${instruccion("redes-video")}\n\n<corredor>\n${corredor.nombre_contacto}, de ${corredor.nombre}.\n</corredor>`,
+          messages: [{ role: "user", content: [{ type: "text", text: "<fotos>" }, ...contenido.slice(0, -1), { type: "text", text: "</fotos>" }, contenido[contenido.length - 1]] }],
+        });
+      };
+      let res;
+      try {
+        res = await pedir(conImagenes && fotos.length > 0);
+      } catch (error) {
+        // Una foto que la API no puede descargar hace fallar todo el pedido: se reintenta solo con los datos.
+        if (!conImagenes || !(error instanceof Anthropic.BadRequestError)) throw error;
+        res = await pedir(false);
+      }
+      const c = consumo(res.model, res.usage);
+      if (res.stop_reason === "refusal") throw new RechazoModelo(c);
+      if (!res.parsed_output) throw new Error(`Guion sin salida (stop_reason ${res.stop_reason})`);
+      return { escenas: res.parsed_output.escenas, consumo: c };
     },
   };
 }

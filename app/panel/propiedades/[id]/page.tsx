@@ -25,6 +25,7 @@ import {
 } from "../acciones";
 import { FormularioPropiedad, type PropiedadFormulario } from "../formulario";
 import { SubirFotos } from "../subir-fotos";
+import { MarcaUbicacion, PreguntaUbicacion, casasPorUbicar } from "../ubicacion";
 
 // La mejora de fotos con IA puede tardar varios minutos.
 export const maxDuration = 300;
@@ -113,6 +114,8 @@ export default async function Propiedad({
     p.m2_terreno !== null ? { valor: Number(p.m2_terreno).toLocaleString("es-CR"), nombre: "m² de terreno" } : null,
   ].filter((d): d is { valor: string; nombre: string } => !!d);
   const principal = fotos[0];
+  // Casa del sitio con la ubicación por confirmar: la marca y la misma pregunta que en Mis casas.
+  const [porUbicar] = await casasPorUbicar(supabase, corredor.id, [{ id: p.id, codigo: p.codigo, zona: p.zona }]);
 
   return (
     <>
@@ -153,7 +156,11 @@ export default async function Propiedad({
             </span>
           </div>
           <h1>{p.titulo}</h1>
-          {lugar && <p className="casa-lugar">{lugar}</p>}
+          {(lugar || porUbicar) && (
+            <p className="casa-lugar">
+              {lugar} {porUbicar && <MarcaUbicacion />}
+            </p>
+          )}
           <p className="casa-precio">
             {p.precio ? precio(p.precio, p.moneda) : "Sin precio"}
             {p.operacion === "alquiler" && p.precio ? <span> al mes</span> : null}
@@ -195,6 +202,8 @@ export default async function Propiedad({
           </div>
         </div>
       </section>
+
+      {porUbicar && <PreguntaUbicacion casa={porUbicar} nombre={corredor.nombre_asistente ?? "Patty"} volverA="ficha" />}
 
       <div className="preguntas-patty">
         <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="¿A qué clientes les sirve esta casa?" />

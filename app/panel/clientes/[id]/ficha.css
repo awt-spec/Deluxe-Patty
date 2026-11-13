@@ -1,0 +1,958 @@
+/* Ficha de un cliente (app/panel/clientes/[id]): cabecera con identidad, "Qué sigue", cifras, camino por
+   etapas, historia como línea de tiempo y, en computadora, dos columnas. Usa los tokens del tema claro de
+   globals.css (.marco.tema). En el teléfono, las acciones van en una barra fija sobre las pestañas. */
+
+.marco.tema .fc-ficha {
+  --fc-verde-texto: #00684f;
+  --fc-gris: #f6f8fa;
+  --fc-barra: 78px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.marco.tema .fc-ficha > p:first-child {
+  margin: 0;
+}
+.marco.tema .fc-ficha h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.marco.tema .fc-ficha a:focus-visible,
+.marco.tema .fc-ficha button:focus-visible,
+.marco.tema .fc-ficha summary:focus-visible {
+  outline: 3px solid #1f6fd1;
+  outline-offset: 2px;
+}
+.marco.tema .fc-ficha .aviso {
+  margin: 0;
+}
+
+/* ---------- Cabecera ---------- */
+.marco.tema .fc-cabecera {
+  margin: 0;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-top: 4px solid var(--tono, var(--principal));
+}
+.marco.tema .fc-identidad {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.marco.tema .fc-identidad .avatar.grande {
+  flex: 0 0 auto;
+  width: 64px;
+  height: 64px;
+  font-size: 1.7rem;
+}
+.marco.tema .fc-quien {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.marco.tema .fc-quien h1 {
+  margin: 0;
+  font-size: 1.55rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  display: block;
+  border-radius: 0;
+}
+.marco.tema .fc-quien p {
+  margin: 0;
+}
+.marco.tema .fc-telefono {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 14px;
+  font-size: 1.02rem;
+}
+.marco.tema .fc-telefono > a:first-child {
+  color: var(--profundo);
+  font-weight: 600;
+  text-decoration: none;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.marco.tema .fc-ver-chat {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--fc-verde-texto);
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-decoration: none;
+  min-height: 44px;
+}
+.marco.tema .fc-origen {
+  color: var(--suave);
+  font-size: 0.92rem;
+}
+.marco.tema .fc-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.marco.tema .fc-chips .etapa {
+  font-size: 0.85rem;
+  padding: 4px 12px;
+}
+.marco.tema .fc-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--fc-gris);
+  border: 1px solid var(--borde);
+  color: #3b4a54;
+  font-size: 0.85rem;
+  font-weight: 600;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.marco.tema a.fc-chip-enlace {
+  min-height: 44px;
+  background: #eef4fc;
+  border-color: #cfe0f5;
+  color: #1f5fae;
+  text-decoration: none;
+}
+
+/* Acciones: en computadora, botones grandes en la cabecera; en el teléfono, barra fija abajo. */
+.marco.tema .fc-acciones {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.marco.tema .fc-accion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--borde);
+  background: #fff;
+  color: var(--fc-verde-texto);
+  font-weight: 650;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.marco.tema .fc-accion:hover {
+  background: #f0faf7;
+  border-color: #b9e6d9;
+}
+.marco.tema .fc-accion-wa {
+  background: #008069;
+  border-color: #008069;
+  color: #fff;
+}
+.marco.tema .fc-accion-wa:hover {
+  background: #006e5a;
+  border-color: #006e5a;
+}
+.marco.tema .fc-preguntas {
+  margin: 0;
+}
+
+/* ---------- Dos columnas ---------- */
+.marco.tema .fc-grid {
+  display: grid;
+  gap: 14px;
+  align-items: start;
+}
+.marco.tema .fc-principal,
+.marco.tema .fc-lateral {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.marco.tema .fc-bloque {
+  margin: 0;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.marco.tema .fc-bloque-cabeza {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.marco.tema .fc-bloque-cabeza .suave {
+  font-size: 0.9rem;
+}
+
+/* ---------- Qué sigue ---------- */
+.marco.tema .fc-sigue {
+  margin: 0;
+  padding: 18px;
+  border-radius: 14px;
+  background: #e7f6f1;
+  border: 1px solid #b9e6d9;
+  box-shadow: inset 5px 0 0 #00a884;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.marco.tema .fc-sigue.urgente {
+  background: #fff4e5;
+  border-color: #f3c08f;
+  box-shadow: inset 5px 0 0 #e2702f;
+}
+.marco.tema .fc-sigue-al-dia,
+.marco.tema .fc-sigue-perdido {
+  background: #fff;
+  border-color: var(--borde);
+  box-shadow: inset 5px 0 0 #9aa5ae;
+}
+.marco.tema .fc-sigue-etiqueta {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--fc-verde-texto);
+}
+.marco.tema .fc-sigue.urgente .fc-sigue-etiqueta {
+  color: #9a4a00;
+}
+.marco.tema .fc-sigue-al-dia .fc-sigue-etiqueta,
+.marco.tema .fc-sigue-perdido .fc-sigue-etiqueta {
+  color: #54656f;
+}
+.marco.tema .fc-ficha .fc-sigue h2 {
+  font-size: 1.3rem;
+  line-height: 1.25;
+}
+.marco.tema .fc-sigue-detalle {
+  margin: 0;
+  color: #3b4a54;
+}
+.marco.tema .fc-sigue-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+.marco.tema .fc-sigue-botones .boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 10px 18px;
+  text-decoration: none;
+}
+.marco.tema .fc-sigue-botones .boton:not(.primario) {
+  background: #fff;
+}
+
+/* ---------- Cifras ---------- */
+.marco.tema .fc-cifras {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+.marco.tema .fc-cifras .cifra {
+  margin: 0;
+  min-width: 0;
+}
+.marco.tema .fc-ficha .fc-cifras .cifra strong {
+  font-size: 1.45rem;
+  line-height: 1.15;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Camino del cliente ---------- */
+.marco.tema .fc-camino {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.marco.tema .fc-camino ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.marco.tema .fc-paso {
+  position: relative;
+  min-width: 0;
+}
+/* La línea que une los pasos: de este punto al siguiente. */
+.marco.tema .fc-paso:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 21px;
+  left: calc(50% + 17px);
+  right: calc(-50% + 17px);
+  height: 3px;
+  border-radius: 2px;
+  background: #dfe3e7;
+}
+.marco.tema .fc-paso.hecho:not(:last-child)::after {
+  background: #00a884;
+}
+.marco.tema .fc-ficha .fc-paso button {
+  width: 100%;
+  min-height: 72px;
+  padding: 2px 0 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  color: #54656f;
+  border-radius: 10px;
+  font-weight: 500;
+}
+.marco.tema .fc-ficha .fc-paso button:hover {
+  background: var(--fc-gris);
+}
+.marco.tema .fc-paso-punto {
+  width: 34px;
+  height: 34px;
+  margin-top: 4px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 0.92rem;
+  background: #fff;
+  border: 2px solid #c7cdd2;
+  color: #54656f;
+  position: relative;
+  z-index: 1;
+}
+.marco.tema .fc-paso.hecho .fc-paso-punto {
+  background: #00a884;
+  border-color: #00a884;
+  color: #fff;
+}
+.marco.tema .fc-paso.actual .fc-paso-punto {
+  background: var(--tono);
+  border-color: var(--tono);
+  color: #fff;
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--tono) 20%, #fff);
+}
+.marco.tema .fc-paso-nombre {
+  font-size: 0.8rem;
+  line-height: 1.15;
+  text-align: center;
+  white-space: nowrap;
+}
+.marco.tema .fc-ficha .fc-paso.actual button {
+  color: color-mix(in srgb, var(--tono) 70%, #000);
+  font-weight: 700;
+}
+.marco.tema .fc-ficha .fc-paso.hecho button {
+  color: #3b4a54;
+}
+.marco.tema .fc-camino-ayuda {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--fc-gris);
+  color: #3b4a54;
+  font-size: 0.93rem;
+}
+.marco.tema .fc-camino-ayuda .etapa {
+  margin-right: 6px;
+}
+.marco.tema .fc-motivo {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.marco.tema .fc-motivo p {
+  margin: 0;
+}
+.marco.tema .fc-botones-motivo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.marco.tema .fc-ficha .fc-botones-motivo button {
+  min-height: 44px;
+  padding: 8px 14px;
+  font-size: 0.93rem;
+}
+
+/* ---------- Historia ---------- */
+.marco.tema .fc-anotar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--fc-gris);
+  scroll-margin-top: 16px;
+}
+.marco.tema .fc-anotar input[type="text"] {
+  background: #fff;
+}
+.marco.tema .fc-anotar-botones {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.marco.tema .fc-ficha .fc-anotar-botones button {
+  min-height: 44px;
+  padding: 6px 8px;
+  font-size: 0.95rem;
+}
+.marco.tema .fc-historia {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.marco.tema .fc-dia + .fc-dia {
+  margin-top: 6px;
+}
+.marco.tema .fc-ficha .fc-dia-titulo {
+  margin: 4px 0 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #54656f;
+}
+.marco.tema .fc-linea {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+.marco.tema .fc-linea::before {
+  content: "";
+  position: absolute;
+  left: 15px;
+  top: 16px;
+  bottom: 16px;
+  width: 2px;
+  background: #e6e9ee;
+}
+.marco.tema .fc-evento {
+  --fc-tipo: #667781;
+  --fc-tipo-fondo: #eef1f4;
+  position: relative;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 10px;
+  padding: 5px 0;
+}
+.marco.tema .fc-evento-icono {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--fc-tipo-fondo);
+  color: var(--fc-tipo);
+  box-shadow: 0 0 0 3px #fff;
+  position: relative;
+  z-index: 1;
+}
+.marco.tema .fc-evento-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 5px 10px 7px;
+  border-radius: 10px;
+  color: var(--profundo);
+  text-decoration: none;
+  min-width: 0;
+}
+.marco.tema a.fc-evento-cuerpo:hover {
+  background: var(--fc-gris);
+}
+.marco.tema .fc-evento.de-ia .fc-evento-cuerpo {
+  background: #f4f0fb;
+}
+.marco.tema .fc-evento-cabeza {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.marco.tema .fc-evento-cabeza strong {
+  font-size: 0.95rem;
+}
+.marco.tema .fc-evento-cabeza time {
+  margin-left: auto;
+  font-size: 0.82rem;
+  color: #54656f;
+  white-space: nowrap;
+}
+.marco.tema .fc-evento-texto {
+  color: #3b4a54;
+  overflow-wrap: anywhere;
+}
+.marco.tema .fc-autor {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: #e7f6f1;
+  color: var(--fc-verde-texto);
+}
+.marco.tema .fc-autor-ia {
+  background: #e8e0f7;
+  color: #5b3a9e;
+}
+.marco.tema .fc-t-llamada { --fc-tipo: #00684f; --fc-tipo-fondo: #dff5ee; }
+.marco.tema .fc-t-mensaje,
+.marco.tema .fc-t-whatsapp { --fc-tipo: #00684f; --fc-tipo-fondo: #d9fdd3; }
+.marco.tema .fc-t-visita { --fc-tipo: #6a3fbf; --fc-tipo-fondo: #efe8fb; }
+.marco.tema .fc-t-nota { --fc-tipo: #54656f; --fc-tipo-fondo: #eef1f4; }
+.marco.tema .fc-t-etapa { --fc-tipo: #1f5fae; --fc-tipo-fondo: #e3eefb; }
+.marco.tema .fc-t-oferta { --fc-tipo: #a65800; --fc-tipo-fondo: #fff1dd; }
+.marco.tema .fc-t-cierre { --fc-tipo: #fff; --fc-tipo-fondo: #1c8a3c; }
+.marco.tema .fc-t-correo { --fc-tipo: #2f6d93; --fc-tipo-fondo: #e2f0f8; }
+.marco.tema .fc-ver-todo summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 4px;
+  cursor: pointer;
+  font-weight: 650;
+  color: var(--fc-verde-texto);
+}
+.marco.tema .fc-ver-todo[open] summary {
+  margin-bottom: 6px;
+}
+
+/* ---------- Columna de lo que se edita ---------- */
+.marco.tema .fc-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.marco.tema .fc-form label {
+  margin: 4px 0 0;
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+.marco.tema .fc-form h2 {
+  margin-bottom: 4px;
+}
+.marco.tema .fc-form > button.primario {
+  align-self: flex-start;
+  min-height: 46px;
+  padding: 8px 22px;
+  margin-top: 4px;
+}
+.marco.tema .fc-monto,
+.marco.tema .fc-fila {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+.marco.tema .fc-monto > input,
+.marco.tema .fc-fila > input {
+  flex: 1;
+  min-width: 0;
+}
+.marco.tema .fc-monto > select {
+  flex: 0 0 auto;
+  width: auto;
+}
+.marco.tema .fc-dos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.marco.tema .fc-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.marco.tema .fc-atajos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.marco.tema .fc-ficha .fc-atajos button {
+  min-height: 44px;
+  padding: 6px 4px;
+  font-size: 0.93rem;
+}
+.marco.tema .fc-fila-final {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.marco.tema .fc-fila-final details {
+  flex: 1 1 180px;
+}
+.marco.tema .fc-ficha .fc-ya {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 6px 14px;
+  font-size: 0.93rem;
+  color: var(--fc-verde-texto);
+}
+.marco.tema .fc-ficha .fc-bloque details > summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+  color: var(--fc-verde-texto);
+  font-weight: 650;
+  font-size: 0.95rem;
+}
+.marco.tema .fc-ficha .fc-bloque details[open] > summary {
+  margin-bottom: 4px;
+}
+.marco.tema .fc-pastilla {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--fc-gris);
+  color: #3b4a54;
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+.marco.tema .fc-pastilla.vence {
+  background: #fff1dd;
+  color: #9a4a00;
+}
+.marco.tema .fc-vence {
+  border-color: #f3c08f;
+  box-shadow: inset 4px 0 0 #e2702f, var(--sombra-1);
+}
+.marco.tema .fc-interes {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid #b9e6d9;
+  background: #f0faf7;
+  color: var(--profundo);
+  text-decoration: none;
+}
+.marco.tema .fc-interes img,
+.marco.tema .fc-interes .fc-sin-foto {
+  flex: 0 0 auto;
+  width: 72px;
+  height: 56px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+.marco.tema .fc-interes > span:last-child {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.marco.tema .fc-interes small {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--fc-verde-texto);
+}
+.marco.tema .fc-interes strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.marco.tema .fc-sin-foto {
+  display: grid;
+  place-items: center;
+  background: #eef1f4;
+  color: #8696a0;
+}
+.marco.tema .fc-comision-estimada {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #e6f6f1;
+  color: #00513e;
+}
+.marco.tema .fc-cierre {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.marco.tema .fc-cierre-casa {
+  color: #3b4a54;
+}
+.marco.tema .fc-cierre-precio {
+  font-size: 1.6rem;
+}
+.marco.tema .fc-comision {
+  align-self: flex-start;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: #e6f6f1;
+  color: #00513e;
+  font-weight: 700;
+}
+.marco.tema .fc-busca {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.marco.tema .fc-busca > div {
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--fc-gris);
+  min-width: 0;
+}
+.marco.tema .fc-busca dt {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #54656f;
+}
+.marco.tema .fc-busca dd {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.marco.tema .fc-notas {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+/* Casas: carrusel en el teléfono, cuadrícula en computadora. */
+.marco.tema .fc-casas {
+  list-style: none;
+  margin: 0 -16px;
+  padding: 2px 16px 6px;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 70%;
+  gap: 10px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.marco.tema .fc-casas::-webkit-scrollbar {
+  display: none;
+}
+.marco.tema .fc-casas li {
+  scroll-snap-align: start;
+  min-width: 0;
+}
+.marco.tema .fc-casas a {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--borde);
+  overflow: hidden;
+  background: #fff;
+  color: var(--profundo);
+  text-decoration: none;
+}
+.marco.tema .fc-casas li.interes a {
+  border: 2px solid #00a884;
+}
+.marco.tema .fc-casa-foto {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 3;
+}
+.marco.tema .fc-casa-foto img,
+.marco.tema .fc-casa-foto .fc-sin-foto {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: grid;
+}
+.marco.tema .fc-casa-marca {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #008069;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.marco.tema .fc-casa-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px 12px;
+  min-width: 0;
+}
+.marco.tema .fc-casa-texto strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 0.95rem;
+  line-height: 1.25;
+}
+.marco.tema .fc-casa-precio {
+  font-weight: 700;
+  color: var(--fc-verde-texto);
+}
+.marco.tema .fc-casa-texto .suave {
+  font-size: 0.88rem;
+}
+
+/* ---------- Lo de poco uso, al final ---------- */
+.marco.tema .fc-mas {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.marco.tema .fc-plegado {
+  margin: 0;
+  padding: 4px 16px;
+}
+.marco.tema .fc-plegado > summary {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #3b4a54;
+}
+.marco.tema .fc-plegado[open] {
+  padding-bottom: 16px;
+}
+.marco.tema .fc-plegado .fc-form > button,
+.marco.tema .fc-plegado .fc-motivo button {
+  min-height: 44px;
+}
+.marco.tema .fc-plegado .fc-form > button {
+  align-self: flex-start;
+  padding: 8px 22px;
+}
+
+/* ---------- Teléfono ---------- */
+@media (max-width: 899px) {
+  /* Las acciones de siempre, fijas sobre las pestañas de abajo. */
+  .marco.tema .fc-acciones {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(var(--fc-barra) + env(safe-area-inset-bottom));
+    z-index: 9;
+    gap: 6px;
+    padding: 8px 10px;
+    background: rgb(255 255 255 / 96%);
+    border-top: 1px solid var(--borde);
+    box-shadow: 0 -4px 14px rgb(17 27 33 / 6%);
+  }
+  .marco.tema .fc-accion {
+    flex-direction: column;
+    gap: 2px;
+    min-height: 54px;
+    padding: 4px 2px;
+    font-size: 0.8rem;
+    border-radius: 10px;
+  }
+  .marco.tema .fc-solo-ancho {
+    display: none;
+  }
+  /* Que la barra no tape el final de la ficha. */
+  .marco.tema .fc-ficha {
+    padding-bottom: 76px;
+  }
+  /* En esta pantalla Patty se abre con los "Pregúntale" de la cabecera: el botón flotante taparía la barra. */
+  .marco.tema:has(.fc-ficha) .patty-boton {
+    display: none;
+  }
+  .marco.tema .fc-anotar {
+    scroll-margin-bottom: 160px;
+  }
+}
+
+@media (min-width: 560px) {
+  .marco.tema .fc-cifras {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .marco.tema .fc-anotar-botones {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .marco.tema .fc-casas {
+    grid-auto-columns: 46%;
+  }
+}
+
+/* ---------- Computadora: dos columnas reales ---------- */
+@media (min-width: 900px) {
+  .marco.tema .panel:has(.fc-ficha) {
+    max-width: 1200px;
+  }
+  .marco.tema .fc-identidad .avatar.grande {
+    width: 76px;
+    height: 76px;
+    font-size: 2rem;
+  }
+  .marco.tema .fc-quien h1 {
+    font-size: 1.8rem;
+  }
+  .marco.tema .fc-cabecera {
+    padding: 22px 24px;
+  }
+  .marco.tema .fc-paso-nombre {
+    font-size: 0.9rem;
+  }
+}
+
+@media (min-width: 1100px) {
+  .marco.tema .fc-cabecera {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    column-gap: 24px;
+  }
+  .marco.tema .fc-acciones {
+    grid-template-columns: repeat(2, minmax(150px, 1fr));
+  }
+  .marco.tema .fc-preguntas {
+    grid-column: 1 / -1;
+  }
+  .marco.tema .fc-grid {
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 20px;
+  }
+  .marco.tema .fc-casas {
+    margin: 0;
+    padding: 0;
+    grid-auto-flow: row;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-columns: auto;
+    overflow: visible;
+  }
+}
+
+.marco.tema .fc-preguntas .preguntar-patty {
+  min-height: 44px;
+}

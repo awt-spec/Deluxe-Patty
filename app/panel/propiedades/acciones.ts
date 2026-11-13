@@ -29,6 +29,8 @@ import {
   fichaLimpia,
   resumenFicha,
 } from "@/lib/propiedades/conversar";
+import { PREFIJO_UBICACION, temaUbicacion } from "@/lib/sitio/ubicacion";
+import { normalizarZona } from "@/lib/agenda/zonas";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Las propiedades se leen y se guardan con la sesión del corredor (RLS). Solo la subida de fotos y lo
@@ -95,7 +97,55 @@ export async function cambiarEstado(f: FormData) {
   const estado = String(f.get("estado") ?? "");
   const { supabase, corredor } = await propiedadPropia(id);
   const { error } = await supabase.from("propiedades").update({ estado }).eq("corredor_id", corredor.id).eq("id", id);
+  // Desde el grupo "Pausadas" de Mis casas se vuelve a la lista.
+  if (String(f.get("volver_a") ?? "") === "lista") ir("/panel/propiedades", error ? "No se pudo cambiar el estado." : estado === "activa" ? "Listo, la casa vuelve a estar en oferta." : "Estado actualizado.");
   ir(`/panel/propiedades/${id}`, error ? "No se pudo cambiar el estado." : "Estado actualizado.");
+}
+
+// --- Ubicación por confirmar ------------------------------------------------------------------------
+
+/**
+ * "¿Dónde queda esta casa?": el corredor elige la zona. Se guarda en la casa (la agenda calcula el traslado con
+ * ella) y como respuesta de la pregunta "Ubicación <código>" en el cerebro, que la importación del sitio respeta en
+ * cada vuelta y la asistente conoce. Todo con su sesión (RLS) y filtrando por su corredor.
+ */
+export async function confirmarUbicacion(f: FormData) {
+  const id = String(f.get("id") ?? "");
+  const zona = normalizarZona(String(f.get("zona") ?? "")).slice(0, 80);
+  const volverAFicha = String(f.get("volver_a") ?? "") === "ficha";
+  const volver = volverAFicha && /^[0-9a-f-]{36}$/.test(id) ? `/panel/propiedades/${id}` : "/panel/propiedades";
+  if (!/^[0-9a-f-]{36}$/.test(id) || !zona) ir(volver, "Elige la zona.");
+  const { supabase, corredor } = await sesionConCorredor();
+  const { data: casa } = await supabase
+    .from("propiedades")
+    .select("id, codigo, titulo, canton, distrito")
+    .eq("corredor_id", corredor.id)
+    .eq("id", id)
+    .maybeSingle();
+  if (!casa) ir("/panel/propiedades", "No encontré la propiedad.");
+  const c = casa as { id: string; codigo: string; titulo: string; canton: string | null; distrito: string | null };
+  const { error } = await supabase.from("propiedades").update({ zona }).eq("corredor_id", corredor.id).eq("id", c.id);
+  if (error) ir(volver, "No se pudo guardar la zona.");
+
+  const prefijo = `${PREFIJO_UBICACION}${c.codigo}`;
+  const { data: preguntas } = await supabase
+    .from("conocimiento")
+    .select("id, tema")
+    .eq("corredor_id", corredor.id)
+    .like("tema", `${prefijo}%`)
+    .limit(10);
+  const pregunta = ((preguntas ?? []) as { id: string; tema: string }[]).find((p) => p.tema.startsWith(`${prefijo}:`));
+  const ahora = new Date().toISOString();
+  if (pregunta) {
+    await supabase.from("conocimiento").update({ respuesta: zona, estado: "activo", updated_at: ahora }).eq("corredor_id", corredor.id).eq("id", pregunta.id);
+  } else {
+    const sitio = [c.distrito, c.canton].filter(Boolean).join(", ") || "nada";
+    await supabase
+      .from("conocimiento")
+      .insert({ corredor_id: corredor.id, tema: temaUbicacion(c.codigo, c.titulo, sitio, []), respuesta: zona, estado: "activo", origen: "manual" });
+  }
+  revalidatePath(`/panel/propiedades/${c.id}`);
+  ir(volver, `Listo: ${c.codigo} queda en ${zona}.`);
 }
 
 // --- Fotos -----------------------------------------------------------------------------------------

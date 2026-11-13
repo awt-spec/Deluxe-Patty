@@ -72,7 +72,10 @@ export function horariosLibres(p: ParametrosAgenda): Intervalo[] {
       for (let t = inicioFranja; t + p.duracionMin <= fin; t += paso) {
         const visita = { inicio: aUtc(fecha, t, p.zona), fin: aUtc(fecha, t + p.duracionMin, p.zona) };
         if (visita.inicio < desde) continue;
-        if (t < inicioFranja + salida && !visitaJustoAntes(p.citas, visita, p.zonaVisita)) continue;
+        // Una casa muy lejos (Guanacaste, Jacó) no deja la franja vacía: el viaje empieza antes de la franja y se
+        // ofrece al menos la última hora de esa franja; el día igual queda tomado por el traslado de ida y vuelta.
+        const espera = Math.min(salida, fin - inicioFranja - p.duracionMin);
+        if (t < inicioFranja + espera && !visitaJustoAntes(p.citas, visita, p.zonaVisita)) continue;
         if (ocupados.some((o) => cruza(visita, o))) continue;
         if (libres.some((l) => l.inicio.getTime() === visita.inicio.getTime())) continue;
         libres.push(visita);

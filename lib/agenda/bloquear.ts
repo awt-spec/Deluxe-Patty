@@ -1,8 +1,9 @@
 import { aUtc, fechaLocal, sumarDias, type FechaLocal } from "./tiempo";
 
-// "Bloquea mañana en la tarde", "bloquear el viernes de 2 a 4", "bloquear hoy todo el día":
+// "Apartar mañana en la tarde", "aparta tiempo el viernes de 2 a 4", "bloquear hoy todo el día":
 // el corredor le pide a la asistente (por WhatsApp o en el chat del panel) que aparte un rato de su
-// agenda. Lo entiende el código, no el modelo: las fechas siempre salen de aquí.
+// agenda. En el panel se llama "Apartar tiempo"; "bloquear" se sigue entendiendo igual. Lo entiende el
+// código, no el modelo: las fechas siempre salen de aquí.
 
 export type Parte = "manana" | "tarde" | "noche" | "todo";
 
@@ -29,12 +30,18 @@ export interface PedidoBloqueo {
   motivo: string | null;
 }
 
+/** Lo que puede seguir a "apartar" cuando es de la agenda (y no "aparta la casa para Juan"). */
+const RATO_APARTAR =
+  "(?:tiempo|un rato|el rato|rato|hoy|manana|pasado|el \\d+|del? \\d+|desde|de las|a las|en la|la manana|la tarde|la noche|todo|este|esta|el (?:lunes|martes|miercoles|jueves|viernes|sabado|domingo)|lunes|martes|miercoles|jueves|viernes|sabado|domingo)\\b";
+
 /**
- * ¿El mensaje pide bloquear algo de la agenda? (empieza con "bloquea", "bloquear", "bloquéame"…)
+ * ¿El mensaje pide apartar tiempo de la agenda? Empieza con "apartar", "aparta", "apártame" (seguido de un día o
+ * un rato: "aparta la casa" no es de la agenda) o, como antes, "bloquea", "bloquear", "bloquéame"…
  * "Bloquea a Juan" o "bloquea al cliente" no son de la agenda.
  */
 export function pideBloqueo(texto: string): boolean {
   const t = sinTildes(texto);
+  if (new RegExp(`^\\s*apart(?:a|ar|ame|en)\\s+(?:(?:tiempo|un rato)\\s+)?${RATO_APARTAR}`, "i").test(t)) return true;
   return /^\s*bloque(a|ar|ame|en)\b/i.test(t) && !/^\s*bloque\w*\s+(?:a|al)\s+(?!las?\b)/i.test(t);
 }
 
@@ -73,7 +80,7 @@ export function entenderBloqueo(texto: string, ahora: Date, zona: string): Pedid
     .normalize("NFC")
     .replace(/\bpor la (ma[nñ]ana|tarde|noche)\b/gi, "en la $1")
     .replace(/\bpara (?=(?:hoy|ma[nñ]ana|pasado|el|este|lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b)/gi, "");
-  const t = sinTildes(original).replace(/^\s*bloque\w*\s*/, " ");
+  const t = sinTildes(original).replace(/^\s*(?:bloque\w*|apart(?:a|ar|ame|en))\s*(?:(?:un\s+)?(?:rato|tiempo)\b\s*)?/, " ");
   const motivoCrudo = /\b(?:por|porque|para)\s+(.+)$/.exec(original)?.[1];
   const sinMotivo = t.replace(/\b(?:por|porque|para)\s+.+$/, " ");
   const hoy = fechaLocal(ahora, zona);
@@ -136,7 +143,7 @@ export function entenderBloqueo(texto: string, ahora: Date, zona: string): Pedid
       horas = { desde, hasta: Math.min(desde + 60, 24 * 60) };
     }
   }
-  // Sin día pero con un rato ("bloquear de 2 a 4", "bloquear en la tarde"): es hoy.
+  // Sin día pero con un rato ("apartar de 2 a 4", "bloquear en la tarde"): es hoy.
   if (!dia && (horas || /\b(?:manana|tarde|noche)\b/.test(resto))) dia = hoy;
   if (!dia) return null;
   if (hastaDia) horas = null;
@@ -180,4 +187,4 @@ export function describirBloqueo(p: Pick<PedidoBloqueo, "dia" | "parte" | "horas
 }
 
 export const AYUDA_BLOQUEO =
-  "Para apartar un rato escríbeme, por ejemplo: «bloquear mañana en la tarde», «bloquear el viernes de 2 a 4» o «bloquear hoy todo el día por una cita médica».";
+  "Para apartar tiempo escríbeme, por ejemplo: «apartar mañana en la tarde», «apartar el viernes de 2 a 4» o «apartar hoy todo el día por una cita médica».";

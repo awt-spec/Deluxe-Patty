@@ -201,7 +201,7 @@ export async function procesarMensajeCorredor(
     return { tipo: "corredor", accion: "reporte" };
   }
 
-  // "bloquear mañana en la tarde": aparta ese rato de la agenda (el código entiende la fecha).
+  // "apartar (o bloquear) mañana en la tarde": aparta ese rato de la agenda (el código entiende la fecha).
   if (pideBloqueo(texto)) {
     const pedido = entenderBloqueo(texto, ahora, corredor.zona_horaria);
     if (!pedido) {

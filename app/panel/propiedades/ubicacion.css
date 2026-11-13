@@ -1,0 +1,66 @@
+/* "¿Dónde queda esta casa?" (Mis casas y la ficha): misma tarjeta que la pregunta diaria de la agenda, en ámbar. */
+.pregunta-ubicacion {
+  border-left-color: var(--a-ambar-t, #b45309);
+}
+.pregunta-ubicacion .pregunta-ubicacion-casa,
+.pregunta-ubicacion .pregunta-ubicacion-sitio {
+  margin: 0;
+  font-size: 1rem;
+}
+.pregunta-ubicacion-otra {
+  display: contents;
+}
+.pregunta-ubicacion-otra[open] form {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px;
+}
+.pregunta-ubicacion-otra summary {
+  list-style: none;
+  cursor: pointer;
+}
+.pregunta-ubicacion-otra summary::-webkit-details-marker {
+  display: none;
+}
+.pregunta-ubicacion-otra label {
+  display: grid;
+  gap: 4px;
+  min-width: min(260px, 100%);
+}
+.pregunta-ubicacion-otra select {
+  font-size: 1rem;
+  min-height: 44px;
+}
+.marca-ubicacion {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: var(--a-ambar-f, #fdf0d5);
+  color: var(--a-ambar-t, #92400e);
+}
+
+/* Mis casas: las pausadas van al final, atenuadas. */
+.casas-pausadas-titulo {
+  margin: 22px 0 10px;
+  font-size: 1.1rem;
+}
+.casas-lista .casa-pausada > .casa-item.pausada {
+  opacity: 0.62;
+}
+.casas-lista .casa-pausada > .casa-item.pausada:hover,
+.casas-lista .casa-pausada > .casa-item.pausada:focus-within {
+  opacity: 1;
+}
+.casa-pausada {
+  display: grid;
+}
+.casa-pausada form {
+  margin: 6px 0 0;
+}
+.casa-pausada form button {
+  width: 100%;
+}

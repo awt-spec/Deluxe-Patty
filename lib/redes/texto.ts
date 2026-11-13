@@ -38,6 +38,17 @@ export function datosCortos(p: Pick<DatosCasa, "habitaciones" | "banos" | "m2_co
   ].filter((x): x is string => !!x);
 }
 
+/** La línea de contacto con el código de la casa (la misma en el texto original y la que el código repone). */
+export function lineaContacto(p: Pick<DatosCasa, "codigo">, contacto: { nombre: string; whatsapp: string | null }, idioma: "es" | "en" = "es"): string {
+  const wa = contacto.whatsapp ? `wa.me/${contacto.whatsapp.replace(/\D/g, "")}` : null;
+  if (idioma === "en") {
+    return wa ? `📲 More info and viewings on WhatsApp: ${wa} (code ${p.codigo})` : `📲 Message ${contacto.nombre} for more info (code ${p.codigo}).`;
+  }
+  return wa
+    ? `📲 Más información y visitas por WhatsApp: ${wa} (código ${p.codigo})`
+    : `📲 Escríbele a ${contacto.nombre} para más información (código ${p.codigo}).`;
+}
+
 /** Texto listo para copiar y pegar en Instagram o Facebook. */
 export function textoPublicacion(p: DatosCasa, contacto: { nombre: string; whatsapp: string | null }): string {
   const lineas = [
@@ -47,9 +58,7 @@ export function textoPublicacion(p: DatosCasa, contacto: { nombre: string; whats
     datosCortos(p).length ? `🏠 ${datosCortos(p).join(" · ")}` : null,
     p.amenidades.length ? `✨ ${p.amenidades.slice(0, 5).join(", ")}` : null,
     "",
-    contacto.whatsapp
-      ? `📲 Más información y visitas por WhatsApp: wa.me/${contacto.whatsapp.replace(/\D/g, "")} (código ${p.codigo})`
-      : `📲 Escríbele a ${contacto.nombre} para más información (código ${p.codigo}).`,
+    lineaContacto(p, contacto),
     "",
     ["#BienesRaicesCR", "#CostaRica", p.operacion === "alquiler" ? "#Alquiler" : "#Venta", p.zona ? `#${p.zona.replace(/[^\p{L}\p{N}]/gu, "")}` : null]
       .filter(Boolean)

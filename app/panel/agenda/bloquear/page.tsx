@@ -7,8 +7,8 @@ import { Volver } from "../../volver";
 import { bloquearDesdeAgenda, quitarBloqueoAgenda } from "../acciones";
 import { ElegirDia } from "./elegir-dia";
 
-// Bloquear un día o unas horas desde la agenda: la asistente no ofrece visitas en ese rato.
-// También se puede pedir por WhatsApp o a Patty: "bloquear mañana en la tarde".
+// "Apartar tiempo" (la ruta y las tablas siguen llamándose bloquear/bloqueos): un día o unas horas en que la
+// asistente no ofrece visitas. También se puede pedir por WhatsApp o a Patty: "apartar mañana en la tarde".
 
 const DIAS_CORTOS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const RATOS = [
@@ -46,8 +46,8 @@ export default async function Bloquear({ searchParams }: { searchParams: Promise
       <Volver href={`/panel/agenda?vista=dia&fecha=${dia}`} texto="Agenda" />
       <header className="encabezado">
         <div>
-          <h1>Bloquear un rato</h1>
-          <p className="suave">La asistente no agenda visitas en lo que bloquees. Las que ya tienes siguen en pie.</p>
+          <h1>Apartar tiempo</h1>
+          <p className="suave">La asistente no agenda visitas en el tiempo que apartes. Las que ya tienes siguen en pie.</p>
         </div>
       </header>
       <Aviso texto={aviso} />
@@ -87,7 +87,7 @@ export default async function Bloquear({ searchParams }: { searchParams: Promise
           <summary>¿Son varios días seguidos? (vacaciones, un viaje)</summary>
           <label htmlFor="fecha_hasta">Hasta el día</label>
           <input id="fecha_hasta" type="date" name="fecha_hasta" min={hoy} />
-          <p className="suave">Se bloquea igual cada día, desde el día que elegiste arriba.</p>
+          <p className="suave">Se aparta igual cada día, desde el día que elegiste arriba.</p>
         </details>
 
         <label htmlFor="motivo" className="bloquear-motivo-etiqueta">
@@ -96,14 +96,14 @@ export default async function Bloquear({ searchParams }: { searchParams: Promise
         <input id="motivo" name="motivo" maxLength={120} placeholder="Cita médica, reunión, vacaciones…" data-patty="bloquear-motivo" />
 
         <div className="bloquear-enviar">
-          <BotonEnviar texto="Bloquear" pendiente="Bloqueando…" className="primario grande" />
+          <BotonEnviar texto="Apartar tiempo" pendiente="Apartando…" className="primario grande" />
         </div>
       </form>
 
       <section className="tarjeta pila bloquear-lista">
-        <h2>Ya bloqueado</h2>
+        <h2>Tiempo apartado</h2>
         {proximos.length === 0 ? (
-          <p className="suave">No tienes nada bloqueado. Todo tu horario está abierto para visitas.</p>
+          <p className="suave">No tienes tiempo apartado. Todo tu horario está abierto para visitas.</p>
         ) : (
           proximos.map((b) => (
             <form key={b.id} action={quitarBloqueoAgenda} className="bloquear-item">
@@ -122,7 +122,7 @@ export default async function Bloquear({ searchParams }: { searchParams: Promise
       </section>
 
       <p className="suave bloquear-pie">
-        También puedes escribirle a {corredor.nombre_asistente ?? "Patty"} o a la asistente por WhatsApp: «bloquear el viernes de 2 a 4».
+        También puedes escribirle a {corredor.nombre_asistente ?? "Patty"} o a la asistente por WhatsApp: «apartar el viernes de 2 a 4».
       </p>
     </div>
   );

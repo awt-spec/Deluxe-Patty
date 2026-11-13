@@ -1,10 +1,10 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { normalizarZona } from "../agenda/zonas";
 import type { Corredor, Foto } from "../datos/tipos";
 import { copiarFotoExterna } from "../fotos/copiar";
 import { errorSeguro } from "../monitoreo/errores";
 import { ordenarFotos } from "../panel/formularios";
+import { PREFIJO_UBICACION, loQueDiceElSitio, resolverZona, temaUbicacion, zonaDeRespuesta, type ZonaResuelta } from "./ubicacion";
 
 // Casas del sitio web del corredor → sus casas en el portal (para la asistente, la ficha, la agenda y el CRM).
 // El sitio publica una exportación JSON (en el de Deluxe, una función de su Supabase) y un cron la lee cada hora:
@@ -12,7 +12,10 @@ import { ordenarFotos } from "../panel/formularios";
 //  - copia las fotos al bucket propio (la ficha PDF y la imagen para redes solo usan fotos propias), unas cuantas
 //    por vuelta para no pasarse de tiempo, y quita las que allá ya no están;
 //  - una casa vendida allá queda vendida (o alquilada); una oculta o que desaparece de la exportación, pausada;
-//  - las casas de ejemplo de la semilla (EJEMPLO-*) se borran (o se pausan si algo las usa).
+//  - las casas de ejemplo de la semilla (EJEMPLO-*) se borran (o se pausan si algo las usa);
+//  - la zona sale de `resolverZona` (el barrio más preciso que la agenda conoce). Si hay dudas, se guarda la mejor
+//    conjetura y queda la pregunta "Ubicación DP-XXXXXX: …" en `conocimiento` (pendiente); cuando el corredor
+//    contesta (activa), su zona manda sobre lo que diga el sitio en cada vuelta.
 // Las casas que el corredor agrega en el portal no se tocan.
 
 /** Exportación de cada corredor, por slug. Se puede cambiar o sumar otra con SITIO_FUENTES = {"slug":"url"}. */
@@ -86,7 +89,7 @@ export function filaDesdeSitio(c: CasaSitio): Record<string, unknown> | null {
   const descripcion = [texto(c.descripcion?.es, 6000), destacados.length ? `Destacados:\n${destacados.map((d) => `- ${d.trim()}`).join("\n")}` : null]
     .filter(Boolean)
     .join("\n\n");
-  const lugar = texto(c.canton, 80) ?? texto(c.ubicacion, 80);
+  const lugar = ubicacionDeCasa(c).zona;
   const estado = c.oculta ? "inactiva" : c.estado === "sold" ? (operacion === "alquiler" ? "alquilada" : "vendida") : "activa";
   return {
     codigo: c.codigo.toUpperCase(),
@@ -98,7 +101,7 @@ export function filaDesdeSitio(c: CasaSitio): Record<string, unknown> | null {
     provincia: texto(c.provincia, 80),
     canton: texto(c.canton, 80),
     distrito: texto(c.distrito, 80),
-    zona: lugar ? normalizarZona(lugar) : null,
+    zona: lugar ? lugar.slice(0, 80) : null,
     habitaciones: numero(c.habitaciones),
     banos: numero(c.banos),
     m2_construccion: positivo(c.m2_construccion),
@@ -108,6 +111,18 @@ export function filaDesdeSitio(c: CasaSitio): Record<string, unknown> | null {
     url_e24: texto(c.url_e24, 500)?.startsWith("https://") ? texto(c.url_e24, 500) : null,
     estado,
   };
+}
+
+/** La zona de una casa del sitio y si hay que preguntarle al corredor. */
+export function ubicacionDeCasa(c: CasaSitio): ZonaResuelta {
+  return resolverZona({
+    canton: texto(c.canton, 80),
+    distrito: texto(c.distrito, 80),
+    ubicacion: texto(c.ubicacion, 200),
+    titulo: texto(c.titulo?.es, 200),
+    descripcion: texto(c.descripcion?.es, 6000),
+    provincia: texto(c.provincia, 80),
+  });
 }
 
 export async function leerExportacion(url: string): Promise<CasaSitio[]> {
@@ -141,7 +156,12 @@ export type ResultadoSincronizacion = {
   fotosCopiadas: number;
   fotosPendientes: number;
   fallidos: number;
+  /** Casas con la ubicación por confirmar que se le preguntaron al corredor en esta vuelta. */
+  ubicacionesPorConfirmar: number;
 };
+
+type Pregunta = { id: string; tema: string; respuesta: string | null; estado: string };
+const CODIGO_EN_TEMA = /^Ubicación (DP-[0-9A-Z]{6})\b/i;
 
 type Existente = { id: string; codigo: string; fotos: Foto[] | null; estado: string } & Record<string, unknown>;
 
@@ -163,7 +183,7 @@ export async function sincronizarSitio(
   host: string,
   opciones: { maxFotos?: number; hasta?: number } = {},
 ): Promise<ResultadoSincronizacion> {
-  const res: ResultadoSincronizacion = { creadas: 0, actualizadas: 0, pausadas: 0, ejemplosBorrados: 0, fotosCopiadas: 0, fotosPendientes: 0, fallidos: 0 };
+  const res: ResultadoSincronizacion = { creadas: 0, actualizadas: 0, pausadas: 0, ejemplosBorrados: 0, fotosCopiadas: 0, fotosPendientes: 0, fallidos: 0, ubicacionesPorConfirmar: 0 };
   let presupuesto = opciones.maxFotos ?? 80;
   const hasta = opciones.hasta ?? Date.now() + 240_000;
 
@@ -179,6 +199,20 @@ export async function sincronizarSitio(
     existentes.delete(codigo);
   }
 
+  // Las preguntas de ubicación (y lo que contestó el corredor), por código de casa.
+  const { data: preguntasData } = await db
+    .from("conocimiento")
+    .select("id, tema, respuesta, estado")
+    .eq("corredor_id", corredor.id)
+    .like("tema", `${PREFIJO_UBICACION}%`)
+    .limit(1000);
+  const preguntas = new Map<string, Pregunta>();
+  for (const p of (preguntasData ?? []) as Pregunta[]) {
+    const codigo = p.tema.match(CODIGO_EN_TEMA)?.[1]?.toUpperCase();
+    // Si hubiera dos, gana la contestada.
+    if (codigo && (!preguntas.has(codigo) || p.estado === "activo")) preguntas.set(codigo, p);
+  }
+
   const enSitio = new Set<string>();
   for (const casa of casas) {
     const fila = filaDesdeSitio(casa);
@@ -187,6 +221,7 @@ export async function sincronizarSitio(
     if (enSitio.has(codigo)) continue;
     enSitio.add(codigo);
     try {
+      await ubicarCasa(db, corredor.id, casa, fila, preguntas.get(codigo), res);
       let propiedad = existentes.get(codigo);
       if (propiedad) {
         // Solo se escribe si algo cambió en el sitio (la vuelta corre seguido).
@@ -245,6 +280,30 @@ export async function sincronizarSitio(
     res.pausadas++;
   }
   return res;
+}
+
+/**
+ * La zona confirmada por el corredor manda sobre la del sitio; si no hay y la de la casa es dudosa, se le pregunta
+ * (una vez: si quitó la pregunta, queda la conjetura). Si ya no hay duda, la pregunta pendiente se archiva.
+ */
+async function ubicarCasa(db: SupabaseClient, corredorId: string, casa: CasaSitio, fila: Record<string, unknown>, pregunta: Pregunta | undefined, res: ResultadoSincronizacion) {
+  if (pregunta?.estado === "activo") {
+    const confirmada = zonaDeRespuesta(pregunta.respuesta);
+    if (confirmada) fila.zona = confirmada;
+    return;
+  }
+  const r = ubicacionDeCasa(casa);
+  if (r.segura) {
+    if (pregunta?.estado === "pendiente") {
+      await db.from("conocimiento").update({ estado: "archivado", updated_at: new Date().toISOString() }).eq("corredor_id", corredorId).eq("id", pregunta.id);
+    }
+    return;
+  }
+  // Solo se pregunta por las casas en oferta, y una sola vez.
+  if (pregunta || fila.estado !== "activa") return;
+  const tema = temaUbicacion(fila.codigo as string, fila.titulo as string, loQueDiceElSitio({ ubicacion: casa.ubicacion, distrito: casa.distrito, canton: casa.canton }), r.opciones ?? []);
+  const { error } = await db.from("conocimiento").insert({ corredor_id: corredorId, tema, estado: "pendiente", origen: "duda" });
+  if (!error) res.ubicacionesPorConfirmar++;
 }
 
 /** El cron: cada corredor con exportación configurada. */

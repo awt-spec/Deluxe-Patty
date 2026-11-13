@@ -121,7 +121,7 @@ export default async function Agenda({
     const fin = aUtc(sumarDias(f, 1), 0, zona).getTime();
     const del = bloqueos.filter((b) => Date.parse(b.inicio) < fin && Date.parse(b.fin) > ini);
     if (del.length === 0) return null;
-    if (del.some((b) => Date.parse(b.inicio) <= ini && Date.parse(b.fin) >= fin)) return { texto: "Bloqueado", todo: true, motivo: del[0].motivo };
+    if (del.some((b) => Date.parse(b.inicio) <= ini && Date.parse(b.fin) >= fin)) return { texto: "Apartado", todo: true, motivo: del[0].motivo };
     const b = del[0];
     const desdeB = Math.max(Date.parse(b.inicio), ini);
     const hastaB = Math.min(Date.parse(b.fin), fin);
@@ -226,8 +226,8 @@ export default async function Agenda({
             const ini = Date.parse(b.inicio) <= inicioDia ? horaMin * 60 : minutosLocales(new Date(b.inicio), zona);
             const fin = Date.parse(b.fin) >= finDia ? horaMax * 60 : minutosLocales(new Date(b.fin), zona);
             return (
-              <span key={`b${i}`} className="cal-bloqueo" style={{ top: y(ini), height: Math.max(0, y(fin) - y(ini)) }} title={b.motivo ? `Bloqueado: ${b.motivo}` : "Bloqueado"}>
-                {y(fin) - y(ini) >= 26 && <span>{b.motivo ?? "Bloqueado"}</span>}
+              <span key={`b${i}`} className="cal-bloqueo" style={{ top: y(ini), height: Math.max(0, y(fin) - y(ini)) }} title={b.motivo ? `Apartado: ${b.motivo}` : "Apartado"}>
+                {y(fin) - y(ini) >= 26 && <span>{b.motivo ?? "Apartado"}</span>}
               </span>
             );
           })}
@@ -323,7 +323,7 @@ export default async function Agenda({
             + Agendar
           </Link>
           <Link data-patty="agenda-bloquear" href={`/panel/agenda/bloquear?fecha=${fechaIso(fechaIso(base) < fechaIso(hoy) ? hoy : base)}`} className="boton solo-computadora">
-            Bloquear
+            Apartar tiempo
           </Link>
           <Link data-patty="agenda-horario" href="/panel/agenda/horario" className="boton solo-computadora">
             Mi horario
@@ -394,7 +394,7 @@ export default async function Agenda({
       </div>
       <div className="agenda-atajos solo-telefono">
         <Link href={`/panel/agenda/bloquear?fecha=${fechaIso(fechaIso(base) < fechaIso(hoy) ? hoy : base)}`} className="boton chico">
-          Bloquear un rato
+          Apartar tiempo
         </Link>
         <Link href="/panel/agenda/horario" className="boton chico">
           Mi horario
@@ -480,7 +480,7 @@ export default async function Agenda({
                     <li key={`b${e.x.b.id}`} className="dia-bloqueado">
                       <span className="dia-hora">{e.x.desde === 0 && e.x.hasta >= 24 * 60 ? "Todo el día" : horaBonita(e.x.desde)}</span>
                       <span className="dia-texto">
-                        <strong>Bloqueado</strong>
+                        <strong>Apartado</strong>
                         <span className="suave">
                           {e.x.desde === 0 && e.x.hasta >= 24 * 60 ? "" : `hasta las ${horaBonita(e.x.hasta)}`}
                           {e.x.b.motivo ? `${e.x.desde === 0 && e.x.hasta >= 24 * 60 ? "" : " · "}${e.x.b.motivo}` : ""}
@@ -498,7 +498,7 @@ export default async function Agenda({
       {(vista === "dia" || vista === "semana") && (
         <div className={`cal cal-${vista}`} style={{ ["--alto-hora" as string]: `${ALTO_HORA}px` }}>
           <p className="suave cal-leyenda">
-            <span className="muestra libre" /> Toca una hora libre para agendar <span className="muestra bloqueo" /> Bloqueado
+            <span className="muestra libre" /> Toca una hora libre para agendar <span className="muestra bloqueo" /> Apartado
             {[...new Set(citas.map((c) => uno(c.propiedades)?.zona).filter((z): z is string => !!z))].map((z) => (
               <span key={z} className="zona-leyenda">
                 <span className="muestra" style={{ background: colorZona(z) }} /> {z}
@@ -555,8 +555,8 @@ export default async function Agenda({
                 {(() => {
                   const bl = bloqueoDelDia(f);
                   return bl ? (
-                    <span className={`cal-mes-bloqueo${bl.todo ? " todo" : ""}`} title={bl.motivo ? `Bloqueado: ${bl.motivo}` : "Bloqueado"}>
-                      {bl.todo ? bl.motivo ?? "Bloqueado" : bl.texto}
+                    <span className={`cal-mes-bloqueo${bl.todo ? " todo" : ""}`} title={bl.motivo ? `Apartado: ${bl.motivo}` : "Apartado"}>
+                      {bl.todo ? bl.motivo ?? "Apartado" : bl.texto}
                     </span>
                   ) : null;
                 })()}
@@ -608,7 +608,7 @@ export default async function Agenda({
 
       {proximos.length > 0 && (
         <section className="tarjeta pila bloqueos-lista" data-patty="agenda-bloqueos">
-          <h2>Ratos bloqueados</h2>
+          <h2>Tiempo apartado</h2>
           <p className="suave">Todos los que vienen. La asistente no ofrece visitas en estos ratos.</p>
           {proximos.map((b) => (
               <form key={b.id} action={quitarBloqueoAgenda} className="fila bloqueo-fila">
