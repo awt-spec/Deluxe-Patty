@@ -40,6 +40,8 @@ export async function mejorarFotos(
   corredor: Corredor,
   codigo: string,
   avisar: (texto: string) => Promise<unknown>,
+  /** Solo esta foto (por su URL original), por ejemplo desde la imagen para redes. */
+  soloUrl?: string,
 ): Promise<ResultadoFotos> {
   const editor = deps.fotos;
   if (!editor) {
@@ -54,7 +56,7 @@ export async function mejorarFotos(
     return { mensajes: [`${propiedad.titulo} no tiene fotos cargadas.`], mejoradas: [], fallidas: 0 };
   }
   // Solo fotos del bucket propio y que todavía no tienen versión mejorada (no se paga dos veces).
-  const aMejorar = fotos.filter((f) => esFotoPropia(f.url, corredor.id) && !f.mejorada_url).slice(0, MAX_FOTOS);
+  const aMejorar = fotos.filter((f) => (!soloUrl || f.url === soloUrl) && esFotoPropia(f.url, corredor.id) && !f.mejorada_url).slice(0, MAX_FOTOS);
   if (aMejorar.length === 0) {
     return { mensajes: [`Las fotos de ${propiedad.titulo} ya están mejoradas.`], mejoradas: [], fallidas: 0 };
   }
