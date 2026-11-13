@@ -4510,10 +4510,6 @@ body:has(.marco.tema) {
   background: #fff;
 }
 @media (min-width: 900px) {
-  .patty-boton {
-    bottom: 24px;
-    right: 24px;
-  }
   .patty-panel {
     inset: auto 24px 24px auto;
     width: 420px;
@@ -11830,5 +11826,18 @@ body:has(.marco.tema) {
   .marco.tema .lateral *,
   .marco.tema {
     transition: none !important;
+  }
+}
+
+/* Computadora: el menú lateral ya trae "Pregúntale a Patty" (y los atajos / y Ctrl/⌘+K), así que el botón flotante
+   cerrado no se muestra: tapaba controles (Enviar del chat de redes, Guardar en Cerebro). El chat abierto
+   (.patty-panel) sigue igual. La especificidad iguala a las reglas por pantalla (.marco.tema:has(...)). En el
+   teléfono (<900 px) no cambia nada. */
+@media (min-width: 900px) {
+  body .marco.tema .patty-boton,
+  body .marco.tema:has(.fc-ficha) .patty-boton,
+  body .marco.tema:has(.redes-chat) .patty-boton,
+  body .marco.tema:has(.redes-estudio) .patty-boton {
+    display: none !important;
   }
 }

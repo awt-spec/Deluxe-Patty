@@ -299,6 +299,11 @@ export function ChatPatty({
     setCasaEstado(c);
     if (!c) olvidarFotos(clave);
   }
+  // Chat flotante en computadora: al abrirse, el foco va a la caja de texto. En el teléfono no, para no abrir el teclado.
+  useEffect(() => {
+    if (modo === "flotante" && window.innerWidth >= 900) cajaTexto.current?.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => {
     if (preguntaInicial) {
       enviar(preguntaInicial);
@@ -1041,6 +1046,8 @@ export function Patty({ nombre, corredor }: { nombre: string; corredor: string }
       setAbierto(true);
       const pregunta = (e as CustomEvent<string | null>).detail;
       if (pregunta) setPendiente(pregunta);
+      // Si el chat ya estaba abierto no se vuelve a montar: se enfoca la caja (solo en computadora).
+      if (window.innerWidth >= 900) requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>(".patty-panel textarea")?.focus());
     };
     window.addEventListener("abrir-patty", abrir);
     return () => window.removeEventListener("abrir-patty", abrir);

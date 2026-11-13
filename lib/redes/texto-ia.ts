@@ -72,18 +72,21 @@ export function revisarTextoIA(
   return { ok: true, texto: texto.slice(0, MAX_TEXTO_REDES + 400), repuesto };
 }
 
-/** En la demo no se gasta IA: una versión simulada hecha por código, con los mismos datos. */
+/** Avisos de demostración que versiones anteriores anteponían al texto: se quitan para que nunca se apilen. */
+const AVISO_DEMO = /^\s*\((?:Demostraci[oó]n|Demo)\b[^)]*\)\s*/i;
+
+/**
+ * En la demo no se gasta IA: una versión simulada hecha por código, con los mismos datos. El aviso de demostración
+ * NO va dentro del texto (el que se publica): lo da la respuesta del chat o la nota bajo el campo. Se calcula sobre
+ * el texto sin avisos, así que pedirlo dos veces da lo mismo.
+ */
 export function textoDemo(modo: ModoTexto, anterior: string): string {
-  const lineas = anterior.split("\n");
+  let limpio = anterior;
+  while (AVISO_DEMO.test(limpio)) limpio = limpio.replace(AVISO_DEMO, "");
+  limpio = limpio.trim();
   if (modo === "corto") {
-    const llenas = lineas.filter((l) => l.trim());
+    const llenas = limpio.split("\n").filter((l) => l.trim());
     return [...llenas.slice(0, 3), "", ...llenas.slice(-2)].join("\n");
   }
-  const nota: Record<ModoTexto, string> = {
-    mejorar: "(Demostración: aquí la IA dejaría tu texto más claro y ordenado.)",
-    corto: "",
-    vendedor: "(Demostración: aquí la IA dejaría tu texto más vendedor.)",
-    ingles: "(Demo: here the AI would translate your text into English.)",
-  };
-  return `${nota[modo]}\n\n${anterior}`;
+  return limpio;
 }
