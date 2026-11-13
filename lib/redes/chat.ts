@@ -330,7 +330,7 @@ export function aplicarVideo(estado: EstadoVideo, ops: OperacionVideo[], ctx: Co
         if (conEsa && anterior) conEsa.foto = anterior;
         else if (anterior && escenas.filter((e) => e.tipo === "foto").length < MAX_FOTOS_VIDEO) escenas.splice(1, 0, escenaFoto(anterior));
         escenas = ajustar(escenas);
-        hechos.push(`puse ${o.nombre.toLowerCase()} de portada`);
+        hechos.push(`puse ${o.nombre === "esa foto" ? "esa foto" : `la ${o.nombre.toLowerCase()}`} de portada`);
         break;
       }
       case "quitar_escena": {
@@ -343,7 +343,7 @@ export function aplicarVideo(estado: EstadoVideo, ops: OperacionVideo[], ctx: Co
       }
       case "agregar_foto": {
         if (escenas.filter((e) => e.tipo === "foto").length >= MAX_FOTOS_VIDEO) {
-          hechos.push(`no agregué ${o.nombre.toLowerCase()}: ya hay ${MAX_FOTOS_VIDEO} fotos`);
+          hechos.push(`no agregué la ${o.nombre.toLowerCase()}: ya hay ${MAX_FOTOS_VIDEO} fotos`);
           break;
         }
         const nueva = escenaFoto(o.foto);
@@ -352,7 +352,7 @@ export function aplicarVideo(estado: EstadoVideo, ops: OperacionVideo[], ctx: Co
         const destino = o.posicion ? Math.min(Math.max(o.posicion - 1, 1), escenas.length - conCierre) : datosOCierre < 0 ? escenas.length : datosOCierre;
         escenas.splice(destino, 0, nueva);
         escenas = ajustar(escenas);
-        hechos.push(`agregué ${o.nombre.toLowerCase()}`);
+        hechos.push(`agregué la ${o.nombre.toLowerCase()}`);
         break;
       }
       case "texto_escena": {
@@ -497,9 +497,9 @@ export const NO_TAPA_DANOS =
 const DEFECTOS = /\b(humed\w*|grietas?|fisuras?|rajad\w*|moho|hongos?|goteras?|filtracion\w*|manchas?|manchad\w*|oxid\w*|herrumbre|danos?|danad\w*|deterior\w*|despintad\w*|descascar\w*|podrid\w*|quebrad\w*|rot[oa]s?|desgastad\w*|salitre|comejen|termitas?)\b/;
 // Lo que es de la casa (o de su entorno) y no se agrega, quita ni cambia.
 const ESTRUCTURA =
-  /\b(piscinas?|albercas?|jacuzzis?|ventan\w*|vidrios?|pisos?|vistas?|paisaje|jardin\w*|cesped|zacate|grama|arbol\w*|palmeras?|paredes?|muros?|tapias?|techos?|cielos?|cielorraso|cuartos?|habitacion\w*|dormitorios?|banos?|cocinas?|terrazas?|balcon\w*|puertas?|porton\w*|escaleras?|metros?|m2|m²|columnas?|chimeneas?|ranchos?|garajes?|cocheras?|fachadas?|montan\w*|mar|playas?|lagos?|rios?|volcan\w*|edificios?|construccion\w*|verjas?|rejas?|portones?|aceras?|calles?|postes?|tendido|lote|terreno|patio|azotea|planta alta|segundo piso|piso de arriba)\b/;
+  /\b(piscinas?|albercas?|jacuzzis?|ventan\w*|vidrios?|pisos?|vistas?|paisaje|jardin\w*|cesped|zacate|grama|arbol\w*|palmeras?|pared|paredes|muros?|tapias?|techos?|cielos?|cielorraso|cuartos?|habitacion\w*|dormitorios?|banos?|cocinas?|terrazas?|balcon\w*|puertas?|porton\w*|escaleras?|metros?|m2|m²|columnas?|chimeneas?|ranchos?|garajes?|cocheras?|fachadas?|montan\w*|mar|playas?|lagos?|rios?|volcan\w*|edificios?|construccion\w*|verjas?|rejas?|portones?|aceras?|calles?|postes?|tendido|lote|terreno|patio|azotea|planta alta|segundo piso|piso de arriba)\b/;
 const VERBOS =
-  /\b(agrega\w*|anad\w*|pon|pone\w*|ponle\w*|ponga\w*|coloca\w*|mete\w*|incluy\w*|suma\w*|crea\w*|construy\w*|haz|hazle\w*|hacer|cambia\w*|reemplaza\w*|sustituy\w*|pinta\w*|agranda\w*|amplia\w*|alarga\w*|arregla\w*|repara\w*|mejora\w*|quita\w*|borra\w*|elimina\w*|saca\w*|desaparec\w*|oculta\w*|tapa\w*|cubr\w*|escond\w*|disimula\w*|retoca\w*|corrig\w*|limpia\w*)\b/;
+  /\b(agrega\w*|anad\w*|pon|pone\w*|ponle\w*|ponga\w*|coloca\w*|mete\w*|incluy\w*|suma\w*|crea\w*|construy\w*|haz|hazl\w*|hacer|cambia\w*|reemplaza\w*|sustituy\w*|pinta\w*|agranda\w*|amplia\w*|alarga\w*|arregla\w*|repara\w*|mejora\w*|quita\w*|borra\w*|elimina\w*|saca\w*|desaparec\w*|oculta\w*|tapa\w*|cubr\w*|escond\w*|disimula\w*|retoca\w*|corrig\w*|limpia\w*)\b/;
 const AGRANDAR = /\b(mas|menos) (grande|amplio|amplia|alto|alta|ancho|ancha|largo|larga|chico|chica|pequeno|pequena)\b/;
 // "en la sala", "del garaje", "al cuarto": el lugar donde se hace algo no es lo que se cambia.
 const LUGAR = /\b(en|al|a|del|de|desde|dentro de|sobre|frente a|junto a|cerca de|para|hacia|por)\s+(el|la|los|las|un|una|mi|su|este|esta)?\s*[a-z0-9²]+/g;

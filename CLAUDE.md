@@ -30,6 +30,13 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   `prompts/redes-video.md`: orden de fotos por id y textos de hasta 60 caracteres); precio y datos los escribe el código.
   `lib/redes/cifras.ts` descarta lo que traiga cifras fuera de la ficha y repone precio, código y contacto; en la demo la
   respuesta es simulada. Las fotos para el canvas se cargan con CORS y, si no, por `redes/foto?img=` (solo fotos de esa casa).
+  **"Pídeselo a …"** en las tres pestañas (`redes/chat.tsx`, `lib/redes/chat.ts`, `prompts/redes-chat.md`): el corredor pide con
+  sus palabras y el modelo (`chatRedes`, `textoRedesPedido`) devuelve operaciones que el código valida y aplica, con Deshacer.
+  Video: mover, portada, quitar, agregar, texto, duración de escena o total, estilo, formato y datos. Imagen: elegir, mejorar,
+  quitar cosas sueltas o amueblar, siempre como variante ilustrativa y con "¿Hacerlo?" antes de gastar; `vetoImagen` niega antes
+  de llamar a Claude o a OpenAI lo que cambia la casa o tapa daños. Texto: solo se aceptan las cifras que el corredor escribió
+  en su pedido (`conCifrasDichas`). Hasta 6 pedidos por minuto, pedido de máximo 500 caracteres tratado como dato; en la demo
+  lo entiende el código (`interpretarDemo`) sin gastar.
 - Ficha de propiedad en PDF con `@react-pdf/renderer` (`lib/fichas/`): la identidad de cada corredor es
   dato (`corredores.marca`, tipo `Marca`); la de Deluxe sigue su Manual de Identidad Visual (4 colores oficiales, Playfair Display
   e Inter, logo oficial en `marcas/deluxe/`). Ejemplo: `npx tsx scripts/ficha-ejemplo.mts <salida.pdf> <fotos...>`.
@@ -155,7 +162,9 @@ marca del corredor (`corredores.marca`), la sube al bucket público `fichas` y s
 
 ## Panel del corredor (`app/panel`)
 Para el teléfono y para alguien que no usa tecnología: **cuatro botones** (Inicio, Clientes, Agenda, Mis casas;
-en computadora, menú a la izquierda que se contrae),
+en computadora, menú a la izquierda `app/panel/menu-lateral.tsx`: oscuro con la marca —`coloresMenu`, `lib/panel/colores-menu.ts`,
+contraste AA; sin marca o con marca clara, verde-carbón—, 264/72 px, "Pregúntale a Patty" arriba, grupos Tu día / Tu negocio /
+Tu asistente y la cuenta abajo con Ajustes y Salir; atajos `lib/panel/atajos.ts`: g + i/c/a/m, y `/` o Ctrl/⌘+K abre Patty),
 letra y botones grandes, palabras de todos los días (nada de "borrador" ni "escalada"), tema claro como
 WhatsApp (letra del sistema, verde de WhatsApp para enviar). Inicio (`/panel`): arriba lo
 urgente (un botón "Revisar" con lo que espera al corredor), lo que hizo la asistente en 24 horas y "Qué hacer
@@ -257,7 +266,9 @@ Al marcar una visita como hecha queda un recordatorio para mañana; Inicio pide 
 pasadas y avisa de casas nuevas que le sirven a algún cliente, y la ficha de cada casa lista a esos clientes. La ficha muestra las
 casas que le encajan; el inicio, "Para hoy" (seguimientos que vencen y clientes que no contestan hace 3
 días). El corredor edita esos campos con su sesión (permiso por columna; el teléfono no).
-Cerebro de la asistente (`app/panel/cerebro`, desde Más): lo que el corredor le enseña (`conocimiento`,
+Cerebro de la asistente (`app/panel/cerebro`, desde Más; portada con lo urgente —preguntas y "¿Dónde queda esta casa?"—,
+"Qué tan lista está" (`listaPreparacion`, 7 renglones) y "Enséñale algo" con ideas; pestañas `?ver=dudas|sabe|errores|fuentes|mapa`;
+reglas puras en `resumen.ts`): lo que el corredor le enseña (`conocimiento`,
 tema y respuesta) entra en `responder` como datos suyos; lo que la asistente no supo (`avisar_corredor`)
 queda como duda pendiente (`registrarDuda`, sin repetirse) y al responderla pasa a lo que sabe. Tiene un
 mapa interactivo (grafo en SVG con simulación de fuerzas propia, `app/panel/cerebro/mapa.tsx`): la asistente
@@ -289,6 +300,9 @@ direcciones públicas con CORS abierto (los datos son públicos) y el corredor i
   copia las fotos al bucket propio (solo del servidor de la exportación, 80 por vuelta, `fotos[i].fuente`) y quita las que
   allá ya no están; vendida allá → vendida/alquilada; oculta o desaparecida → pausada; borra las de ejemplo (`EJEMPLO-*`).
   Las casas hechas en el portal no se tocan, y las importadas no se devuelven al sitio en `GET casas`.
+- **Modo corredor** (`lib/sitio/modo-corredor.ts`, botón en la ficha de la casa): enlace `<sitio>/share/<slug>` de la casa sin los
+  datos de contacto del corredor, para pasarlo a otro corredor. Solo en casas del sitio (`DP-XXXXXX`, activas); el slug se lee de
+  la exportación (caché de 5 min) y la dirección del sitio sale de `sitiosWeb()` (`SITIO_URLS`).
 
 ## Monitoreo (`lib/monitoreo/`)
 Cada llamada a Claude deja una traza `llamada_claude` (modelo, ms, tokens, caché leída y escrita, motivo de parada;

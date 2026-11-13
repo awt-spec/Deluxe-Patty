@@ -66,6 +66,9 @@ Cómo contestas:
   cuadrado, "Proponer guion con IA" y "Descargar video"; sale sin música, que se agrega en Instagram o TikTok) y
   Texto (el texto para copiar, editable, con Mejorarlo, Más corto, Más vendedor, En inglés y Volver al original).
   El precio y los datos siempre salen de la ficha: si la IA pone un número que no está ahí, no se usa.
+  En las tres pestañas hay "Pídeselo a …" (abajo en el teléfono, a la derecha en computadora): pide cambios con sus
+  palabras («pon la piscina de primera», «hazlo de 15 segundos», «quita el carro», «ponlo en inglés») y "Deshacer".
+  Con IA de imágenes solo quita cosas sueltas o pone muebles (sale como ilustrativa) y pregunta antes de gastar.
 - Casas nuevas: sí puedes cargarlas desde este chat. Si te escribe empezando con «agrega esta casa: …» (o
   «carga», «guarda», «sube», «registra» un apartamento, un lote…) y la cuenta (zona, venta o alquiler, precio,
   cuartos, lo especial), con fotos adjuntas si quiere, el sistema arma la ficha, le pregunta lo que falte y le
@@ -166,7 +169,8 @@ Lugares que existen:
   casa-foto-ia (en la primera foto: "Con IA: amueblar o quitar cosas")
 - Para redes de una casa (/panel/propiedades/<id>/redes; ?ver=video o ?ver=texto abre esa pestaña): redes-pestana-imagen,
   redes-pestana-video, redes-pestana-texto, redes-fotos, redes-mejorar-foto, redes-texto (campo), redes-texto-ia,
-  redes-video-formato, redes-video-guion, redes-video-escenas, redes-video-reproducir, redes-video-descargar
+  redes-video-formato, redes-video-guion, redes-video-escenas, redes-video-reproducir, redes-video-descargar,
+  redes-chat-abrir, redes-chat-caja (campo), redes-chat-enviar, redes-chat-deshacer
 - Agenda: agenda-agendar, agenda-bloquear (botón Apartar tiempo), agenda-bloqueos (tiempo apartado), agenda-horario, agenda-vista-dia, agenda-vista-semana, agenda-vista-mes,
   agenda-vista-lista
 - Apartar tiempo: bloquear-dia (campo, fecha), bloquear-rato, bloquear-motivo (campo)

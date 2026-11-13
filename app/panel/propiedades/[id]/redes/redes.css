@@ -326,16 +326,17 @@
 }
 
 .redes-chat {
-  --chat-abajo: calc(78px + env(safe-area-inset-bottom));
+  --chat-abajo: calc(90px + env(safe-area-inset-bottom));
   position: fixed;
   left: 8px;
   right: 8px;
   bottom: var(--chat-abajo);
   z-index: 9;
 }
-.redes-chat-barra {
+.redes-chat .redes-chat-barra {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 10px;
   width: 100%;
   min-height: 52px;
@@ -362,7 +363,7 @@
 .redes-chat-cuerpo {
   display: none;
 }
-.redes-chat.abierto .redes-chat-barra {
+.redes-chat.abierto .redes-chat-barra.redes-chat-barra {
   display: none;
 }
 .redes-chat.abierto .redes-chat-cuerpo {
@@ -492,8 +493,8 @@
   font-size: 1rem;
   field-sizing: content;
 }
-.redes-chat-mic,
-.redes-chat-enviar {
+.redes-chat .redes-chat-mic,
+.redes-chat .redes-chat-enviar {
   flex: 0 0 48px;
   width: 48px;
   height: 48px;
@@ -504,15 +505,15 @@
   display: grid;
   place-items: center;
 }
-.redes-chat-mic {
+.redes-chat .redes-chat-mic {
   background: var(--superficie-alta, #f0f2f5);
   color: var(--profundo, #111);
 }
-.redes-chat-mic.grabando {
+.redes-chat .redes-chat-mic.grabando {
   background: #d93025;
   color: #fff;
 }
-.redes-chat-enviar {
+.redes-chat .redes-chat-enviar {
   background: var(--ok, #00a884);
   color: #fff;
 }
@@ -551,8 +552,8 @@
     bottom: auto;
     z-index: 1;
   }
-  .redes-chat-barra,
-  .redes-chat-cerrar {
+  .redes-chat .redes-chat-barra,
+  .redes-chat .redes-chat-cerrar {
     display: none;
   }
   .redes-chat .redes-chat-cuerpo,
