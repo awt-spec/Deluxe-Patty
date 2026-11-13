@@ -169,7 +169,13 @@ marca del corredor (`corredores.marca`), la sube al bucket público `fichas` y s
   `registrar_audio`) y cuenta para el tope de IA (`presupuesto_ia()`). El corredor inactivo (demo) no transcribe de verdad.
 
 ## Panel del corredor (`app/panel`)
-Para el teléfono y para alguien que no usa tecnología: **cuatro botones** (Inicio, Clientes, Agenda, Mis casas;
+Para el teléfono y para alguien que no usa tecnología: una barra de abajo con **cinco lugares**, la asistente al centro
+(Inicio, Clientes, [Patty en círculo verde, `data-patty="nav-preguntar"`, abre el chat con `abrir-patty`], Agenda, Mis casas; ya no
+hay botón flotante; la barra mide `--nav-alto` y el círculo sobresale `--nav-saliente`: el contenido deja `--nav-alto` + 16 px y
+las barras fijas se apoyan en `calc(var(--nav-alto) + var(--nav-saliente))`; cada pantalla trae su CSS de teléfono —`agenda-movil.css`,
+`cerebro.css`, `redes.css`, `ficha.css`, `propiedades/formulario-movil.css`—; en la agenda la semana muestra 3 días y abre en hoy y el
+mes muestra puntos con la lista del día debajo (`agenda/movil.tsx`, `lib/panel/movil.ts`); en la ficha del cliente y los formularios de
+casa lo secundario va plegado con su resumen y la guía de Patty abre lo plegado antes de señalarlo;
 en computadora, menú a la izquierda claro al estilo WhatsApp Web (`app/panel/menu-lateral.tsx`; paleta fija `PALETA_MENU` en
 `lib/panel/colores-menu.ts` = variables `--m-*` de globals.css, AA probado; de la marca solo va el logo en círculo), 264 px o
 riel de 72 px, "Pregúntale a Patty" en píldora verde, grupos Tu día / Tu negocio / Tu asistente, burbujas verdes de pendientes

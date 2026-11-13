@@ -38,6 +38,10 @@ const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
 /** El elemento visible con ese lugar (en el teléfono el menú de abajo y en computadora el de la izquierda). */
 function buscar(lugar: string): HTMLElement | null {
   const todos = [...document.querySelectorAll<HTMLElement>(`[data-patty="${lugar}"]`)];
+  // Si el lugar está dentro de una sección plegada (en el teléfono varias lo están), se abre para poder señalarlo.
+  for (const e of todos) {
+    for (let d = e.closest("details:not([open])"); d; d = d.parentElement?.closest("details:not([open])") ?? null) d.setAttribute("open", "");
+  }
   return todos.find((e) => e.offsetParent !== null || e.getClientRects().length > 0) ?? null;
 }
 

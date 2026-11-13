@@ -589,7 +589,7 @@
   .marco.tema main .redes-chat {
     left: 0;
     right: 0;
-    bottom: var(--nav-alto, 78px);
+    bottom: calc(var(--nav-alto, 64px) + var(--nav-saliente, 14px));
     z-index: 25;
     padding: 6px 10px;
     background: var(--superficie, #fff);
@@ -617,6 +617,7 @@
     display: none;
   }
   .marco.tema main .redes-chat-listo-texto {
+    display: block;
     flex: 1;
     min-width: 0;
     min-height: 44px;
@@ -664,6 +665,14 @@
   }
   .marco.tema main .redes-chat-acciones .boton {
     min-height: 44px;
+    padding: 6px 10px;
+  }
+  .marco.tema main .redes-chat-cabeza strong {
+    min-width: 0;
+    font-size: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .marco.tema main .redes-chat-turnos {
     min-height: 48px;
@@ -679,5 +688,13 @@
   }
   .marco.tema main .redes-chat-sugerencias .chip {
     min-height: 44px;
+  }
+  /* Con la hoja abierta, el video vertical se achica para verse entero encima de ella. */
+  .marco.tema main .redes-con-chat:has(.redes-chat.abierto) .redes-lienzo canvas {
+    width: auto;
+    max-width: 100%;
+    max-height: calc(45vh - 92px);
+    max-height: calc(45dvh - 92px);
+    margin-inline: auto;
   }
 }

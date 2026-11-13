@@ -68,7 +68,7 @@ export function PreguntaBloqueo({
       {compacta && (
         <div className="pb-linea solo-telefono">
           <p>
-            <strong>{nombre}:</strong> ¿Algún compromiso mañana?
+            <span className="oculto">{nombre}: </span>¿Algún compromiso mañana?
           </p>
           {!abierta && (
             <>

@@ -1,7 +1,7 @@
 /* Agenda en el teléfono (< 900 px): Semana, Mes, Día, la pregunta de Patty, Apartar tiempo, Mi horario y Agendar.
    Todo va dentro de @media (max-width: 899px): en computadora la agenda se ve como siempre. Lo que solo existe en el
    teléfono (la barra "‹ ›" de la semana, los puntos y la lista del mes) también se esconde aquí en computadora.
-   --nav-alto: alto de la barra de abajo con el área segura (lo define el marco); --verde-texto: verde AA. */
+   --nav-alto + --nav-saliente: alto de la barra de abajo con el área segura y lo que sobresale el botón de Patty (los define el marco); --verde-texto: verde AA. */
 
 @media (min-width: 900px) {
   .marco.tema main .cal-semana-nav,
@@ -191,7 +191,7 @@
     border: 1px solid var(--borde);
     border-radius: 14px;
     background: #fff;
-    scroll-margin-bottom: calc(var(--nav-alto, 78px) + 12px);
+    scroll-margin-bottom: calc(var(--nav-alto, 64px) + var(--nav-saliente, 14px) + 12px);
   }
   .marco.tema main .mes-dia h2 {
     margin: 0;
@@ -258,21 +258,55 @@
     grid-column: 1 / -1;
   }
 
-  /* ---------- Día: flechas de 44 px y "Libre" apilado ---------- */
-  .marco.tema main .semana-tira {
-    grid-template-columns: 44px repeat(7, minmax(0, 1fr)) 44px;
-    gap: 0;
-    padding: 4px;
+  /* ---------- Día: la tira de días a todo lo ancho (51 px por día) y abajo "‹ Viernes 13 de noviembre ›" con las
+     flechas de semana de 44 px; "Libre" apilado ---------- */
+  .marco.tema main .dia-cabecera {
+    display: grid;
+    grid-template-columns: repeat(14, minmax(0, 1fr));
+    align-items: center;
+    gap: 4px 0;
+    padding: 4px 0 6px;
+    background: #fff;
+    border: 1px solid var(--borde);
+    border-radius: 16px;
   }
-  .marco.tema main .semana-flecha {
-    width: 44px;
-    height: 56px;
+  .marco.tema main .dia-cabecera .semana-tira {
+    display: contents;
   }
-  .marco.tema main .semana-dia {
-    min-height: 60px;
+  .marco.tema main .dia-cabecera .semana-dia {
+    grid-row: 1;
+    grid-column: span 2;
+    min-height: 64px;
   }
-  .marco.tema main .semana-dia small {
+  .marco.tema main .dia-cabecera .semana-dia small {
     font-size: 0.82rem;
+  }
+  .marco.tema main .dia-cabecera .semana-flecha {
+    grid-row: 2;
+    width: 44px;
+    height: 44px;
+    justify-self: center;
+  }
+  .marco.tema main .dia-cabecera .semana-flecha:first-child {
+    grid-column: 1 / span 2;
+  }
+  .marco.tema main .dia-cabecera .semana-flecha:last-child {
+    grid-column: 13 / span 2;
+  }
+  .marco.tema main .dia-cabecera .dia-titulo {
+    grid-row: 2;
+    grid-column: 3 / span 10;
+    justify-content: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  .marco.tema main .dia-cabecera .dia-titulo h2 {
+    font-size: 1.02rem;
+    text-align: center;
+  }
+  .marco.tema main .dia-cabecera .dia-titulo .boton {
+    min-height: 44px;
+    margin: 0;
   }
   .marco.tema main .dia-lista li.dia-libre {
     display: grid;
@@ -416,7 +450,7 @@
     position: fixed;
     left: 0;
     right: 0;
-    bottom: var(--nav-alto, 78px);
+    bottom: calc(var(--nav-alto, 64px) + var(--nav-saliente, 14px));
     z-index: 20;
     padding: 10px 16px;
     background: #fff;

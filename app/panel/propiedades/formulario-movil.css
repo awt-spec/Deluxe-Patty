@@ -79,7 +79,7 @@
   .marco.tema main .form-casa-guardar {
     display: block;
     position: sticky;
-    bottom: var(--nav-alto, 78px);
+    bottom: calc(var(--nav-alto, 64px) + var(--nav-saliente, 14px));
     z-index: 15;
     margin: 4px -16px 0;
     padding: 10px 16px;
@@ -151,8 +151,8 @@
   /* ---------- Fotos de la casa: Principal, Antes y Después de 44 px; Quitar en su propia fila ---------- */
   .marco.tema main .casa-foto-botones {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
-    gap: 6px;
+    grid-template-columns: repeat(3, minmax(44px, 1fr));
+    gap: 4px;
     align-items: stretch;
   }
   .marco.tema main .casa-foto-botones form {
@@ -171,7 +171,8 @@
     padding: 0 6px;
     justify-content: center;
   }
-  .marco.tema main .casa-foto-botones form:last-child button {
+  .marco.tema main .casa-foto-botones form:last-child button,
+  .marco.tema main .casa-foto-botones button.peligro {
     border: 1px solid #f1c9c5;
     background: #fff;
     color: #b42318;

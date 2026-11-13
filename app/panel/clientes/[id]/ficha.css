@@ -974,11 +974,17 @@
   .marco.tema main .fc-grid {
     display: flex;
     flex-direction: column;
+    align-items: stretch;
     gap: 14px;
   }
   .marco.tema main .fc-principal,
   .marco.tema main .fc-lateral {
     display: contents;
+  }
+  .marco.tema main .fc-principal > *,
+  .marco.tema main .fc-lateral > * {
+    min-width: 0;
+    max-width: 100%;
   }
   .marco.tema main .fc-grid .fc-sigue {
     order: 1;
@@ -1046,7 +1052,7 @@
 
   /* Barra de acciones: íconos con rótulo chico, 56 px, sobre la navegación; se esconde al bajar (movil.tsx). */
   .marco.tema main .fc-acciones {
-    bottom: var(--nav-alto, 78px);
+    bottom: calc(var(--nav-alto, 64px) + var(--nav-saliente, 14px));
     z-index: 20;
     gap: 4px;
     padding: 5px 8px;
@@ -1073,6 +1079,11 @@
   }
   .marco.tema main .fc-ficha {
     padding-bottom: 72px;
+  }
+  /* Los nombres del camino a 13 px (el punto es dibujo: se toca todo el paso, de 72 px de alto). */
+  .marco.tema main .fc-paso-nombre {
+    font-size: 0.82rem;
+    letter-spacing: -0.01em;
   }
 }
 @media (max-width: 899px) and (prefers-reduced-motion: reduce) {

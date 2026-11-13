@@ -31,7 +31,7 @@ const TELEFONO = "(max-width: 899px)";
 /** Lo que cambia en cada pestaña, para dejarlo a la vista encima de la hoja. */
 const VISTA_PREVIA: Record<PestanaChat, string> = {
   imagen: ".redes-vistas",
-  video: ".redes-lienzo",
+  video: ".redes-lienzo canvas",
   texto: 'textarea[data-patty="redes-texto"]',
 };
 
@@ -45,8 +45,9 @@ function mostrarVistaPrevia(pestana: PestanaChat, hoja: HTMLElement | null) {
   const el = document.querySelector<HTMLElement>(VISTA_PREVIA[pestana]);
   if (!el) return;
   const r = el.getBoundingClientRect();
-  const pestanas = document.querySelector(".redes-pestanas")?.getBoundingClientRect();
-  const arriba = Math.max(8, (pestanas?.bottom ?? 0) + 8);
+  // Las pestañas son pegajosas: al bajar quedan arriba, en su `top`, y tapan eso.
+  const pestanas = document.querySelector<HTMLElement>(".redes-pestanas");
+  const arriba = pestanas ? (parseFloat(getComputedStyle(pestanas).top) || 0) + pestanas.offsetHeight + 8 : 8;
   const delta = desplazamientoParaVer({ top: r.top, alto: r.height }, arriba, hoja.getBoundingClientRect().top - 8);
   if (delta) window.scrollBy({ top: delta, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
 }

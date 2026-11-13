@@ -5,7 +5,6 @@ import { IconoAgenda, IconoCampana, IconoCasa, IconoChats, IconoCheck, IconoFlec
 import { EncabezadoPagina, Vacio } from "../piezas";
 import { Volver } from "../volver";
 import { archivar, responderDuda } from "./acciones";
-import { PestanaALaVista } from "./pestana-a-la-vista";
 import { EnsenaleAlgo } from "./ensenar";
 import { LoQueSabe, type Ubicada } from "./lo-que-sabe";
 import { MapaCerebro, type Rama } from "./mapa";
@@ -67,7 +66,7 @@ export function VistaCerebro(d: DatosCerebro) {
       )}
 
       <nav className="cer-pestanas" aria-label="Secciones del cerebro">
-        <div className="cer-pestanas-fila">
+        <div className="cer-pestanas-fila tira-desliza">
           {pestana("inicio", "Inicio")}
           {pestana("dudas", "Preguntas", preguntas)}
           {pestana(
@@ -82,7 +81,6 @@ export function VistaCerebro(d: DatosCerebro) {
           {pestana("fuentes", "Fuentes")}
           {pestana("mapa", "Mapa")}
         </div>
-        <PestanaALaVista />
       </nav>
 
       {d.ver === "mapa" ? (
