@@ -1,4 +1,3 @@
-import { Volver } from "../volver";
 import Link from "next/link";
 import { esSuperadmin } from "@/lib/admin/superadmin";
 import { sesionConCorredor } from "@/lib/panel/sesion";
@@ -38,8 +37,7 @@ export default async function Mas() {
   const superadmin = await esSuperadmin(usuario.email);
   return (
     <>
-      <Volver href="/panel" texto="Chats" />
-      <EncabezadoPagina titulo="Más" apoyo="Lo que no usas todos los días: herramientas, ajustes y tu cuenta." />
+      <EncabezadoPagina titulo="Más" apoyo="Lo que no usas todos los días: herramientas, ajustes y tu cuenta." atras={{ href: "/panel", texto: "Inicio" }} />
       <nav aria-label="Más opciones" className="mas-grupos">
         {GRUPOS.map((grupo, i) => (
           <ul key={i} className="opciones">

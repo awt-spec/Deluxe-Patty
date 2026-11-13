@@ -1,6 +1,6 @@
 /* Cerebro de la asistente (app/panel/cerebro). Portada con lo urgente, "Qué tan lista está" y "Enséñale algo";
    pestañas pegajosas con contadores; en computadora dos columnas (la lateral acompaña al bajar), en el teléfono una
-   sola, con un botón fijo para enseñarle algo. Usa los colores y medidas de app/globals.css. */
+   sola: "Enséñale algo" va debajo de lo urgente y en las demás pestañas hay un enlace a él (sin botón fijo). Usa los colores y medidas de app/globals.css. */
 
 .marco.tema main .cerebro {
   --cer-ambar: #9a5b00;
@@ -959,33 +959,6 @@
   }
 }
 
-/* --- Botón fijo del teléfono ------------------------------------------------------------------------ */
-.marco.tema main .cer-flotante[hidden] {
-  display: none;
-}
-.marco.tema main .cer-flotante {
-  position: fixed;
-  left: 16px;
-  bottom: calc(92px + env(safe-area-inset-bottom));
-  z-index: 39;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 52px;
-  padding: 0 20px 0 16px;
-  border-radius: 999px;
-  background: #0b5d48;
-  color: #fff;
-  font-weight: 700;
-  text-decoration: none;
-  box-shadow: 0 6px 18px rgb(17 27 33 / 22%);
-}
-@media (min-width: 900px) {
-  .marco.tema main .cer-flotante {
-    display: none;
-  }
-}
-
 /* En el teléfono, fuera de la portada, primero lo de la pestaña y después "Enséñale algo" (sin la lista de
    preparación, que vive en la portada). */
 @media (max-width: 899px) {
@@ -994,5 +967,75 @@
   }
   .marco.tema main .cerebro:not(.cerebro-inicio) .cer-lista-lista {
     display: none;
+  }
+}
+
+/* --- Teléfono: pestañas con nombres cortos, enlace a "Enséñale algo", mapa tocable ------------------------- */
+.marco.tema main .cer-corto {
+  display: none;
+}
+.marco.tema main .cer-ir-ensenar {
+  display: none;
+}
+.marco.tema main .mapa-cerebro .nodo-hoja circle.nodo-toque,
+.marco.tema main .mapa-cerebro .nodo-hoja:hover circle.nodo-toque {
+  fill: transparent;
+  stroke: none;
+  pointer-events: none;
+}
+@media (max-width: 899px) {
+  .marco.tema main .cer-largo {
+    display: none;
+  }
+  .marco.tema main .cer-corto {
+    display: inline;
+  }
+  .marco.tema main .cer-pestanas a {
+    padding: 0 12px;
+    font-size: 0.92rem;
+  }
+  .marco.tema main .cer-n {
+    font-size: 0.82rem;
+  }
+  /* La fila es una tira-desliza (app/panel/tiras.tsx): desvanecido hacia donde hay más y la activa a la vista. */
+  /* Fuera de la portada, "Enséñale algo" es un enlace al de la portada (antes era un botón fijo que tapaba). */
+  .marco.tema main .cerebro:not(.cerebro-inicio) .cer-lateral {
+    display: none;
+  }
+  .marco.tema main .cer-ir-ensenar {
+    display: block;
+    margin: 0;
+  }
+  .marco.tema main .cer-ir-ensenar a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    font-weight: 650;
+    color: var(--verde-texto, #00664f);
+  }
+  .marco.tema main #ensenar {
+    scroll-margin-top: 76px;
+  }
+  /* Mapa: filtros de 44 px con texto AA sobre su color claro; los puntos chicos con área de toque de 44 px. */
+  .marco.tema main .cer-mapa button.mapa-filtro {
+    min-height: 44px;
+    font-size: 0.92rem;
+  }
+  .marco.tema main .cer-mapa .mapa-filtro.tono-verde { --c-texto: #00664f; }
+  .marco.tema main .cer-mapa .mapa-filtro.tono-azul { --c-texto: #1a5bb0; }
+  .marco.tema main .cer-mapa .mapa-filtro.tono-morado { --c-texto: #5e3aa3; }
+  .marco.tema main .cer-mapa .mapa-filtro.tono-gris { --c-texto: #46535c; }
+  .marco.tema main .cer-mapa .mapa-filtro.tono-ambar { --c-texto: #8a4a00; }
+  .marco.tema main .cer-mapa button.mapa-filtro[aria-pressed="true"],
+  .marco.tema main .cer-mapa button.mapa-filtro[aria-pressed="true"] span {
+    color: var(--c-texto, #34414b);
+  }
+  .marco.tema main .cer-mapa button.mapa-filtro[aria-pressed="false"],
+  .marco.tema main .cer-mapa button.mapa-filtro[aria-pressed="false"] span {
+    color: #5b6770;
+  }
+  .marco.tema main .mapa-cerebro .nodo-hoja circle.nodo-toque {
+    pointer-events: all;
   }
 }

@@ -3,6 +3,7 @@ import { telefonoBonito } from "@/lib/crm/perfil";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Aviso } from "../../aviso";
 import { Volver } from "../../volver";
+import "../agenda-movil.css";
 import { agendarVisita } from "../acciones";
 
 // Agendar una visita a mano: se llega tocando una hora libre del calendario (trae día y hora) o desde la

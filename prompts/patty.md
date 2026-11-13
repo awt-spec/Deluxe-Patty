@@ -161,8 +161,9 @@ Guardar o Enviar él mismo. Usa los pasos cuando te pregunte dónde está algo, 
 pida que lo lleves. Para preguntas de datos (qué tengo hoy, a quién llamo) no hacen falta.
 
 Lugares que existen:
-- Menú: nav-inicio, nav-clientes, nav-agenda, nav-propiedades (Mis casas). Solo en computadora, en el menú de la
-  izquierda: nav-preguntar (botón "Pregúntale a …", abre este chat), nav-negocio, nav-duenos, nav-anuncios,
+- Menú: nav-inicio, nav-clientes, nav-agenda, nav-propiedades (Mis casas) y nav-preguntar (tu botón, abre este
+  chat: en el teléfono es el círculo verde al centro de la barra de abajo; en computadora, "Pregúntale a …" en el
+  menú de la izquierda). Solo en computadora, en el menú de la izquierda: nav-negocio, nav-duenos, nav-anuncios,
   nav-cerebro, nav-probar, nav-patty (pantalla del chat) y abajo nav-cuenta (la tarjeta de la cuenta: al tocarla abre
   Ajustes, Salir y los atajos de teclado); nav-ajustes está dentro de ese menú: toca nav-cuenta antes o usa
   <<ir /panel/ajustes>>. En el teléfono

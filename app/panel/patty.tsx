@@ -15,7 +15,7 @@ import { leerDocumento, marcaParaLamina, pdfDePatty, preguntarAPatty, transcribi
 import { Contenido, diagramasComoPng, laminaPng, type MarcaLamina } from "./patty-contenido";
 
 // Chat del corredor con su asistente (Patty), como WhatsApp: burbujas con la hora, fondo de chat, caja
-// para escribir con botón para adjuntar fotos o PDF. Se usa en el botón flotante de cada página y en su
+// para escribir con botón para adjuntar fotos o PDF. Se usa en el chat flotante de cada página y en su
 // propia pantalla (/panel/patty). La conversación se guarda en este navegador (las fotos, solo en
 // miniatura); Patty lee los datos del negocio en cada pregunta.
 
@@ -1000,13 +1000,14 @@ export function ChatPatty({
   );
 }
 
-/** Botón flotante con el chat, en cada página del panel (menos donde ya hay otra caja de texto). */
+/** El chat flotante de cada página del panel (menos donde ya hay otra caja de texto); lo abren la barra de abajo,
+ *  el menú lateral y los botones "Pregúntale" con el evento "abrir-patty". */
 export function Patty({ nombre, corredor }: { nombre: string; corredor: string }) {
   const ruta = usePathname();
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
   const [pendiente, setPendiente] = useState<string | null>(null);
-  // En el teléfono el chat tapa la pantalla: mientras Patty guía, se cierra y queda el botón (y la respuesta, en
+  // En el teléfono el chat tapa la pantalla: mientras Patty guía, se cierra y queda la barra (y la respuesta, en
   // un globo con "Ver en el chat"). Desde la pantalla de Patty la guía también corre aquí (evento "guiar-patty"):
   // esa pantalla se desmonta al navegar y con ella se iría el cursor.
   const desdePagina = useRef(false);
@@ -1058,20 +1059,15 @@ export function Patty({ nombre, corredor }: { nombre: string; corredor: string }
     return () => window.removeEventListener("keydown", cerrar);
   }, []);
 
-  // En su propia pantalla, en un chat con un cliente y en "Probar la asistente" no va el botón flotante.
+  // En su propia pantalla, en un chat con un cliente y en "Probar la asistente" no se abre encima (el botón de la
+  // barra lleva a su pantalla: `accionAsistente` en navegacion.tsx).
   if (ruta.startsWith("/panel/patty") || ruta.startsWith("/panel/conversaciones/") || ruta.startsWith("/panel/probar")) return <>{capa}</>;
 
+  // Ya no hay botón flotante: en el teléfono la asistente está al centro de la barra de abajo y en computadora en el
+  // menú lateral; los dos abren este chat con el evento "abrir-patty".
   return (
     <>
       {capa}
-      {!abierto && (
-        <button type="button" className="patty-boton" onClick={() => setAbierto(true)} aria-label={`Hablar con ${nombre}`}>
-          <span className="patty-avatar" aria-hidden>
-            {nombre.charAt(0).toUpperCase()}
-          </span>
-          <span className="patty-boton-texto">{nombre} · IA</span>
-        </button>
-      )}
       {abierto && (
         <div className="patty-panel" role="dialog" aria-label={`Chat con ${nombre}`}>
           <ChatPatty
@@ -1092,7 +1088,7 @@ export function Patty({ nombre, corredor }: { nombre: string; corredor: string }
 }
 
 /**
- * Patty en su propia pantalla, a todo lo alto (como abrir un chat en WhatsApp). La guía la corre el botón flotante
+ * Patty en su propia pantalla, a todo lo alto (como abrir un chat en WhatsApp). La guía la corre el chat flotante
  * del layout (`Patty`), que sigue montado al ir a otra pantalla; esta se desmonta y su cursor se perdería.
  */
 const guiarDesdePagina = (pasos: Paso[], respuesta?: string) =>

@@ -4,6 +4,7 @@ import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Aviso } from "../../aviso";
 import { BotonEnviar } from "../../boton-enviar";
 import { Volver } from "../../volver";
+import "../agenda-movil.css";
 import { bloquearDesdeAgenda, quitarBloqueoAgenda } from "../acciones";
 import { ElegirDia } from "./elegir-dia";
 

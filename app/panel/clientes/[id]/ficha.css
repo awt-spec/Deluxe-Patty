@@ -884,10 +884,6 @@
   .marco.tema .fc-ficha {
     padding-bottom: 76px;
   }
-  /* En esta pantalla Patty se abre con los "Pregúntale" de la cabecera: el botón flotante taparía la barra. */
-  .marco.tema:has(.fc-ficha) .patty-boton {
-    display: none;
-  }
   .marco.tema .fc-anotar {
     scroll-margin-bottom: 160px;
   }
@@ -961,5 +957,138 @@
 @media (min-width: 900px) {
   .marco.tema .fc-ficha {
     padding-bottom: 96px;
+  }
+}
+
+/* ---------- Secciones plegables (movil.tsx): en computadora se ven completas, sin el botón ---------- */
+.marco.tema main .plegable-boton {
+  display: none;
+}
+.marco.tema main .plegable-cuerpo {
+  display: contents;
+}
+
+/* ---------- Teléfono: lo de siempre arriba, lo secundario plegado, barra de acciones compacta ---------- */
+@media (max-width: 899px) {
+  /* Orden: Qué sigue, cifras, camino, recordatorio, historia y después lo plegado (las dos columnas se funden). */
+  .marco.tema main .fc-grid {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+  .marco.tema main .fc-principal,
+  .marco.tema main .fc-lateral {
+    display: contents;
+  }
+  .marco.tema main .fc-principal > *,
+  .marco.tema main .fc-lateral > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .marco.tema main .fc-grid .fc-sigue {
+    order: 1;
+  }
+  .marco.tema main .fc-grid .fc-cifras {
+    order: 2;
+  }
+  .marco.tema main .fc-grid .fc-bloque:has(> .fc-camino) {
+    order: 3;
+  }
+  .marco.tema main .fc-grid #recordatorio {
+    order: 4;
+  }
+  .marco.tema main .fc-grid .historia {
+    order: 5;
+  }
+  .marco.tema main .fc-grid .plegable {
+    order: 6;
+  }
+
+  .marco.tema main .plegable-boton {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    min-height: 52px;
+    margin: 0;
+    padding: 4px 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    color: var(--titulo, #111b21);
+    font-size: 1rem;
+    font-weight: 650;
+    text-align: left;
+  }
+  .marco.tema main .plegable-boton span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .marco.tema main .plegable-boton svg {
+    flex: none;
+    color: var(--verde-texto, #00664f);
+    transition: transform 0.15s;
+  }
+  .marco.tema main .plegable.abierta > .plegable-boton svg {
+    transform: rotate(180deg);
+  }
+  .marco.tema main .plegable.abierta > .plegable-boton span {
+    color: #46535c;
+    font-weight: 600;
+    font-size: 0.92rem;
+  }
+  .marco.tema main .plegable:not(.abierta) {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+  .marco.tema main .plegable:not(.abierta) > .plegable-cuerpo {
+    display: none;
+  }
+
+  /* Barra de acciones: íconos con rótulo chico, 56 px, sobre la navegación; se esconde al bajar (movil.tsx). */
+  .marco.tema main .fc-acciones {
+    bottom: calc(var(--nav-alto, 64px) + var(--nav-saliente, 14px));
+    z-index: 20;
+    gap: 4px;
+    padding: 5px 8px;
+    background: #fff;
+    border-top: 1px solid var(--borde);
+    box-shadow: 0 -6px 16px rgb(17 27 33 / 10%);
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+  .marco.tema main .fc-acciones.oculta {
+    transform: translateY(calc(100% + 8px));
+    opacity: 0;
+    pointer-events: none;
+  }
+  .marco.tema main .fc-accion {
+    min-height: 46px;
+    gap: 1px;
+    padding: 3px 2px;
+    font-size: 0.82rem;
+    line-height: 1.15;
+  }
+  .marco.tema main .fc-accion svg {
+    width: 20px;
+    height: 20px;
+  }
+  .marco.tema main .fc-ficha {
+    padding-bottom: 72px;
+  }
+  /* Los nombres del camino a 13 px (el punto es dibujo: se toca todo el paso, de 72 px de alto). */
+  .marco.tema main .fc-paso-nombre {
+    font-size: 0.82rem;
+    letter-spacing: -0.01em;
+  }
+}
+@media (max-width: 899px) and (prefers-reduced-motion: reduce) {
+  .marco.tema main .fc-acciones,
+  .marco.tema main .plegable-boton svg {
+    transition: none;
   }
 }

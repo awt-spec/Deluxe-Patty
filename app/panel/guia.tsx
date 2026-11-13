@@ -38,6 +38,10 @@ const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
 /** El elemento visible con ese lugar (en el teléfono el menú de abajo y en computadora el de la izquierda). */
 function buscar(lugar: string): HTMLElement | null {
   const todos = [...document.querySelectorAll<HTMLElement>(`[data-patty="${lugar}"]`)];
+  // Si el lugar está dentro de una sección plegada (en el teléfono varias lo están), se abre para poder señalarlo.
+  for (const e of todos) {
+    for (let d = e.closest("details:not([open])"); d; d = d.parentElement?.closest("details:not([open])") ?? null) d.setAttribute("open", "");
+  }
   return todos.find((e) => e.offsetParent !== null || e.getClientRects().length > 0) ?? null;
 }
 
@@ -140,7 +144,9 @@ export function useGuia(nombre: string, alEmpezar: (pasos: Paso[]) => boolean, a
       setActiva(true);
       const fueraDeVista = alEmpezar(pasos);
       setNota(fueraDeVista && respuesta ? resumenParaGlobo(respuesta) : null);
-      setMarca({ x: window.innerWidth - 60, y: window.innerHeight - 60, caja: null, texto: null, clic: false });
+      // El cursor sale de donde vive la asistente: el centro de la barra de abajo en el teléfono, la esquina en computadora.
+      const telefono = window.innerWidth < 900;
+      setMarca({ x: telefono ? window.innerWidth / 2 : window.innerWidth - 60, y: window.innerHeight - (telefono ? 48 : 60), caja: null, texto: null, clic: false });
       await esperar(200);
       for (const p of pasos) {
         if (cancelada.current) break;
