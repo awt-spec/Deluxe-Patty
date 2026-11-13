@@ -273,3 +273,17 @@ export const IconoPantalla = (p: Props) => (
     <path d="M8 9.5h8M8 12.5h5" />
   </Icono>
 );
+
+export const IconoPulgarArriba = (p: Props) => (
+  <Icono {...p}>
+    <path d="M7.5 10.5v9.5H4.5a1 1 0 0 1-1-1v-7.5a1 1 0 0 1 1-1h3Z" />
+    <path d="M7.5 10.5 11 3.5a2 2 0 0 1 2.5 2.2l-.6 3.8h5.3a2 2 0 0 1 2 2.4l-1.3 6.4a2 2 0 0 1-2 1.7H7.5" />
+  </Icono>
+);
+
+export const IconoPulgarAbajo = (p: Props) => (
+  <Icono {...p}>
+    <path d="M16.5 13.5V4h3a1 1 0 0 1 1 1v7.5a1 1 0 0 1-1 1h-3Z" />
+    <path d="M16.5 13.5 13 20.5a2 2 0 0 1-2.5-2.2l.6-3.8H5.8a2 2 0 0 1-2-2.4l1.3-6.4a2 2 0 0 1 2-1.7h9.4" />
+  </Icono>
+);

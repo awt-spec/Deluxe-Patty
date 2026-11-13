@@ -75,9 +75,10 @@ const iniciales = (t: string, n = 2) =>
     .join("");
 
 /**
- * Menú de la izquierda (solo computadora): oscuro con la marca del corredor (`colores`: variables CSS de
- * `lib/panel/colores-menu.ts`), alto completo y fijo, con la asistente arriba, tres grupos y la cuenta abajo.
- * Se contrae a íconos (se recuerda en este navegador) y tiene atajos de teclado (g + i/c/a/m, "/" y Ctrl/⌘+K).
+ * Menú de la izquierda (solo computadora): claro como WhatsApp, igual para todos los corredores (de su marca
+ * solo va el logo; la paleta está en `lib/panel/colores-menu.ts` y en globals.css), alto completo y fijo, con la
+ * asistente arriba, tres grupos y la cuenta abajo. Se contrae a un riel de íconos (se recuerda en este
+ * navegador) y tiene atajos de teclado (g + i/c/a/m, "/" y Ctrl/⌘+K).
  */
 export function MenuLateral({
   teNecesitan,
@@ -90,7 +91,6 @@ export function MenuLateral({
   nombre,
   asistente,
   superadmin,
-  colores,
 }: {
   teNecesitan: number;
   /** Visitas de hoy por hacer, o null si no se pudo contar (sin número). */
@@ -105,7 +105,6 @@ export function MenuLateral({
   nombre: string;
   asistente: string;
   superadmin: boolean;
-  colores: Record<string, string>;
 }) {
   const ruta = usePathname();
   const router = useRouter();
@@ -191,7 +190,6 @@ export function MenuLateral({
     <aside
       className={`lateral${plegado ? " plegado" : ""}`}
       aria-label="Menú"
-      style={colores as React.CSSProperties}
       onMouseOver={mostrarTip}
       onFocus={mostrarTip}
       onMouseLeave={() => setTip(null)}
@@ -199,7 +197,7 @@ export function MenuLateral({
     >
       <div className="lat-cabeza">
         <Link href="/panel" className="lat-marca" aria-label={`${nombreMarca}: ir a Inicio`} data-tip={nombreMarca}>
-          <span className="lat-logo" style={fondoLogo ? { background: fondoLogo } : undefined} aria-hidden>
+          <span className="lat-logo" style={logo && fondoLogo ? { background: fondoLogo } : undefined} aria-hidden>
             {logo ? (
               // eslint-disable-next-line @next/next/no-img-element -- logo servido por /marca/<slug>/logo (o la URL de la marca): imagen chica y fija.
               <img src={logo} alt="" width={40} height={40} />
@@ -261,7 +259,7 @@ export function MenuLateral({
                               : `${n} te ${n === 1 ? "necesita" : "necesitan"}`
                           }
                         >
-                          <span className="lat-ocultable">{n > 9 ? "9+" : n}</span>
+                          {n > 9 ? "9+" : n}
                         </span>
                       )}
                     </Link>

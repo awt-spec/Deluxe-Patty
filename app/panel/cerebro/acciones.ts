@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { ensenarAlCerebro } from "@/lib/panel/cerebro";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 
 // El corredor alimenta el cerebro de su asistente con su sesión (RLS: solo lo suyo).
@@ -19,8 +20,11 @@ export async function ensenar(f: FormData) {
   const respuesta = texto(f, "respuesta").slice(0, 2000);
   if (!tema || !respuesta) volver("sabe", "Escribe el tema y la respuesta.");
   const { supabase, corredor } = await sesionConCorredor();
-  const { error } = await supabase.from("conocimiento").insert({ corredor_id: corredor.id, tema, respuesta, estado: "activo", origen: "manual" });
-  volver("sabe", error ? "No se pudo guardar." : "Listo, ya lo sabe.");
+  const ok = await ensenarAlCerebro(supabase, corredor.id, tema, respuesta).then(
+    () => true,
+    () => false,
+  );
+  volver("sabe", ok ? "Listo, ya lo sabe." : "No se pudo guardar.");
 }
 
 /** Responder una duda (o cambiar algo que ya sabe): queda activo con la respuesta. */

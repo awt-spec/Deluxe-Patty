@@ -1,0 +1,266 @@
+/* Probar la asistente: calificar cada respuesta, la hojita "No me gustó" y el resumen de la prueba.
+   Discreto bajo el globo (como las reacciones de WhatsApp), pero cada control mide 44 px para el dedo. */
+
+.marco.tema main .respuesta-calificable {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  align-self: stretch;
+}
+
+.marco.tema main .respuesta-calificable > .burbuja {
+  align-self: flex-start;
+}
+
+.marco.tema main .calificar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  max-width: 560px;
+}
+
+.marco.tema main .calificar-fila {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 2px;
+}
+
+.marco.tema main .calificar .pulgar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #54656f;
+  box-shadow: none;
+}
+
+.marco.tema main .calificar .pulgar:hover {
+  background: rgb(0 0 0 / 5%);
+}
+
+.marco.tema main .calificar .pulgar.marcado.bien {
+  color: #008069;
+  background: #d9fdd3;
+}
+
+.marco.tema main .calificar .pulgar.marcado.mal {
+  color: #b42318;
+  background: #fde8e7;
+}
+
+.marco.tema main .calificar .pulgar.marcado svg {
+  fill: currentColor;
+  fill-opacity: 0.18;
+}
+
+.marco.tema main .calificar .pulgar:focus-visible,
+.marco.tema main .hoja-calificar .motivo:focus-visible,
+.marco.tema main .resumen-prueba .estrella:focus-visible {
+  outline: 3px solid #008069;
+  outline-offset: 2px;
+}
+
+.marco.tema main .calificar-marca {
+  font-size: 0.8rem;
+  color: #54656f;
+  margin-left: 4px;
+}
+
+/* La hojita: sale ahí mismo, bajo el globo */
+
+.marco.tema main .hoja-calificar {
+  background: #ffffff;
+  border: 1px solid #d1d7db;
+  border-radius: 12px;
+  padding: 14px;
+  gap: 10px;
+  box-shadow: 0 2px 8px rgb(11 20 26 / 8%);
+}
+
+.marco.tema main .hoja-calificar .hoja-titulo {
+  margin: 0;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #111b21;
+}
+
+.marco.tema main .hoja-calificar .motivos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.marco.tema main .hoja-calificar .motivo {
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid #d1d7db;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #111b21;
+  font-size: 0.95rem;
+  font-weight: 500;
+  box-shadow: none;
+  width: auto;
+}
+
+.marco.tema main .hoja-calificar .motivo.elegido {
+  background: #d9fdd3;
+  border-color: #008069;
+  color: #005c4b;
+  font-weight: 600;
+}
+
+.marco.tema main .hoja-calificar label {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.marco.tema main .hoja-calificar textarea {
+  width: 100%;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+/* La casilla: la fila entera se toca (en el teléfono ya lo hace la regla global). */
+.marco.tema main .hoja-calificar label.hoja-casilla {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-weight: 500;
+}
+
+.marco.tema main .hoja-calificar label.hoja-casilla input {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  accent-color: #008069;
+}
+
+.marco.tema main .hoja-calificar .hoja-ayuda {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #3b4a54;
+}
+
+.marco.tema main .hoja-calificar .botones {
+  flex-wrap: wrap;
+}
+
+.marco.tema main .hoja-calificar button.primario,
+.marco.tema main .hoja-calificar .boton.primario {
+  background: #008069;
+  border-color: #008069;
+  color: #ffffff;
+}
+
+.marco.tema main .hoja-calificar button.primario:hover,
+.marco.tema main .hoja-calificar .boton.primario:hover {
+  background: #006e5a;
+}
+
+.marco.tema main .calificar-resultado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 2px 4px;
+}
+
+.marco.tema main .calificar-resultado p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #005c4b;
+}
+
+.marco.tema main .calificar-resultado .chico,
+.marco.tema main .calificar-resultado .boton.chico {
+  min-height: 44px;
+  font-size: 0.9rem;
+  width: auto;
+}
+
+/* Resumen de la prueba, entre la conversación y la caja para escribir */
+
+.marco.tema main .resumen-prueba {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #e2e6e9;
+}
+
+.marco.tema main .resumen-prueba p {
+  margin: 0;
+}
+
+.marco.tema main .resumen-prueba .resumen-cifras {
+  font-weight: 600;
+  color: #111b21;
+}
+
+.marco.tema main .resumen-prueba .estrellas-fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 10px;
+}
+
+.marco.tema main .resumen-prueba .estrellas-fila .suave {
+  font-size: 0.9rem;
+  color: #54656f;
+}
+
+.marco.tema main .resumen-prueba .estrellas {
+  display: flex;
+}
+
+.marco.tema main .resumen-prueba .estrella {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #8696a0;
+  box-shadow: none;
+}
+
+.marco.tema main .resumen-prueba .estrella.llena {
+  color: #b7791f;
+}
+
+.marco.tema main .resumen-prueba .estrella.llena svg {
+  fill: #f5b301;
+}
+
+.marco.tema main .resumen-prueba .resumen-ensenadas {
+  font-size: 0.92rem;
+  color: #3b4a54;
+}
+
+.marco.tema main .resumen-prueba .resumen-ensenadas a {
+  color: #005c4b;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  display: inline-block;
+  padding: 10px 0;
+}

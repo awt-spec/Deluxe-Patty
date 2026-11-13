@@ -91,13 +91,20 @@ export function supabaseFalso(tablas: Record<string, Fila[]> = {}): SupabaseFals
 function consulta(db: SupabaseFalso, tabla: string): Consulta {
   const filtros: [string, unknown][] = [];
   const enLista: [string, unknown[]][] = [];
+  // ilike sin comodines (como lo usan registrarDuda y ensenarAlCerebro): igual sin mayúsculas.
+  const parecidos: [string, string][] = [];
   let op: Escritura["op"] | "select" = "select";
   let valores: unknown;
   let contar = false;
   let soloCabecera = false;
 
   const filas = () =>
-    (db.tablas[tabla] ?? []).filter((f) => filtros.every(([c, v]) => f[c] === v) && enLista.every(([c, l]) => l.includes(f[c])));
+    (db.tablas[tabla] ?? []).filter(
+      (f) =>
+        filtros.every(([c, v]) => f[c] === v) &&
+        enLista.every(([c, l]) => l.includes(f[c])) &&
+        parecidos.every(([c, v]) => String(f[c] ?? "").toLowerCase() === v.replace(/\\(.)/g, "$1").toLowerCase()),
+    );
 
   const resolver = () => {
     if (op === "select") {
@@ -134,6 +141,7 @@ function consulta(db: SupabaseFalso, tabla: string): Consulta {
     delete: () => ((op = "delete"), q),
     eq: (c: unknown, v: unknown) => (filtros.push([c as string, v]), q),
     in: (c: unknown, l: unknown) => (enLista.push([c as string, l as unknown[]]), q),
+    ilike: (c: unknown, v: unknown) => (parecidos.push([c as string, String(v)]), q),
     // Filtros que no cambian quién es dueño de qué: se aceptan sin filtrar.
     neq: () => q,
     like: () => q,

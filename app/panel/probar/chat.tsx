@@ -3,9 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { ESTADO_INICIAL, type EstadoSimulacion, type TurnoSimulado } from "@/lib/simulador/estado";
 import { probarTurno } from "./acciones";
+import { Calificar, ResumenCalificacion, type Calificaciones } from "./calificar-respuesta";
 
 type Linea =
-  | { tipo: "cliente" | "asistente"; texto: string }
+  | { tipo: "cliente"; texto: string }
+  /** id: para calificarla; pregunta: lo que escribió el cliente en ese turno. */
+  | { tipo: "asistente"; texto: string; id: string; pregunta: string }
   | { tipo: "aviso"; texto: string }
   | { tipo: "nota"; texto: string };
 
@@ -39,12 +42,17 @@ const SUGERENCIAS = [
   "¿Me hacen un descuento si pago de contado?",
 ];
 
+let siguienteId = 0;
+
 export function Chat({ nombreCorredor }: { nombreCorredor: string }) {
   const [estado, setEstado] = useState<EstadoSimulacion>(ESTADO_INICIAL);
   const [lineas, setLineas] = useState<Linea[]>([]);
   const [texto, setTexto] = useState("");
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Calificaciones y nota de la prueba: viven con la conversación, solo en el navegador.
+  const [calificaciones, setCalificaciones] = useState<Calificaciones>({});
+  const [notaPrueba, setNotaPrueba] = useState<number | null>(null);
   const final = useRef<HTMLDivElement>(null);
 
   // Con llaves: en los Chrome nuevos scrollIntoView devuelve una promesa, y si el efecto la devuelve React
@@ -71,7 +79,7 @@ export function Chat({ nombreCorredor }: { nombreCorredor: string }) {
       setEstado(r.estado);
       setLineas((l) => [
         ...l,
-        ...r.turno.respuestas.map((t) => ({ tipo: "asistente" as const, texto: t })),
+        ...r.turno.respuestas.map((t) => ({ tipo: "asistente" as const, texto: t, id: `r${++siguienteId}`, pregunta: limpio })),
         ...r.turno.avisos.map((t) => ({ tipo: "aviso" as const, texto: t })),
         { tipo: "nota" as const, texto: nota(r.turno) },
       ]);
@@ -84,8 +92,10 @@ export function Chat({ nombreCorredor }: { nombreCorredor: string }) {
     }
   }
 
+  const hayRespuestas = lineas.some((l) => l.tipo === "asistente");
+
   return (
-    <div className="pila">
+    <div className="pila probar-chat">
       <section className="hilo" aria-label="Conversación de prueba" aria-live="polite">
         {lineas.length === 0 && (
           <div className="pila">
@@ -110,16 +120,34 @@ export function Chat({ nombreCorredor }: { nombreCorredor: string }) {
               {"\n"}
               {l.texto}
             </div>
+          ) : l.tipo === "asistente" ? (
+            <div key={l.id} className="respuesta-calificable">
+              <div className="burbuja cliente">
+                {l.texto}
+                <span className="meta">Asistente</span>
+              </div>
+              <Calificar
+                id={l.id}
+                respuesta={l.texto}
+                pregunta={l.pregunta}
+                calificacion={calificaciones[l.id]}
+                ocupado={ocupado}
+                onCambiar={(c) => setCalificaciones((todas) => ({ ...todas, [l.id]: c }))}
+                onProbarOtraVez={() => void enviar(l.pregunta)}
+              />
+            </div>
           ) : (
-            <div key={i} className={`burbuja ${l.tipo === "cliente" ? "saliente" : "cliente"}`}>
+            <div key={i} className="burbuja saliente">
               {l.texto}
-              <span className="meta">{l.tipo === "cliente" ? "Tú, como cliente" : "Asistente"}</span>
+              <span className="meta">Tú, como cliente</span>
             </div>
           ),
         )}
         {ocupado && <p className="nota-prueba">La asistente está escribiendo…</p>}
         <div ref={final} />
       </section>
+
+      {hayRespuestas && <ResumenCalificacion calificaciones={calificaciones} nota={notaPrueba} onNota={setNotaPrueba} />}
 
       {error && (
         <p className="aviso" role="alert">
@@ -158,6 +186,8 @@ export function Chat({ nombreCorredor }: { nombreCorredor: string }) {
               setEstado(ESTADO_INICIAL);
               setLineas([]);
               setError(null);
+              setCalificaciones({});
+              setNotaPrueba(null);
             }}
           >
             Empezar otra prueba
