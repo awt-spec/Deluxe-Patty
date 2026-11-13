@@ -215,3 +215,92 @@
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
+
+/* Estilos del video: tres tarjetas con la portada de este video en cada estilo. */
+.redes-estilos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  max-width: 560px;
+}
+.redes-estilo {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  padding: 6px 6px 10px;
+  border: 2px solid var(--borde);
+  border-radius: 14px;
+  background: var(--superficie);
+  cursor: pointer;
+  min-height: 44px;
+}
+.redes-estilo.elegido {
+  border-color: var(--principal);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--principal) 22%, transparent);
+}
+.redes-estilo input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.redes-estilo:has(input:focus-visible) {
+  outline: 3px solid var(--principal);
+  outline-offset: 2px;
+}
+.redes-estilo canvas {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 9 / 16;
+  border-radius: 9px;
+  background: #111;
+}
+.redes-estilo canvas.cuadrado {
+  aspect-ratio: 1;
+}
+.redes-estilo-nombre {
+  font-weight: 700;
+  font-size: 1rem;
+  padding: 0 2px;
+}
+.redes-estilo-desc {
+  font-size: 0.8rem;
+  line-height: 1.25;
+  opacity: 0.75;
+  padding: 0 2px;
+}
+@media (max-width: 380px) {
+  .redes-estilo-desc {
+    display: none;
+  }
+}
+
+/* Música del corredor */
+.redes-musica {
+  max-width: 560px;
+}
+.redes-musica-boton {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: pointer;
+}
+.redes-musica-boton input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.redes-musica-boton.apagado {
+  opacity: 0.55;
+  pointer-events: none;
+}
+.redes-musica .aviso .boton {
+  margin-left: 6px;
+}
+.redes-escena-aviso {
+  margin: 0;
+  font-size: 0.85rem;
+}
