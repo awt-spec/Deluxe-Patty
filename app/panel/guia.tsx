@@ -140,7 +140,9 @@ export function useGuia(nombre: string, alEmpezar: (pasos: Paso[]) => boolean, a
       setActiva(true);
       const fueraDeVista = alEmpezar(pasos);
       setNota(fueraDeVista && respuesta ? resumenParaGlobo(respuesta) : null);
-      setMarca({ x: window.innerWidth - 60, y: window.innerHeight - 60, caja: null, texto: null, clic: false });
+      // El cursor sale de donde vive la asistente: el centro de la barra de abajo en el teléfono, la esquina en computadora.
+      const telefono = window.innerWidth < 900;
+      setMarca({ x: telefono ? window.innerWidth / 2 : window.innerWidth - 60, y: window.innerHeight - (telefono ? 48 : 60), caja: null, texto: null, clic: false });
       await esperar(200);
       for (const p of pasos) {
         if (cancelada.current) break;

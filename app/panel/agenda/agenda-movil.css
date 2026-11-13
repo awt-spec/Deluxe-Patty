@@ -1,0 +1,552 @@
+/* Agenda en el teléfono (< 900 px): Semana, Mes, Día, la pregunta de Patty, Apartar tiempo, Mi horario y Agendar.
+   Todo va dentro de @media (max-width: 899px): en computadora la agenda se ve como siempre. Lo que solo existe en el
+   teléfono (la barra "‹ ›" de la semana, los puntos y la lista del mes) también se esconde aquí en computadora.
+   --nav-alto: alto de la barra de abajo con el área segura (lo define el marco); --verde-texto: verde AA. */
+
+@media (min-width: 900px) {
+  .marco.tema main .cal-semana-nav,
+  .marco.tema main .cal-mes-puntos,
+  .marco.tema main .mes-dia {
+    display: none;
+  }
+}
+
+@media (max-width: 899px) {
+  /* ---------- Semana: tres días a la vista, se desliza día por día ---------- */
+  .marco.tema main .cal-semana-nav {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 8px;
+  }
+  .marco.tema main .cal-semana-paso {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+    margin: 0;
+    border-radius: 12px;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: var(--verde-texto, #00664f);
+  }
+  .marco.tema main .cal-semana-paso:disabled {
+    opacity: 0.35;
+  }
+  .marco.tema main .cal-semana-donde {
+    display: grid;
+    justify-items: center;
+    gap: 6px;
+    font-size: 0.95rem;
+    font-weight: 650;
+  }
+  .marco.tema main .cal-semana-puntos {
+    display: flex;
+    gap: 6px;
+  }
+  .marco.tema main .cal-semana-puntos i {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: #c9d1d6;
+  }
+  .marco.tema main .cal-semana-puntos i.ve {
+    background: var(--verde-texto, #00664f);
+  }
+  .marco.tema main .cal-semana-puntos i.hoy {
+    box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px var(--verde-texto, #00664f);
+  }
+
+  .marco.tema main .cal.cal-semana {
+    container-type: inline-size;
+    scroll-snap-type: x mandatory;
+    scroll-padding-left: 54px;
+    -webkit-mask-image: none;
+    mask-image: none;
+    scrollbar-width: none;
+  }
+  .marco.tema main .cal.cal-semana::-webkit-scrollbar {
+    display: none;
+  }
+  /* Tres columnas anchas y un filo del día siguiente asomando a la derecha; la pista vacía del final deja que el
+     domingo también quede como tercera columna sin un filo del jueves a la izquierda. */
+  .marco.tema main .cal-semana .cal-cabecera,
+  .marco.tema main .cal-semana .cal-cuerpo {
+    grid-template-columns: 54px repeat(7, calc((100cqw - 54px - 22px) / 3)) 22px;
+    width: max-content;
+    min-width: 0;
+  }
+  .marco.tema main .cal-semana .cal-cabecera > a {
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: 2px;
+    min-height: 56px;
+    padding: 6px 2px;
+  }
+  .marco.tema main .cal-semana .cal-cabecera > a small {
+    font-size: 0.82rem;
+  }
+  .marco.tema main .cal-semana .cal-cabecera .cal-cuantas {
+    font-size: 0.82rem;
+  }
+  .marco.tema main .cal-semana .cal-horas span {
+    font-size: 0.82rem;
+  }
+  .marco.tema main .cal-semana .cal-cita {
+    font-size: 0.85rem;
+  }
+  /* Leyenda en una sola línea, sin la casilla blanca que parecía para marcar. */
+  .marco.tema main .cal .cal-leyenda {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    white-space: nowrap;
+    gap: 6px 12px;
+    font-size: 0.82rem;
+    scrollbar-width: none;
+    position: sticky;
+    left: 0;
+  }
+  .marco.tema main .cal .cal-leyenda::-webkit-scrollbar {
+    display: none;
+  }
+  .marco.tema main .cal .cal-leyenda .muestra.libre {
+    display: none;
+  }
+  .marco.tema main .cal .cal-leyenda .muestra.bloqueo {
+    margin-left: 4px;
+  }
+  .marco.tema main .cal-semana .cal-leyenda {
+    width: 100cqw;
+    box-sizing: border-box;
+  }
+
+  /* ---------- Mes: número y puntos; el día elegido se lista debajo ---------- */
+  .marco.tema main .cal-mes-celda {
+    min-height: 56px;
+    padding: 6px 2px 4px;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.82rem;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .marco.tema main .cal-mes-celda strong {
+    display: grid;
+    place-items: center;
+    min-width: 30px;
+    height: 30px;
+    padding: 0;
+    border-radius: 999px;
+    font-size: 1rem;
+  }
+  .marco.tema main .cal-mes-celda.hoy strong {
+    align-self: center;
+    padding: 0;
+  }
+  .marco.tema main .cal-mes-celda .cal-mes-cita,
+  .marco.tema main .cal-mes-celda .cal-mes-bloqueo,
+  .marco.tema main .cal-mes-celda > .suave {
+    display: none;
+  }
+  .marco.tema main .cal-mes-celda.elegido {
+    background: #e8f5ef;
+    box-shadow: inset 0 0 0 2px var(--verde-texto, #00664f);
+  }
+  .marco.tema main .cal-mes-celda.elegido:not(.hoy) strong {
+    color: var(--verde-texto, #00664f);
+  }
+  .marco.tema main .cal-mes-dia-semana {
+    font-size: 0.82rem;
+  }
+  .marco.tema main .cal-mes-puntos {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-height: 8px;
+  }
+  .marco.tema main .cal-mes-puntos i {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+  }
+  .marco.tema main .cal-mes-puntos i.apartado {
+    width: 10px;
+    height: 4px;
+    border-radius: 2px;
+    background: #9b958c;
+  }
+  .marco.tema main .cal-mes-puntos b {
+    font-size: 0.8rem;
+    line-height: 1;
+    font-weight: 700;
+    color: #34414b;
+  }
+  .marco.tema main .mes-dia {
+    display: grid;
+    gap: 10px;
+    margin-top: 12px;
+    padding: 14px;
+    border: 1px solid var(--borde);
+    border-radius: 14px;
+    background: #fff;
+    scroll-margin-bottom: calc(var(--nav-alto, 78px) + 12px);
+  }
+  .marco.tema main .mes-dia h2 {
+    margin: 0;
+    font-size: 1.1rem;
+  }
+  .marco.tema main .mes-dia-apartado,
+  .marco.tema main .mes-dia-vacio {
+    margin: 0;
+  }
+  .marco.tema main .mes-dia-apartado {
+    padding: 10px 12px;
+    border-left: 5px solid #9b958c;
+    border-radius: 10px;
+    background: repeating-linear-gradient(45deg, #ece9e4, #ece9e4 6px, #f5f3ef 6px, #f5f3ef 12px);
+    color: #3d3a35;
+  }
+  .marco.tema main .mes-dia-lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+  }
+  .marco.tema main .mes-dia-lista a {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 2px 12px;
+    min-height: 56px;
+    padding: 10px 12px;
+    border: 1px solid var(--borde);
+    border-left: 5px solid var(--zona, #9b958c);
+    border-radius: 10px;
+    color: inherit;
+    text-decoration: none;
+  }
+  .marco.tema main .mes-dia-hora {
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .marco.tema main .mes-dia-texto {
+    display: grid;
+    min-width: 0;
+  }
+  .marco.tema main .mes-dia-texto .suave {
+    font-size: 0.88rem;
+  }
+  .marco.tema main .mes-dia-lista .cal-cita-estado {
+    grid-column: 2;
+    justify-self: start;
+    font-size: 0.82rem;
+  }
+  .marco.tema main .mes-dia-botones {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .marco.tema main .mes-dia-botones .boton {
+    min-height: 48px;
+    margin: 0;
+    justify-content: center;
+  }
+  .marco.tema main .mes-dia-botones .boton:only-child {
+    grid-column: 1 / -1;
+  }
+
+  /* ---------- Día: flechas de 44 px y "Libre" apilado ---------- */
+  .marco.tema main .semana-tira {
+    grid-template-columns: 44px repeat(7, minmax(0, 1fr)) 44px;
+    gap: 0;
+    padding: 4px;
+  }
+  .marco.tema main .semana-flecha {
+    width: 44px;
+    height: 56px;
+  }
+  .marco.tema main .semana-dia {
+    min-height: 60px;
+  }
+  .marco.tema main .semana-dia small {
+    font-size: 0.82rem;
+  }
+  .marco.tema main .dia-lista li.dia-libre {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    padding: 12px;
+  }
+  .marco.tema main .dia-lista li.dia-libre .dia-hora {
+    display: none;
+  }
+  .marco.tema main .dia-lista li.dia-libre .dia-texto {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 8px;
+  }
+  .marco.tema main .dia-lista li.dia-libre .dia-texto strong {
+    color: var(--verde-texto, #00664f);
+  }
+  .marco.tema main .dia-lista li.dia-libre .dia-texto .suave {
+    white-space: nowrap;
+    color: #34414b;
+  }
+  .marco.tema main .dia-lista li.dia-libre .boton {
+    width: 100%;
+    min-height: 48px;
+    justify-content: center;
+    color: var(--verde-texto, #00664f);
+  }
+
+  /* ---------- La pregunta de Patty, compacta ---------- */
+  .marco.tema main .pregunta-bloqueo.compacta {
+    gap: 8px;
+    padding: 8px 6px 8px 12px;
+  }
+  .marco.tema main .pregunta-bloqueo.compacta:not(.abierta) > .pb-pregunta,
+  .marco.tema main .pregunta-bloqueo.compacta:not(.abierta) > .pregunta-bloqueo-botones,
+  .marco.tema main .pregunta-bloqueo.compacta.abierta > .pb-pregunta {
+    display: none;
+  }
+  .marco.tema main .pb-linea {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 4px;
+  }
+  .marco.tema main .pb-linea p {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.3;
+  }
+  .marco.tema main .pb-linea button {
+    flex: none;
+    min-height: 44px;
+    margin: 0;
+    padding: 0 10px;
+    font-size: 0.9rem;
+  }
+  .marco.tema main .pb-linea .pb-cerrar {
+    width: 44px;
+    padding: 0;
+    border: 0;
+    background: none;
+    box-shadow: none;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: #46525c;
+  }
+  .marco.tema main .pregunta-bloqueo.compacta .pregunta-bloqueo-botones {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .marco.tema main .pregunta-bloqueo.compacta .pregunta-bloqueo-botones button,
+  .marco.tema main .pregunta-bloqueo.compacta .pregunta-bloqueo-botones .boton {
+    width: 100%;
+    min-height: 44px;
+    margin: 0;
+    justify-content: center;
+  }
+  .marco.tema main .pregunta-bloqueo.compacta .pregunta-bloqueo-botones .enlace {
+    grid-column: 1 / -1;
+    opacity: 1;
+    color: #46525c;
+  }
+
+  /* ---------- Apartar tiempo ---------- */
+  .marco.tema main .bloquear {
+    padding-bottom: 96px;
+  }
+  .marco.tema main .elegir-dia-chips {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-columns: none;
+    grid-auto-columns: 52px;
+    gap: 6px;
+    overflow-x: auto;
+    margin: 0 -4px;
+    padding: 2px 32px 2px 4px;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  }
+  .marco.tema main .elegir-dia-chips::-webkit-scrollbar {
+    display: none;
+  }
+  .marco.tema main .elegir-dia-chips button {
+    min-height: 60px;
+    padding: 6px 2px;
+  }
+  .marco.tema main .elegir-dia-chips button small {
+    font-size: 0.82rem;
+  }
+  .marco.tema main .elegir-dia-otro {
+    min-height: 48px;
+    font-size: 0.95rem;
+  }
+  .marco.tema main .bloquear-rato {
+    min-height: 56px;
+    justify-content: center;
+    padding: 10px 14px;
+  }
+  /* La opción entera se toca: el radio cubre toda la tarjeta, invisible pero presente para el teclado y el lector. */
+  .marco.tema main .bloquear-rato input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    pointer-events: auto;
+    cursor: pointer;
+    appearance: none;
+  }
+  .marco.tema main .bloquear-rato small {
+    font-size: 0.85rem;
+  }
+  .marco.tema main .bloquear-enviar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: var(--nav-alto, 78px);
+    z-index: 20;
+    padding: 10px 16px;
+    background: #fff;
+    border-top: 1px solid var(--borde);
+    box-shadow: 0 -6px 16px rgb(17 27 33 / 10%);
+  }
+  .marco.tema main .bloquear-enviar button {
+    min-height: 52px;
+  }
+  .marco.tema main .bloquear-paso span {
+    width: 26px;
+    height: 26px;
+    font-size: 0.85rem;
+  }
+  .marco.tema main .bloquear-varios summary {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* ---------- Mi horario: cada día con dos botones grandes ---------- */
+  .marco.tema main .dia-turnos {
+    grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+    padding: 8px 0;
+  }
+  .marco.tema main .dia-turnos > strong {
+    min-width: 76px;
+    font-size: 0.95rem;
+    white-space: nowrap;
+  }
+  /* Cada turno: la casilla dibujada a la izquierda y "Mañana" con sus horas debajo. */
+  .marco.tema main .dia-turnos label.chip {
+    position: relative;
+    display: grid;
+    grid-template-columns: 20px auto;
+    grid-template-rows: auto auto;
+    column-gap: 8px;
+    align-content: center;
+    justify-content: center;
+    min-width: 0;
+    min-height: 56px;
+    margin: 0;
+    padding: 6px 8px;
+    border-radius: 12px;
+    border: 1.5px solid var(--borde);
+    background: #fff;
+    color: #34414b;
+    font-weight: 650;
+    font-size: 1rem;
+    line-height: 1.15;
+  }
+  .marco.tema main .dia-turnos label.chip .turno-horas {
+    grid-column: 2;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: inherit;
+  }
+  .marco.tema main .dia-turnos label.chip input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    pointer-events: auto;
+    cursor: pointer;
+    appearance: none;
+  }
+  .marco.tema main .dia-turnos label.chip::before {
+    content: "";
+    grid-row: 1 / span 2;
+    align-self: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 6px;
+    border: 2px solid #b8c1c7;
+    background: #fff;
+    box-sizing: border-box;
+  }
+  .marco.tema main .dia-turnos label.chip:has(input:checked) {
+    background: #e3f5ec;
+    border-color: #2f9e6b;
+    color: var(--verde-texto, #00664f);
+  }
+  /* El ✓ dibujado: cuadro verde con la palomita en blanco. */
+  .marco.tema main .dia-turnos label.chip:has(input:checked)::before {
+    border: 0;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Crect width='18' height='18' rx='5' fill='%2300664f'/%3E%3Cpath d='M4.5 9.4l3 3 6-6.8' fill='none' stroke='%23fff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 18px 18px no-repeat;
+  }
+  .marco.tema main .dia-turnos label.chip:has(input:focus-visible) {
+    outline: 3px solid #1f6fd1;
+    outline-offset: 2px;
+  }
+
+  /* ---------- Agendar: la casilla de avisar se toca entera (la casilla se dibuja; el input la cubre) ---------- */
+  .marco.tema main form:has(input[name="avisar"]) label.casilla {
+    position: relative;
+    display: flex;
+    min-height: 52px;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+  }
+  .marco.tema main form:has(input[name="avisar"]) label.casilla::before {
+    content: "";
+    flex: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    border: 2px solid #9aa5ad;
+    box-sizing: border-box;
+    background: #fff;
+  }
+  .marco.tema main form:has(input[name="avisar"]) label.casilla:has(input:checked)::before {
+    border: 0;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Crect width='18' height='18' rx='5' fill='%2300664f'/%3E%3Cpath d='M4.5 9.4l3 3 6-6.8' fill='none' stroke='%23fff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 24px 24px no-repeat;
+  }
+  .marco.tema main form:has(input[name="avisar"]) label.casilla:has(input:focus-visible) {
+    outline: 3px solid #1f6fd1;
+    outline-offset: 2px;
+  }
+  .marco.tema main form:has(input[name="avisar"]) label.casilla input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+    appearance: none;
+  }
+}

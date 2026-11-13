@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Volver } from "./volver";
 
 // Piezas de presentación que se repiten en el panel: el encabezado de cada pantalla, las cifras de arriba y
 // lo que se ve cuando una lista está vacía. Solo forma: los datos y los textos los pone cada página.
@@ -6,27 +7,36 @@ import Link from "next/link";
 type IconoProps = { tamano?: number };
 type Icono = (p: IconoProps) => React.ReactNode;
 
-/** Título de la pantalla, una línea de apoyo y las acciones a la derecha (en el teléfono, debajo). */
+/**
+ * Título de la pantalla, una línea de apoyo y las acciones a la derecha (en el teléfono, debajo). Con `atras`, arriba
+ * va "‹ Pantalla" (el mismo `Volver` de las demás, así el título queda a la misma altura); `soloTelefono` lo esconde en
+ * computadora, donde esa pantalla ya está en el menú de la izquierda.
+ */
 export function EncabezadoPagina({
   titulo,
   apoyo,
   children,
   className,
+  atras,
 }: {
   titulo: React.ReactNode;
   apoyo?: React.ReactNode;
   /** Botones o enlaces de la pantalla. */
   children?: React.ReactNode;
   className?: string;
+  atras?: { href: string; texto: string; soloTelefono?: boolean };
 }) {
   return (
-    <header className={`encabezado encabezado-pagina${className ? ` ${className}` : ""}`}>
-      <div className="encabezado-texto">
-        <h1>{titulo}</h1>
-        {apoyo && <p className="suave">{apoyo}</p>}
-      </div>
-      {children && <div className="encabezado-acciones">{children}</div>}
-    </header>
+    <>
+      {atras && <Volver href={atras.href} texto={atras.texto} className={atras.soloTelefono ? "solo-telefono" : undefined} />}
+      <header className={`encabezado encabezado-pagina${className ? ` ${className}` : ""}`}>
+        <div className="encabezado-texto">
+          <h1>{titulo}</h1>
+          {apoyo && <p className="suave">{apoyo}</p>}
+        </div>
+        {children && <div className="encabezado-acciones">{children}</div>}
+      </header>
+    </>
   );
 }
 

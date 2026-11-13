@@ -13,6 +13,8 @@ import { PreguntarPatty } from "../preguntar-patty";
 import { cambiarEnlaceCalendario, quitarBloqueoAgenda } from "./acciones";
 import { PreguntaBloqueo } from "./pregunta-bloqueo";
 import { VistaDelTelefono } from "./vista-telefono";
+import { MesCalendario, SemanaTelefono, type CeldaMes } from "./movil";
+import "./agenda-movil.css";
 import { IconoAgenda } from "../iconos";
 import { Vacio } from "../piezas";
 
@@ -495,8 +497,15 @@ export default async function Agenda({
         </section>
       )}
 
+      {vista === "semana" && (
+        <SemanaTelefono
+          idCal="cal-semana"
+          hoy={fechaIso(hoy)}
+          dias={diasVista.map((f) => ({ iso: fechaIso(f), corto: DIAS_CORTOS[f.diaSemana], numero: f.dia }))}
+        />
+      )}
       {(vista === "dia" || vista === "semana") && (
-        <div className={`cal cal-${vista}`} style={{ ["--alto-hora" as string]: `${ALTO_HORA}px` }}>
+        <div id={vista === "semana" ? "cal-semana" : undefined} className={`cal cal-${vista}`} style={{ ["--alto-hora" as string]: `${ALTO_HORA}px` }}>
           <p className="suave cal-leyenda">
             <span className="muestra libre" /> Toca una hora libre para agendar <span className="muestra bloqueo" /> Apartado
             {[...new Set(citas.map((c) => uno(c.propiedades)?.zona).filter((z): z is string => !!z))].map((z) => (
@@ -537,39 +546,37 @@ export default async function Agenda({
       </div>
 
       {vista === "mes" && (
-        <div className="cal-mes">
-          {["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map((d) => (
-            <span key={d} className="cal-mes-dia-semana">
-              {d}
-            </span>
-          ))}
-          {Array.from({ length: 42 }, (_, i) => sumarDias(primerDia, i)).map((f) => {
-            const lista = porDia.get(fechaIso(f)) ?? [];
-            return (
-              <Link
-                key={fechaIso(f)}
-                href={enlaceA("dia", f)}
-                className={`cal-mes-celda${f.mes !== base.mes ? " otro-mes" : ""}${esHoy(f) ? " hoy" : ""}`}
-              >
-                <strong>{f.dia}</strong>
-                {(() => {
-                  const bl = bloqueoDelDia(f);
-                  return bl ? (
-                    <span className={`cal-mes-bloqueo${bl.todo ? " todo" : ""}`} title={bl.motivo ? `Apartado: ${bl.motivo}` : "Apartado"}>
-                      {bl.todo ? bl.motivo ?? "Apartado" : bl.texto}
-                    </span>
-                  ) : null;
-                })()}
-                {lista.slice(0, 2).map((c) => (
-                  <span key={c.id} className="cal-mes-cita" style={{ borderLeft: `3px solid ${colorZona(uno(c.propiedades)?.zona)}` }}>
-                    {horaCorta(new Date(c.inicio), zona)} {uno(c.contactos)?.nombre ?? "Visita"}
-                  </span>
-                ))}
-                {lista.length > 2 && <span className="suave">y {lista.length - 2} más</span>}
-              </Link>
-            );
+        <MesCalendario
+          mes={fechaIso(base).slice(0, 7)}
+          hoy={fechaIso(hoy)}
+          celdas={Array.from({ length: 42 }, (_, i): CeldaMes => {
+            const f = sumarDias(primerDia, i);
+            const iso = fechaIso(f);
+            return {
+              iso,
+              dia: f.dia,
+              otroMes: f.mes !== base.mes,
+              hoy: esHoy(f),
+              titulo: capitalizar(diaLargo(aUtc(f, 12 * 60, zona), zona)),
+              bloqueo: bloqueoDelDia(f),
+              visitas: (porDia.get(iso) ?? []).map((c) => {
+                const casa = uno(c.propiedades);
+                const cl = uno(c.contactos);
+                return {
+                  id: c.id,
+                  hora: horaCorta(new Date(c.inicio), zona),
+                  nombre: cl?.nombre ?? (cl ? telefonoBonito(cl.telefono) : "Visita"),
+                  enCelda: cl?.nombre ?? "Visita",
+                  casa: casa ? `${casa.titulo}${casa.zona ? ` · ${casa.zona}` : ""}` : null,
+                  color: colorZona(casa?.zona),
+                  confirmada: c.estado === "confirmada",
+                };
+              }),
+              hrefDia: enlaceA("dia", f),
+              hrefAgendar: iso >= fechaIso(hoy) ? `/panel/agenda/nueva?fecha=${iso}` : null,
+            };
           })}
-        </div>
+        />
       )}
 
       {vista === "lista" && citas.length === 0 && (
@@ -633,6 +640,7 @@ export default async function Agenda({
           dia={`mañana ${DIAS_LARGOS[manana.diaSemana]} ${manana.dia}`}
           hoy={fechaIso(hoy)}
           volverA="/panel/agenda"
+          compacta
         />
         <div className="preguntas-patty">
           <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="¿Qué visitas tengo esta semana?" />

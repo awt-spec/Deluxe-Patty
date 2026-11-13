@@ -43,7 +43,11 @@ export default async function Anuncios({ searchParams }: { searchParams: Promise
 
   return (
     <>
-      <EncabezadoPagina titulo="Anuncios" apoyo={`Clientes que llegaron por cada anuncio en los últimos ${DIAS_REPORTE} días.`} />
+      <EncabezadoPagina
+        titulo="Anuncios"
+        apoyo={`Clientes que llegaron por cada anuncio en los últimos ${DIAS_REPORTE} días.`}
+        atras={{ href: "/panel/mas", texto: "Más", soloTelefono: true }}
+      />
       <Aviso texto={aviso} />
       <div className="dos-columnas">
         <div className="columna-principal pila">

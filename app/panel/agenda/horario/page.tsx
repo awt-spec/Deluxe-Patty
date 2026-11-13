@@ -8,6 +8,7 @@ import {
 } from "@/lib/panel/formularios";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Aviso } from "../../aviso";
+import "../agenda-movil.css";
 import {
   agregarBloqueo,
   agregarFranja,
@@ -91,6 +92,7 @@ export default async function Horario({
                   defaultChecked={t.manana}
                 />
                 {TURNOS.manana.nombre}
+                <small className="turno-horas solo-telefono"> 8–12</small>
               </label>
               <label className="chip">
                 <input
@@ -99,6 +101,7 @@ export default async function Horario({
                   defaultChecked={t.tarde}
                 />
                 {TURNOS.tarde.nombre}
+                <small className="turno-horas solo-telefono"> 1–5</small>
               </label>
             </div>
           );

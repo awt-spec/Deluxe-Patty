@@ -8,6 +8,7 @@ import { limitesDia } from "@/lib/agenda/tiempo";
 import { MenuLateral } from "./menu-lateral";
 import { Navegacion } from "./navegacion";
 import { Patty } from "./patty";
+import { TirasDesliza } from "./tiras";
 
 export const dynamic = "force-dynamic";
 // Patty (chat e imágenes) corre como acción desde cualquier pantalla del panel: que ninguna la corte antes
@@ -71,7 +72,7 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
         </p>
       )}
       <main className="panel">{children}</main>
-      <Navegacion teNecesitan={teNecesitan} />
+      <Navegacion teNecesitan={teNecesitan} asistente={corredor.nombre_asistente ?? "Patty"} />
       <MenuLateral
         teNecesitan={teNecesitan}
         visitasHoy={errorVisitas ? null : (visitasHoy ?? 0)}
@@ -85,6 +86,7 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
         superadmin={superadmin}
       />
       <Patty nombre={corredor.nombre_asistente ?? "Patty"} corredor={corredor.id} />
+      <TirasDesliza />
     </div>
   );
 }

@@ -64,7 +64,11 @@ export default async function Duenos({ searchParams }: { searchParams: Promise<{
 
   return (
     <>
-      <EncabezadoPagina titulo="Dueños directos" apoyo="Casas que venden sus dueños en Encuentra24. Les escribes tú.">
+      <EncabezadoPagina
+        titulo="Dueños directos"
+        apoyo="Casas que venden sus dueños en Encuentra24. Les escribes tú."
+        atras={{ href: "/panel/mas", texto: "Más", soloTelefono: true }}
+      >
         <Link href="/panel/duenos/corredores" className="boton">
           Corredores
         </Link>
@@ -88,7 +92,7 @@ export default async function Duenos({ searchParams }: { searchParams: Promise<{
         </div>
       )}
 
-      <nav className="filtro-etapas" aria-label="Etapas de los dueños">
+      <nav className="filtro-etapas tira-desliza" aria-label="Etapas de los dueños">
         {ETAPAS_DUENO.map((e) => (
           <Link key={e.clave} href={`/panel/duenos?etapa=${e.clave}`} aria-current={elegida.clave === e.clave ? "page" : undefined}>
             {e.nombre} <span>{cuantos(e.clave)}</span>

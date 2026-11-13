@@ -431,6 +431,8 @@ export function MapaCerebro({ ramas }: { ramas: Rama[] }) {
               )}
               {n.tipo === "hoja" && (
                 <>
+                  {/* Área de toque invisible (solo cuenta en el teléfono, cerebro.css): el dedo no tiene que atinarle al punto. */}
+                  <circle r={22} className="nodo-toque" />
                   <circle r={8} />
                   <text x={derecha ? 14 : -14} y={5} textAnchor={derecha ? "start" : "end"} className="hoja-texto">
                     {corto(n.texto, foco === n.id ? 80 : 26)}

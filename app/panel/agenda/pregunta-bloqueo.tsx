@@ -6,7 +6,8 @@ import { bloquearRapido } from "./acciones";
 
 // La pregunta de cada día: "¿Tienes algún compromiso mañana?". Con un toque se aparta la mañana, la
 // tarde o el día entero y la asistente no agenda visitas ahí. Sale una vez al día (se recuerda en el
-// navegador) y desaparece al contestar.
+// navegador) y desaparece al contestar. `compacta` (la de la Agenda): en el teléfono es una sola línea con "Sí, apartar",
+// "No" y "×"; las opciones salen al tocar "Sí". En computadora se ve completa, como en Inicio.
 
 const CLAVE = "patty-pregunta-bloqueo";
 
@@ -16,6 +17,7 @@ export function PreguntaBloqueo({
   dia,
   hoy,
   volverA,
+  compacta,
 }: {
   nombre: string;
   /** Mañana, en AAAA-MM-DD (lo que se aparta). */
@@ -25,8 +27,10 @@ export function PreguntaBloqueo({
   /** Hoy, en AAAA-MM-DD: la pregunta sale una vez por día. */
   hoy: string;
   volverA: "/panel" | "/panel/agenda";
+  compacta?: boolean;
 }) {
   const [ver, setVer] = useState(false);
+  const [abierta, setAbierta] = useState(false);
   useEffect(() => {
     try {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage solo existe en el navegador: se lee al montar para no romper la hidratación.
@@ -43,6 +47,10 @@ export function PreguntaBloqueo({
     }
   };
   if (!ver) return null;
+  const libre = () => {
+    contestar();
+    setVer(false);
+  };
 
   const boton = (rato: string, texto: string) => (
     <form action={bloquearRapido} onSubmit={contestar}>
@@ -56,8 +64,28 @@ export function PreguntaBloqueo({
   );
 
   return (
-    <section className="tarjeta pregunta-bloqueo" data-patty="pregunta-bloqueo">
-      <p>
+    <section className={`tarjeta pregunta-bloqueo${compacta ? " compacta" : ""}${abierta ? " abierta" : ""}`} data-patty="pregunta-bloqueo">
+      {compacta && (
+        <div className="pb-linea solo-telefono">
+          <p>
+            <strong>{nombre}:</strong> ¿Algún compromiso mañana?
+          </p>
+          {!abierta && (
+            <>
+              <button type="button" className="chico" onClick={() => setAbierta(true)} aria-expanded={abierta}>
+                Sí, apartar
+              </button>
+              <button type="button" className="chico" onClick={libre}>
+                No
+              </button>
+            </>
+          )}
+          <button type="button" className="pb-cerrar" onClick={libre} aria-label="Cerrar por hoy">
+            ×
+          </button>
+        </div>
+      )}
+      <p className="pb-pregunta">
         <strong>{nombre}:</strong> ¿Tienes algún compromiso {dia}? Así no te agendo visitas encima.
       </p>
       <div className="pregunta-bloqueo-botones">
@@ -70,10 +98,7 @@ export function PreguntaBloqueo({
         <button
           type="button"
           className="chico enlace"
-          onClick={() => {
-            contestar();
-            setVer(false);
-          }}
+          onClick={libre}
         >
           No, estoy libre
         </button>

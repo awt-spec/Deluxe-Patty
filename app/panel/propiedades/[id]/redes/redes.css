@@ -522,13 +522,6 @@
   opacity: 0.45;
 }
 
-/* Con la barra del chat, el botón flotante de Patty sobra en esta pantalla (teléfono y tableta). */
-@media (max-width: 1099px) {
-  body .marco.tema:has(.redes-chat) .patty-boton {
-    display: none;
-  }
-}
-
 /* Tableta o computadora angosta: el menú está a la izquierda, no abajo. */
 @media (min-width: 900px) and (max-width: 1099px) {
   .redes-chat {
@@ -576,5 +569,115 @@
   /* El video tiene vista previa y escenas: con el chat al lado, una debajo de la otra hasta pantallas muy anchas. */
   .redes-con-chat .redes-video-cuerpo {
     grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+  }
+}
+
+/* ---- Teléfono (< 900 px): barra de una línea sobre la navegación; abierta, una hoja de hasta 55 % ----------------
+   La vista previa se corre para quedar encima de la hoja (chat.tsx) y el contenido deja sitio abajo para la barra. */
+.redes-chat-tirador,
+.redes-chat-listo {
+  display: none;
+}
+@media (max-width: 899px) {
+  .marco.tema main .redes-con-chat {
+    padding-bottom: 76px;
+  }
+  .marco.tema main .redes-con-chat:has(.redes-chat.abierto) {
+    padding-bottom: 56vh;
+    padding-bottom: 56dvh;
+  }
+  .marco.tema main .redes-chat {
+    left: 0;
+    right: 0;
+    bottom: var(--nav-alto, 78px);
+    z-index: 25;
+    padding: 6px 10px;
+    background: var(--superficie, #fff);
+    border-top: 1px solid var(--borde);
+    box-shadow: 0 -6px 18px rgb(17 27 33 / 10%);
+  }
+  .marco.tema main .redes-chat .redes-chat-barra {
+    min-height: 48px;
+    padding: 4px 14px 4px 4px;
+    box-shadow: none;
+    background: var(--superficie-alta, #f0f2f5);
+    color: #46535c;
+  }
+  .marco.tema main .redes-chat .redes-chat-punto {
+    flex-basis: 40px;
+    height: 40px;
+  }
+  .marco.tema main .redes-chat-listo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 48px;
+  }
+  .marco.tema main .redes-chat-listo + .redes-chat-barra {
+    display: none;
+  }
+  .marco.tema main .redes-chat-listo-texto {
+    flex: 1;
+    min-width: 0;
+    min-height: 44px;
+    margin: 0;
+    padding: 0 4px;
+    border: 0;
+    background: none;
+    box-shadow: none;
+    text-align: left;
+    font-weight: 650;
+    color: var(--verde-texto, #00664f);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .marco.tema main .redes-chat-listo .boton {
+    flex: none;
+    min-height: 44px;
+    margin: 0;
+  }
+  .marco.tema main .redes-chat.abierto {
+    padding: 0;
+    border-top: 0;
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -8px 28px rgb(17 27 33 / 22%);
+  }
+  .marco.tema main .redes-chat.abierto .redes-chat-cuerpo {
+    grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+    gap: 8px;
+    max-height: 55vh;
+    max-height: 55dvh;
+    padding: 4px 12px 10px;
+    border: 0;
+    border-radius: 18px 18px 0 0;
+    box-shadow: none;
+  }
+  .marco.tema main .redes-chat-tirador {
+    display: block;
+    justify-self: center;
+    width: 40px;
+    height: 5px;
+    margin: 4px 0 0;
+    border-radius: 999px;
+    background: #c9d1d6;
+  }
+  .marco.tema main .redes-chat-acciones .boton {
+    min-height: 44px;
+  }
+  .marco.tema main .redes-chat-turnos {
+    min-height: 48px;
+  }
+  .marco.tema main .redes-chat-sugerencias {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin: 0 -12px;
+    padding: 0 40px 2px 12px;
+    scroll-padding-left: 12px;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent);
+  }
+  .marco.tema main .redes-chat-sugerencias .chip {
+    min-height: 44px;
   }
 }

@@ -4465,28 +4465,7 @@ body:has(.marco.tema) {
   height: 26px;
 }
 
-/* Patty · IA: botón flotante y chat en cada página */
-.patty-boton {
-  position: fixed;
-  right: 16px;
-  bottom: calc(84px + env(safe-area-inset-bottom));
-  z-index: 40;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 52px;
-  padding: 6px 18px 6px 6px !important;
-  border-radius: 999px !important;
-  border: 0 !important;
-  background: linear-gradient(135deg, #00a884, #00876a) !important;
-  color: #fff !important;
-  font-weight: 650;
-  box-shadow: 0 8px 24px rgb(0 135 106 / 35%) !important;
-  cursor: pointer;
-}
-.patty-boton:hover {
-  transform: translateY(-1px);
-}
+/* Patty · IA: el chat en cada página (lo abre el botón del centro de la barra o el menú lateral) */
 .patty-avatar {
   flex: 0 0 40px;
   width: 40px;
@@ -7294,29 +7273,6 @@ body:has(.marco.tema) {
   .tema textarea {
     font-size: 16px !important;
   }
-  /* Patty flotante: un círculo que tapa poco */
-  .tema .patty-boton {
-    width: 60px;
-    min-height: 60px;
-    height: 60px;
-    padding: 6px !important;
-    justify-content: center;
-    right: 14px;
-  }
-  .tema .patty-boton .patty-boton-texto {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-  .tema .patty-boton .patty-avatar {
-    width: 48px;
-    height: 48px;
-    flex-basis: 48px;
-    font-size: 1.3rem;
-  }
   /* Etiquetas pequeñas, legibles */
   .tema .ficha-dato-titulo,
   .tema .casa-item-pie > span,
@@ -7582,17 +7538,6 @@ body:has(.marco.tema) {
   }
   .tema .patty-chat .patty-enviar {
     background: var(--ios-verde) !important;
-  }
-
-  /* Patty flotante: verde, como el botón de chat nuevo de WhatsApp */
-  .tema .patty-boton {
-    background: var(--ios-verde) !important;
-    box-shadow: 0 4px 14px rgb(0 0 0 / 18%) !important;
-  }
-  .tema .patty-boton .patty-avatar {
-    background: transparent !important;
-    color: #fff !important;
-    box-shadow: none !important;
   }
 }
 @media (max-width: 899px) {
@@ -9683,11 +9628,6 @@ body:has(.marco.tema) {
   font-size: 0.8rem;
   text-align: center;
 }
-@media (max-width: 899px) {
-  .marco.tema:has(.revisar) .patty-boton {
-    display: none;
-  }
-}
 .marco.tema .revisar-quien > .revisar-ver {
   flex-direction: row;
   white-space: nowrap;
@@ -9843,11 +9783,6 @@ body:has(.marco.tema) {
   flex: none;
   min-height: 40px;
   margin: 0;
-}
-@media (max-width: 899px) {
-  .marco.tema:has(.ajustes) .patty-boton {
-    display: none;
-  }
 }
 
 /* ================================================================================================
@@ -10332,11 +10267,6 @@ body:has(.marco.tema) {
 .marco.tema .bloquear-pie {
   margin: 0;
   font-size: 0.88rem;
-}
-@media (max-width: 899px) {
-  .marco.tema:has(.bloquear) .patty-boton {
-    display: none;
-  }
 }
 
 /* Lámina PNG de una respuesta de Patty: se arma fuera de la pantalla y se fotografía (html-to-image). */
@@ -11079,26 +11009,6 @@ body:has(.marco.tema) {
   line-height: 1.2;
 }
 
-/* Filas de chips que se deslizan: se desvanecen en el borde para que se note que hay más */
-@media (max-width: 899px) {
-  .marco.tema main .filtro-etapas,
-  .marco.tema main .casas-filtros,
-  .marco.tema main .rapidas,
-  .marco.tema main .etapas-selector,
-  .marco.tema .escribir-wa .rapidas {
-    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);
-    mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);
-    padding-right: 32px;
-    scroll-snap-type: x proximity;
-    scroll-padding-left: 16px;
-  }
-  .marco.tema main .filtro-etapas > *,
-  .marco.tema main .rapidas > *,
-  .marco.tema main .etapas-selector > * {
-    scroll-snap-align: start;
-  }
-}
-
 /* Agenda, semana en el teléfono: unos cuatro días y medio a la vista, la columna de horas fija, los
    días encajan al deslizar y el borde derecho se desvanece para que se vea que hay más. */
 @media (max-width: 899px) {
@@ -11124,13 +11034,6 @@ body:has(.marco.tema) {
     z-index: 3;
     background: #fff;
     box-shadow: 1px 0 0 var(--borde);
-  }
-}
-
-/* Teléfono: que el botón de Patty no tape lo último de la página */
-@media (max-width: 899px) {
-  .marco.tema .panel:not(:has(.barra-chat)):not(:has(.patty-chat.pagina)) {
-    padding-bottom: calc(168px + env(safe-area-inset-bottom));
   }
 }
 
@@ -11223,26 +11126,6 @@ body:has(.marco.tema) {
   }
 }
 
-/* Estudio de redes (teléfono): el botón flotante de Patty queda sobre las pestañas; el contenido deja
-   espacio abajo para que lo último (Texto, video) se pueda tocar sin que el círculo lo tape. */
-@media (max-width: 899px) {
-  .marco.tema:has(.redes-estudio) .redes-estudio {
-    padding-bottom: calc(150px + env(safe-area-inset-bottom));
-  }
-  .marco.tema:has(.redes-estudio) .patty-boton {
-    bottom: calc(96px + env(safe-area-inset-bottom));
-    right: 10px;
-    width: 52px;
-    min-height: 52px;
-    height: 52px;
-    opacity: 0.92;
-  }
-  .marco.tema:has(.redes-estudio) .patty-boton .patty-avatar {
-    width: 40px;
-    height: 40px;
-    flex-basis: 40px;
-  }
-}
 
 /* ================================================================================================
    Menú lateral v3 (computadora, app/panel/menu-lateral.tsx). Claro como WhatsApp Web, igual para todos los
@@ -11882,15 +11765,397 @@ body:has(.marco.tema) {
   }
 }
 
-/* Computadora: el menú lateral ya trae "Pregúntale a Patty" (y los atajos / y Ctrl/⌘+K), así que el botón flotante
-   cerrado no se muestra: tapaba controles (Enviar del chat de redes, Guardar en Cerebro). El chat abierto
-   (.patty-panel) sigue igual. La especificidad iguala a las reglas por pantalla (.marco.tema:has(...)). En el
-   teléfono (<900 px) no cambia nada. */
-@media (min-width: 900px) {
-  body .marco.tema .patty-boton,
-  body .marco.tema:has(.fc-ficha) .patty-boton,
-  body .marco.tema:has(.redes-chat) .patty-boton,
-  body .marco.tema:has(.redes-estudio) .patty-boton {
-    display: none !important;
+/* ================================================================================================
+   Teléfono v4: lo común a todo el panel en el teléfono (<900 px).
+   - La asistente deja de flotar: va al centro de la barra de abajo (Inicio · Clientes · [Patty] · Agenda ·
+     Mis casas), un círculo verde de 56 px que sobresale --nav-saliente sobre la barra. La barra tiene alto fijo:
+     --nav-alto (64 px + la zona segura del iPhone); el contenido deja --nav-alto + 16 px abajo, y las barras
+     fijas de cada pantalla se apoyan en calc(var(--nav-alto) + var(--nav-saliente)).
+   - Letra mínima de 13 px, verde de texto que pasa AA (--verde-texto; #008069 queda solo de fondo con letra
+     blanca), gris de apoyo ≥ 4,5:1, objetivos táctiles de 44 px, tiras de chips con desvanecido real
+     (app/panel/tiras.tsx) y un solo estilo de botón deshabilitado.
+   Los colores de texto y lo deshabilitado valen también en computadora (accesibilidad); el menú lateral no se
+   toca (tiene su paleta propia). Cifras medidas en lib/panel/colores-texto.ts y tests/colores-texto.test.ts.
+   ================================================================================================ */
+.marco.tema {
+  --nav-alto: 0px;
+  --nav-saliente: 0px;
+  /* Verde para letra y enlaces sobre blanco, el gris de la página y las tarjetas verdes claras (≥ 5,9:1). */
+  --verde-texto: #00664f;
+  /* Verde de fondo de los botones llenos, con letra blanca (4,9:1). */
+  --verde-fondo: #008069;
+  --gris-texto: #54656f;
+}
+html body .marco.tema {
+  --suave: #54656f;
+  --ios-gris: #5b6670;
+  --ios-verde-texto: #00664f;
+}
+
+/* ---- Verde de texto: enlaces, etiquetas y títulos verdes ---- */
+html body .marco.tema :is(
+    .volver,
+    .ver-negocio,
+    .enlace,
+    .titulo-seccion a,
+    .por-que a,
+    .etiqueta,
+    .propuesta-titulo,
+    .hoy-hora,
+    .seguimiento.vence,
+    .cal-agendar,
+    .preguntar-patty,
+    .patty-enlace,
+    .esperan-etiqueta.respuesta,
+    .esperan-mas,
+    .cierre-comision,
+    .barra-valor,
+    .ya-lo-hice,
+    .casa-estado,
+    .casa-editar summary,
+    .ficha-lateral details summary,
+    .cal-cuantas,
+    .cal-cita-estado.ok,
+    .saludo-resumen span.destacado,
+    .casa-item-operacion,
+    .casa-item-pie .movimiento.activo,
+    .dia-libre strong,
+    .dia-texto > strong,
+    .ficha-accion,
+    .revisar-ver,
+    .revisar-etiqueta,
+    button.revisar-yo,
+    .chat-lista .hora.nueva,
+    .guia-nota strong,
+    .casa-foto-ia summary,
+    .burbuja .autor
+  ) {
+  color: var(--verde-texto) !important;
+}
+html body .marco.tema main .enlace:hover,
+html body .marco.tema main .ver-negocio:hover {
+  color: #004d3c !important;
+}
+html body .marco.tema :is(.patty-sugerencias button, .patty-atajos button) {
+  color: var(--verde-texto) !important;
+}
+
+/* Enlaces de texto a opacidad completa (el 75 % de "No, estoy libre" lo dejaba en 3,6:1). */
+html body .marco.tema .enlace:not(:disabled) {
+  opacity: 1;
+}
+/* Verde lleno con letra blanca: #008069 (4,9:1); el #00a884 de WhatsApp daba 3:1. */
+html body .marco.tema :is(button.verde, .boton.verde, .guia-nota-botones button:not(.secundario), .guia-parar, .patty-casa-botones button.primario, .patty-mini.primario):not(:disabled) {
+  background: var(--verde-fondo) !important;
+  border-color: var(--verde-fondo) !important;
+  color: #fff !important;
+}
+
+/* ---- Tarjetas que son un enlace: sin subrayado, con foco visible ---- */
+.marco.tema a.tarjeta,
+.marco.tema a:has(> div, > section, > article, > .tarjeta) {
+  text-decoration: none;
+}
+.marco.tema a.tarjeta:focus-visible,
+.marco.tema a:has(> div, > section, > article, > .tarjeta):focus-visible {
+  outline: 3px solid var(--verde-texto);
+  outline-offset: 2px;
+}
+
+/* ---- Botones deshabilitados: gris, letra gris legible (5,1:1), sin sombra ---- */
+html body .marco.tema :is(main, .patty-panel, .patty-chat) :is(button, .boton, input[type="submit"]):is(:disabled, [aria-disabled="true"]):not(.enlace) {
+  background: #e9edef !important;
+  background-image: none !important;
+  color: #54656f !important;
+  border-color: #e9edef !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+  cursor: not-allowed;
+}
+html body .marco.tema :is(main, .patty-panel, .patty-chat) :is(button, .boton):is(:disabled, [aria-disabled="true"]) svg {
+  color: #54656f;
+}
+
+@media (max-width: 899px) {
+  .marco.tema {
+    --nav-alto: calc(64px + env(safe-area-inset-bottom));
+    --nav-saliente: 14px;
+  }
+
+  /* ---- Barra de abajo: cinco lugares, la asistente al centro ---- */
+  html body .marco.tema > .navegacion {
+    height: var(--nav-alto);
+    padding: 0 4px env(safe-area-inset-bottom) !important;
+    display: block;
+    overflow: visible;
+    background: #f9f9f9 !important;
+    border-top: 0.5px solid rgb(60 60 67 / 22%) !important;
+    z-index: 30;
+  }
+  html body .marco.tema > .navegacion.en-chat {
+    display: none;
+  }
+  html body .marco.tema > .navegacion .nav-grupo {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    align-items: stretch;
+    height: 64px;
+    max-width: 560px;
+    margin: 0 auto;
+  }
+  html body .marco.tema > .navegacion .nav-grupo > :is(a, .nav-patty) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 2px;
+    min-width: 0;
+    height: 64px;
+    margin: 0;
+    padding: 0 2px 7px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--ios-gris) !important;
+    font: inherit;
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  html body .marco.tema > .navegacion .nav-grupo > a .icono {
+    width: 48px;
+    height: 30px;
+    border-radius: 15px;
+    background: transparent !important;
+  }
+  html body .marco.tema > .navegacion .nav-grupo .nombre {
+    display: block;
+    flex: none;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    line-height: 16px;
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+  html body .marco.tema > .navegacion .nav-grupo > :is(a, .nav-patty)[aria-current="page"] {
+    color: var(--verde-texto) !important;
+  }
+  html body .marco.tema > .navegacion .nav-grupo > :is(a, .nav-patty)[aria-current="page"] .nombre {
+    font-weight: 700;
+  }
+  html body .marco.tema > .navegacion .nav-grupo > a[aria-current="page"] .icono {
+    background: #d9fdd3 !important;
+    color: var(--verde-texto);
+  }
+  html body .marco.tema > .navegacion .nav-grupo > a:focus-visible,
+  html body .marco.tema > .navegacion .nav-patty:focus-visible {
+    outline: none;
+  }
+  html body .marco.tema > .navegacion .nav-grupo > a:focus-visible .icono,
+  html body .marco.tema > .navegacion .nav-patty:focus-visible .nav-patty-circulo {
+    outline: 3px solid var(--verde-texto);
+    outline-offset: 2px;
+  }
+  html body .marco.tema > .navegacion .nav-grupo .contador {
+    top: -5px;
+    right: 2px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 20px;
+    font-weight: 700;
+    background: #25d366;
+    color: #111b21;
+    box-shadow: 0 0 0 2px #f9f9f9;
+  }
+  /* El círculo de la asistente: sobresale sobre la barra con un aro del color de la barra, como una muesca. */
+  html body .marco.tema > .navegacion .nav-patty {
+    position: relative;
+    cursor: pointer;
+    overflow: visible;
+  }
+  html body .marco.tema .nav-patty-circulo {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--verde-fondo);
+    color: #fff;
+    font-size: 23px;
+    font-weight: 700;
+    line-height: 1;
+    box-shadow: 0 0 0 4px #f9f9f9, 0 6px 14px rgb(0 0 0 / 20%);
+    transition: transform 120ms ease;
+  }
+  html body .marco.tema > .navegacion .nav-patty:active .nav-patty-circulo {
+    transform: scale(0.94);
+  }
+  html body .marco.tema > .navegacion .nav-patty[aria-current="page"] .nav-patty-circulo {
+    background: #00664f;
+    box-shadow: 0 0 0 4px #f9f9f9, 0 0 0 6px #d9fdd3, 0 6px 14px rgb(0 0 0 / 20%);
+  }
+
+  /* ---- Lo último de cada pantalla siempre se alcanza: la barra más 16 px ---- */
+  html body .marco.tema .panel {
+    padding-bottom: calc(var(--nav-alto) + 16px);
+  }
+  html body .marco.tema .panel:has(.barra-chat) {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+  /* El chat de la asistente en su pantalla llega hasta la barra (el círculo marcado queda encima de su caja). */
+  html body .marco.tema .patty-chat.pagina {
+    bottom: calc(var(--nav-alto) + var(--nav-saliente));
+  }
+  html body .marco.tema .ajustes-guardar {
+    bottom: calc(var(--nav-alto) + var(--nav-saliente) - 6px);
+  }
+  /* El chat abierto tapa la barra (pantalla completa, como antes). */
+  .marco.tema .patty-panel {
+    z-index: 50;
+  }
+  /* La respuesta que deja la guía, sobre la barra y el círculo. */
+  html body .marco.tema .guia-nota {
+    bottom: calc(var(--nav-alto) + var(--nav-saliente) + 10px);
+  }
+
+  /* ---- Letra mínima: 13 px en todo lo que se lee ---- */
+  html body .marco.tema :is(
+      .etiqueta,
+      .insignia,
+      .burbuja .meta,
+      .nota-prueba,
+      .punto,
+      .burbuja .autor,
+      .etapa,
+      .barra-chat-nombre .etapa,
+      .cal-horas span,
+      .cal-mes-dia-semana,
+      .cal-mes-celda,
+      .dias-etapa,
+      .cal-traslado,
+      .cal-cabecera a small,
+      .guia-nombre,
+      .esperan-etiqueta,
+      .barra-valor,
+      .barra-cierres,
+      .ficha-dato-titulo,
+      .casa-foto-principal,
+      .patty-titulo small,
+      .patty-hora,
+      .cal-cuantas,
+      .cal-cita-hora,
+      .cal-cita-casa,
+      .cal-cita-estado,
+      .cal-bloqueo > span,
+      .cal-mes-bloqueo,
+      .casa-variante-etiqueta,
+      .casa-variantes .enlace,
+      .casa-foto-ia .enlace,
+      .redes-fotos span,
+      .casa-item-operacion,
+      .casa-item-estado,
+      .casa-item-fotos,
+      .casa-item-precio small,
+      .casa-item-pie > span,
+      .casa-item-foto .sin-foto-texto,
+      .patty-insignia,
+      .semana-dia small,
+      .etapas-selector .etapa small,
+      .ficha-accion,
+      .borrador-ayuda,
+      .revisar-tipo,
+      .revisar-ayuda,
+      .patty-mini,
+      .patty-pdf-icono,
+      .patty-pdf-texto small,
+      .bloquear-paso span,
+      .elegir-dia-chips button small,
+      .bloquear-rato small,
+      .fc-accion > span,
+      .fc-sigue-etiqueta,
+      .fc-paso-nombre,
+      .fc-dia-titulo,
+      .fc-autor,
+      .fc-casa-marca,
+      .fc-ficha dt,
+      .fc-ficha small
+    ) {
+    font-size: 13px;
+  }
+
+  /* ---- Objetivos táctiles de 44 px (sin agrandar lo que se ve) ---- */
+  html body .marco.tema main :is(.ver-negocio, .volver, a.enlace, button.enlace, .titulo-seccion a, .por-que a, .esperan-mas) {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  html body .marco.tema main .ver-negocio {
+    margin-block: -11px;
+  }
+  /* Un enlace suelto dentro de un párrafo (“Prefiero llenar el formulario”): el área crece, la línea no. */
+  html body .marco.tema main p > a:not([class]) {
+    padding-block: 13px;
+  }
+  html body .marco.tema main .filtro-etapas a,
+  html body .marco.tema main .casas-filtros a {
+    min-height: 44px;
+  }
+  html body .marco.tema .patty-cabecera .patty-cerrar {
+    width: 44px;
+    min-height: 44px !important;
+    height: 44px;
+  }
+  html body .marco.tema .patty-cabecera button,
+  html body .marco.tema .patty-cabecera .boton {
+    min-height: 44px !important;
+  }
+
+  /* ---- Tiras de chips y pestañas que se deslizan (app/panel/tiras.tsx marca hacia dónde hay más) ---- */
+  html body .marco.tema :is(.tira-desliza, main .filtro-etapas, main .casas-filtros, main .etapas-selector, .rapidas) {
+    overflow-x: auto;
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: 16px;
+    padding-right: 0;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent);
+  }
+  html body .marco.tema :is(.tira-desliza, main .filtro-etapas, main .casas-filtros, main .etapas-selector, .rapidas) > * {
+    scroll-snap-align: start;
+  }
+  html body .marco.tema :is(.tira-desliza, main .filtro-etapas, main .casas-filtros, main .etapas-selector, .rapidas)[data-desliza="no"] {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  html body .marco.tema :is(.tira-desliza, main .filtro-etapas, main .casas-filtros, main .etapas-selector, .rapidas)[data-desliza="izquierda"] {
+    -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 56px), transparent);
+    mask-image: linear-gradient(to left, #000 calc(100% - 56px), transparent);
+  }
+  html body .marco.tema :is(.tira-desliza, main .filtro-etapas, main .casas-filtros, main .etapas-selector, .rapidas)[data-desliza="ambos"] {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 56px), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 56px), transparent);
+  }
+
+  /* ---- Encabezados: "‹ atrás" de 44 px y el título a la misma altura en todas las pantallas ---- */
+  html body .marco.tema main > p:has(> .volver) {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    margin: -6px 0 4px -4px;
+  }
+  html body .marco.tema main > p:has(> .volver) + .encabezado {
+    margin-top: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html body .marco.tema .nav-patty-circulo {
+    transition: none;
   }
 }

@@ -5,7 +5,7 @@ import { IconoAgenda, IconoCampana, IconoCasa, IconoChats, IconoCheck, IconoFlec
 import { EncabezadoPagina, Vacio } from "../piezas";
 import { Volver } from "../volver";
 import { archivar, responderDuda } from "./acciones";
-import { BotonEnsenar } from "./boton-ensenar";
+import { PestanaALaVista } from "./pestana-a-la-vista";
 import { EnsenaleAlgo } from "./ensenar";
 import { LoQueSabe, type Ubicada } from "./lo-que-sabe";
 import { MapaCerebro, type Rama } from "./mapa";
@@ -46,7 +46,7 @@ export function VistaCerebro(d: DatosCerebro) {
   const preguntas = d.dudas.length + d.porUbicar.length;
   const lateral = d.ver !== "mapa";
 
-  const pestana = (v: Ver, nombre: string, n?: number) => (
+  const pestana = (v: Ver, nombre: React.ReactNode, n?: number) => (
     <Link
       href={v === "inicio" ? "/panel/cerebro" : `/panel/cerebro?ver=${v}`}
       aria-current={d.ver === v ? "page" : undefined}
@@ -70,11 +70,19 @@ export function VistaCerebro(d: DatosCerebro) {
         <div className="cer-pestanas-fila">
           {pestana("inicio", "Inicio")}
           {pestana("dudas", "Preguntas", preguntas)}
-          {pestana("sabe", "Lo que sabe", d.sabe.length + d.ubicadas.length)}
+          {pestana(
+            "sabe",
+            <>
+              <span className="cer-largo">Lo que sabe</span>
+              <span className="cer-corto">Sabe</span>
+            </>,
+            d.sabe.length + d.ubicadas.length,
+          )}
           {pestana("errores", "Correcciones", d.correcciones.length)}
           {pestana("fuentes", "Fuentes")}
           {pestana("mapa", "Mapa")}
         </div>
+        <PestanaALaVista />
       </nav>
 
       {d.ver === "mapa" ? (
@@ -89,6 +97,14 @@ export function VistaCerebro(d: DatosCerebro) {
             </aside>
           )}
           <div className="cer-principal">
+            {d.ver !== "inicio" && (
+              <p className="cer-ir-ensenar">
+                <Link href="/panel/cerebro#ensenar">
+                  <IconoIdea tamano={20} />
+                  Enseñarle algo
+                </Link>
+              </p>
+            )}
             {d.ver === "inicio" && <Portada {...d} />}
             {d.ver === "dudas" && <Preguntas {...d} />}
             {d.ver === "sabe" && <Sabe {...d} />}
@@ -98,9 +114,6 @@ export function VistaCerebro(d: DatosCerebro) {
         </div>
       )}
 
-      {lateral && (
-        <BotonEnsenar />
-      )}
     </div>
   );
 }

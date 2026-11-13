@@ -7,6 +7,7 @@ import { AYUDA_ETAPA, ETAPAS, MOTIVOS_PERDIDA, NOMBRE_ETAPA, telefonoBonito, typ
 import type { Foto } from "@/lib/datos/tipos";
 import { precio } from "@/lib/formato";
 import { ordenarFotos } from "@/lib/panel/formularios";
+import { resumenBusca, resumenCampos } from "@/lib/panel/movil";
 import { Aviso } from "../../aviso";
 import { Avatar } from "../../avatar";
 import { IconoAgenda, IconoCampana, IconoCasa, IconoChats, IconoCheck, IconoEstrella, IconoLapiz, IconoReloj, IconoTelefono } from "../../iconos";
@@ -15,6 +16,7 @@ import { PreguntarPatty } from "../../preguntar-patty";
 import { Volver } from "../../volver";
 import { cambiarEtapa, guardarBusca, guardarCierre, guardarNotas, guardarOportunidad, guardarSeguimiento, unirCliente } from "../acciones";
 import { Historia, type EventoHistoria } from "./historia";
+import { OcultarAlBajar, SeccionPlegable } from "./movil";
 import { DIAS_QUIETO, diasDesde, nombreDia, queSigue, type AccionQueSigue, type VisitaFicha } from "./que-sigue";
 
 // Ficha de un cliente, solo forma: la página lee los datos (con la sesión del corredor) y los pasa aquí.
@@ -198,6 +200,17 @@ export function FichaCliente(d: DatosFicha) {
     ...d.casasEncajan.filter((p) => p.id !== casaInteres?.id).map((p) => ({ ...p, estado: "activa", interes: false })),
   ];
   const indiceEtapa = CAMINO.indexOf(etapa as (typeof CAMINO)[number]);
+  // En el teléfono, lo secundario va plegado con su resumen (movil.tsx): el dinero en juego solo se abre solo si ya
+  // hay oferta, negociación o cierre.
+  const juegoAbierto = etapa === "negociando" || etapa === "cerrado" || !!c.oferta_monto;
+  const resumenJuego = `En juego: ${resumenCampos(
+    [casaInteres?.titulo, valorEnJuego > 0 ? `${c.oferta_monto ? "ofreció" : "vale"} ${montoExacto(valorEnJuego, monedaEnJuego)}` : null],
+    60,
+    "sin casa ni oferta anotada",
+  )}`;
+  const resumenCasas = casas.length
+    ? `Casas que le encajan: ${casas.length}${casas.some((p) => p.interes) ? " · una le interesa" : ""}`
+    : "Casas que le encajan: ninguna todavía";
   const asistente = d.nombreAsistente;
 
   return (
@@ -275,6 +288,7 @@ export function FichaCliente(d: DatosFicha) {
         </form>
       )}
 
+      <OcultarAlBajar selector=".fc-acciones" />
       <div className="fc-grid">
         <div className="fc-principal">
           {/* Qué sigue: una sola recomendación, armada por código */}
@@ -424,7 +438,7 @@ export function FichaCliente(d: DatosFicha) {
             </form>
           </section>
 
-          <section id="juego" className="tarjeta fc-bloque" data-patty="cliente-oportunidad">
+          <SeccionPlegable id="juego" className="tarjeta fc-bloque" dataPatty="cliente-oportunidad" resumen={resumenJuego} abierta={juegoAbierto}>
             {etapa === "cerrado" && c.cierre_precio ? (
               <>
                 <div className="fc-bloque-cabeza">
@@ -517,9 +531,9 @@ export function FichaCliente(d: DatosFicha) {
                 </details>
               </>
             )}
-          </section>
+          </SeccionPlegable>
 
-          <section id="busca" className="tarjeta fc-bloque">
+          <SeccionPlegable id="busca" className="tarjeta fc-bloque" resumen={resumenBusca(datosBusca)}>
             <div className="fc-bloque-cabeza">
               <h2 data-patty="cliente-busca">Qué busca</h2>
             </div>
@@ -575,9 +589,9 @@ export function FichaCliente(d: DatosFicha) {
                 </button>
               </form>
             </details>
-          </section>
+          </SeccionPlegable>
 
-          <section id="casas" className="tarjeta fc-bloque">
+          <SeccionPlegable id="casas" className="tarjeta fc-bloque" resumen={resumenCasas}>
             <div className="fc-bloque-cabeza">
               <h2>Casas que le encajan</h2>
               {casas.length > 0 && <span className="suave">{casas.length}</span>}
@@ -610,9 +624,9 @@ export function FichaCliente(d: DatosFicha) {
                 ))}
               </ul>
             )}
-          </section>
+          </SeccionPlegable>
 
-          <section className="tarjeta fc-bloque">
+          <SeccionPlegable id="fc-notas" className="tarjeta fc-bloque" resumen={c.notas ? `Notas: ${resumenCampos([c.notas], 58)}` : "Notas: sin notas todavía"}>
             <div className="fc-bloque-cabeza">
               <h2 data-patty="cliente-notas">Notas</h2>
             </div>
@@ -630,7 +644,7 @@ export function FichaCliente(d: DatosFicha) {
                 </button>
               </form>
             </details>
-          </section>
+          </SeccionPlegable>
         </aside>
       </div>
 

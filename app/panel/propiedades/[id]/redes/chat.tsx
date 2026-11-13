@@ -2,12 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import { MAX_PEDIDO, type PestanaChat, type TurnoChat } from "@/lib/redes/chat";
+import { desplazamientoParaVer, resumenListo } from "@/lib/panel/movil";
 import { transcribirNota } from "@/app/panel/patty-acciones";
 
 // "Pídeselo a …": chat corto dentro del estudio de redes, uno por pestaña. El corredor pide con sus palabras (o con
 // una nota de voz, que vuelve como texto a la caja para revisarla) y la pestaña aplica lo que devuelve el servidor.
 // En el teléfono es una barra fija abajo que se abre; en computadora, un panel a la derecha. La conversación queda
 // en este navegador por casa y pestaña. "Deshacer" lo resuelve la pestaña (su pila de estados).
+// En el teléfono (< 900 px) la hoja abierta llega a poco más de la mitad de la pantalla: la vista previa de la pestaña
+// se corre para quedar a la vista encima, y al aplicar un cambio la hoja se achica sola a la barra con "Listo: …" y
+// "Deshacer" unos segundos.
 
 export interface RespuestaChat {
   texto: string;
@@ -22,6 +26,30 @@ type Turno = TurnoChat & { cambios?: string[]; error?: boolean };
 
 const MAX_TURNOS = 20;
 const MAX_GRABACION_SEG = 120;
+const SEG_LISTO = 6;
+const TELEFONO = "(max-width: 899px)";
+/** Lo que cambia en cada pestaña, para dejarlo a la vista encima de la hoja. */
+const VISTA_PREVIA: Record<PestanaChat, string> = {
+  imagen: ".redes-vistas",
+  video: ".redes-lienzo",
+  texto: 'textarea[data-patty="redes-texto"]',
+};
+
+function enTelefono() {
+  return typeof window !== "undefined" && window.matchMedia(TELEFONO).matches;
+}
+
+/** En el teléfono, corre la página para que la vista previa quede entre las pestañas de arriba y la hoja. */
+function mostrarVistaPrevia(pestana: PestanaChat, hoja: HTMLElement | null) {
+  if (!enTelefono() || !hoja) return;
+  const el = document.querySelector<HTMLElement>(VISTA_PREVIA[pestana]);
+  if (!el) return;
+  const r = el.getBoundingClientRect();
+  const pestanas = document.querySelector(".redes-pestanas")?.getBoundingClientRect();
+  const arriba = Math.max(8, (pestanas?.bottom ?? 0) + 8);
+  const delta = desplazamientoParaVer({ top: r.top, alto: r.height }, arriba, hoja.getBoundingClientRect().top - 8);
+  if (delta) window.scrollBy({ top: delta, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+}
 
 export interface PropsChat {
   /** Para guardar la conversación: casa y pestaña. */
@@ -54,6 +82,9 @@ export function ChatRedes(p: PropsChat) {
   const [confirmar, setConfirmar] = useState<RespuestaChat["confirmar"] | null>(null);
   const [grabando, setGrabando] = useState(false);
   const [transcribiendo, setTranscribiendo] = useState(false);
+  const [listo, setListo] = useState<string | null>(null);
+  const relojListo = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hoja = useRef<HTMLElement>(null);
   const vivos = useRef<Turno[]>([]);
   const cargado = useRef(false);
   const fin = useRef<HTMLLIElement>(null);
@@ -74,6 +105,20 @@ export function ChatRedes(p: PropsChat) {
   useEffect(() => {
     fin.current?.scrollIntoView({ block: "nearest" });
   }, [turnos, confirmar, pensando]);
+
+  // Al abrir la hoja en el teléfono, lo que se edita queda a la vista encima.
+  useEffect(() => {
+    if (!abierto) return;
+    const r = requestAnimationFrame(() => mostrarVistaPrevia(p.pestana, hoja.current));
+    return () => cancelAnimationFrame(r);
+  }, [abierto, p.pestana]);
+
+  useEffect(
+    () => () => {
+      if (relojListo.current) clearTimeout(relojListo.current);
+    },
+    [],
+  );
 
   // Si se sale grabando, se suelta el micrófono.
   useEffect(
@@ -98,6 +143,14 @@ export function ChatRedes(p: PropsChat) {
   const responder = (r: RespuestaChat) => {
     agregar({ autor: "asistente", texto: r.texto, ...(r.cambios?.length ? { cambios: r.cambios } : {}), ...(r.error ? { error: true } : {}) });
     setConfirmar(r.confirmar ?? null);
+    // Cambio hecho en el teléfono: la hoja se achica a la barra con "Listo" y "Deshacer", y se ve lo que cambió.
+    if (!r.error && !r.confirmar && r.cambios?.length && enTelefono()) {
+      setAbierto(false);
+      setListo(resumenListo(r.texto, r.cambios));
+      if (relojListo.current) clearTimeout(relojListo.current);
+      relojListo.current = setTimeout(() => setListo(null), SEG_LISTO * 1000);
+      requestAnimationFrame(() => requestAnimationFrame(() => mostrarVistaPrevia(p.pestana, hoja.current)));
+    }
   };
 
   async function enviar(pedido: string) {
@@ -190,13 +243,42 @@ export function ChatRedes(p: PropsChat) {
   const placeholder = `Pídeselo a ${p.asistente}…`;
 
   return (
-    <aside className={`redes-chat ${abierto ? "abierto" : ""}`} aria-label={`Pídeselo a ${p.asistente}`}>
+    <aside ref={hoja} className={`redes-chat ${abierto ? "abierto" : ""}`} aria-label={`Pídeselo a ${p.asistente}`}>
+      {listo && !abierto && (
+        <div className="redes-chat-listo" role="status">
+          <span className="redes-chat-punto" aria-hidden="true">
+            IA
+          </span>
+          <button
+            type="button"
+            className="redes-chat-listo-texto"
+            onClick={() => {
+              setListo(null);
+              setAbierto(true);
+            }}
+          >
+            {listo}
+          </button>
+          <button
+            type="button"
+            className="boton chico"
+            disabled={!p.puedeDeshacer || ocupado}
+            onClick={() => {
+              p.deshacer();
+              setListo(null);
+            }}
+          >
+            Deshacer
+          </button>
+        </div>
+      )}
       <button
         type="button"
         className="redes-chat-barra"
         onClick={() => {
+          setListo(null);
           setAbierto(true);
-          setTimeout(() => caja.current?.focus(), 50);
+          setTimeout(() => caja.current?.focus({ preventScroll: true }), 50);
         }}
         aria-expanded={abierto}
         data-patty="redes-chat-abrir"
@@ -208,6 +290,7 @@ export function ChatRedes(p: PropsChat) {
       </button>
 
       <div className="redes-chat-cuerpo">
+        <span className="redes-chat-tirador" aria-hidden="true" />
         <header className="redes-chat-cabeza">
           <strong>Pídeselo a {p.asistente}</strong>
           <span className="redes-chat-acciones">
