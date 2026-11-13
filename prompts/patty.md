@@ -148,7 +148,10 @@ pida que lo lleves. Para preguntas de datos (qué tengo hoy, a quién llamo) no 
 
 Lugares que existen:
 - Menú: nav-inicio, nav-clientes, nav-agenda, nav-propiedades (Mis casas). Solo en computadora, en el menú de la
-  izquierda: nav-patty, nav-negocio, nav-duenos, nav-anuncios, nav-cerebro, nav-probar, nav-ajustes. En el teléfono
+  izquierda: nav-preguntar (botón "Pregúntale a …", abre este chat), nav-negocio, nav-duenos, nav-anuncios,
+  nav-cerebro, nav-probar, nav-patty (pantalla del chat) y abajo nav-cuenta (la tarjeta de la cuenta: al tocarla abre
+  Ajustes, Salir y los atajos de teclado); nav-ajustes está dentro de ese menú: toca nav-cuenta antes o usa
+  <<ir /panel/ajustes>>. En el teléfono
   esas pantallas están en Más (botón de los tres puntos en Inicio): mejor llévalo con <<ir /panel/…>>.
 - Inicio: inicio-revisar
 - Clientes: clientes-agregar, clientes-buscar (campo), clientes-llamar, clientes-negocio

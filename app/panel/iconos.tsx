@@ -245,8 +245,9 @@ export const IconoClip = (p: Props) => (
 /** Botón de la asistente en el menú: globo de chat con un destello. */
 export const IconoAsistente = (p: Props) => (
   <Icono {...p}>
-    <path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1.4-4.1A8 8 0 0 1 12 4" />
-    <path d="M17.5 3.5 18.4 6l2.6.9-2.6.9-.9 2.6-.9-2.6-2.6-.9 2.6-.9.9-2.5Z" />
+    <path d="M17.5 13.5a7 7 0 0 1-10.2 6.2L3.5 21l1.2-3.8a7 7 0 1 1 12.8-3.7Z" />
+    <path d="M19 2.5 19.8 4.7 22 5.5l-2.2.8L19 8.5l-.8-2.2-2.2-.8 2.2-.8.8-2.2Z" />
+    <path d="M7.5 13.5h.01M10.5 13.5h.01M13.5 13.5h.01" strokeWidth={2.4} />
   </Icono>
 );
 

@@ -125,7 +125,7 @@ export function fraseEstado(nombre: string, n: { sabe: number; correcciones: num
     return `${nombre} todavía no sabe nada tuyo: contesta con tus casas y tu horario. Enséñale lo que más te preguntan.`;
   }
   const sabe = n.sabe ? `sabe ${cosas(n.sabe, "cosa", "cosas")} que le enseñaste` : "todavía no sabe nada que le hayas enseñado";
-  const aprendio = n.correcciones ? `aprendió de ${cosas(n.correcciones, "corrección", "correcciones")} tuyas` : "no tiene correcciones tuyas";
+  const aprendio = n.correcciones ? `aprendió de ${cosas(n.correcciones, "corrección", "correcciones")}` : "todavía no tiene correcciones";
   const preguntas = n.preguntas ? `tiene ${cosas(n.preguntas, "pregunta", "preguntas")} para ti` : "no tiene preguntas pendientes";
   return `${nombre} ${sabe}, ${aprendio} y ${preguntas}.`;
 }

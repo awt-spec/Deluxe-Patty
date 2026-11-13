@@ -67,7 +67,7 @@ export function mezclar(a: string, b: string, t: number): string {
   return aHex(x.map((v, i) => v + (y[i]! - v) * t) as Rgb);
 }
 
-/** El color de texto con la mezcla más baja (desde `desde`) que llega a `minimo` sobre el fondo. */
+/** El color de texto con la mezcla más baja (desde `desde`) que llega a `minimo` sobre el fondo (mezclado con él). */
 function suaveCon(fondo: string, texto: string, minimo: number, desde: number): string {
   for (let t = desde; t < 1; t += 0.02) {
     const c = mezclar(fondo, texto, t);
@@ -93,16 +93,18 @@ export function coloresMenu(marca: ColoresMarcaMenu | null | undefined): Colores
   const acento = deMarca && principal && contraste(principal, fondo) >= 3 ? principal : NEUTRO.acento;
   const sobreAcento = contraste(fondo, acento) >= contraste("#ffffff", acento) ? fondo : "#ffffff";
 
+  // El secundario se mide contra el fondo más claro (menú de la cuenta): así pasa en los dos.
+  const fondo2 = mezclar(fondo, texto, 0.1);
   return {
     fondo,
-    fondo2: mezclar(fondo, texto, 0.07),
+    fondo2,
     texto,
-    suave: suaveCon(fondo, texto, 4.5, 0.55),
+    suave: suaveCon(fondo2, texto, 4.5, 0.55),
     acento,
     sobreAcento,
     hover: mezclar(fondo, texto, 0.07),
     activo: mezclar(fondo, acento, 0.16),
-    borde: mezclar(fondo, texto, 0.11),
+    borde: mezclar(fondo, texto, 0.13),
     deMarca,
   };
 }

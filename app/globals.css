@@ -11247,3 +11247,588 @@ body:has(.marco.tema) {
     flex-basis: 40px;
   }
 }
+
+/* ================================================================================================
+   Menú lateral v3 (computadora, app/panel/menu-lateral.tsx). Oscuro con la marca del corredor: los colores
+   llegan como variables --m-* en el <aside> (lib/panel/colores-menu.ts, contraste AA comprobado). Alto completo
+   y fijo, 264 px (72 px contraído), con scroll propio solo en la zona de las secciones. En el teléfono no se
+   ve: queda la barra de cuatro botones de abajo (.navegacion), que no cambia.
+   ================================================================================================ */
+.lateral {
+  display: none;
+}
+@media (min-width: 900px) {
+  .marco.tema,
+  .marco.tema.plegado {
+    --lateral: 264px;
+  }
+  .marco.tema.plegado {
+    --lateral: 72px;
+  }
+  /* La barra del teléfono cede su lugar al menú lateral (las capas viejas la mostraban como columna). */
+  .marco.tema > .navegacion {
+    display: none !important;
+  }
+
+  .marco.tema .lateral {
+    --m-fila: 44px;
+    --m-radio: 10px;
+    --m-lado: 12px;
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 30;
+    width: var(--lateral);
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    background: var(--m-fondo, #0f1f1a);
+    color: var(--m-texto, #f2f6f4);
+    border-right: 1px solid var(--m-borde, #23332e);
+    font-size: 15px;
+    line-height: 1.25;
+    -webkit-font-smoothing: antialiased;
+    transition: width 0.18s ease;
+  }
+  .marco.tema .lateral a {
+    color: inherit;
+    text-decoration: none;
+  }
+  .marco.tema .lateral :where(a, button, summary):focus-visible {
+    outline: 2px solid var(--m-acento);
+    outline-offset: 2px;
+  }
+  .marco.tema .lateral kbd {
+    display: inline-grid;
+    place-items: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    border-radius: 5px;
+    border: 1px solid currentColor;
+    font: 600 11px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    opacity: 0.7;
+  }
+  .marco.tema .lateral .lat-nombre,
+  .marco.tema .lateral .lat-ocultable {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Cabecera: logo sobre su fondo, nombre y "Demo"; el chevron de contraer en el borde */
+  .marco.tema .lateral .lat-cabeza {
+    position: relative;
+    flex: none;
+    padding: 18px var(--m-lado) 14px;
+  }
+  .marco.tema .lateral .lat-marca {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 44px;
+    padding: 2px 4px;
+    border-radius: var(--m-radio);
+  }
+  .marco.tema .lateral .lat-logo {
+    position: relative;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    background: var(--m-acento);
+    color: var(--m-sobre-acento);
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.02em;
+  }
+  /* Borde fino sobre la imagen, para que el logo no se pierda en el fondo del mismo color. */
+  .marco.tema .lateral .lat-logo::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--m-acento) 30%, transparent);
+    pointer-events: none;
+  }
+  .marco.tema .lateral .lat-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+  .marco.tema .lateral .lat-marca-texto {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+  }
+  .marco.tema .lateral .lat-marca-texto strong {
+    font-size: 15px;
+    font-weight: 650;
+    letter-spacing: -0.005em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .marco.tema .lateral .lat-marca-texto small {
+    font-size: 12.5px;
+    color: var(--m-suave);
+  }
+  .marco.tema .lateral .lat-demo {
+    justify-self: start;
+    padding: 1px 8px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--m-acento) 55%, transparent);
+    color: var(--m-acento);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .marco.tema .lateral .lat-plegar {
+    position: absolute;
+    top: 30px;
+    right: -12px;
+    z-index: 2;
+    width: 24px;
+    height: 24px;
+    min-height: 0;
+    padding: 0;
+    border-radius: 999px;
+    border: 1px solid var(--m-borde);
+    background: var(--m-fondo-2);
+    color: var(--m-suave);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 25%);
+    display: grid;
+    place-items: center;
+    opacity: 0.85;
+    transition: opacity 0.15s, color 0.15s, transform 0.18s ease;
+  }
+  .marco.tema .lateral .lat-plegar:hover,
+  .marco.tema .lateral .lat-plegar:focus-visible {
+    opacity: 1;
+    color: var(--m-texto);
+  }
+  .marco.tema .lateral .lat-plegar:active {
+    transform: scale(0.94);
+  }
+
+  /* La acción principal: preguntarle a la asistente */
+  .marco.tema .lateral .lat-patty {
+    flex: none;
+    margin: 0 var(--m-lado) 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 46px;
+    padding: 0 12px 0 14px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--m-acento);
+    color: var(--m-sobre-acento);
+    font: inherit;
+    font-size: 15px;
+    font-weight: 650;
+    text-align: left;
+    box-shadow: 0 1px 0 rgb(255 255 255 / 18%) inset, 0 6px 16px -8px color-mix(in srgb, var(--m-acento) 70%, transparent);
+    cursor: pointer;
+    transition: filter 0.15s, transform 0.08s;
+  }
+  .marco.tema .lateral .lat-patty:hover {
+    filter: brightness(1.06);
+  }
+  .marco.tema .lateral .lat-patty:focus-visible {
+    outline-color: var(--m-texto);
+  }
+  .marco.tema .lateral .lat-patty .lat-icono {
+    display: grid;
+    place-items: center;
+    flex: none;
+  }
+  .marco.tema .lateral .lat-patty .lat-nombre {
+    flex: 1;
+    min-width: 0;
+  }
+  .marco.tema .lateral .lat-patty kbd {
+    flex: none;
+    border-color: color-mix(in srgb, currentColor 45%, transparent);
+    opacity: 0.8;
+  }
+
+  /* Secciones: tres grupos con título discreto; scroll propio solo aquí */
+  .marco.tema .lateral .lat-medio {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 4px var(--m-lado) 12px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--m-borde) transparent;
+  }
+  .marco.tema .lateral .lat-grupo ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 2px;
+  }
+  .marco.tema .lateral .lat-titulo {
+    margin: 18px 0 6px;
+    padding: 0 12px;
+    font-size: 11.5px;
+    font-weight: 650;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--m-suave);
+    line-height: 16px;
+    height: 16px;
+  }
+  .marco.tema .lateral .lat-enlace {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: var(--m-fila);
+    padding: 0 12px;
+    border: 0;
+    border-radius: var(--m-radio);
+    background: transparent;
+    color: color-mix(in srgb, var(--m-texto) 88%, var(--m-fondo));
+    font: inherit;
+    font-size: 15px;
+    font-weight: 500;
+    text-align: left;
+    box-shadow: none;
+    cursor: pointer;
+    transition: background-color 0.12s, color 0.12s;
+  }
+  .marco.tema .lateral .lat-enlace .lat-icono {
+    flex: 0 0 20px;
+    display: grid;
+    place-items: center;
+    color: var(--m-suave);
+    transition: color 0.12s;
+  }
+  .marco.tema .lateral .lat-enlace .lat-nombre {
+    flex: 1;
+    min-width: 0;
+  }
+  .marco.tema .lateral .lat-enlace:hover {
+    background: var(--m-hover);
+    color: var(--m-texto);
+  }
+  .marco.tema .lateral .lat-enlace:hover .lat-icono {
+    color: var(--m-texto);
+  }
+  .marco.tema .lateral .lat-enlace:focus-visible {
+    outline-offset: -2px;
+  }
+  .marco.tema .lateral .lat-enlace[aria-current="page"] {
+    background: var(--m-activo);
+    color: var(--m-texto);
+    font-weight: 650;
+  }
+  .marco.tema .lateral .lat-enlace[aria-current="page"] .lat-icono {
+    color: var(--m-acento);
+  }
+  .marco.tema .lateral .lat-medio .lat-enlace[aria-current="page"]::before {
+    content: "";
+    position: absolute;
+    left: calc(-1 * var(--m-lado));
+    top: 10px;
+    bottom: 10px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--m-acento);
+  }
+  .marco.tema .lateral .lat-contador {
+    flex: none;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 7px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    background: var(--m-acento);
+    color: var(--m-sobre-acento);
+    font-size: 12px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .marco.tema .lateral .lat-contador-suave {
+    background: transparent;
+    color: var(--m-texto);
+    box-shadow: inset 0 0 0 1px var(--m-borde);
+    background: var(--m-fondo-2);
+  }
+
+  /* Pie: la cuenta, que abre un menú pequeño hacia arriba */
+  .marco.tema .lateral .lat-pie {
+    flex: none;
+    padding: 10px var(--m-lado) 12px;
+    border-top: 1px solid var(--m-borde);
+  }
+  .marco.tema .lateral .lat-cuenta {
+    position: relative;
+  }
+  .marco.tema .lateral .lat-cuenta summary {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 52px;
+    padding: 6px 8px;
+    border-radius: 12px;
+    font-weight: 400;
+    cursor: pointer;
+    transition: background-color 0.12s;
+  }
+  .marco.tema .lateral .lat-cuenta summary::-webkit-details-marker {
+    display: none;
+  }
+  .marco.tema .lateral .lat-cuenta summary:hover,
+  .marco.tema .lateral .lat-cuenta[open] summary {
+    background: var(--m-hover);
+  }
+  .marco.tema .lateral .lat-avatar {
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    background: color-mix(in srgb, var(--m-acento) 22%, var(--m-fondo));
+    color: var(--m-acento);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--m-acento) 40%, transparent);
+    font-weight: 700;
+    font-size: 15px;
+  }
+  .marco.tema .lateral .lat-cuenta-texto {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+  }
+  .marco.tema .lateral .lat-cuenta-texto strong {
+    font-size: 14px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .marco.tema .lateral .lat-cuenta-texto small {
+    font-size: 12.5px;
+    color: var(--m-suave);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .marco.tema .lateral .lat-cuenta-flecha {
+    flex: none;
+    display: grid;
+    color: var(--m-suave);
+  }
+  .marco.tema .lateral .lat-cuenta-menu {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(100% + 8px);
+    z-index: 3;
+    display: grid;
+    gap: 2px;
+    padding: 6px;
+    border-radius: 14px;
+    background: var(--m-fondo-2);
+    border: 1px solid var(--m-borde);
+    box-shadow: 0 18px 40px -12px rgb(0 0 0 / 55%), 0 2px 6px rgb(0 0 0 / 25%);
+  }
+  .marco.tema .lateral .lat-cuenta-menu form {
+    margin: 0;
+  }
+  .marco.tema .lateral .lat-cuenta-menu .lat-enlace {
+    min-height: 40px;
+  }
+  .marco.tema .lateral .lat-cuenta-menu .lat-enlace[aria-current="page"] {
+    background: var(--m-activo);
+  }
+  .marco.tema .lateral .lat-atajos {
+    margin: 4px 0 0;
+    padding: 10px 10px 4px;
+    border-top: 1px solid var(--m-borde);
+    font-size: 12.5px;
+    color: var(--m-suave);
+  }
+  .marco.tema .lateral .lat-atajos p {
+    margin: 0 0 8px;
+    font-size: 11px;
+    font-weight: 650;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .marco.tema .lateral .lat-atajos dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px 10px;
+  }
+  .marco.tema .lateral .lat-atajos dl > div {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  .marco.tema .lateral .lat-atajos .lat-atajo-ancho {
+    grid-column: 1 / -1;
+  }
+  .marco.tema .lateral .lat-atajos dt {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    flex: none;
+  }
+  .marco.tema .lateral .lat-atajos dd {
+    margin: 0;
+    color: var(--m-texto);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .marco.tema .lateral .lat-atajos kbd {
+    min-width: 18px;
+    height: 18px;
+    font-size: 10.5px;
+    padding: 0 4px;
+  }
+
+  /* Contraído: 72 px, solo íconos centrados; el nombre queda para lectores de pantalla y sale en un globo */
+  .marco.tema .lateral.plegado {
+    --m-lado: 12px;
+  }
+  .marco.tema .lateral.plegado .lat-ocultable {
+    display: none;
+  }
+  .marco.tema .lateral.plegado .lat-nombre {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .marco.tema .lateral.plegado .lat-marca {
+    justify-content: center;
+    padding: 2px 0;
+  }
+  .marco.tema .lateral.plegado .lat-plegar {
+    transform: rotate(180deg);
+  }
+  .marco.tema .lateral.plegado .lat-plegar:active {
+    transform: rotate(180deg) scale(0.94);
+  }
+  .marco.tema .lateral.plegado .lat-patty {
+    width: 44px;
+    min-height: 44px;
+    height: 44px;
+    margin: 0 auto 6px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 999px;
+  }
+  .marco.tema .lateral.plegado .lat-titulo {
+    margin: 12px 10px 10px;
+    padding: 0;
+    height: 1px;
+    background: var(--m-borde);
+  }
+  .marco.tema .lateral.plegado .lat-grupo:first-child .lat-titulo {
+    background: transparent;
+    margin-top: 6px;
+  }
+  .marco.tema .lateral.plegado .lat-enlace {
+    justify-content: center;
+    padding: 0;
+  }
+  .marco.tema .lateral.plegado .lat-contador {
+    position: absolute;
+    top: 9px;
+    left: calc(50% + 5px);
+    min-width: 0;
+    width: 9px;
+    height: 9px;
+    padding: 0;
+    box-shadow: 0 0 0 2px var(--m-fondo);
+  }
+  .marco.tema .lateral.plegado .lat-contador-suave {
+    background: var(--m-texto);
+  }
+  .marco.tema .lateral.plegado .lat-enlace[aria-current="page"] .lat-contador {
+    box-shadow: 0 0 0 2px var(--m-activo);
+  }
+  .marco.tema .lateral.plegado .lat-cuenta summary {
+    justify-content: center;
+    padding: 6px 0;
+  }
+  .marco.tema .lateral.plegado .lat-cuenta-menu .lat-enlace {
+    justify-content: flex-start;
+    padding: 0 12px;
+  }
+  .marco.tema .lateral.plegado .lat-cuenta-menu .lat-nombre {
+    position: static;
+    width: auto;
+    height: auto;
+    clip-path: none;
+  }
+  .marco.tema .lateral.plegado .lat-cuenta-menu {
+    left: calc(100% + 10px);
+    right: auto;
+    bottom: 0;
+    width: 248px;
+  }
+  .marco.tema .lateral .lat-tip {
+    position: fixed;
+    left: calc(var(--lateral) + 10px);
+    z-index: 60;
+    transform: translateY(-50%);
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: var(--m-fondo-2);
+    color: var(--m-texto);
+    border: 1px solid var(--m-borde);
+    box-shadow: 0 8px 20px -6px rgb(0 0 0 / 45%);
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+}
+/* Pantallas bajas (laptops de 720 px): filas de 40 y grupos más juntos, para que todo quepa sin scroll. */
+@media (min-width: 900px) and (max-height: 780px) {
+  .marco.tema .lateral {
+    --m-fila: 40px;
+  }
+  .marco.tema .lateral .lat-cabeza {
+    padding-top: 14px;
+    padding-bottom: 10px;
+  }
+  .marco.tema .lateral .lat-titulo {
+    margin: 12px 0 4px;
+  }
+  .marco.tema .lateral .lat-pie {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .marco.tema .lateral .lat-cuenta summary {
+    min-height: 48px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+}
+@media (min-width: 900px) and (prefers-reduced-motion: reduce) {
+  .marco.tema .lateral,
+  .marco.tema .lateral *,
+  .marco.tema {
+    transition: none !important;
+  }
+}
