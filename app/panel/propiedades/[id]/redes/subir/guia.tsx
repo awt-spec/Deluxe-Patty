@@ -162,6 +162,7 @@ export function GuiaSubir({ propiedadId, texto }: { propiedadId: string; texto: 
       nombre: "Texto",
       titulo: d.texto ? "Pega el texto y publica" : "Agrega lo que quieras y publica",
       ilustracion: <IlusPegarTexto musica={d.musica} />,
+      siguiente: "Ya lo publiqué",
       contenido: (
         <>
           {d.texto ? (

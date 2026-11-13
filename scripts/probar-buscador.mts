@@ -246,9 +246,12 @@ async function main() {
     revisar(e.fase === "buscando", "Seguir en la barra");
 
     // 3. La persona usa la pestaña: se pausa sola.
-    await espera(2800);
-    await e24.mouse.move(200, 500);
-    await e24.mouse.move(700, 600, { steps: 12 });
+    // Como una persona: mueve el mouse un rato (justo al cargar cada página hay un respiro de 1,5 s).
+    for (let i = 0; i < 20 && (await estadoDe(sw)).fase !== "pausada"; i++) {
+      await e24.mouse.move(200 + (i % 2) * 400, 500);
+      await e24.mouse.move(700 - (i % 2) * 400, 600, { steps: 12 });
+      await espera(400);
+    }
     e = await hasta(() => estadoDe(sw), (v) => v.fase === "pausada", 5000);
     revisar(e.fase === "pausada" && e.motivoPausa === "actividad", "mover el mouse en la pestaña la pausa sola");
     await espera(500);

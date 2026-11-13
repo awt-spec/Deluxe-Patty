@@ -98,6 +98,10 @@
 .marco.tema main .pap-progreso li[data-estado="actual"]::before {
   background: #008069;
 }
+/* Por datos los pasos se cumplen en cualquier orden: las líneas quedan neutras. */
+.marco.tema main .pap-progreso[data-por-datos] li::before {
+  background: #e2e6e9;
+}
 .marco.tema main .pap-progreso button {
   width: 100%;
   display: flex;
@@ -828,13 +832,14 @@
 .marco.tema main .barra-chat .chat-patty {
   display: grid;
   place-items: center;
-  width: 46px;
-  height: 46px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  color: #fff;
-  background: #008069;
+  color: #00664f;
+  background: #e7f7f1;
+  border: 2px solid #008069;
   font-weight: 800;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   text-decoration: none;
   flex: 0 0 auto;
 }
@@ -914,4 +919,12 @@
   .marco.tema main .pap-casillas label {
     min-height: 52px;
   }
+}
+
+/* Los pasos que todavía no tocan se ven como texto, sin la caja gris de los botones apagados del panel. */
+html body .marco.tema main .pap .pap-progreso button:disabled:not(.enlace) {
+  background: none !important;
+  border-color: transparent !important;
+  color: #667781 !important;
+  cursor: default;
 }

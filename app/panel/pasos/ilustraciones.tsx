@@ -326,7 +326,7 @@ export function IlusSuscribirIphone() {
           Suscribirse
         </text>
         <Halo x={264} y={196} w={76} h={38} r={8} />
-        <Toque x={310} y={226} />
+        <Toque x={332} y={238} />
       </Telefono>
     </Lienzo>
   );
@@ -354,7 +354,7 @@ export function IlusSuscribirAndroid() {
         </text>
         <Boton x={278} y={204} w={56} h={28} texto="Agregar" tam={11} />
         <Halo x={278} y={204} w={56} h={28} r={14} />
-        <Toque x={306} y={220} />
+        <Toque x={330} y={236} />
       </Telefono>
     </Lienzo>
   );
@@ -471,7 +471,7 @@ export function IlusFormularioE24() {
         ))}
         {[
           { y: 116, n: "1", t: "Pega el título" },
-          { y: 196, n: "2", t: "Pega la descripción" },
+          { y: 196, n: "2", t: "Pega el texto" },
           { y: 290, n: "3", t: "Fotos en orden" },
         ].map((m) => (
           <g key={m.n}>

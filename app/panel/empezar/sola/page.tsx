@@ -121,7 +121,7 @@ export default async function ContestarSola({ searchParams }: { searchParams: Pr
           <p className="pap-instruccion">
             Desde ahora contesta <strong>sin esperarte</strong>. Lo que esté en tus temas te lo sigue pasando, y ves cada conversación en Inicio.
           </p>
-          {interruptor(true, `Encender: que ${asistente} conteste sola`, "primario pap-accion")}
+          {interruptor(true, "Que conteste sola", "primario pap-accion")}
           <p className="pap-nota">Para apagarla: en Ajustes, «La asistente contesta sola», o aquí mismo. Vuelve a dejarte cada respuesta para revisar.</p>
         </>
       ),

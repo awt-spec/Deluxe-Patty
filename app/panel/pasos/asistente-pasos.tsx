@@ -128,7 +128,7 @@ export function AsistentePasos({ id, etiqueta, pasos, final, cumplidos, clave = 
   return (
     <ContextoPasos.Provider value={control}>
       <div className="pap" ref={raiz} data-paso={paso} data-patty={`${id}-guia`}>
-        <nav className="pap-progreso" aria-label={etiqueta}>
+        <nav className="pap-progreso" aria-label={etiqueta} data-por-datos={porDatos ? "" : undefined}>
           <p className="pap-cuenta">{paso === FINAL ? "Todo listo" : `Paso ${numero} de ${total}`}</p>
           <ol>
             {pasos.map((p, i) => {

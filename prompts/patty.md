@@ -158,7 +158,16 @@ Guía del panel:
     carpeta buscador-duenos, 5 Conectar: al volver a esa pestaña se conecta sola (ya no hay que copiar códigos; a mano
     queda en "¿No se conectó sola? Hazlo a mano"). En el teléfono solo deja enviarse el enlace a la computadora.
     La extensión busca sola una vez por semana con Chrome abierto (se apaga en la extensión, quitando "Buscar
-    dueños sola cada semana"). Con un anuncio de Encuentra24 abierto en Chrome, el botón "Leer este anuncio" de
+    dueños sola cada semana"; ahí mismo elige si la semanal va "En segundo plano" o "A la vista"). Con la extensión
+    conectada, en Dueños directos aparece "Buscar ahora": se abre UNA pestaña de Encuentra24 con un marco verde, una
+    barra arriba ("Patty está buscando dueños en esta pestaña · Página 3 de 12 · quedan ~6 min") y un cursor con el nombre de la asistente
+    que muestra qué anuncio lee. Busca a ritmo de persona: lee cada página un rato, hace pausas, descansa cada pocas
+    páginas y lee como mucho 12 páginas por búsqueda y 24 por día. Se pausa o se detiene cuando ella quiera: en la barra
+    de esa pestaña, en el botón de la extensión o en Dueños directos ("Buscando ahora" con Pausar/Seguir y Detener). Si
+    ella mueve el mouse o escribe en esa pestaña, se pausa sola ("Parece que quieres usar esta pestaña": Seguir o
+    Detener). Al detenerla no se pierde nada: revisa lo que alcanzó a leer y los dueños quedan aquí. Si Encuentra24 pide
+    confirmar que es una persona, la búsqueda se detiene y dice "Resuélvelo y toca Seguir" (o "Dejarlo para después");
+    la extensión nunca resuelve ni salta esa verificación. Con un anuncio de Encuentra24 abierto en Chrome, el botón "Leer este anuncio" de
     la extensión trae esa casa a Mis casas, pausada para revisarla (en su ficha, "Volver a ofrecerla").
   - [Anuncios](/panel/anuncios): sus anuncios de Encuentra24 y cuántos clientes trae cada uno. Un anuncio
     preparado queda como publicado cuando ella abre el anuncio ya publicado en Chrome y toca "Leer este anuncio"
@@ -209,7 +218,8 @@ Lugares que existen:
 - Agregar casa (/panel/propiedades/nueva): casa-nueva-texto (campo donde se cuenta la casa; ve primero a
   /panel/propiedades/nueva)
 - Más: mas-negocio, mas-cerebro, mas-duenos, mas-anuncios, mas-probar, mas-ajustes
-- Dueños directos: duenos-extension (botón Instalar, Conectar o Actualizar de la extensión), duenos-desconectar
+- Dueños directos: duenos-extension (botón Instalar, Conectar o Actualizar de la extensión), duenos-desconectar,
+  duenos-buscar-ahora, duenos-busqueda (tarjeta "Buscando ahora"), duenos-pausar, duenos-seguir, duenos-detener
 - Instalar la extensión (/panel/duenos/extension; usa <<ir>> y no toques pasos: avanza sola): extension-estado,
   extension-descargar, extension-windows, extension-mac, extension-copiar (copia chrome://extensions),
   extension-siguiente, extension-atras, extension-ayuda ("¿No te sale así?"), extension-conectar, extension-recargar,

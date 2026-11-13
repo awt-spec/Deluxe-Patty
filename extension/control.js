@@ -120,7 +120,8 @@
   let estado = { fase: "buscando", asistente: "Patty", pagina: 0, total: 0, restanteMs: 0, haciendo: "" };
   let pos = { x: Math.round(innerWidth * 0.62), y: Math.round(innerHeight * 0.35) };
   let animacion = 0;
-  let graciaHasta = Date.now() + 2500;
+  // Recién puesta (o al seguir) no se cuenta la actividad: el mouse quieto de la persona no debe pausarla.
+  let graciaHasta = Date.now() + 1500;
 
   const mandar = (tipo) => {
     try {

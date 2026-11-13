@@ -89,8 +89,10 @@ async function publicar() {
   const restantes = Math.max(0, S.total - S.pagina);
   S.restanteMs = S.fase === "buscando" || S.fase === "pausada" ? estimarRestanteMs(restantes, S.esperaMs ?? 0) : 0;
   S.latido = Date.now();
-  if (S.fase !== "buscando") S.haciendo = textoFase(S);
-  const p = estadoPublico(S);
+  // En el descanso, la cuenta regresiva.
+  if (S.descanso && S.fase === "buscando") S.haciendo = `Descansando ${Math.max(1, Math.ceil((S.esperaMs ?? 0) / 1000))} s…`;
+  // Lo que hace: el paso en curso mientras busca; fuera de eso, la fase en palabras (sin pisar el paso).
+  const p = estadoPublico({ ...S, haciendo: S.fase === "buscando" ? S.haciendo : textoFase(S) });
   // chrome.storage cuenta como actividad: mantiene despierto al trabajador de fondo en las esperas largas. Aparte, lo
   // mínimo para no dejarla colgada si Chrome se cierra (limpiarCortada): el id de la búsqueda y la pestaña.
   await chrome.storage.local.set({
@@ -360,9 +362,11 @@ async function buscar(automatica = false) {
         ritmo = p.estado;
         const s = Math.round(p.ms / 1000);
         S.haciendo = p.tipo === "descanso" ? `Descansando ${s} s…` : "Pasando a la siguiente página…";
+        S.descanso = p.tipo === "descanso";
         await publicar();
         avisarBarra({ tipo: "siguiente", ms: Math.min(p.ms, 2500) / S.velocidad, pagina: S.pagina + 1 });
         await esperarActivo(p.ms);
+        S.descanso = false;
       }
       S.pagina++;
       S.haciendo = `Abriendo la página ${S.pagina}…`;
@@ -425,8 +429,10 @@ async function cerrarPestana() {
  */
 async function cortar() {
   const origen = S.detener ?? "popup";
-  await S.enviando?.catch(() => null);
+  const enCamino = await S.enviando?.catch(() => null);
   S.enviando = null;
+  // Si esa era la última página, el servidor ya está revisando todo: no hay nada que cortar.
+  const yaTermino = enCamino?.ok === true && enCamino.siguiente === null;
   if (origen === "pestana") {
     avisarBarra({ tipo: "quitar" });
     S.dejarPestana = true;
@@ -438,6 +444,7 @@ async function cortar() {
   await cambiar({ tipo: "detener" });
   // El tope de páginas no es "detenida": la búsqueda se da por hecha con lo leído.
   if (origen === "tope") S.detenida = false;
+  if (yaTermino) return esperarResultado(origen);
   const r = S.id ? await api("/api/extension/detener", { busqueda: S.id, motivo: origen === "tope" ? "tope" : "usuario" }, S.token) : { ok: false };
   if (!r.ok) {
     // Nada que guardar (la detuvo antes de la primera página).
@@ -566,7 +573,7 @@ async function desconectar() {
 
 /** Estado público de la búsqueda (para el panel): el de memoria si hay una en curso, o el último guardado. */
 async function estadoParaAfuera() {
-  if (S) return estadoPublico({ ...S, mensaje: S.mensaje || textoFase(S) });
+  if (S) return estadoPublico({ ...S, haciendo: S.fase === "buscando" ? S.haciendo : textoFase(S), mensaje: S.mensaje || textoFase(S) });
   const { busqueda } = await chrome.storage.local.get("busqueda");
   return estadoPublico(busqueda ?? null);
 }

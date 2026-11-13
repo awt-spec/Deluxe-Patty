@@ -97,6 +97,7 @@ export default async function Empezar({ searchParams }: { searchParams: Promise<
       nombre: "Cómo escribe",
       titulo: "Elige cómo escribe",
       ilustracion: <IlusTono asistente={asistente} />,
+      siguiente: "Saltar por ahora",
       contenido: <FormTono actual={corredor.tono ?? ""} />,
     },
     {
@@ -104,6 +105,7 @@ export default async function Empezar({ searchParams }: { searchParams: Promise<
       nombre: "Qué te pasa",
       titulo: "Lo que te pasa a ti",
       ilustracion: <IlusTemas asistente={asistente} corredor={corredor.nombre_contacto ?? ""} />,
+      siguiente: "Saltar por ahora",
       contenido: (
         <>
           <p className="pap-instruccion">
