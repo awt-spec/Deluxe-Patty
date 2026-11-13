@@ -13,7 +13,14 @@ export default async function Resumen({ searchParams }: { searchParams: Promise<
   const db = createAdminClient();
   const [{ filas }, { data: alertas }] = await Promise.all([
     cargarCorredores(db),
-    db.from("alertas").select("clave, enviada_at").order("enviada_at", { ascending: false }).limit(8),
+    db
+      .from("alertas")
+      .select("clave, enviada_at")
+      // Marcas internas de la extensión (frenos y fechas de búsqueda), no alertas de monitoreo.
+      .not("clave", "like", "leer_anuncio:%")
+      .not("clave", "like", "busqueda_hecha:%")
+      .not("clave", "like", "busqueda_auto:%")
+      .order("enviada_at", { ascending: false }).limit(8),
   ]);
   const llaves = llavesWhatsApp();
 

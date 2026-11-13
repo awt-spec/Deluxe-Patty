@@ -1,8 +1,8 @@
 import "server-only";
-import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { normalizarZona } from "../agenda/zonas";
 import type { Corredor, Foto } from "../datos/tipos";
+import { copiarFotoExterna } from "../fotos/copiar";
 import { errorSeguro } from "../monitoreo/errores";
 import { ordenarFotos } from "../panel/formularios";
 
@@ -118,8 +118,6 @@ export async function leerExportacion(url: string): Promise<CasaSitio[]> {
   return json.propiedades as CasaSitio[];
 }
 
-const MAX_FOTO = 12 * 1024 * 1024;
-
 /** Solo se copian fotos públicas del mismo servidor que la exportación (nada de pedir otras direcciones: SSRF). */
 export function esFotoDelSitio(url: string, hostPermitido: string): boolean {
   try {
@@ -131,18 +129,8 @@ export function esFotoDelSitio(url: string, hostPermitido: string): boolean {
 }
 
 /** Copia una foto del sitio al bucket del corredor. */
-async function copiarFoto(db: SupabaseClient, corredorId: string, propiedadId: string, url: string, hostPermitido: string): Promise<string | null> {
-  if (!esFotoDelSitio(url, hostPermitido)) return null;
-  const r = await fetch(url, { signal: AbortSignal.timeout(30_000), redirect: "error" });
-  const tipo = (r.headers.get("content-type") ?? "").split(";")[0];
-  if (!r.ok || !/^image\/(jpeg|png|webp)$/.test(tipo)) return null;
-  const datos = Buffer.from(await r.arrayBuffer());
-  if (datos.length === 0 || datos.length > MAX_FOTO) return null;
-  const ext = tipo === "image/png" ? "png" : tipo === "image/webp" ? "webp" : "jpg";
-  const camino = `${corredorId}/${propiedadId}/originales/web-${createHash("sha256").update(url).digest("hex").slice(0, 16)}.${ext}`;
-  const { error } = await db.storage.from("fotos").upload(camino, datos, { contentType: tipo, upsert: true });
-  if (error) return null;
-  return db.storage.from("fotos").getPublicUrl(camino).data.publicUrl;
+function copiarFoto(db: SupabaseClient, corredorId: string, propiedadId: string, url: string, hostPermitido: string): Promise<string | null> {
+  return copiarFotoExterna(db, { corredorId, propiedadId, url, permitida: (u) => esFotoDelSitio(u, hostPermitido), prefijo: "web" });
 }
 
 export type ResultadoSincronizacion = {

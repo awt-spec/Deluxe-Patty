@@ -91,3 +91,37 @@ button.enlace {
   color: var(--alerta);
   border-color: var(--alerta);
 }
+label.interruptor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 400;
+  margin: 2px 0 8px;
+  cursor: pointer;
+}
+label.interruptor input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  padding: 0;
+}
+#lectura {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--borde);
+  margin-top: 0;
+}
+#lectura.error {
+  color: var(--alerta);
+  border-color: var(--alerta);
+}
+#abrir-casa {
+  display: block;
+  color: var(--principal);
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+#anuncio {
+  border-bottom: 1px solid var(--borde);
+  margin-bottom: 12px;
+}

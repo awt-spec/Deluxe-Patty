@@ -350,7 +350,12 @@ export default async function Propiedad({
               <form action={cambiarEstado} className="pila">
                 <input type="hidden" name="id" value={p.id} />
                 <input type="hidden" name="estado" value="activa" />
-                <p className="suave">La asistente no la está ofreciendo.</p>
+                <p className="suave">
+                  La asistente no la está ofreciendo.
+                  {p.estado === "inactiva" && p.url_e24
+                    ? " Si la trajiste desde un anuncio de Encuentra24, revisa los datos y las fotos antes de volver a ofrecerla."
+                    : ""}
+                </p>
                 <button type="submit" className="primario chico">
                   Volver a ofrecerla
                 </button>

@@ -5,6 +5,7 @@ import { SIN_PRESUPUESTO } from "../asistente/limites";
 import { crearRepositorioSupabase } from "../datos/repositorio";
 import { errorSeguro } from "../monitoreo/errores";
 import { createAdminClient } from "../supabase/admin";
+import type { DependenciasAnuncio } from "./anuncio";
 import { crearAlmacenExtension } from "./datos";
 import type { DependenciasExtension } from "./extension";
 
@@ -12,6 +13,12 @@ import type { DependenciasExtension } from "./extension";
 // mensajes para el corredor salen de aquí y no de la extensión, para cambiarlos sin reinstalarla.
 
 let deps: DependenciasExtension | null = null;
+
+/** "Leer este anuncio": usa la base directa (anuncios, casas, fotos) además del repositorio y Claude. */
+export function dependenciasAnuncio(): DependenciasAnuncio {
+  const { repo } = dependenciasExtension();
+  return { db: createAdminClient(), repo, cerebro: crearCerebroClaude() };
+}
 
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -33,6 +40,7 @@ export const MENSAJES: Record<string, string> = {
   fuera_de_orden: "La búsqueda se interrumpió. Vuelve a empezarla.",
   sin_resultados:
     "Encuentra24 no mostró anuncios: pudo pedir la verificación o cambiar su página. Vuelve a intentarlo; si sigue pasando, avísale a soporte.",
+  no_anuncio: "Esta página no parece un anuncio de Encuentra24. Abre el anuncio de una casa y vuelve a tocar el botón.",
   datos: "La extensión mandó algo que no se entiende. Actualízala o avísale a soporte.",
   servidor: "Algo falló de nuestro lado. Vuelve a intentarlo en un rato.",
 };

@@ -24,6 +24,11 @@ export default function InstalarExtension() {
           Abre el archivo que bajó (doble clic): queda una carpeta llamada <strong>buscador-duenos</strong>. Déjala en
           un lugar donde no la borres, por ejemplo en Documentos.
         </p>
+        <p className="suave">
+          <strong>Si ya la tenías instalada</strong>, baja la nueva, reemplaza la carpeta <strong>buscador-duenos</strong>{" "}
+          por la nueva y en <strong>chrome://extensions</strong> toca la flecha circular de <strong>Buscador de dueños</strong>{" "}
+          para volver a cargarla. Sigue conectada: no hace falta otro código.
+        </p>
       </div>
 
       <h2>2. Ponerla en Chrome</h2>
@@ -55,6 +60,22 @@ export default function InstalarExtension() {
         seguir usando Chrome. Si Encuentra24 pide verificar que eres una persona, la pestaña se pone al frente:
         resuélvelo y la búsqueda sigue sola.
       </p>
+
+      <h2>Qué más hace</h2>
+      <ul className="pila pasos">
+        <li>
+          <strong>Busca sola cada semana.</strong> Con Chrome abierto, la extensión revisa cada pocas horas si ya pasó
+          una semana desde la última búsqueda y, si toca, la hace en una pestaña de fondo que se cierra al terminar. Si
+          Encuentra24 pide verificar que eres una persona, no te interrumpe: lo intenta otra vez más tarde. Para
+          apagarla, abre la extensión y quita el visto de <strong>Buscar dueños sola cada semana</strong>.
+        </li>
+        <li>
+          <strong>Leer este anuncio.</strong> Abre en Chrome el anuncio de una casa en Encuentra24 y toca la extensión:
+          aparece el botón <strong>Leer este anuncio</strong>. Si es un anuncio que te preparó la asistente, queda
+          marcado como publicado. Si es otro, la casa llega a <Link href="/panel/propiedades">Mis casas</Link> con sus
+          datos y fotos, pausada: revísala y toca <strong>Volver a ofrecerla</strong> en su ficha cuando esté bien.
+        </li>
+      </ul>
     </>
   );
 }

@@ -114,7 +114,12 @@ Guía del panel:
   - [Dueños directos](/panel/duenos): casas que venden sus dueños, encontradas en Encuentra24 con la
     extensión de Chrome, como embudo: Encontrados, Les escribí, Respondieron, Visité la casa, Firmaron
     ("Pasarla a Mis casas" la crea en Mis casas) y Publicadas ([cómo instalarla](/panel/duenos/extension)).
-  - [Anuncios](/panel/anuncios): sus anuncios de Encuentra24 y cuántos clientes trae cada uno.
+    La extensión busca sola una vez por semana con Chrome abierto (se apaga en la extensión, quitando "Buscar
+    dueños sola cada semana"). Con un anuncio de Encuentra24 abierto en Chrome, el botón "Leer este anuncio" de
+    la extensión trae esa casa a Mis casas, pausada para revisarla (en su ficha, "Volver a ofrecerla").
+  - [Anuncios](/panel/anuncios): sus anuncios de Encuentra24 y cuántos clientes trae cada uno. Un anuncio
+    preparado queda como publicado cuando ella abre el anuncio ya publicado en Chrome y toca "Leer este anuncio"
+    en la extensión.
   - [Probar la asistente](/panel/probar): escribirle como si fuera un cliente, sin que salga nada.
   - [Ajustes](/panel/ajustes): tono de la asistente, temas que van a ella, si las respuestas salen solas o
     las revisa primero, hora del plan del día, el nombre de la asistente y conectar Gmail y Google Calendar.
