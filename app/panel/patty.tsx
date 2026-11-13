@@ -89,7 +89,7 @@ const SUGERENCIAS: [RegExp, string, string[]][] = [
   [/^\/panel\/agenda/, "Estás en la Agenda.", ["¿Qué visitas tengo esta semana?", "Apartar mañana en la tarde", "¿Cómo agendo una visita?"]],
   [/^\/panel\/propiedades\/[0-9a-f-]{36}/, "Estás en la ficha de una casa.", ["¿A qué clientes les sirve esta casa?", "¿Cómo hago la ficha en PDF?", "Escríbeme un texto para ofrecerla"]],
   [/^\/panel\/propiedades/, "Estás en Mis casas.", ["¿Cómo agrego una casa?", "¿Qué casa se mueve más?", "¿Cómo mejoro las fotos?"]],
-  [/^\/panel\/cerebro/, "Estás en el Cerebro de la asistente.", ["¿Cómo le enseño algo?", "¿Qué preguntas no supo contestar?"]],
+  [/^\/panel\/cerebro/, "Estás en el Cerebro de IA.", ["¿Cómo le enseño algo?", "¿Qué preguntas no supo contestar?"]],
   [/^\/panel\/duenos/, "Estás en Dueños directos.", ["¿Cómo funciona la búsqueda de dueños?", "¿Cómo instalo la extensión?"]],
   [/^\/panel\/ajustes/, "Estás en Ajustes.", ["¿Qué hace cada ajuste?", "¿Cómo conecto mi Gmail?"]],
   [/^\/panel\/revisar/, "Estás revisando respuestas.", ["¿Cómo corrijo una respuesta?", "¿Qué pasa si le doy No enviar?"]],
