@@ -1,5 +1,6 @@
 // Empaca la extensión de Chrome (extension/) en public/extension/buscador-duenos.zip, con la dirección
-// del panel puesta en config.js y en los permisos del manifiesto. Corre antes de `next build`
+// del panel puesta en config.js, en panel.js (el content script de la página de instalación) y en los permisos y
+// el content script del manifiesto. Corre antes de `next build`
 // (prebuild), así cada despliegue sirve la extensión que habla con él.
 //
 //   npx tsx scripts/empacar-extension.mts [https://dominio]
@@ -20,15 +21,18 @@ const app =
   "http://localhost:3000";
 
 const CARPETA = "buscador-duenos";
+const CON_DIRECCION = new Set(["config.js", "manifest.json", "panel.js"]);
 const archivos = readdirSync("extension").sort().map((nombre) => {
   let datos = readFileSync(join("extension", nombre));
-  if (nombre === "config.js" || nombre === "manifest.json") datos = Buffer.from(datos.toString("utf8").replaceAll("__APP__", app));
+  if (CON_DIRECCION.has(nombre)) datos = Buffer.from(datos.toString("utf8").replaceAll("__APP__", app));
   return { nombre: `${CARPETA}/${nombre}`, datos };
 });
 
 mkdirSync("public/extension", { recursive: true });
 writeFileSync("public/extension/buscador-duenos.zip", zip(archivos));
-console.log(`Extensión empacada para ${app}: public/extension/buscador-duenos.zip (${archivos.length} archivos)`);
+// La versión que muestra el panel sale del mismo manifest.json (app/panel/duenos/extension/page.tsx lo importa).
+const { version } = JSON.parse(readFileSync(join("extension", "manifest.json"), "utf8")) as { version: string };
+console.log(`Extensión ${version} empacada para ${app}: public/extension/buscador-duenos.zip (${archivos.length} archivos)`);
 
 // ZIP mínimo (deflate, sin carpetas ni extras): lo que Chrome y los sistemas abren sin problema.
 function zip(entradas: { nombre: string; datos: Buffer }[]): Buffer {

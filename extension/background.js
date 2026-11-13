@@ -189,6 +189,56 @@ async function conectar(codigo) {
   return r;
 }
 
+// --- Conexión desde la página de instalación del panel (panel.js) ----------------------------------------
+
+const ORIGEN_APP = (() => {
+  try {
+    return new URL(APP).origin;
+  } catch {
+    return null;
+  }
+})();
+
+/** ¿El mensaje viene del content script de esta extensión, en la ventana principal de /panel/duenos* del panel? */
+function desdeElPanel(remitente) {
+  if (!ORIGEN_APP || remitente?.id !== chrome.runtime.id || !remitente.tab || remitente.frameId !== 0) return false;
+  try {
+    const u = new URL(remitente.url ?? "");
+    return u.origin === ORIGEN_APP && u.pathname.startsWith("/panel/duenos");
+  } catch {
+    return false;
+  }
+}
+
+let conectandoPanel = false;
+
+/** Canjea el código que le pasó la página. A la página solo vuelve si quedó conectada y a quién: el permiso no. */
+async function conectarDesdePanel(codigo) {
+  if (conectandoPanel) return { ok: false, mensaje: "Ya se está conectando. Espera un momento." };
+  conectandoPanel = true;
+  try {
+    const r = await conectar(codigo);
+    return r?.ok ? { ok: true, corredor: typeof r.corredor === "string" ? r.corredor : "" } : { ok: false, mensaje: r?.mensaje ?? "No se pudo conectar." };
+  } finally {
+    conectandoPanel = false;
+  }
+}
+
+/**
+ * Al instalarla o actualizarla, Chrome no carga el content script en las pestañas que ya estaban abiertas: se le
+ * pone a la del panel para que la página vea la extensión sin recargar (y el asistente avance solo).
+ */
+async function avisarAlPanel() {
+  if (!ORIGEN_APP) return;
+  const tabs = await chrome.tabs.query({ url: `${ORIGEN_APP}/panel/duenos*` }).catch(() => []);
+  for (const t of tabs) {
+    if (t.id !== undefined) chrome.scripting.executeScript({ target: { tabId: t.id }, files: ["canal.js", "panel.js"] }).catch(() => {});
+  }
+}
+chrome.runtime.onInstalled.addListener(() => {
+  avisarAlPanel().catch(() => {});
+});
+
 async function desconectar() {
   const { token } = await chrome.storage.local.get("token");
   if (token) await api("/api/extension/desconectar", {}, token);
@@ -308,7 +358,22 @@ async function leerAnuncio(tabId) {
   return fin(r?.ok ? "listo" : "error", r?.mensaje || "No se pudo leer el anuncio. Vuelve a intentarlo.", ruta);
 }
 
-chrome.runtime.onMessage.addListener((m, _remitente, responder) => {
+chrome.runtime.onMessage.addListener((m, remitente, responder) => {
+  // La página del panel (por panel.js) solo puede preguntar si está y pasar un código; nada más.
+  if (remitente?.tab) {
+    if (!desdeElPanel(remitente)) return false;
+    if (m?.tipo === "panel_estado") {
+      chrome.storage.local.get(["token", "corredor"]).then(({ token, corredor }) =>
+        responder({ conectada: !!token, corredor: token && typeof corredor === "string" ? corredor : "" }),
+      );
+      return true;
+    }
+    if (m?.tipo === "panel_conectar" && typeof m.codigo === "string" && /^[A-Z0-9]{4}-?[A-Z0-9]{4}$/.test(m.codigo)) {
+      conectarDesdePanel(m.codigo).then(responder, () => responder({ ok: false, mensaje: "No se pudo conectar." }));
+      return true;
+    }
+    return false;
+  }
   if (m?.tipo === "conectar") {
     conectar(String(m.codigo ?? "")).then(responder);
     return true;
