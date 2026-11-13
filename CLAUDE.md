@@ -162,9 +162,10 @@ marca del corredor (`corredores.marca`), la sube al bucket público `fichas` y s
 
 ## Panel del corredor (`app/panel`)
 Para el teléfono y para alguien que no usa tecnología: **cuatro botones** (Inicio, Clientes, Agenda, Mis casas;
-en computadora, menú a la izquierda `app/panel/menu-lateral.tsx`: oscuro con la marca —`coloresMenu`, `lib/panel/colores-menu.ts`,
-contraste AA; sin marca o con marca clara, verde-carbón—, 264/72 px, "Pregúntale a Patty" arriba, grupos Tu día / Tu negocio /
-Tu asistente y la cuenta abajo con Ajustes y Salir; atajos `lib/panel/atajos.ts`: g + i/c/a/m, y `/` o Ctrl/⌘+K abre Patty),
+en computadora, menú a la izquierda claro al estilo WhatsApp Web (`app/panel/menu-lateral.tsx`; paleta fija `PALETA_MENU` en
+`lib/panel/colores-menu.ts` = variables `--m-*` de globals.css, AA probado; de la marca solo va el logo en círculo), 264 px o
+riel de 72 px, "Pregúntale a Patty" en píldora verde, grupos Tu día / Tu negocio / Tu asistente, burbujas verdes de pendientes
+y la cuenta abajo con Ajustes y Salir; atajos `lib/panel/atajos.ts`: g + i/c/a/m, y `/` o Ctrl/⌘+K abre Patty),
 letra y botones grandes, palabras de todos los días (nada de "borrador" ni "escalada"), tema claro como
 WhatsApp (letra del sistema, verde de WhatsApp para enviar). Inicio (`/panel`): arriba lo
 urgente (un botón "Revisar" con lo que espera al corredor), lo que hizo la asistente en 24 horas y "Qué hacer
@@ -280,6 +281,10 @@ correcciones, horario, tono y temas que van al corredor).
 agenda y correcciones; la conversación, las citas de prueba y los avisos viven en el estado que guarda el
 navegador (`lib/simulador/estado.ts`). Nada se escribe en mensajes, citas ni conversaciones, nada sale por
 WhatsApp y no suma al tope; solo se registra el costo de Claude.
+Cada respuesta de la prueba se **califica** (pulgares): "No me gustó" → `calificarRespuesta` (`app/panel/probar/calificar.ts`,
+reglas en `lib/simulador/calificar.ts`, `queGuardar`): la versión del corredor va a `correcciones` (con un `mensaje_id` propio de
+esa respuesta de prueba), un dato a `conocimiento` (`ensenarAlCerebro`) o, sin texto, queda como duda (`registrarDuda`);
+"debió pasármelo" solo lleva a Ajustes. El resumen (bien / por mejorar, nota de 1 a 5) vive en el navegador.
 
 ## Sitio web del corredor (`lib/sitio/publico.ts`, `app/api/sitio/<slug>/…`)
 El sitio público del corredor (el de Deluxe está hecho en Lovable) usa el portal como fuente de verdad, por tres

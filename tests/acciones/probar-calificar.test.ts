@@ -72,7 +72,8 @@ describe("Calificar una respuesta de Probar la asistente", () => {
     await calificarRespuesta({ motivo: "falta", pregunta: PREGUNTA, original: ORIGINAL, texto: "" });
     await calificarRespuesta({ motivo: "falta", pregunta: PREGUNTA.toUpperCase(), original: ORIGINAL, texto: "" });
     expect(estado.admin.tablas.conocimiento).toHaveLength(1);
-    expect(estado.admin.tablas.conocimiento[0].veces).toBe(2);
+    // La segunda vez cambia la misma fila (veces + 1) en vez de crear otra.
+    expect(estado.admin.escrituras.filter((e) => e.tabla === "conocimiento").map((e) => e.op)).toEqual(["insert", "update"]);
   });
 
   it("debió pasármelo: no escribe nada y avisa de Ajustes", async () => {
