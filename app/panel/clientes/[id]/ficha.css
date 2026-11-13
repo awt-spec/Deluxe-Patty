@@ -865,7 +865,7 @@
     z-index: 9;
     gap: 6px;
     padding: 8px 10px;
-    background: rgb(255 255 255 / 96%);
+    background: #fff;
     border-top: 1px solid var(--borde);
     box-shadow: 0 -4px 14px rgb(17 27 33 / 6%);
   }
@@ -955,4 +955,27 @@
 
 .marco.tema .fc-preguntas .preguntar-patty {
   min-height: 44px;
+}
+
+/* Computadora: Patty pasa a ser un círculo y la ficha deja espacio abajo, para que no tape los botones de la
+   columna derecha ("Cambiar la casa o la oferta"). */
+@media (min-width: 900px) {
+  .marco.tema:has(.fc-ficha) .patty-boton {
+    width: 60px;
+    height: 60px;
+    min-height: 60px;
+    padding: 6px !important;
+    justify-content: center;
+  }
+  .marco.tema:has(.fc-ficha) .patty-boton .patty-boton-texto {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .marco.tema .fc-ficha {
+    padding-bottom: 96px;
+  }
 }
