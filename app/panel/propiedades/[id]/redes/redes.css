@@ -304,3 +304,10 @@
   margin: 0;
   font-size: 0.85rem;
 }
+
+/* En el teléfono, la regla general de "label con radio" (fila con flex) le ganaba a la tarjeta de estilo. */
+.tema main label.redes-estilo:has(> input[type="radio"]) {
+  display: grid;
+  align-items: stretch;
+  gap: 4px;
+}
