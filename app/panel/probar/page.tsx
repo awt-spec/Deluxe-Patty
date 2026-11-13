@@ -15,7 +15,7 @@ export default async function Probar() {
       <EncabezadoPagina titulo="Probar la asistente" apoyo="Escríbele como si fueras un cliente. Nada se envía de verdad." />
       <div className="chat-con-ayuda">
         <div className="chat-centro">
-          <Chat nombreCorredor={corredor.nombre_contacto} />
+          <Chat nombreCorredor={corredor.nombre_contacto} corredorId={corredor.id} />
         </div>
         <aside className="tarjeta pila ayuda-lateral solo-computadora" aria-label="Qué probar">
           <h2>Qué probar</h2>

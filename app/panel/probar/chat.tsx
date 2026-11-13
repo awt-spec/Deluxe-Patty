@@ -3,14 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { ESTADO_INICIAL, type EstadoSimulacion, type TurnoSimulado } from "@/lib/simulador/estado";
 import { probarTurno } from "./acciones";
-import { Calificar, ResumenCalificacion, type Calificaciones } from "./calificar-respuesta";
-
-type Linea =
-  | { tipo: "cliente"; texto: string }
-  /** id: para calificarla; pregunta: lo que escribió el cliente en ese turno. */
-  | { tipo: "asistente"; texto: string; id: string; pregunta: string }
-  | { tipo: "aviso"; texto: string }
-  | { tipo: "nota"; texto: string };
+import { claveProbar, leerPrueba, serializarPrueba, ultimoIdRespuesta, type Calificaciones, type Linea } from "@/lib/simulador/guardado";
+import { Calificar, ResumenCalificacion } from "./calificar-respuesta";
 
 const INTENCION: Record<string, string> = {
   consulta_propiedad: "consulta",
@@ -44,7 +38,7 @@ const SUGERENCIAS = [
 
 let siguienteId = 0;
 
-export function Chat({ nombreCorredor }: { nombreCorredor: string }) {
+export function Chat({ nombreCorredor, corredorId }: { nombreCorredor: string; corredorId: string }) {
   const [estado, setEstado] = useState<EstadoSimulacion>(ESTADO_INICIAL);
   const [lineas, setLineas] = useState<Linea[]>([]);
   const [texto, setTexto] = useState("");
@@ -54,6 +48,33 @@ export function Chat({ nombreCorredor }: { nombreCorredor: string }) {
   const [calificaciones, setCalificaciones] = useState<Calificaciones>({});
   const [notaPrueba, setNotaPrueba] = useState<number | null>(null);
   const final = useRef<HTMLDivElement>(null);
+  // La prueba se recuerda en este navegador (24 h): se lee ya montado, para no desajustar la hidratación.
+  const [cargado, setCargado] = useState(false);
+  const clave = claveProbar(corredorId);
+
+  useEffect(() => {
+    try {
+      const p = leerPrueba(localStorage.getItem(clave), Date.now());
+      if (p) {
+        /* eslint-disable react-hooks/set-state-in-effect -- localStorage solo existe en el navegador: se lee ya montado para no desajustar la hidratación */
+        siguienteId = Math.max(siguienteId, ultimoIdRespuesta(p.lineas));
+        setEstado(p.estado);
+        setLineas(p.lineas);
+        setCalificaciones(p.calificaciones);
+        setNotaPrueba(p.nota);
+        /* eslint-enable react-hooks/set-state-in-effect */
+      } else localStorage.removeItem(clave);
+    } catch {}
+    setCargado(true);
+  }, [clave]);
+
+  useEffect(() => {
+    if (!cargado) return;
+    try {
+      if (lineas.length === 0) localStorage.removeItem(clave);
+      else localStorage.setItem(clave, serializarPrueba({ estado, lineas, calificaciones, nota: notaPrueba }, Date.now()));
+    } catch {}
+  }, [cargado, clave, estado, lineas, calificaciones, notaPrueba]);
 
   // Con llaves: en los Chrome nuevos scrollIntoView devuelve una promesa, y si el efecto la devuelve React
   // la toma por la función de limpieza y la página se cae ("destroy is not a function").
@@ -188,6 +209,9 @@ export function Chat({ nombreCorredor }: { nombreCorredor: string }) {
               setError(null);
               setCalificaciones({});
               setNotaPrueba(null);
+              try {
+                localStorage.removeItem(clave);
+              } catch {}
             }}
           >
             Empezar otra prueba

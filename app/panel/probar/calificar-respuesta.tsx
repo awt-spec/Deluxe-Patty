@@ -12,16 +12,13 @@ import {
   fraseResumen,
   motivoDeDato,
   resumenPrueba,
-  type CalificacionRespuesta,
   type Motivo,
-  type PlanGuardado,
 } from "@/lib/simulador/calificar";
+import { acumularPlan, enlacesCerebro, type CalificacionEnPrueba, type Calificaciones } from "@/lib/simulador/guardado";
 import { IconoEstrella, IconoPulgarAbajo, IconoPulgarArriba } from "../iconos";
 import { calificarRespuesta } from "./calificar";
 
-/** Lo que el navegador recuerda de cada respuesta calificada (además de la calificación). */
-export type CalificacionEnPrueba = CalificacionRespuesta & { plan?: PlanGuardado; frase?: string };
-export type Calificaciones = Record<string, CalificacionEnPrueba | undefined>;
+export type { CalificacionEnPrueba, Calificaciones };
 
 /** Los dos pulgares bajo el globo de la asistente y, con "No me gustó", la hojita para enseñarle. */
 export function Calificar({
@@ -89,7 +86,8 @@ export function Calificar({
           motivoInicial={calificacion?.motivo}
           onCerrar={() => setAbierta(false)}
           onListo={(c) => {
-            onCambiar({ ...c, ensenadas: (calificacion?.ensenadas ?? 0) + (c.ensenadas ?? 0) });
+            // Lo ya guardado en el Cerebro no se deshace al cambiar de motivo: el plan se acumula.
+            onCambiar({ ...c, ensenadas: (calificacion?.ensenadas ?? 0) + (c.ensenadas ?? 0), plan: c.plan ? acumularPlan(calificacion?.plan, c.plan) : calificacion?.plan });
             setAbierta(false);
           }}
         />
@@ -198,6 +196,11 @@ function HojaNoMeGusto({
             value={texto}
             maxLength={MAX_TEXTO_CALIFICACION}
             data-patty="probar-como-lo-dirias"
+            onFocus={(e) => {
+              // En el teléfono el teclado tapa el campo: se centra cuando ya subió.
+              const campo = e.currentTarget;
+              setTimeout(() => campo.scrollIntoView({ block: "center", behavior: "smooth" }), 300);
+            }}
             onChange={(e) => setTexto(e.target.value)}
           />
           {dato && escribio && (
@@ -238,11 +241,7 @@ export function ResumenCalificacion({
 }) {
   const r = resumenPrueba(calificaciones);
   const planes = Object.values(calificaciones).flatMap((c) => (c?.plan ? [c.plan] : []));
-  const enlaces = [
-    planes.some((p) => p.correccion) && { href: "/panel/cerebro?ver=errores", texto: "Ver correcciones" },
-    planes.some((p) => p.conocimiento) && { href: "/panel/cerebro?ver=sabe", texto: "Ver lo que sabe" },
-    planes.some((p) => p.duda) && { href: "/panel/cerebro?ver=dudas", texto: "Ver sus preguntas" },
-  ].filter((e): e is { href: string; texto: string } => !!e);
+  const enlaces = enlacesCerebro(planes);
   return (
     <section className="resumen-prueba" aria-label="Resumen de la prueba" data-patty="probar-resumen">
       <p className="resumen-cifras">{fraseResumen(r)}</p>
