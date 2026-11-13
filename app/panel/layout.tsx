@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { esSuperadmin } from "@/lib/admin/superadmin";
 import { sesionCorredor } from "@/lib/panel/sesion";
 import { salir } from "./acciones";
-import { coloresMenu, variablesMenu } from "@/lib/panel/colores-menu";
 import { limitesDia } from "@/lib/agenda/tiempo";
 import { MenuLateral } from "./menu-lateral";
 import { Navegacion } from "./navegacion";
@@ -62,8 +61,8 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
     ...(escaladas ?? []).map((c) => c.id as string),
   ]).size;
 
-  // El panel se ve como WhatsApp (claro, con su verde): lo que la corredora ya usa todos los días. La
-  // marca del corredor queda en la entrada, las fichas y el menú de la izquierda (oscuro, con sus colores).
+  // El panel se ve como WhatsApp (claro, con su verde): lo que la corredora ya usa todos los días, también el
+  // menú de la izquierda. La marca del corredor queda en la entrada, las fichas y su logo (arriba en el menú).
   return (
     <div className="marco tema">
       {corredor.activo === false && (
@@ -84,7 +83,6 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
         nombre={corredor.nombre_contacto ?? ""}
         asistente={corredor.nombre_asistente ?? "Patty"}
         superadmin={superadmin}
-        colores={variablesMenu(coloresMenu(corredor.marca?.colores))}
       />
       <Patty nombre={corredor.nombre_asistente ?? "Patty"} corredor={corredor.id} />
     </div>

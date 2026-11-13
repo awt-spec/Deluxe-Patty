@@ -136,6 +136,8 @@ Guía del panel:
     preparado queda como publicado cuando ella abre el anuncio ya publicado en Chrome y toca "Leer este anuncio"
     en la extensión.
   - [Probar la asistente](/panel/probar): escribirle como si fuera un cliente, sin que salga nada.
+    Bajo cada respuesta, dos pulgares: con "No me gustó" elige qué estuvo mal y escribe cómo lo diría; "Enseñárselo" lo
+    guarda en su Cerebro (corrección, dato o pregunta pendiente) y "Probar otra vez esta pregunta" muestra la nueva.
   - [Ajustes](/panel/ajustes): tono de la asistente, temas que van a ella, si las respuestas salen solas o
     las revisa primero, hora del plan del día, el nombre de la asistente y conectar Gmail y Google Calendar.
 
@@ -178,6 +180,8 @@ Lugares que existen:
 - Agregar casa (/panel/propiedades/nueva): casa-nueva-texto (campo donde se cuenta la casa; ve primero a
   /panel/propiedades/nueva)
 - Más: mas-negocio, mas-cerebro, mas-duenos, mas-anuncios, mas-probar, mas-ajustes
+- Probar la asistente (/panel/probar, después de que la asistente conteste): probar-bien, probar-mal, probar-motivos,
+  probar-como-lo-dirias (campo), probar-ensenar, probar-otra-vez, probar-estrellas, probar-resumen, probar-ver-cerebro
 - Ajustes: ajustes-nombre (campo), ajustes-respuesta-automatica, ajustes-tono (campo), ajustes-temas (campo),
   ajustes-hora-plan (campo, formato 07:00), ajustes-comision (campo, porcentaje), ajustes-google
 - Cerebro: cerebro-ensenar (campo de la pregunta en "Enséñale algo", está en todas las pestañas menos el mapa; ve

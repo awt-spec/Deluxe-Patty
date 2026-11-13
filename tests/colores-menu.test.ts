@@ -1,72 +1,38 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { MARCA_DELUXE } from "../lib/fichas/marca";
-import { NEUTRO, coloresMenu, contraste, mezclar, variablesMenu } from "../lib/panel/colores-menu";
+import { PALETA_MENU as P, contraste } from "../lib/panel/colores-menu";
 
-const cumpleAA = (c: ReturnType<typeof coloresMenu>) => {
-  expect(contraste(c.texto, c.fondo)).toBeGreaterThanOrEqual(7);
-  expect(contraste(c.suave, c.fondo)).toBeGreaterThanOrEqual(4.5);
-  expect(contraste(c.texto, c.activo)).toBeGreaterThanOrEqual(4.5);
-  expect(contraste(c.texto, c.hover)).toBeGreaterThanOrEqual(4.5);
-  expect(contraste(c.suave, c.fondo2)).toBeGreaterThanOrEqual(4.5);
-  expect(contraste(c.acento, c.fondo)).toBeGreaterThanOrEqual(3);
-  expect(contraste(c.sobreAcento, c.acento)).toBeGreaterThanOrEqual(4.5);
-};
-
-describe("coloresMenu", () => {
-  it("Deluxe: fondo onyx, acento dorado y texto crema", () => {
-    const c = coloresMenu(MARCA_DELUXE.colores);
-    expect(c.deMarca).toBe(true);
-    expect(c.fondo).toBe("#1a1308");
-    expect(c.acento).toBe("#d4af6a");
-    expect(c.texto).toBe("#f5f0e8");
-    // Sobre el dorado va el onyx, no el blanco.
-    expect(c.sobreAcento).toBe("#1a1308");
-    cumpleAA(c);
+describe("paleta del menú lateral (WhatsApp claro)", () => {
+  it("el texto pasa AA (4,5:1) sobre el fondo, el hover, la pastilla activa y las burbujas", () => {
+    expect(contraste(P.texto, P.fondo)).toBeGreaterThanOrEqual(7);
+    expect(contraste(P.texto, P.hover)).toBeGreaterThanOrEqual(7);
+    expect(contraste(P.suave, P.fondo)).toBeGreaterThanOrEqual(4.5);
+    expect(contraste(P.suave, P.hover)).toBeGreaterThanOrEqual(4.5);
+    expect(contraste(P.verde, P.fondo)).toBeGreaterThanOrEqual(4.5); // títulos de grupo
+    expect(contraste(P.sobreActivo, P.activo)).toBeGreaterThanOrEqual(4.5);
+    expect(contraste(P.sobreVerde, P.verde)).toBeGreaterThanOrEqual(4.5);
+    expect(contraste(P.sobreBurbuja, P.burbuja)).toBeGreaterThanOrEqual(4.5);
+    expect(contraste(P.sobreBurbujaSuave, P.burbujaSuave)).toBeGreaterThanOrEqual(4.5);
+    expect(contraste(P.sobreGlobo, P.globo)).toBeGreaterThanOrEqual(4.5);
   });
 
-  it("sin marca: neutro verde-carbón con el verde de WhatsApp", () => {
-    for (const m of [null, undefined, {}, { profundo: "no es un color" }]) {
-      const c = coloresMenu(m);
-      expect(c.deMarca).toBe(false);
-      expect(c.fondo).toBe(NEUTRO.fondo);
-      expect(c.acento).toBe(NEUTRO.acento);
-      cumpleAA(c);
+  it("el anillo de foco y el botón verde se distinguen del fondo (3:1)", () => {
+    expect(contraste(P.verde, P.fondo)).toBeGreaterThanOrEqual(3);
+    expect(contraste(P.verde, P.activo)).toBeGreaterThanOrEqual(3);
+  });
+
+  it("globals.css usa exactamente esta paleta (sin colores de la marca)", () => {
+    const css = readFileSync(join(__dirname, "../app/globals.css"), "utf8");
+    const capa = css.slice(css.indexOf("Menú lateral v3"));
+    for (const [nombre, valor] of Object.entries(P)) {
+      const variable = `--m-${nombre.replace(/[A-Z]/g, (l) => `-${l.toLowerCase()}`)}`;
+      expect(capa).toContain(`${variable}: ${valor};`);
     }
+    expect(capa).not.toMatch(/--principal|--onyx|--crema/);
   });
 
-  it("una marca con profundo claro cae al neutro oscuro (y no usa su acento)", () => {
-    const c = coloresMenu({ profundo: "#e8eef5", principal: "#d4af6a", base: "#ffffff" });
-    expect(c.deMarca).toBe(false);
-    expect(c.fondo).toBe(NEUTRO.fondo);
-    expect(c.acento).toBe(NEUTRO.acento);
-    cumpleAA(c);
-  });
-
-  it("un acento que no se distingue del fondo se cambia por el verde", () => {
-    const c = coloresMenu({ profundo: "#101820", principal: "#1c2836", base: "#f0f0f0" });
-    expect(c.fondo).toBe("#101820");
-    expect(c.acento).toBe(NEUTRO.acento);
-    cumpleAA(c);
-  });
-
-  it("un claro de marca sin contraste se cambia por blanco; acepta hex de 3 cifras", () => {
-    const c = coloresMenu({ profundo: "#123", principal: "#fc0", base: "#556677" });
-    expect(c.fondo).toBe("#112233");
-    expect(c.texto).toBe("#ffffff");
-    expect(c.acento).toBe("#ffcc00");
-    cumpleAA(c);
-  });
-
-  it("variables CSS del menú", () => {
-    const v = variablesMenu(coloresMenu(null));
-    expect(Object.keys(v)).toEqual(expect.arrayContaining(["--m-fondo", "--m-acento", "--m-suave", "--m-sobre-acento"]));
-  });
-});
-
-describe("contraste y mezclar", () => {
-  it("blanco y negro dan 21:1; mezclar a la mitad", () => {
+  it("blanco y negro dan 21:1", () => {
     expect(contraste("#ffffff", "#000000")).toBeCloseTo(21, 1);
-    expect(contraste("#zzz", "#000")).toBe(1);
-    expect(mezclar("#000000", "#ffffff", 0.5)).toBe("#808080");
   });
 });

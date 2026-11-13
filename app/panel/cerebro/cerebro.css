@@ -865,9 +865,31 @@
   border-radius: 0;
 }
 .marco.tema main .cer-mapa .mapa-cerebro svg {
-  flex: 1;
-  height: calc(100vh - 330px);
-  min-height: 520px;
+  flex: 1 1 0;
+  height: auto;
+  min-height: 0;
+}
+@media (min-width: 900px) {
+  /* En computadora el mapa ocupa todo el alto, al lado del menú (como en el teléfono, con "Cerrar" arriba): así
+     el lienzo, los filtros y los botones caben sin mover la página (1280×720 incluido). Debajo del menú lateral
+     (z-index 30) y del chat de Patty (50). mapa.tsx reajusta la vista al cambiar el tamaño. */
+  .marco.tema main .cer-mapa {
+    position: fixed;
+    inset: 0 0 0 var(--lateral, 264px);
+    z-index: 20;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .marco.tema main .cer-mapa-cabeza {
+    padding: 16px 24px 12px;
+  }
+  .marco.tema main .cer-mapa .mapa-controles {
+    padding: 12px 24px;
+  }
+  .marco.tema main .cer-mapa .mapa-cerebro figcaption {
+    padding: 8px 24px 12px;
+  }
 }
 .marco.tema main .cer-mapa .mapa-zoom button {
   min-width: 48px;

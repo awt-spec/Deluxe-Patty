@@ -11245,10 +11245,12 @@ body:has(.marco.tema) {
 }
 
 /* ================================================================================================
-   Menú lateral v3 (computadora, app/panel/menu-lateral.tsx). Oscuro con la marca del corredor: los colores
-   llegan como variables --m-* en el <aside> (lib/panel/colores-menu.ts, contraste AA comprobado). Alto completo
-   y fijo, 264 px (72 px contraído), con scroll propio solo en la zona de las secciones. En el teléfono no se
-   ve: queda la barra de cuatro botones de abajo (.navegacion), que no cambia.
+   Menú lateral v3 (computadora, app/panel/menu-lateral.tsx). Claro como WhatsApp Web, igual para todos los
+   corredores: de la marca solo va el logo (en círculo, como una foto de perfil). La paleta son las variables
+   --m-* de abajo, las mismas de lib/panel/colores-menu.ts (tests/colores-menu.test.ts comprueba que coincidan y
+   que pasen AA). Alto completo y fijo, 264 px (72 px contraído: riel de íconos), con scroll propio solo en la
+   zona de las secciones; medidas en una rejilla de 4 px. En el teléfono no se ve: queda la barra de cuatro
+   botones de abajo (.navegacion), que no cambia.
    ================================================================================================ */
 .lateral {
   display: none;
@@ -11267,9 +11269,24 @@ body:has(.marco.tema) {
   }
 
   .marco.tema .lateral {
+    --m-fondo: #ffffff;
+    --m-linea: #e9edef;
+    --m-texto: #111b21;
+    --m-suave: #54656f;
+    --m-hover: #f5f6f6;
+    --m-activo: #d9fdd3;
+    --m-sobre-activo: #006b56;
+    --m-verde: #008069;
+    --m-sobre-verde: #ffffff;
+    --m-burbuja: #25d366;
+    --m-sobre-burbuja: #111b21;
+    --m-burbuja-suave: #e9edef;
+    --m-sobre-burbuja-suave: #3b4a54;
+    --m-globo: #3b4a54;
+    --m-sobre-globo: #ffffff;
     --m-fila: 44px;
-    --m-radio: 10px;
     --m-lado: 12px;
+    --m-sombra-menu: 0 2px 5px rgb(11 20 26 / 18%), 0 8px 24px rgb(11 20 26 / 12%);
     position: fixed;
     inset: 0 auto 0 0;
     z-index: 30;
@@ -11278,20 +11295,21 @@ body:has(.marco.tema) {
     height: 100dvh;
     display: flex;
     flex-direction: column;
-    background: var(--m-fondo, #0f1f1a);
-    color: var(--m-texto, #f2f6f4);
-    border-right: 1px solid var(--m-borde, #23332e);
+    background: var(--m-fondo);
+    color: var(--m-texto);
+    border-right: 1px solid var(--m-linea);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     font-size: 15px;
-    line-height: 1.25;
+    line-height: 20px;
     -webkit-font-smoothing: antialiased;
-    transition: width 0.18s ease;
+    transition: width 0.2s cubic-bezier(0.2, 0, 0, 1);
   }
   .marco.tema .lateral a {
     color: inherit;
     text-decoration: none;
   }
   .marco.tema .lateral :where(a, button, summary):focus-visible {
-    outline: 2px solid var(--m-acento);
+    outline: 2px solid var(--m-verde);
     outline-offset: 2px;
   }
   .marco.tema .lateral kbd {
@@ -11299,11 +11317,13 @@ body:has(.marco.tema) {
     place-items: center;
     min-width: 20px;
     height: 20px;
-    padding: 0 5px;
-    border-radius: 5px;
-    border: 1px solid currentColor;
-    font: 600 11px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    opacity: 0.7;
+    padding: 0 4px;
+    border-radius: 4px;
+    border: 1px solid var(--m-linea);
+    background: var(--m-hover);
+    color: var(--m-suave);
+    font: 500 11px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    box-shadow: none;
   }
   .marco.tema .lateral .lat-nombre,
   .marco.tema .lateral .lat-ocultable {
@@ -11312,43 +11332,42 @@ body:has(.marco.tema) {
     text-overflow: ellipsis;
   }
 
-  /* Cabecera: logo sobre su fondo, nombre y "Demo"; el chevron de contraer en el borde */
+  /* Cabecera: logo en círculo + nombre + "Demo"; a la derecha, el botón de contraer */
   .marco.tema .lateral .lat-cabeza {
-    position: relative;
     flex: none;
-    padding: 18px var(--m-lado) 14px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 64px;
+    padding: 12px 8px 8px var(--m-lado);
   }
   .marco.tema .lateral .lat-marca {
+    flex: 1;
+    min-width: 0;
     display: flex;
     align-items: center;
     gap: 12px;
-    min-height: 44px;
-    padding: 2px 4px;
-    border-radius: var(--m-radio);
+    min-height: 48px;
+    padding: 4px;
+    border-radius: 12px;
+    transition: background-color 0.12s;
+  }
+  .marco.tema .lateral .lat-marca:hover {
+    background: var(--m-hover);
   }
   .marco.tema .lateral .lat-logo {
-    position: relative;
-    flex: 0 0 42px;
-    width: 42px;
-    height: 42px;
-    border-radius: 10px;
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
     overflow: hidden;
     display: grid;
     place-items: center;
-    background: var(--m-acento);
-    color: var(--m-sobre-acento);
-    font-weight: 700;
+    background: var(--m-burbuja-suave);
+    color: var(--m-suave);
+    font-weight: 600;
     font-size: 15px;
-    letter-spacing: 0.02em;
-  }
-  /* Borde fino sobre la imagen, para que el logo no se pierda en el fondo del mismo color. */
-  .marco.tema .lateral .lat-logo::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--m-acento) 30%, transparent);
-    pointer-events: none;
+    box-shadow: inset 0 0 0 1px rgb(11 20 26 / 6%);
   }
   .marco.tema .lateral .lat-logo img {
     width: 100%;
@@ -11358,85 +11377,89 @@ body:has(.marco.tema) {
   }
   .marco.tema .lateral .lat-marca-texto {
     display: grid;
-    gap: 3px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
     min-width: 0;
   }
   .marco.tema .lateral .lat-marca-texto strong {
-    font-size: 15px;
-    font-weight: 650;
-    letter-spacing: -0.005em;
+    font-size: 16px;
+    line-height: 20px;
+    font-weight: 600;
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
   .marco.tema .lateral .lat-marca-texto small {
-    font-size: 12.5px;
+    font-size: 13px;
+    line-height: 16px;
     color: var(--m-suave);
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .marco.tema .lateral .lat-demo {
     justify-self: start;
-    padding: 1px 8px;
+    height: 20px;
+    padding: 0 8px;
     border-radius: 999px;
-    border: 1px solid color-mix(in srgb, var(--m-acento) 55%, transparent);
-    color: var(--m-acento);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    background: var(--m-burbuja-suave);
+    color: var(--m-sobre-burbuja-suave);
+    font-size: 12px;
+    line-height: 20px;
+    font-weight: 500;
   }
   .marco.tema .lateral .lat-plegar {
-    position: absolute;
-    top: 30px;
-    right: -12px;
-    z-index: 2;
-    width: 24px;
-    height: 24px;
+    flex: none;
+    width: 40px;
+    height: 40px;
     min-height: 0;
     padding: 0;
+    border: 0;
     border-radius: 999px;
-    border: 1px solid var(--m-borde);
-    background: var(--m-fondo-2);
+    background: transparent;
     color: var(--m-suave);
-    box-shadow: 0 1px 3px rgb(0 0 0 / 25%);
+    box-shadow: none;
     display: grid;
     place-items: center;
-    opacity: 0.85;
-    transition: opacity 0.15s, color 0.15s, transform 0.18s ease;
+    cursor: pointer;
+    transition: background-color 0.12s, color 0.12s;
   }
-  .marco.tema .lateral .lat-plegar:hover,
-  .marco.tema .lateral .lat-plegar:focus-visible {
-    opacity: 1;
+  .marco.tema .lateral .lat-plegar svg {
+    transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1);
+  }
+  .marco.tema .lateral .lat-plegar:hover {
+    background: var(--m-hover);
     color: var(--m-texto);
   }
   .marco.tema .lateral .lat-plegar:active {
-    transform: scale(0.94);
+    background: var(--m-linea);
   }
 
-  /* La acción principal: preguntarle a la asistente */
+  /* La acción principal, como "Nuevo chat": píldora verde */
   .marco.tema .lateral .lat-patty {
     flex: none;
-    margin: 0 var(--m-lado) 6px;
+    margin: 4px var(--m-lado) 8px;
     display: flex;
     align-items: center;
-    gap: 10px;
-    min-height: 46px;
-    padding: 0 12px 0 14px;
+    gap: 12px;
+    min-height: 44px;
+    padding: 0 12px 0 16px;
     border: 0;
-    border-radius: 12px;
-    background: var(--m-acento);
-    color: var(--m-sobre-acento);
+    border-radius: 999px;
+    background: var(--m-verde);
+    color: var(--m-sobre-verde);
     font: inherit;
     font-size: 15px;
-    font-weight: 650;
+    font-weight: 600;
     text-align: left;
-    box-shadow: 0 1px 0 rgb(255 255 255 / 18%) inset, 0 6px 16px -8px color-mix(in srgb, var(--m-acento) 70%, transparent);
+    box-shadow: none;
     cursor: pointer;
-    transition: filter 0.15s, transform 0.08s;
+    transition: background-color 0.12s;
   }
   .marco.tema .lateral .lat-patty:hover {
-    filter: brightness(1.06);
+    background: #017561;
   }
-  .marco.tema .lateral .lat-patty:focus-visible {
-    outline-color: var(--m-texto);
+  .marco.tema .lateral .lat-patty:active {
+    background: #006b56;
   }
   .marco.tema .lateral .lat-patty .lat-icono {
     display: grid;
@@ -11449,64 +11472,72 @@ body:has(.marco.tema) {
   }
   .marco.tema .lateral .lat-patty kbd {
     flex: none;
-    border-color: color-mix(in srgb, currentColor 45%, transparent);
-    opacity: 0.8;
+    border-color: rgb(255 255 255 / 45%);
+    background: rgb(255 255 255 / 12%);
+    color: var(--m-sobre-verde);
   }
 
-  /* Secciones: tres grupos con título discreto; scroll propio solo aquí */
+  /* Secciones: tres grupos con título verde en frase; scroll propio solo aquí */
   .marco.tema .lateral .lat-medio {
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
-    padding: 4px var(--m-lado) 12px;
+    padding: 0 var(--m-lado) 12px;
     scrollbar-width: thin;
-    scrollbar-color: var(--m-borde) transparent;
+    scrollbar-color: #d1d7db transparent;
   }
   .marco.tema .lateral .lat-grupo ul {
     list-style: none;
     margin: 0;
     padding: 0;
     display: grid;
-    gap: 2px;
+    gap: 0;
   }
   .marco.tema .lateral .lat-titulo {
-    margin: 18px 0 6px;
-    padding: 0 12px;
-    font-size: 11.5px;
-    font-weight: 650;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--m-suave);
-    line-height: 16px;
-    height: 16px;
+    margin: 16px 0 4px;
+    padding: 0 16px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 20px;
+    height: 20px;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--m-verde);
+  }
+  .marco.tema .lateral .lat-grupo:first-child .lat-titulo {
+    margin-top: 8px;
   }
   .marco.tema .lateral .lat-enlace {
     position: relative;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
     width: 100%;
     min-height: var(--m-fila);
-    padding: 0 12px;
+    padding: 0 12px 0 16px;
     border: 0;
-    border-radius: var(--m-radio);
+    border-radius: 999px;
     background: transparent;
-    color: color-mix(in srgb, var(--m-texto) 88%, var(--m-fondo));
+    color: var(--m-texto);
     font: inherit;
     font-size: 15px;
-    font-weight: 500;
+    font-weight: 400;
     text-align: left;
     box-shadow: none;
     cursor: pointer;
     transition: background-color 0.12s, color 0.12s;
   }
+  .marco.tema .lateral .lat-enlace::before {
+    content: none;
+  }
   .marco.tema .lateral .lat-enlace .lat-icono {
-    flex: 0 0 20px;
+    flex: 0 0 24px;
+    height: 24px;
     display: grid;
     place-items: center;
     color: var(--m-suave);
-    transition: color 0.12s;
   }
   .marco.tema .lateral .lat-enlace .lat-nombre {
     flex: 1;
@@ -11514,59 +11545,48 @@ body:has(.marco.tema) {
   }
   .marco.tema .lateral .lat-enlace:hover {
     background: var(--m-hover);
-    color: var(--m-texto);
-  }
-  .marco.tema .lateral .lat-enlace:hover .lat-icono {
-    color: var(--m-texto);
   }
   .marco.tema .lateral .lat-enlace:focus-visible {
     outline-offset: -2px;
   }
   .marco.tema .lateral .lat-enlace[aria-current="page"] {
     background: var(--m-activo);
-    color: var(--m-texto);
-    font-weight: 650;
+    color: var(--m-sobre-activo);
+    font-weight: 600;
   }
   .marco.tema .lateral .lat-enlace[aria-current="page"] .lat-icono {
-    color: var(--m-acento);
+    color: var(--m-sobre-activo);
   }
-  .marco.tema .lateral .lat-medio .lat-enlace[aria-current="page"]::before {
-    content: "";
-    position: absolute;
-    left: calc(-1 * var(--m-lado));
-    top: 10px;
-    bottom: 10px;
-    width: 3px;
-    border-radius: 0 3px 3px 0;
-    background: var(--m-acento);
-  }
+  /* Como los no leídos de WhatsApp */
   .marco.tema .lateral .lat-contador {
     flex: none;
-    min-width: 22px;
-    height: 22px;
-    padding: 0 7px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
     border-radius: 999px;
     display: grid;
     place-items: center;
-    background: var(--m-acento);
-    color: var(--m-sobre-acento);
+    background: var(--m-burbuja);
+    color: var(--m-sobre-burbuja);
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 600;
     font-variant-numeric: tabular-nums;
     line-height: 1;
   }
   .marco.tema .lateral .lat-contador-suave {
-    background: transparent;
-    color: var(--m-texto);
-    box-shadow: inset 0 0 0 1px var(--m-borde);
-    background: var(--m-fondo-2);
+    background: var(--m-burbuja-suave);
+    color: var(--m-sobre-burbuja-suave);
+    box-shadow: none;
+  }
+  .marco.tema .lateral .lat-enlace[aria-current="page"] .lat-contador-suave {
+    background: var(--m-fondo);
   }
 
-  /* Pie: la cuenta, que abre un menú pequeño hacia arriba */
+  /* Pie: la cuenta, como el perfil; abre un menú hacia arriba */
   .marco.tema .lateral .lat-pie {
     flex: none;
-    padding: 10px var(--m-lado) 12px;
-    border-top: 1px solid var(--m-borde);
+    padding: 8px var(--m-lado);
+    border-top: 1px solid var(--m-linea);
   }
   .marco.tema .lateral .lat-cuenta {
     position: relative;
@@ -11575,9 +11595,9 @@ body:has(.marco.tema) {
     list-style: none;
     display: flex;
     align-items: center;
-    gap: 10px;
-    min-height: 52px;
-    padding: 6px 8px;
+    gap: 12px;
+    min-height: 56px;
+    padding: 8px;
     border-radius: 12px;
     font-weight: 400;
     cursor: pointer;
@@ -11591,33 +11611,38 @@ body:has(.marco.tema) {
     background: var(--m-hover);
   }
   .marco.tema .lateral .lat-avatar {
-    flex: 0 0 36px;
-    width: 36px;
-    height: 36px;
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
     border-radius: 999px;
     display: grid;
     place-items: center;
-    background: color-mix(in srgb, var(--m-acento) 22%, var(--m-fondo));
-    color: var(--m-acento);
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--m-acento) 40%, transparent);
-    font-weight: 700;
-    font-size: 15px;
+    background: var(--m-burbuja-suave);
+    color: var(--m-sobre-burbuja-suave);
+    box-shadow: none;
+    font-weight: 600;
+    font-size: 16px;
   }
   .marco.tema .lateral .lat-cuenta-texto {
     flex: 1;
     min-width: 0;
     display: grid;
-    gap: 2px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
   }
   .marco.tema .lateral .lat-cuenta-texto strong {
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 15px;
+    line-height: 20px;
+    font-weight: 500;
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
   .marco.tema .lateral .lat-cuenta-texto small {
-    font-size: 12.5px;
+    font-size: 13px;
+    line-height: 20px;
     color: var(--m-suave);
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
@@ -11626,6 +11651,7 @@ body:has(.marco.tema) {
     display: grid;
     color: var(--m-suave);
   }
+  /* Menú desplegable como los de WhatsApp: blanco, sombra suave, filas de 44 px */
   .marco.tema .lateral .lat-cuenta-menu {
     position: absolute;
     left: 0;
@@ -11633,41 +11659,51 @@ body:has(.marco.tema) {
     bottom: calc(100% + 8px);
     z-index: 3;
     display: grid;
-    gap: 2px;
-    padding: 6px;
-    border-radius: 14px;
-    background: var(--m-fondo-2);
-    border: 1px solid var(--m-borde);
-    box-shadow: 0 18px 40px -12px rgb(0 0 0 / 55%), 0 2px 6px rgb(0 0 0 / 25%);
+    gap: 0;
+    padding: 8px;
+    border-radius: 16px;
+    background: var(--m-fondo);
+    border: 0;
+    box-shadow: var(--m-sombra-menu);
   }
   .marco.tema .lateral .lat-cuenta-menu form {
     margin: 0;
   }
   .marco.tema .lateral .lat-cuenta-menu .lat-enlace {
-    min-height: 40px;
+    min-height: 44px;
+    padding: 0 12px;
+    border-radius: 8px;
+    gap: 16px;
+    font-size: 15px;
   }
   .marco.tema .lateral .lat-cuenta-menu .lat-enlace[aria-current="page"] {
-    background: var(--m-activo);
+    background: var(--m-hover);
+    color: var(--m-texto);
+    font-weight: 400;
+  }
+  .marco.tema .lateral .lat-cuenta-menu .lat-enlace[aria-current="page"] .lat-icono {
+    color: var(--m-suave);
   }
   .marco.tema .lateral .lat-atajos {
-    margin: 4px 0 0;
-    padding: 10px 10px 4px;
-    border-top: 1px solid var(--m-borde);
-    font-size: 12.5px;
+    margin: 8px 0 0;
+    padding: 12px 12px 4px;
+    border-top: 1px solid var(--m-linea);
+    font-size: 13px;
     color: var(--m-suave);
   }
   .marco.tema .lateral .lat-atajos p {
     margin: 0 0 8px;
-    font-size: 11px;
-    font-weight: 650;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--m-verde);
   }
   .marco.tema .lateral .lat-atajos dl {
     margin: 0;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 7px 10px;
+    gap: 8px 12px;
   }
   .marco.tema .lateral .lat-atajos dl > div {
     display: flex;
@@ -11681,7 +11717,7 @@ body:has(.marco.tema) {
   .marco.tema .lateral .lat-atajos dt {
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: 4px;
     flex: none;
   }
   .marco.tema .lateral .lat-atajos dd {
@@ -11691,17 +11727,9 @@ body:has(.marco.tema) {
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .marco.tema .lateral .lat-atajos kbd {
-    min-width: 18px;
-    height: 18px;
-    font-size: 10.5px;
-    padding: 0 4px;
-  }
 
-  /* Contraído: 72 px, solo íconos centrados; el nombre queda para lectores de pantalla y sale en un globo */
-  .marco.tema .lateral.plegado {
-    --m-lado: 12px;
-  }
+  /* Contraído: 72 px, riel de íconos en círculos de 40 px; el nombre queda para lectores de pantalla y sale en
+     un globo */
   .marco.tema .lateral.plegado .lat-ocultable {
     display: none;
   }
@@ -11713,58 +11741,76 @@ body:has(.marco.tema) {
     clip-path: inset(50%);
     white-space: nowrap;
   }
+  .marco.tema .lateral.plegado .lat-cabeza {
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 0 4px;
+  }
   .marco.tema .lateral.plegado .lat-marca {
+    flex: none;
     justify-content: center;
-    padding: 2px 0;
+    width: 48px;
+    padding: 4px;
+    border-radius: 999px;
   }
-  .marco.tema .lateral.plegado .lat-plegar {
+  .marco.tema .lateral.plegado .lat-plegar svg {
     transform: rotate(180deg);
-  }
-  .marco.tema .lateral.plegado .lat-plegar:active {
-    transform: rotate(180deg) scale(0.94);
   }
   .marco.tema .lateral.plegado .lat-patty {
     width: 44px;
     min-height: 44px;
     height: 44px;
-    margin: 0 auto 6px;
+    margin: 4px auto 8px;
     padding: 0;
     justify-content: center;
-    border-radius: 999px;
+  }
+  .marco.tema .lateral.plegado .lat-medio {
+    padding: 0 0 12px;
+  }
+  .marco.tema .lateral.plegado .lat-grupo ul {
+    gap: 4px;
   }
   .marco.tema .lateral.plegado .lat-titulo {
-    margin: 12px 10px 10px;
-    padding: 0;
+    width: 32px;
     height: 1px;
-    background: var(--m-borde);
+    margin: 12px auto;
+    padding: 0;
+    background: var(--m-linea);
   }
   .marco.tema .lateral.plegado .lat-grupo:first-child .lat-titulo {
     background: transparent;
-    margin-top: 6px;
+    margin: 4px auto;
   }
-  .marco.tema .lateral.plegado .lat-enlace {
-    justify-content: center;
+  .marco.tema .lateral.plegado .lat-medio .lat-enlace {
+    width: 40px;
+    min-height: 40px;
+    height: 40px;
+    margin: 0 auto;
     padding: 0;
+    justify-content: center;
+  }
+  .marco.tema .lateral.plegado .lat-medio .lat-enlace:focus-visible {
+    outline-offset: 2px;
   }
   .marco.tema .lateral.plegado .lat-contador {
     position: absolute;
-    top: 9px;
-    left: calc(50% + 5px);
-    min-width: 0;
-    width: 9px;
-    height: 9px;
-    padding: 0;
+    top: -4px;
+    left: 24px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    font-size: 11px;
     box-shadow: 0 0 0 2px var(--m-fondo);
   }
-  .marco.tema .lateral.plegado .lat-contador-suave {
-    background: var(--m-texto);
-  }
-  .marco.tema .lateral.plegado .lat-enlace[aria-current="page"] .lat-contador {
-    box-shadow: 0 0 0 2px var(--m-activo);
+  .marco.tema .lateral.plegado .lat-pie {
+    padding: 8px 0;
   }
   .marco.tema .lateral.plegado .lat-cuenta summary {
     justify-content: center;
-    padding: 6px 0;
+    width: 56px;
+    margin: 0 auto;
+    padding: 8px;
+    border-radius: 999px;
   }
   .marco.tema .lateral.plegado .lat-cuenta-menu .lat-enlace {
     justify-content: flex-start;
@@ -11777,24 +11823,25 @@ body:has(.marco.tema) {
     clip-path: none;
   }
   .marco.tema .lateral.plegado .lat-cuenta-menu {
-    left: calc(100% + 10px);
+    left: calc(100% + 4px);
     right: auto;
     bottom: 0;
-    width: 248px;
+    width: 256px;
   }
   .marco.tema .lateral .lat-tip {
     position: fixed;
-    left: calc(var(--lateral) + 10px);
+    left: calc(var(--lateral) + 8px);
     z-index: 60;
     transform: translateY(-50%);
-    padding: 6px 10px;
-    border-radius: 8px;
-    background: var(--m-fondo-2);
-    color: var(--m-texto);
-    border: 1px solid var(--m-borde);
-    box-shadow: 0 8px 20px -6px rgb(0 0 0 / 45%);
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: var(--m-globo);
+    color: var(--m-sobre-globo);
+    border: 0;
+    box-shadow: 0 2px 6px rgb(11 20 26 / 20%);
     font-size: 13px;
-    font-weight: 600;
+    line-height: 20px;
+    font-weight: 500;
     white-space: nowrap;
     pointer-events: none;
   }
@@ -11805,20 +11852,26 @@ body:has(.marco.tema) {
     --m-fila: 40px;
   }
   .marco.tema .lateral .lat-cabeza {
-    padding-top: 14px;
-    padding-bottom: 10px;
+    padding-top: 8px;
+    padding-bottom: 4px;
   }
   .marco.tema .lateral .lat-titulo {
-    margin: 12px 0 4px;
+    margin: 12px 0 0;
   }
   .marco.tema .lateral .lat-pie {
-    padding-top: 8px;
-    padding-bottom: 8px;
-  }
-  .marco.tema .lateral .lat-cuenta summary {
-    min-height: 48px;
     padding-top: 4px;
     padding-bottom: 4px;
+  }
+  .marco.tema .lateral .lat-cuenta summary {
+    min-height: 52px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+  .marco.tema .lateral.plegado .lat-grupo ul {
+    gap: 0;
+  }
+  .marco.tema .lateral.plegado .lat-titulo {
+    margin: 8px auto;
   }
 }
 @media (min-width: 900px) and (prefers-reduced-motion: reduce) {

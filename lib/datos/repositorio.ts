@@ -153,8 +153,11 @@ export interface Repositorio {
   correccionesRecientes(corredorId: string, limite: number): Promise<Correccion[]>;
   /** Segundo cerebro: lo que el corredor le enseñó a la asistente. */
   conocimientoActivo(corredorId: string, limite: number): Promise<Conocimiento[]>;
-  /** Algo que la asistente no supo contestar: queda para que el corredor lo responda una vez. */
-  registrarDuda(corredorId: string, tema: string, conversacionId: string): Promise<void>;
+  /**
+   * Algo que la asistente no supo contestar: queda para que el corredor lo responda una vez.
+   * conversacionId null: la duda no viene de un chat real (por ejemplo, de "Probar la asistente").
+   */
+  registrarDuda(corredorId: string, tema: string, conversacionId: string | null): Promise<void>;
   conversacionConContacto(corredorId: string, conversacionId: string): Promise<ConversacionConContacto | null>;
 }
 
