@@ -87,6 +87,18 @@
   box-shadow: 0 2px 8px rgb(11 20 26 / 8%);
 }
 
+/* Teléfono: con el teclado abierto la hojita y su campo no quedan bajo la barra de abajo (84 px + zona segura) */
+@media (max-width: 899px) {
+  .marco.tema main .hoja-calificar {
+    margin-bottom: calc(96px + env(safe-area-inset-bottom));
+    scroll-margin-bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+
+  .marco.tema main .hoja-calificar textarea {
+    scroll-margin-block: 96px calc(96px + env(safe-area-inset-bottom));
+  }
+}
+
 .marco.tema main .hoja-calificar .hoja-titulo {
   margin: 0;
   font-weight: 700;

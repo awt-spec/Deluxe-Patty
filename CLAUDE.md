@@ -278,8 +278,8 @@ también las correcciones del corredor (antes y después) y de dónde aprende (c
 correcciones, horario, tono y temas que van al corredor).
 "Probar la asistente" (`app/panel/probar`, desde Chats): el corredor le escribe como si fuera un cliente y
 `lib/simulador/simulador.ts` corre `procesarMensaje` real con un repositorio que solo lee propiedades,
-agenda y correcciones; la conversación, las citas de prueba y los avisos viven en el estado que guarda el
-navegador (`lib/simulador/estado.ts`). Nada se escribe en mensajes, citas ni conversaciones, nada sale por
+agenda y correcciones; la conversación, las citas de prueba, los avisos, las calificaciones y la nota viven en el estado del
+navegador (`lib/simulador/estado.ts`) y se guardan en `localStorage` por corredor durante 24 h (`lib/simulador/guardado.ts`). Nada se escribe en mensajes, citas ni conversaciones, nada sale por
 WhatsApp y no suma al tope; solo se registra el costo de Claude.
 Cada respuesta de la prueba se **califica** (pulgares): "No me gustó" → `calificarRespuesta` (`app/panel/probar/calificar.ts`,
 reglas en `lib/simulador/calificar.ts`, `queGuardar`): la versión del corredor va a `correcciones` (con un `mensaje_id` propio de
