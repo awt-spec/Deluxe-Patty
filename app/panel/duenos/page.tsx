@@ -1,4 +1,5 @@
 import Link from "next/link";
+import manifiesto from "@/extension/manifest.json";
 import { fechaCorta, precio } from "@/lib/formato";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Aviso } from "../aviso";
@@ -6,7 +7,9 @@ import { IconoCasa, IconoChats, IconoCheck, IconoLlave } from "../iconos";
 import { Cifra, EncabezadoPagina, Vacio } from "../piezas";
 import { marcarLead } from "../acciones";
 import { desconectarExtension, pasarAMisCasas } from "./acciones";
-import { ConectarExtension } from "./conectar-extension";
+import { EstadoExtensionDuenos } from "./estado-extension";
+import { estadoDelServidor } from "./estado-servidor";
+import "./extension/extension.css";
 
 // Dueños directos como embudo de captación: Encontrado → Le escribí → Respondió → Visité la casa →
 // Firmó conmigo → Publicada. Cada dueño tiene su siguiente paso con un botón; al firmar, la casa pasa a
@@ -41,7 +44,7 @@ const DIA = 24 * 60 * 60_000;
 export default async function Duenos({ searchParams }: { searchParams: Promise<{ etapa?: string; aviso?: string }> }) {
   const { etapa: pedida, aviso } = await searchParams;
   const { supabase, corredor } = await sesionConCorredor();
-  const [{ data }, { data: conexiones }] = await Promise.all([
+  const [{ data }, extension] = await Promise.all([
     supabase
       .from("leads_duenos")
       .select("id, url, titulo, zona, precio, moneda, puntaje, senales, estado_contacto, estado_at, semana, propiedad_id")
@@ -50,16 +53,8 @@ export default async function Duenos({ searchParams }: { searchParams: Promise<{
       .neq("estado_contacto", "descartado")
       .order("puntaje", { ascending: false })
       .limit(300),
-    supabase
-      .from("extension_conexiones")
-      .select("conectada_at, ultimo_uso_at")
-      .eq("corredor_id", corredor.id)
-      .not("conectada_at", "is", null)
-      .is("revocada_at", null)
-      .order("conectada_at", { ascending: false })
-      .limit(1),
+    estadoDelServidor({ supabase, corredor }),
   ]);
-  const conexion = conexiones?.[0] as { conectada_at: string; ultimo_uso_at: string | null } | undefined;
   const leads = (data ?? []) as Lead[];
   const cuantos = (e: string) => leads.filter((l) => l.estado_contacto === e).length;
   // Sin elegir, se abre la primera etapa que tenga dueños (lo que más pide atención).
@@ -183,30 +178,26 @@ export default async function Duenos({ searchParams }: { searchParams: Promise<{
         })}
       </div>
 
-      <section id="buscar-duenos" className="tarjeta pila" style={{ marginTop: 20 }}>
+      <section id="buscar-duenos" className="tarjeta pila ext-seccion" style={{ marginTop: 20 }}>
         <h2>Buscar dueños desde Chrome</h2>
-        {corredor.activo === false ? (
-          <p className="suave">En la demo no se conecta la extensión: en una cuenta real, aquí la conectas.</p>
-        ) : conexion ? (
-          <>
-            <p>
-              Tu extensión está conectada
-              {conexion.ultimo_uso_at ? ` (la usaste el ${fechaCorta(conexion.ultimo_uso_at.slice(0, 10))})` : ""}. Ábrela en
-              Chrome y toca <strong>Buscar dueños</strong> una vez por semana.
-            </p>
+        <EstadoExtensionDuenos
+          servidor={{ conectada: extension.conectada, ultimaBusquedaDias: extension.ultimaBusquedaDias }}
+          version={manifiesto.version}
+          demo={extension.demo}
+          corredor={extension.corredor}
+          desconectar={
             <form action={desconectarExtension}>
-              <button type="submit">Desconectar la extensión</button>
+              <button type="submit" data-patty="duenos-desconectar">
+                Desconectar
+              </button>
             </form>
-          </>
-        ) : (
-          <>
-            <p>
-              La búsqueda corre en tu Chrome: la extensión abre Encuentra24 en una pestaña y aquí aparecen los dueños.{" "}
-              <Link href="/panel/duenos/extension">Cómo instalarla</Link>.
-            </p>
-            <ConectarExtension />
-          </>
-        )}
+          }
+        />
+        <p className="suave">
+          La extensión abre Encuentra24 en una pestaña de tu Chrome, lee los anuncios de tus zonas y aquí aparecen los dueños. Busca
+          sola una vez por semana mientras Chrome esté abierto.{" "}
+          <a href="/panel/duenos/extension">Ver la instalación paso a paso</a>.
+        </p>
       </section>
     </>
   );

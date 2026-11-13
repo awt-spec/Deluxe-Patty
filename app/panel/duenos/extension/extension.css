@@ -1,0 +1,777 @@
+/* Instalar la extensión de Chrome (/panel/duenos/extension) y su tarjeta de estado en Dueños directos.
+   Un paso a la vez, con el dibujo grande al lado (debajo en pantallas angostas), letra y botones grandes,
+   verde de WhatsApp oscuro (#008069, AA sobre blanco) para la acción principal. */
+
+.marco.tema main .ext-pagina {
+  --ext-verde: #008069;
+  --ext-verde-hover: #006e5a;
+  --ext-verde-claro: #e7f7f1;
+  --ext-texto: #111b21;
+  --ext-suave: #3b4a54;
+  --ext-linea: #e2e6e9;
+  max-width: 920px;
+  margin-inline: auto;
+}
+
+.marco.tema main .solo-lector {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Acción principal: el verde oscuro (el claro no llega a AA con letra blanca) */
+.marco.tema main .ext-pagina .primario,
+.marco.tema main .ext-seccion .primario {
+  background: #008069;
+  border-color: #008069;
+  color: #fff;
+}
+.marco.tema main .ext-pagina .primario:hover,
+.marco.tema main .ext-seccion .primario:hover {
+  background: #006e5a;
+  border-color: #006e5a;
+}
+.marco.tema main .ext-pagina :focus-visible,
+.marco.tema main .ext-seccion :focus-visible {
+  outline: 3px solid #008069;
+  outline-offset: 3px;
+}
+.marco.tema main .ext-pagina h2[tabindex="-1"]:focus {
+  outline: none;
+}
+.marco.tema main .ext-pagina h2[tabindex="-1"]:focus-visible {
+  outline: 3px solid #008069;
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+.marco.tema main .ext-pagina button.enlace {
+  background: none;
+  border: 0;
+  padding: 0 2px;
+  min-height: 0;
+  color: #008069;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* --- Tarjeta de estado ------------------------------------------------------------------------------ */
+
+.marco.tema main .ext-estado {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid #e2e6e9;
+  background: #f0f2f5;
+  margin: 4px 0 18px;
+}
+.marco.tema main .ext-estado[data-tono="verde"] {
+  background: #e7f7f1;
+  border-color: #a6e3d2;
+}
+.marco.tema main .ext-estado[data-tono="ambar"] {
+  background: #fff6e0;
+  border-color: #f1d79a;
+}
+.marco.tema main .ext-estado-punto {
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #e2e6e9;
+  color: #fff;
+  position: relative;
+}
+.marco.tema main .ext-estado-punto::after {
+  content: "";
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #667781;
+}
+.marco.tema main .ext-estado[data-tono="verde"] .ext-estado-punto {
+  background: #008069;
+}
+.marco.tema main .ext-estado[data-tono="verde"] .ext-estado-punto::after {
+  display: none;
+}
+.marco.tema main .ext-estado[data-tono="ambar"] .ext-estado-punto {
+  background: #fde7b0;
+}
+.marco.tema main .ext-estado[data-tono="ambar"] .ext-estado-punto::after {
+  background: #a35f00;
+}
+.marco.tema main .ext-estado-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.marco.tema main .ext-estado-texto strong {
+  font-size: 1.05rem;
+  color: #111b21;
+}
+.marco.tema main .ext-estado-texto span {
+  color: #3b4a54;
+  font-size: 0.95rem;
+}
+.marco.tema main .ext-estado-acciones {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 8px;
+}
+.marco.tema main .ext-estado-acciones form {
+  margin: 0;
+}
+
+/* --- Progreso -------------------------------------------------------------------------------------------- */
+
+.marco.tema main .ext-progreso {
+  margin: 6px 0 14px;
+}
+.marco.tema main .ext-progreso-cuenta {
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #008069;
+}
+.marco.tema main .ext-progreso ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+}
+.marco.tema main .ext-progreso li {
+  position: relative;
+  margin: 0;
+  padding: 0;
+}
+/* La línea que une cada paso con el anterior */
+.marco.tema main .ext-progreso li + li::before {
+  content: "";
+  position: absolute;
+  top: 17px;
+  right: calc(50% + 22px);
+  left: calc(-50% + 22px);
+  height: 3px;
+  border-radius: 2px;
+  background: #e2e6e9;
+}
+.marco.tema main .ext-progreso li[data-estado="hecho"] + li::before,
+.marco.tema main .ext-progreso li[data-estado="actual"]::before {
+  background: #008069;
+}
+.marco.tema main .ext-progreso li[data-estado="falta"]::before {
+  background: #e2e6e9;
+}
+.marco.tema main .ext-progreso button {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px 4px;
+  min-height: 0;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  color: #3b4a54;
+  font: inherit;
+  cursor: pointer;
+}
+.marco.tema main .ext-progreso button:disabled {
+  cursor: default;
+  opacity: 1;
+  color: #667781;
+}
+.marco.tema main .ext-progreso-num {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 1rem;
+  background: #fff;
+  border: 2px solid #d1d7db;
+  color: #667781;
+}
+.marco.tema main .ext-progreso li[data-estado="hecho"] .ext-progreso-num {
+  background: #008069;
+  border-color: #008069;
+  color: #fff;
+}
+.marco.tema main .ext-progreso li[data-estado="actual"] .ext-progreso-num {
+  border-color: #008069;
+  color: #008069;
+  box-shadow: 0 0 0 5px #d5f2e8;
+}
+.marco.tema main .ext-progreso-nombre {
+  font-size: 0.88rem;
+  text-align: center;
+  line-height: 1.25;
+}
+.marco.tema main .ext-progreso li[data-estado="actual"] .ext-progreso-nombre {
+  color: #111b21;
+  font-weight: 700;
+}
+
+/* --- La tarjeta del paso --------------------------------------------------------------------------------- */
+
+.marco.tema main .ext-tarjeta {
+  background: #fff;
+  border: 1px solid #e2e6e9;
+  border-radius: 20px;
+  padding: 28px;
+  box-shadow:
+    0 1px 2px rgb(11 20 26 / 5%),
+    0 10px 30px rgb(11 20 26 / 6%);
+}
+.marco.tema main .ext-paso {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: 32px;
+  align-items: start;
+}
+.marco.tema main .ext-paso-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.marco.tema main .ext-paso-texto > p,
+.marco.tema main .ext-paso-texto > ol {
+  margin: 0;
+}
+.marco.tema main .ext-paso-num {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: #e7f7f1;
+  color: #008069;
+  font-weight: 800;
+  font-size: 1.15rem;
+}
+.marco.tema main .ext-paso h2,
+.marco.tema main .ext-listo h2,
+.marco.tema main .ext-otro h2 {
+  margin: 0;
+  font-size: 1.6rem;
+  line-height: 1.2;
+  color: #111b21;
+}
+.marco.tema main .ext-instruccion {
+  font-size: 1.12rem;
+  line-height: 1.55;
+  color: #111b21;
+}
+.marco.tema main .ext-nota {
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #f0f2f5;
+  color: #3b4a54;
+  font-size: 0.96rem;
+  line-height: 1.45;
+}
+.marco.tema main .ext-nota-verde {
+  background: #e7f7f1;
+  color: #0b4f40;
+  font-weight: 600;
+}
+.marco.tema main .ext-accion {
+  align-self: flex-start;
+  min-height: 54px;
+  padding: 0 28px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+.marco.tema main .ext-paso-dibujo,
+.marco.tema main .ext-otra-forma .ilus {
+  border-radius: 16px;
+  background: linear-gradient(160deg, #f6faf8, #eef2f5);
+  border: 1px solid #e8edf0;
+  padding: 12px;
+}
+.marco.tema main .ilus {
+  display: block;
+  width: 100%;
+  height: auto;
+  font-family: inherit;
+}
+.marco.tema main .ext-paso-dibujo {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.marco.tema main .ext-paso-dibujo .ilus + .ilus {
+  padding-top: 12px;
+  border-top: 1px solid #e3e9ec;
+}
+
+/* Halo que late y enlace que avanza: suaves, y quietos con "reducir movimiento" */
+@keyframes ext-latido {
+  0%,
+  100% {
+    opacity: 0.1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+@keyframes ext-avanza {
+  to {
+    stroke-dashoffset: -26;
+  }
+}
+@keyframes ext-gira {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.marco.tema main .ilus-halo {
+  animation: ext-latido 1.8s ease-in-out infinite;
+}
+.marco.tema main .ilus-enlace {
+  animation: ext-avanza 1s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .marco.tema main .ilus-halo,
+  .marco.tema main .ilus-enlace,
+  .marco.tema main .ext-girando {
+    animation: none;
+  }
+}
+
+/* Windows / Mac */
+.marco.tema main .ext-sistema {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 4px;
+  gap: 4px;
+  border-radius: 999px;
+  background: #f0f2f5;
+}
+.marco.tema main .ext-sistema button {
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 0;
+  background: transparent;
+  color: #3b4a54;
+  font-weight: 600;
+  font-size: 1rem;
+}
+.marco.tema main .ext-sistema button[aria-pressed="true"] {
+  background: #fff;
+  color: #008069;
+  box-shadow: 0 1px 3px rgb(11 20 26 / 15%);
+}
+
+/* chrome://extensions para copiar */
+.marco.tema main .ext-direccion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.marco.tema main .ext-direccion code,
+.marco.tema main .ext-enlace code {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 1.1rem;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: #f0f2f5;
+  border: 1.5px dashed #b7c3ca;
+  color: #111b21;
+  user-select: all;
+  overflow-wrap: anywhere;
+}
+.marco.tema main .ext-direccion button {
+  min-height: 48px;
+  padding: 0 20px;
+  border-radius: 12px;
+  font-weight: 700;
+}
+
+.marco.tema main .ext-subpasos {
+  padding-left: 0;
+  list-style: none;
+  counter-reset: sub;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.marco.tema main .ext-subpasos li {
+  counter-increment: sub;
+  position: relative;
+  padding-left: 40px;
+  font-size: 1.08rem;
+  line-height: 1.5;
+}
+.marco.tema main .ext-subpasos li::before {
+  content: counter(sub);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #008069;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  display: grid;
+  place-items: center;
+}
+
+/* Atrás / Siguiente */
+.marco.tema main .ext-botonera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+.marco.tema main .ext-botonera button,
+.marco.tema main .ext-botonera .boton {
+  min-height: 50px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 1.02rem;
+  font-weight: 600;
+  border-radius: 14px;
+  padding: 0 20px;
+}
+.marco.tema main .ext-botonera .ext-atras {
+  background: transparent;
+  border-color: transparent;
+  color: #3b4a54;
+  padding-left: 6px;
+}
+.marco.tema main .ext-botonera .ext-atras:hover {
+  background: #f0f2f5;
+}
+.marco.tema main .ext-botonera .ext-siguiente:not(.primario) {
+  border: 1.5px solid #008069;
+  color: #006e5a;
+  background: #fff;
+}
+.marco.tema main .ext-botonera .ext-siguiente:not(.primario):hover {
+  background: #e7f7f1;
+}
+
+/* ¿No te sale así? y "a mano" */
+.marco.tema main .ext-ayuda,
+.marco.tema main .ext-otra-forma,
+.marco.tema main .ext-manual {
+  border-top: 1px solid #e2e6e9;
+  padding-top: 6px;
+}
+.marco.tema main .ext-manual {
+  grid-column: 1 / -1;
+  border: 1px dashed #c9d2d8;
+  border-radius: 14px;
+  padding: 4px 16px 6px;
+  margin-top: 4px;
+}
+.marco.tema main .ext-ayuda summary,
+.marco.tema main .ext-otra-forma summary,
+.marco.tema main .ext-manual summary {
+  cursor: pointer;
+  color: #006e5a;
+  font-weight: 700;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+.marco.tema main .ext-ayuda dl {
+  margin: 4px 0 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.marco.tema main .ext-ayuda dt {
+  font-weight: 700;
+  color: #111b21;
+}
+.marco.tema main .ext-ayuda dd {
+  margin: 2px 0 0;
+  color: #3b4a54;
+  line-height: 1.5;
+}
+.marco.tema main .ext-otra-forma p {
+  margin: 4px 0 10px;
+  line-height: 1.5;
+}
+.marco.tema main .ext-manual form {
+  margin: 8px 0 10px;
+}
+
+/* Conectar */
+.marco.tema main .ext-exito {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #0b4f40;
+}
+.marco.tema main .ext-exito span {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #008069;
+  color: #fff;
+  flex: 0 0 40px;
+}
+.marco.tema main .ext-cargando {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #111b21;
+}
+.marco.tema main .ext-girando {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 3px solid #d5f2e8;
+  border-top-color: #008069;
+  animation: ext-gira 0.9s linear infinite;
+}
+
+.marco.tema main .ext-empezar {
+  text-align: center;
+  margin: 14px 0 0;
+  color: #3b4a54;
+}
+
+/* ¡Listo! */
+.marco.tema main .ext-listo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+}
+.marco.tema main .ext-listo-check {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #008069;
+  color: #fff;
+  box-shadow: 0 0 0 10px #e7f7f1;
+  margin: 6px 0 8px;
+}
+.marco.tema main .ext-listo .ext-instruccion {
+  margin: 0;
+}
+.marco.tema main .ext-listo-grilla {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  width: 100%;
+  text-align: left;
+  margin-top: 8px;
+}
+.marco.tema main .ext-listo-item {
+  border: 1px solid #e2e6e9;
+  border-radius: 16px;
+  padding: 16px 18px;
+  background: #fafbfc;
+}
+.marco.tema main .ext-listo-item h3 {
+  margin: 0 0 6px;
+  font-size: 1.1rem;
+  color: #111b21;
+}
+.marco.tema main .ext-listo-item p {
+  margin: 0;
+  line-height: 1.5;
+  color: #3b4a54;
+}
+.marco.tema main .ext-listo-fijar {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  gap: 18px;
+  align-items: center;
+}
+.marco.tema main .ext-listo-fijar .ilus {
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e8edf0;
+}
+.marco.tema main .ext-listo-fin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  margin-top: 10px;
+}
+.marco.tema main .ext-listo-fin .ext-accion {
+  align-self: center;
+  width: auto;
+}
+
+/* Actualizar */
+.marco.tema main .ext-actualizar-cabeza {
+  border-radius: 16px;
+  background: #fff6e0;
+  border: 1px solid #f1d79a;
+  padding: 16px 20px;
+  margin-bottom: 14px;
+}
+.marco.tema main .ext-actualizar-cabeza h2 {
+  margin: 0 0 4px;
+  font-size: 1.3rem;
+}
+.marco.tema main .ext-actualizar-cabeza p {
+  margin: 0;
+  color: #3b4a54;
+  line-height: 1.5;
+}
+
+/* Teléfono u otro navegador */
+.marco.tema main .ext-otro {
+  max-width: 600px;
+  margin: 8px auto 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+  background: #fff;
+  border: 1px solid #e2e6e9;
+  border-radius: 20px;
+  padding: 24px;
+}
+.marco.tema main .ext-otro-dibujo {
+  width: 100%;
+  max-width: 420px;
+}
+.marco.tema main .ext-otro .ext-instruccion,
+.marco.tema main .ext-otro p {
+  margin: 0;
+}
+.marco.tema main .ext-enlace {
+  width: 100%;
+}
+.marco.tema main .ext-enlace code {
+  display: block;
+  font-size: 0.98rem;
+}
+.marco.tema main .ext-otro-botones {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+.marco.tema main .ext-otro-botones button {
+  width: 100%;
+  min-height: 54px;
+  font-weight: 700;
+  font-size: 1.08rem;
+  border-radius: 14px;
+}
+
+.marco.tema main .ext-esperando {
+  min-height: 460px;
+}
+
+/* --- Pantallas medianas y teléfono ---------------------------------------------------------------- */
+
+@media (min-width: 761px) {
+  .marco.tema main .ext-paso-dibujo {
+    position: sticky;
+    top: 16px;
+  }
+}
+
+@media (max-width: 760px) {
+  .marco.tema main .ext-tarjeta {
+    padding: 18px 16px;
+    border-radius: 16px;
+  }
+  .marco.tema main .ext-paso {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .marco.tema main .ext-paso-dibujo {
+    order: -1;
+    padding: 8px;
+  }
+  .marco.tema main .ext-paso h2,
+  .marco.tema main .ext-listo h2,
+  .marco.tema main .ext-otro h2 {
+    font-size: 1.35rem;
+  }
+  .marco.tema main .ext-progreso-nombre {
+    display: none;
+  }
+  .marco.tema main .ext-progreso li[data-estado="actual"] .ext-progreso-nombre {
+    display: block;
+    white-space: nowrap;
+  }
+  .marco.tema main .ext-accion {
+    align-self: stretch;
+  }
+  .marco.tema main .ext-listo-grilla,
+  .marco.tema main .ext-listo-fijar {
+    grid-template-columns: 1fr;
+  }
+  .marco.tema main .ext-estado {
+    flex-wrap: wrap;
+  }
+  .marco.tema main .ext-estado-acciones {
+    flex: 1 0 100%;
+  }
+  .marco.tema main .ext-estado-acciones > * {
+    flex: 1;
+  }
+  .marco.tema main .ext-estado-acciones button,
+  .marco.tema main .ext-estado-acciones .boton {
+    width: 100%;
+  }
+  .marco.tema main .ext-botonera .ext-siguiente {
+    flex: 1;
+    justify-content: center;
+    white-space: nowrap;
+    padding: 0 14px;
+  }
+  .marco.tema main .ext-listo-fin .ext-accion {
+    align-self: stretch;
+  }
+}

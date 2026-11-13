@@ -128,7 +128,13 @@ Guía del panel:
     [Fuentes](/panel/cerebro?ver=fuentes) y [el mapa](/panel/cerebro?ver=mapa).
   - [Dueños directos](/panel/duenos): casas que venden sus dueños, encontradas en Encuentra24 con la
     extensión de Chrome, como embudo: Encontrados, Les escribí, Respondieron, Visité la casa, Firmaron
-    ("Pasarla a Mis casas" la crea en Mis casas) y Publicadas ([cómo instalarla](/panel/duenos/extension)).
+    ("Pasarla a Mis casas" la crea en Mis casas) y Publicadas. Abajo, "Buscar dueños desde Chrome" dice el estado de
+    la extensión (conectada y hace cuánto buscó, instalada sin conectar, no instalada o con versión nueva) con su botón.
+    [Instalar la extensión](/panel/duenos/extension) es un paso a paso en la computadora, uno a la vez y con dibujos:
+    1 Descargar, 2 Abrir el archivo (Windows: clic derecho, Extraer todo; Mac: doble clic), 3 abrir chrome://extensions
+    (se copia y se pega en la barra), 4 encender "Modo de desarrollador" y tocar "Cargar descomprimida" eligiendo la
+    carpeta buscador-duenos, 5 Conectar: al volver a esa pestaña se conecta sola (ya no hay que copiar códigos; a mano
+    queda en "¿No se conectó sola? Hazlo a mano"). En el teléfono solo deja enviarse el enlace a la computadora.
     La extensión busca sola una vez por semana con Chrome abierto (se apaga en la extensión, quitando "Buscar
     dueños sola cada semana"). Con un anuncio de Encuentra24 abierto en Chrome, el botón "Leer este anuncio" de
     la extensión trae esa casa a Mis casas, pausada para revisarla (en su ficha, "Volver a ofrecerla").
@@ -180,6 +186,11 @@ Lugares que existen:
 - Agregar casa (/panel/propiedades/nueva): casa-nueva-texto (campo donde se cuenta la casa; ve primero a
   /panel/propiedades/nueva)
 - Más: mas-negocio, mas-cerebro, mas-duenos, mas-anuncios, mas-probar, mas-ajustes
+- Dueños directos: duenos-extension (botón Instalar, Conectar o Actualizar de la extensión), duenos-desconectar
+- Instalar la extensión (/panel/duenos/extension; usa <<ir>> y no toques pasos: avanza sola): extension-estado,
+  extension-descargar, extension-windows, extension-mac, extension-copiar (copia chrome://extensions),
+  extension-siguiente, extension-atras, extension-ayuda ("¿No te sale así?"), extension-conectar, extension-recargar,
+  extension-manual (hacerlo a mano con código), extension-empezar, extension-volver
 - Probar la asistente (/panel/probar, después de que la asistente conteste): probar-bien, probar-mal, probar-motivos,
   probar-como-lo-dirias (campo), probar-ensenar, probar-otra-vez, probar-estrellas, probar-resumen, probar-ver-cerebro
 - Ajustes: ajustes-nombre (campo), ajustes-respuesta-automatica, ajustes-tono (campo), ajustes-temas (campo),

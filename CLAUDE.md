@@ -66,10 +66,18 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   faltaba) y llena `propiedades.url_e24`; si no, arma la ficha con `conversarFicha` (el texto va como dato, nunca
   como instrucciones), no duplica por `url_e24` ni guarda si falta lo esencial, y la guarda **pausada** (`inactiva`)
   con las fotos copiadas solo desde `*.encuentra24.com` (`lib/fotos/copiar.ts`). Frenos: una lectura cada 10 s por
-  corredor y el mismo anuncio una vez por minuto (`alertas`). Se conecta con un código de un solo uso del panel (Más → Dueños directos) que se
-  canjea por un permiso; solo se guardan huellas (`extension_conexiones`). `npm run build` la empaca en
-  `public/extension/buscador-duenos.zip` con la dirección de `NEXT_PUBLIC_URL_APP`
-  (`scripts/empacar-extension.mts`); se instala "descomprimida" (paso a paso en `/panel/duenos/extension`).
+  corredor y el mismo anuncio una vez por minuto (`alertas`). Se conecta con un código de un solo uso del panel que se canjea por un permiso; solo se guardan huellas
+  (`extension_conexiones`). Desde la versión 1.2.0 se **conecta sola**: un content script (`extension/canal.js` +
+  `panel.js`, solo en `<APP>/panel/duenos*`, ventana principal) le dice a la página que está instalada y su versión, y la
+  página le pasa por `postMessage` (mismo origen y ventana, `lib/panel/extension-instalar.ts`) un código recién pedido con
+  `pedirCodigoExtension`; el background lo canjea en `/api/extension/conectar` y a la página solo vuelve "conectada a
+  <corredor>", nunca el permiso. Al instalarla o actualizarla se inyecta en la pestaña del panel ya abierta. `npm run build`
+  la empaca en `public/extension/buscador-duenos.zip` con la dirección de `NEXT_PUBLIC_URL_APP` (en `config.js`, `panel.js` y
+  el manifiesto; `scripts/empacar-extension.mts`); la versión que espera el panel sale de `extension/manifest.json`. Se
+  instala "descomprimida" con un asistente paso a paso en `/panel/duenos/extension` (`app/panel/duenos/extension/`: un
+  paso por pantalla con dibujos SVG de Chrome, avanza solo al ver la extensión, recuerda el paso en el navegador, mini
+  asistente para actualizar una versión anterior; en teléfono o Safari/Firefox solo manda el enlace) y su estado se ve en
+  Dueños directos (`estado-extension.tsx`); el código a mano queda de respaldo.
   El worker con Playwright (`worker/busqueda-duenos.ts`, `npm run duenos` con Chrome visible) usa el mismo
   recorrido y evaluación (`lib/encuentra24/busqueda.ts`) y queda para soporte;
   `.github/workflows/busqueda-duenos.yml` solo para pruebas a mano.
