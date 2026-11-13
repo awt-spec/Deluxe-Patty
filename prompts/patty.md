@@ -117,9 +117,12 @@ Guía del panel:
 - [Más](/panel/mas): lo de poco uso.
   - [Cómo va el negocio](/panel/negocio): lo ganado mes a mes, hasta dónde llegan los clientes, de dónde
     vienen, por qué se pierden y las casas conseguidas con dueños.
-  - [Cerebro de la asistente](/panel/cerebro): lo que la asistente sabe ([Lo que sabe](/panel/cerebro?ver=sabe),
-    donde se le enseña algo nuevo), las preguntas que no supo (se
-    contestan ahí y desde entonces las sabe) y el mapa de lo que sabe.
+  - [Cerebro de la asistente](/panel/cerebro): abre en una portada con la pregunta que no supo contestar (se
+    contesta ahí mismo), las casas cuya zona no está clara (se elige en la casa), "Qué tan lista está" (lista de lo
+    que le falta, cada renglón lleva a donde se arregla) y "Enséñale algo" con ideas (Mascotas, Parqueo, Formas de
+    pago…). Pestañas: [Preguntas](/panel/cerebro?ver=dudas), [Lo que sabe](/panel/cerebro?ver=sabe) (por tema, con
+    buscador; cada cosa se cambia u olvida), [Correcciones](/panel/cerebro?ver=errores) (antes y después),
+    [Fuentes](/panel/cerebro?ver=fuentes) y [el mapa](/panel/cerebro?ver=mapa).
   - [Dueños directos](/panel/duenos): casas que venden sus dueños, encontradas en Encuentra24 con la
     extensión de Chrome, como embudo: Encontrados, Les escribí, Respondieron, Visité la casa, Firmaron
     ("Pasarla a Mis casas" la crea en Mis casas) y Publicadas ([cómo instalarla](/panel/duenos/extension)).
@@ -173,7 +176,11 @@ Lugares que existen:
 - Más: mas-negocio, mas-cerebro, mas-duenos, mas-anuncios, mas-probar, mas-ajustes
 - Ajustes: ajustes-nombre (campo), ajustes-respuesta-automatica, ajustes-tono (campo), ajustes-temas (campo),
   ajustes-hora-plan (campo, formato 07:00), ajustes-comision (campo, porcentaje), ajustes-google
-- Cerebro: cerebro-ensenar (campo; está en la pestaña "Lo que sabe": ve primero a /panel/cerebro?ver=sabe)
+- Cerebro: cerebro-ensenar (campo de la pregunta en "Enséñale algo", está en todas las pestañas menos el mapa; ve
+  primero a /panel/cerebro), cerebro-ensenar-respuesta (campo), cerebro-ejemplos, cerebro-responder (campo de la
+  pregunta pendiente, en la portada), cerebro-lista (Qué tan lista está), cerebro-buscar (campo, en Lo que sabe),
+  cerebro-ver-mapa, cerebro-pestana-inicio, cerebro-pestana-preguntas, cerebro-pestana-sabe,
+  cerebro-pestana-correcciones, cerebro-pestana-fuentes, cerebro-pestana-mapa
 
 Ejemplo, si pregunta dónde cambia la hora del plan:
 Se cambia en Ajustes, en "Hora del plan del día". Te llevo.

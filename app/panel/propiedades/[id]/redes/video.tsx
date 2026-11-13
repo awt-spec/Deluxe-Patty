@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { aplicarVideo, type EstadoVideo, type TurnoChat } from "@/lib/redes/chat";
 import { mejoresReales, type OpcionFoto } from "@/lib/redes/fotos";
 import {
   DURACION_MAX,
@@ -20,7 +21,8 @@ import {
   type FormatoVideo,
 } from "@/lib/redes/video";
 import { COLORES_NEUTROS, ESTILOS_LISTA, ESTILOS_VIDEO, cifrasFueraDeFicha, coloresDelVideo, estiloPorDefecto, type EstiloVideo } from "@/lib/redes/estilo-video";
-import { proponerGuionVideo } from "./acciones";
+import { pedirVideoRedes, proponerGuionVideo } from "./acciones";
+import { ChatRedes, type RespuestaChat } from "./chat";
 import { MUSICA_MAX_MB, cargarFoto, dibujarCuadro, formatoDeGrabacion, grabarVideo, prepararFuentes, revisarMusica, type Recursos } from "./dibujo";
 import type { DatosEstudio } from "./estudio";
 
@@ -64,6 +66,12 @@ export function EditorVideo(d: DatosEstudio) {
   const [musica, setMusica] = useState<{ archivo: File; nombre: string; duracion: number } | null>(null);
   const [leyendoMusica, setLeyendoMusica] = useState(false);
   const miniaturas = useRef(new Map<EstiloVideo, HTMLCanvasElement>());
+  // "Deshacer" del chat: los estados del video antes de cada cambio que hizo la asistente.
+  const [antes, setAntes] = useState<EstadoVideo[]>([]);
+  const actual = useRef<EstadoVideo>({ escenas, estilo, formato });
+  useEffect(() => {
+    actual.current = { escenas, estilo, formato };
+  }, [escenas, estilo, formato]);
 
   const lienzo = useRef<HTMLCanvasElement>(null);
   const fotos = useRef(new Map<string, HTMLImageElement>());
@@ -185,6 +193,32 @@ export function EditorVideo(d: DatosEstudio) {
     }
   };
 
+  const ponerEstado = (e: EstadoVideo) => {
+    setEscenas(ajustar(e.escenas));
+    setEstilo(e.estilo);
+    setFormato(e.formato);
+    setArchivo(null);
+    setReproduciendo(false);
+    setTiempo(0);
+  };
+  const pedirAlChat = async (pedido: string, historial: TurnoChat[]): Promise<RespuestaChat> => {
+    const r = await pedirVideoRedes(d.propiedadId, actual.current, pedido, historial);
+    if (!r.ok) return { texto: r.motivo, error: true };
+    if (r.ops.length === 0) return { texto: r.respuesta };
+    // Sobre el video de ahora (si mientras tanto se cambió algo a mano, eso se respeta).
+    const previo = actual.current;
+    const { estado, hechos } = aplicarVideo(previo, r.ops, { porDefecto: () => guionPorDefecto(reales.map(comoFoto), d.datosVideo) });
+    setAntes((a) => [...a, previo].slice(-20));
+    ponerEstado(estado);
+    return { texto: r.respuesta, cambios: hechos };
+  };
+  const deshacer = () => {
+    const previo = antes[antes.length - 1];
+    if (!previo) return;
+    setAntes(antes.slice(0, -1));
+    ponerEstado(previo);
+  };
+
   const descargar = async () => {
     if (!lienzo.current || !soporte) return;
     setReproduciendo(false);
@@ -235,6 +269,7 @@ export function EditorVideo(d: DatosEstudio) {
   const ocupado = grabando !== null;
 
   return (
+    <div className="redes-con-chat">
     <div className="redes-video pila">
       <p className="suave">Un video corto con las fotos reales de la casa. Elige un estilo, ordena las escenas, cambia los textos y descárgalo.</p>
 
@@ -494,6 +529,18 @@ export function EditorVideo(d: DatosEstudio) {
           </button>
         </div>
       </div>
+    </div>
+      <ChatRedes
+        clave={d.propiedadId}
+        asistente={d.asistente}
+        pestana="video"
+        sugerencias={["Hazlo de 15 segundos", "Pon la piscina de primera", "Cámbialo a estilo Moderno", "Hazlo cuadrado"]}
+        ayuda="Dime qué cambiar con tus palabras: «pon la piscina de primera», «quita la escena 3», «hazlo de 20 segundos». Puedes nombrar las fotos o usar el número de la escena. El precio y los datos los pone la ficha; la música se elige con su botón."
+        pedir={pedirAlChat}
+        puedeDeshacer={antes.length > 0}
+        deshacer={deshacer}
+        apagado={ocupado}
+      />
     </div>
   );
 }

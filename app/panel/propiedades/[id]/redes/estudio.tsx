@@ -2,11 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { esCostosa, type OperacionImagen, type TurnoChat } from "@/lib/redes/chat";
 import type { OpcionFoto } from "@/lib/redes/fotos";
 import { MODOS_TEXTO, type ModoTexto } from "@/lib/redes/texto-ia";
 import { TAMANOS, type Formato } from "@/lib/redes/texto";
 import type { DatosVideo } from "@/lib/redes/video";
-import { mejorarFotoRedes, mejorarTextoRedes } from "./acciones";
+import { editarFotoRedes, mejorarFotoRedes, mejorarTextoRedes, pedirImagenRedes, pedirTextoRedes } from "./acciones";
+import { ChatRedes, type RespuestaChat } from "./chat";
 import { CopiarTexto } from "./copiar";
 import type { Colores } from "./dibujo";
 import { EditorVideo } from "./video";
@@ -31,6 +33,8 @@ export interface DatosEstudio {
   /** null si se puede mejorar fotos con IA; si no, por qué. */
   sinMejorar: string | null;
   pestana: Pestana;
+  /** Nombre de la asistente (corredores.nombre_asistente). */
+  asistente: string;
 }
 
 const PESTANAS: { id: Pestana; nombre: string }[] = [
@@ -77,7 +81,7 @@ export function Estudio(d: DatosEstudio) {
       <div role="tabpanel" id={`redes-panel-${pestana}`} aria-labelledby={`redes-tab-${pestana}`}>
         {pestana === "imagen" && <PestanaImagen {...d} />}
         {pestana === "video" && <EditorVideo {...d} />}
-        {pestana === "texto" && <PestanaTexto propiedadId={d.propiedadId} original={d.texto} texto={texto} setTexto={setTexto} />}
+        {pestana === "texto" && <PestanaTexto propiedadId={d.propiedadId} asistente={d.asistente} original={d.texto} texto={texto} setTexto={setTexto} />}
       </div>
     </div>
   );
@@ -90,6 +94,7 @@ function PestanaImagen(d: DatosEstudio) {
   const [url, setUrl] = useState(() => (d.opciones.some((o) => o.url === d.elegidaInicial) ? d.elegidaInicial! : d.opciones[0]?.url));
   const [aviso, setAviso] = useState<{ texto: string; error: boolean } | null>(null);
   const [mejorando, empezar] = useTransition();
+  const [antes, setAntes] = useState<string[]>([]);
   const elegida = d.opciones.find((o) => o.url === url) ?? d.opciones[0];
   if (!elegida) return null;
   const mejoradaDeEsta = d.opciones.find((o) => o.tipo === "mejorada" && o.original === elegida.original);
@@ -100,6 +105,67 @@ function PestanaImagen(d: DatosEstudio) {
     setUrl(u);
     setAviso(null);
     recordarEnDireccion("img", u);
+  };
+  // Lo que hace el chat se puede deshacer: vuelve a la foto que estaba elegida.
+  const elegirDesdeChat = (u: string) => {
+    if (u === url) return;
+    setAntes((a) => [...a, url].slice(-20));
+    elegir(u);
+  };
+  const deshacer = () => {
+    const previa = antes[antes.length - 1];
+    if (!previa) return;
+    setAntes(antes.slice(0, -1));
+    elegir(previa);
+  };
+
+  /** Lo que gasta en IA de imágenes se pregunta antes; después se elige la imagen nueva. */
+  const confirmacion = (o: OperacionImagen): RespuestaChat["confirmar"] => {
+    const foto = o.nombre.toLowerCase();
+    const detalle =
+      o.op === "quitar_objetos"
+        ? `Quitar «${o.que}» de la ${foto}. Sale como imagen ilustrativa (lo dice la imagen) y la original no se toca.`
+        : o.op === "amueblar"
+          ? `Poner muebles estilo ${o.estilo === "clasico" ? "clásico" : o.estilo}${o.cuarto ? ` en ${o.cuarto}` : ""} en la ${foto}. Sale como imagen ilustrativa y la original no se toca.`
+          : `Mejorar la luz y el color de la ${foto}, sin cambiar nada. La original queda guardada.`;
+    return {
+      pregunta: "Esto usa IA de imágenes. ¿Hacerlo?",
+      detalle,
+      hacer: async () => {
+        const r =
+          o.op === "quitar_objetos"
+            ? await editarFotoRedes(d.propiedadId, o.url, { tipo: o.op, que: o.que })
+            : o.op === "amueblar"
+              ? await editarFotoRedes(d.propiedadId, o.url, { tipo: o.op, estilo: o.estilo, cuarto: o.cuarto })
+              : await mejorarFotoRedes(d.propiedadId, o.url);
+        if (!r.ok) return { texto: r.motivo, error: true };
+        router.refresh();
+        elegirDesdeChat(r.url);
+        return {
+          texto:
+            o.op === "mejorar_foto"
+              ? "Listo, la mejoré y ya la puse. Revísala: la IA a veces cambia detalles."
+              : "Listo, ya la puse. Revísala bien: es ilustrativa y en el post y la historia dice «Imagen ilustrativa».",
+        };
+      },
+    };
+  };
+  const pedirAlChat = async (pedido: string, historial: TurnoChat[]): Promise<RespuestaChat> => {
+    const r = await pedirImagenRedes(d.propiedadId, elegida.url, pedido, historial);
+    if (!r.ok) return { texto: r.motivo, error: true };
+    const cambios: string[] = [];
+    for (const o of r.ops) {
+      if (o.op === "elegir_foto") {
+        elegirDesdeChat(o.url);
+        cambios.push(`elegí la ${o.nombre.toLowerCase()}`);
+      }
+    }
+    const costosa = r.ops.find(esCostosa);
+    return {
+      texto: r.bloqueo ? `${r.respuesta} ${r.bloqueo}` : r.respuesta,
+      cambios,
+      ...(costosa ? { confirmar: confirmacion(costosa) } : {}),
+    };
   };
   const mejorar = () =>
     empezar(async () => {
@@ -112,6 +178,7 @@ function PestanaImagen(d: DatosEstudio) {
     });
 
   return (
+    <div className="redes-con-chat">
     <div className="pila">
       <p className="suave">Toca la foto que quieres usar. El precio y los datos salen de la ficha de la casa.</p>
       <TiraFotos opciones={d.opciones} elegida={elegida.url} alElegir={elegir} />
@@ -158,6 +225,17 @@ function PestanaImagen(d: DatosEstudio) {
         ))}
       </div>
     </div>
+      <ChatRedes
+        clave={d.propiedadId}
+        asistente={d.asistente}
+        pestana="imagen"
+        sugerencias={["Usa la foto de la piscina", "Quita el carro", "Amuebla la sala estilo moderno", "Mejora esta foto"]}
+        ayuda="Dime qué foto usar («la de la piscina») o qué hacerle. Con IA solo quito cosas sueltas (carros, basureros, personas) o pongo muebles: nunca cambio la casa ni tapo daños. Antes de gastar te pregunto."
+        pedir={pedirAlChat}
+        puedeDeshacer={antes.length > 0}
+        deshacer={deshacer}
+      />
+    </div>
   );
 }
 
@@ -186,8 +264,29 @@ export function TiraFotos({ opciones, elegida, alElegir, marcadas }: { opciones:
 
 // --- Texto -----------------------------------------------------------------------------------------
 
-function PestanaTexto({ propiedadId, original, texto, setTexto }: { propiedadId: string; original: string; texto: string; setTexto: (t: string) => void }) {
+function PestanaTexto({
+  propiedadId,
+  asistente,
+  original,
+  texto,
+  setTexto,
+}: {
+  propiedadId: string;
+  asistente: string;
+  original: string;
+  texto: string;
+  setTexto: (t: string) => void;
+}) {
   const [aviso, setAviso] = useState<{ texto: string; error: boolean } | null>(null);
+  const [antes, setAntes] = useState<string[]>([]);
+  const pedirAlChat = async (pedido: string, historial: TurnoChat[]): Promise<RespuestaChat> => {
+    const r = await pedirTextoRedes(propiedadId, texto, pedido, historial);
+    if (!r.ok) return { texto: r.motivo, error: true };
+    setAntes((a) => [...a, texto].slice(-20));
+    setTexto(r.texto);
+    setAviso(null);
+    return { texto: `${r.respuesta} Léelo antes de publicarlo.` };
+  };
   const [trabajando, setTrabajando] = useState<ModoTexto | null>(null);
   const [, empezar] = useTransition();
   const pedir = (modo: ModoTexto) =>
@@ -209,6 +308,7 @@ function PestanaTexto({ propiedadId, original, texto, setTexto }: { propiedadId:
     });
 
   return (
+    <div className="redes-con-chat">
     <section className="tarjeta pila">
       <h2>Texto para acompañarla</h2>
       <p className="suave">Puedes cambiarlo a tu gusto. La IA usa solo los datos de la ficha: si pone un número que no está ahí, no se usa.</p>
@@ -245,5 +345,21 @@ function PestanaTexto({ propiedadId, original, texto, setTexto }: { propiedadId:
       )}
       <CopiarTexto texto={texto} />
     </section>
+      <ChatRedes
+        clave={propiedadId}
+        asistente={asistente}
+        pestana="texto"
+        sugerencias={["Hazlo más corto", "Resalta la piscina", "Ponlo en inglés", "Agrégale que acepta mascotas"]}
+        ayuda="Dime cómo lo quieres («más corto», «quita lo del jardín»). Solo uso lo que dice la ficha y lo que tú me digas; el precio, el código y tu contacto se quedan."
+        pedir={pedirAlChat}
+        puedeDeshacer={antes.length > 0}
+        deshacer={() => {
+          const previo = antes[antes.length - 1];
+          if (previo === undefined) return;
+          setAntes(antes.slice(0, -1));
+          setTexto(previo);
+        }}
+      />
+    </div>
   );
 }

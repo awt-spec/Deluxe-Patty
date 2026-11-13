@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { MAX_PEDIDO, type PestanaChat, type TurnoChat } from "@/lib/redes/chat";
-import { transcribirNota } from "../../../patty-acciones";
+import { transcribirNota } from "@/app/panel/patty-acciones";
 
 // "Pídeselo a …": chat corto dentro del estudio de redes, uno por pestaña. El corredor pide con sus palabras (o con
 // una nota de voz, que vuelve como texto a la caja para revisarla) y la pestaña aplica lo que devuelve el servidor.

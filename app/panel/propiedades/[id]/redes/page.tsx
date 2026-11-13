@@ -70,6 +70,7 @@ export default async function Redes({ params, searchParams }: { params: Promise<
           logo={logo}
           conMarca={!!marca}
           sinMejorar={sinMejorar}
+          asistente={corredor.nombre_asistente ?? "Patty"}
           pestana={PESTANAS.includes(ver as Pestana) ? (ver as Pestana) : "imagen"}
         />
       )}

@@ -630,6 +630,7 @@
   display: contents;
 }
 .marco.tema main .cer-cambiar > summary {
+  margin-left: auto;
   display: inline-flex;
   align-items: center;
   min-height: 44px;
@@ -676,6 +677,9 @@
   border-top: 1px solid var(--borde);
 }
 .marco.tema main .cer-ubicadas a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   font-weight: 600;
   color: var(--titulo, #111b21);
 }
@@ -892,15 +896,41 @@
     height: auto;
     min-height: 0;
   }
+  .marco.tema main .cer-mapa .mapa-cerebro {
+    position: relative;
+  }
   .marco.tema main .cer-mapa .mapa-controles {
-    flex-wrap: nowrap;
-    overflow-x: auto;
+    display: block;
+    padding: 8px 0;
   }
   .marco.tema main .cer-mapa .mapa-filtros {
     flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 0 12px;
+    scrollbar-width: none;
+  }
+  .marco.tema main .cer-mapa .mapa-filtros::-webkit-scrollbar {
+    display: none;
   }
   .marco.tema main .cer-mapa .mapa-filtro {
     flex: none;
+  }
+  /* Acercar, alejar y centrar: botones grandes encima del mapa, abajo a la derecha. */
+  .marco.tema main .cer-mapa .mapa-zoom {
+    position: absolute;
+    right: 12px;
+    bottom: 96px;
+    z-index: 1;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+  .marco.tema main .cer-mapa .mapa-zoom button {
+    min-width: 52px;
+    min-height: 52px;
+    padding: 0 10px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgb(17 27 33 / 14%);
   }
   .marco.tema main .cer-mapa .mapa-cerebro figcaption {
     font-size: 0.82rem;
@@ -930,6 +960,17 @@
 }
 @media (min-width: 900px) {
   .marco.tema main .cer-flotante {
+    display: none;
+  }
+}
+
+/* En el teléfono, fuera de la portada, primero lo de la pestaña y después "Enséñale algo" (sin la lista de
+   preparación, que vive en la portada). */
+@media (max-width: 899px) {
+  .marco.tema main .cerebro:not(.cerebro-inicio) .cer-lateral {
+    order: 3;
+  }
+  .marco.tema main .cerebro:not(.cerebro-inicio) .cer-lista-lista {
     display: none;
   }
 }
