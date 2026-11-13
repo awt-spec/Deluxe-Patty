@@ -305,3 +305,12 @@
   font-weight: 600;
   color: var(--suave, #667781);
 }
+
+/* Con la tarjeta "Esto entendí" a la vista, el botón fijo del formulario manual se esconde: un solo botón verde. */
+.bloquear:has(.apartar-ia-propuesta) .bloquear-enviar {
+  display: none;
+}
+.marco.tema .apartar-ia-demo {
+  margin: 0;
+  font-size: 0.85rem;
+}

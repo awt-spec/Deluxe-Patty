@@ -101,3 +101,16 @@ describe("listaPreparacion", () => {
     for (const r of listaPreparacion(base)) expect(r.href.startsWith("/panel/")).toBe(true);
   });
 });
+
+describe("listaPuesta (mismo conteo que la puesta en marcha)", () => {
+  it("tiene los 6 pasos y coincide con estadoPuesta", async () => {
+    const { listaPuesta } = await import("@/app/panel/cerebro/resumen");
+    const { estadoPuesta } = await import("@/lib/panel/puesta");
+    const datos = { casas: [{ id: "1", titulo: "a", codigo: "A", precio: 5, fotos: 1 }], franjas: 2, tono: "Cercana", temas: ["precio"], google: false };
+    const lista = listaPuesta({ casas: datos.casas, franjas: datos.franjas, tono: datos.tono, temasCorredor: datos.temas.length, google: datos.google });
+    const puesta = estadoPuesta(datos);
+    expect(lista.map((r) => r.clave)).toEqual(["casas", "fichas", "horario", "tono", "temas", "google"]);
+    expect(lista.filter((r) => r.listo).length).toBe(puesta.listos);
+    expect(lista.length).toBe(puesta.total);
+  });
+});

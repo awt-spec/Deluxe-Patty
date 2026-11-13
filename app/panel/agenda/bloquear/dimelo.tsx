@@ -227,6 +227,7 @@ export function Dimelo({ asistente, propuestaInicial, enfocar }: { asistente: st
           <h2 id="apartar-ia-titulo">Esto entendí</h2>
           <p className="apartar-ia-dicho">«{propuesta.texto}»</p>
           {propuesta.aviso && <p className="apartar-ia-aviso">{propuesta.aviso}</p>}
+          {propuesta.fuente === "demo" && <p className="suave apartar-ia-demo">En la demostración lo entiende una versión simple, sin IA.</p>}
 
           {apartados.length > 0 && (
             <ul className="apartar-ia-renglones">

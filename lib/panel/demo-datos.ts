@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { MARCA_DELUXE } from "../fichas/marca";
+import { copiarFotoExterna, huellaFoto } from "../fotos/copiar";
 
 // Datos de la cuenta de demo: un corredor inactivo con la marca de Deluxe y datos ficticios, y el
 // usuario `correo` enlazado solo a él. Lo usan `npm run demo` y el cron nocturno (/api/cron/demo), que
@@ -7,6 +8,67 @@ import { MARCA_DELUXE } from "../fichas/marca";
 
 /** Fotos de muestra (Unsplash, licencia libre) para que la demo se vea como una cuenta con casas reales. */
 const foto = (id: string, orden: number) => ({ url: `https://images.unsplash.com/photo-${id}?w=1200&q=70&auto=format&fit=crop`, orden });
+
+/** Único servidor de las fotos de ejemplo: lo único que la demo deja copiar al bucket. */
+export const HOST_FOTOS_DEMO = "images.unsplash.com";
+const CARPETA_FOTOS_DEMO = "demo-ejemplos";
+const TIEMPO_FOTOS_DEMO_MS = 45_000;
+
+type FotoDemo = { url: string; orden: number };
+
+/**
+ * Copia las fotos de ejemplo al bucket `fotos` del corredor de demostración (la ficha PDF y la imagen para redes solo
+ * usan fotos propias). Carpeta fija: si ya están copiadas no se vuelven a bajar. Tolera fallas: la foto que no se
+ * copia conserva su dirección externa. Devuelve cuántas quedaron en el bucket propio.
+ */
+export async function copiarFotosDemo(
+  db: SupabaseClient,
+  corredorId: string,
+  casas: { id: string; fotos: FotoDemo[] }[],
+  tiempoTotalMs = TIEMPO_FOTOS_DEMO_MS,
+): Promise<{ id: string; fotos: FotoDemo[] }[]> {
+  const hasta = Date.now() + tiempoTotalMs;
+  const carpeta = `${corredorId}/${CARPETA_FOTOS_DEMO}/originales`;
+  const existentes = new Map<string, string>();
+  try {
+    const { data } = await db.storage.from("fotos").list(carpeta, { limit: 200 });
+    for (const o of data ?? []) existentes.set(o.name.split(".")[0], o.name);
+  } catch {
+    // sin lista: se copia de nuevo (el nombre es el mismo y se reemplaza)
+  }
+  const permitida = (u: string) => {
+    try {
+      const x = new URL(u);
+      return x.protocol === "https:" && x.host === HOST_FOTOS_DEMO;
+    } catch {
+      return false;
+    }
+  };
+  const salida: { id: string; fotos: FotoDemo[] }[] = [];
+  for (const casa of casas) {
+    const fotos: FotoDemo[] = [];
+    for (const f of casa.fotos) {
+      let url = f.url;
+      try {
+        const nombre = existentes.get(`demo-${huellaFoto(f.url)}`);
+        if (nombre) {
+          url = db.storage.from("fotos").getPublicUrl(`${carpeta}/${nombre}`).data.publicUrl;
+        } else if (Date.now() < hasta) {
+          const copia = await copiarFotoExterna(db, {
+            corredorId, propiedadId: CARPETA_FOTOS_DEMO, url: f.url, permitida, prefijo: "demo",
+            tiempoMs: Math.max(1000, Math.min(15_000, hasta - Date.now())),
+          });
+          if (copia) url = copia;
+        }
+      } catch {
+        // se queda con la dirección externa
+      }
+      fotos.push({ ...f, url });
+    }
+    salida.push({ id: casa.id, fotos });
+  }
+  return salida;
+}
 
 export const ID_DEMO = "00000000-0000-4000-8000-0000000000de";
 
@@ -126,8 +188,19 @@ export async function rehacerDemo(db: SupabaseClient, correo: string, ahora = Da
         descripcion: "Casa de una planta con jardín amplio, cerca de colegios bilingües.",
       },
     ])
-    .select("id, codigo");
+    .select("id, codigo, fotos");
   revisar("casas", eCasas);
+  // Fotos de ejemplo al bucket propio (si falla algo, la demo se crea igual con las direcciones externas).
+  try {
+    const copiadas = await copiarFotosDemo(db, ID, (casas ?? []).map((c) => ({ id: c.id as string, fotos: (c.fotos ?? []) as FotoDemo[] })));
+    for (const c of copiadas) {
+      const antes = (casas ?? []).find((x) => x.id === c.id)?.fotos as FotoDemo[] | undefined;
+      if (JSON.stringify(antes?.map((f) => f.url)) === JSON.stringify(c.fotos.map((f) => f.url))) continue;
+      await db.from("propiedades").update({ fotos: c.fotos }).eq("corredor_id", ID).eq("id", c.id);
+    }
+  } catch {
+    // la demo sigue con las fotos externas
+  }
   const casa = (codigo: string) => casas!.find((c) => c.codigo === codigo)!.id as string;
 
   // 4. Clientes y chats de prueba (teléfonos 8800-00xx, que no existen).

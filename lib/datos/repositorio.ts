@@ -513,7 +513,6 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
         .from("corredores")
         .select("id, nombre")
         .eq("token_calendario", token)
-        .eq("activo", true)
         .maybeSingle();
       verificar(error, "calendarioPorToken (corredor)");
       if (!corredor) return null;

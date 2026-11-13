@@ -41,7 +41,8 @@ export default async function Mas() {
   return (
     <>
       <EncabezadoPagina titulo="Más" apoyo="Lo que no usas todos los días: herramientas, ajustes y tu cuenta." atras={{ href: "/panel", texto: "Inicio" }} />
-      {!puesta.completa && (
+      {/* Sigue visible mientras falte algo, también Google: el paso 6 manda de vuelta aquí. */}
+      {(!puesta.completa || !puesta.hechos.includes("google")) && (
         <ul className="opciones" style={{ marginBottom: 18 }}>
           <li>
             <Link href="/panel/empezar" data-patty="mas-empezar">

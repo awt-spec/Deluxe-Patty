@@ -1,5 +1,6 @@
 "use client";
 
+import { nombreArchivo } from "@/lib/panel/nombre-archivo";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
@@ -975,7 +976,7 @@ export function ChatPatty({
         <div className={`patty-visor ${visor.tipo}`} role="dialog" aria-modal="true" aria-label={visor.tipo === "pdf" ? "Documento PDF" : "Imagen"}>
           <div className="patty-visor-barra">
             <strong>{visor.nombre}</strong>
-            <a href={visor.url} download={visor.nombre} className="patty-mini primario">
+            <a href={visor.url} download={nombreArchivo(visor.nombre.replace(/\.[a-z]{3,4}$/i, ""), visor.tipo === "pdf" ? "pdf" : "png", visor.tipo === "pdf" ? "Documento" : "Imagen")} className="patty-mini primario">
               Descargar
             </a>
             <a href={visor.url} target="_blank" rel="noreferrer" className="patty-mini">
