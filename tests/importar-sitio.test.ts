@@ -103,4 +103,44 @@ describe("Casas del sitio web → portal", () => {
     expect(r.fotosPendientes).toBe(1);
     expect(vi.mocked(fetch).mock.calls.map(([u]) => String(u)).every((u) => u.startsWith(`https://${HOST}/storage/`))).toBe(true);
   });
+  it("la zona sale del barrio más preciso; si hay dudas, pregunta una vez y luego respeta lo que contestó el corredor", async () => {
+    const dudosa = casa({ codigo: "DP-LHD6L0", titulo: { es: "VENTA LINDORA SANTA ANA CONDOMINIO LA ESCONDIDA" }, ubicacion: "Santa Ana Centro, Santa Ana", distrito: "Santa Ana Centro", imagenes: [] });
+    const db = supabaseFalso({
+      propiedades: [],
+      // Una respuesta de otro corredor sobre el mismo código no cuenta.
+      conocimiento: [{ id: "k-otro", corredor_id: ID.otro, tema: "Ubicación DP-LHD6L0: x", respuesta: "Cartago", estado: "activo" }],
+    });
+    const r1 = await sincronizarSitio(db as never, { id: ID.deluxe }, [dudosa], HOST);
+    expect(r1).toMatchObject({ creadas: 1, ubicacionesPorConfirmar: 1 });
+    const propia = () => db.tablas.propiedades.find((p) => p.codigo === "DP-LHD6L0")!;
+    expect(propia().zona).toBe("Lindora"); // la mejor conjetura
+    const pregunta = db.tablas.conocimiento.find((k) => k.corredor_id === ID.deluxe)!;
+    expect(pregunta).toMatchObject({ estado: "pendiente", origen: "duda" });
+    expect(String(pregunta.tema)).toMatch(/^Ubicación DP-LHD6L0: .*Opciones: Lindora \| Santa Ana$/);
+
+    // La siguiente vuelta no vuelve a preguntar ni escribe nada.
+    const antes = db.escrituras.length;
+    expect(await sincronizarSitio(db as never, { id: ID.deluxe }, [dudosa], HOST)).toMatchObject({ ubicacionesPorConfirmar: 0, actualizadas: 0 });
+    expect(db.escrituras.length).toBe(antes);
+
+    // Patricia contesta "Santa Ana": la importación lo respeta en cada vuelta, aunque el sitio diga otra cosa.
+    Object.assign(pregunta, { estado: "activo", respuesta: "Santa Ana" });
+    expect(await sincronizarSitio(db as never, { id: ID.deluxe }, [dudosa], HOST)).toMatchObject({ actualizadas: 1 });
+    expect(propia().zona).toBe("Santa Ana");
+    const antes2 = db.escrituras.length;
+    await sincronizarSitio(db as never, { id: ID.deluxe }, [dudosa], HOST);
+    expect(db.escrituras.length).toBe(antes2);
+    expect(db.tablas.conocimiento.filter((k) => k.corredor_id === ID.deluxe)).toHaveLength(1);
+  });
+
+  it("una casa segura no pregunta; si una dudosa se aclara en el sitio, la pregunta pendiente se archiva", async () => {
+    const db = supabaseFalso({
+      propiedades: [],
+      conocimiento: [{ id: "k1", corredor_id: ID.deluxe, tema: "Ubicación DP-1A2B3C: ¿dónde queda «x»? El sitio dice «y».", respuesta: null, estado: "pendiente" }],
+    });
+    const r = await sincronizarSitio(db as never, { id: ID.deluxe }, [casa({ imagenes: [] })], HOST);
+    expect(r.ubicacionesPorConfirmar).toBe(0);
+    expect(db.tablas.propiedades[0].zona).toBe("Lindora");
+    expect(db.tablas.conocimiento[0].estado).toBe("archivado");
+  });
 });
