@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { esSuperadmin } from "@/lib/admin/superadmin";
 import { sesionConCorredor } from "@/lib/panel/sesion";
+import { datosPuesta, estadoPuesta } from "@/lib/panel/puesta";
 import { elegirCorredor, salir } from "../acciones";
 import {
   IconoAjustes,
   IconoAnuncio,
+  IconoCheck,
   IconoFlecha,
   IconoIdea,
   IconoLlave,
@@ -13,6 +15,7 @@ import {
   IconoResumen,
   IconoSalir,
 } from "../iconos";
+import { NOMBRE_CEREBRO } from "../cerebro/nombre";
 import { EncabezadoPagina } from "../piezas";
 
 // Lo que no se usa todos los días. Lo que ya tiene su pestaña (agenda, horario, clientes) no se repite aquí.
@@ -20,7 +23,7 @@ const GRUPOS = [
   [
     { ruta: "/panel/patty", Icono: IconoChats, nombre: "Patty · IA", detalle: "Tu asistente: pregúntale o mándale fotos y PDF" },
     { ruta: "/panel/negocio", Icono: IconoResumen, nombre: "Cómo va el negocio", detalle: "Lo ganado, de dónde vienen y por qué se pierden" },
-    { ruta: "/panel/cerebro", Icono: IconoIdea, nombre: "Cerebro de la asistente", detalle: "Lo que sabe y lo que te pregunta" },
+    { ruta: "/panel/cerebro", Icono: IconoIdea, nombre: NOMBRE_CEREBRO, detalle: "Lo que sabe, cómo contesta y lo que necesita de ti" },
   ],
   [
     { ruta: "/panel/duenos", Icono: IconoLlave, nombre: "Dueños directos", detalle: "Casas que venden sus dueños" },
@@ -33,11 +36,32 @@ const GRUPOS = [
 ];
 
 export default async function Mas() {
-  const { corredor, corredores, usuario } = await sesionConCorredor();
-  const superadmin = await esSuperadmin(usuario.email);
+  const { supabase, corredor, corredores, usuario } = await sesionConCorredor();
+  const [superadmin, puesta] = await Promise.all([esSuperadmin(usuario.email), datosPuesta(supabase, corredor).then(estadoPuesta)]);
   return (
     <>
       <EncabezadoPagina titulo="Más" apoyo="Lo que no usas todos los días: herramientas, ajustes y tu cuenta." atras={{ href: "/panel", texto: "Inicio" }} />
+      {!puesta.completa && (
+        <ul className="opciones" style={{ marginBottom: 18 }}>
+          <li>
+            <Link href="/panel/empezar" data-patty="mas-empezar">
+              <span className="opcion-icono">
+                <IconoCheck />
+              </span>
+              <span className="opcion-texto">
+                Puesta en marcha
+                <span className="suave">
+                  {puesta.listos} de {puesta.total} listos: termina de preparar a {corredor.nombre_asistente ?? "Patty"}
+                </span>
+              </span>
+              <span className="opcion-flecha">
+                <IconoFlecha tamano={20} />
+              </span>
+            </Link>
+          </li>
+        </ul>
+      )}
+
       <nav aria-label="Más opciones" className="mas-grupos">
         {GRUPOS.map((grupo, i) => (
           <ul key={i} className="opciones">

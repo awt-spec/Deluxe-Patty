@@ -4,6 +4,7 @@ import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
 import type { Correccion, Corredor, FichaParcial, Intencion, Mensaje, Propiedad, PropiedadConFotos , Conocimiento } from "../datos/tipos";
 import type { AnuncioE24 } from "../encuentra24/parsear";
+import type { OperacionApartarCruda } from "../agenda/apartar-ia";
 import { OPS_IMAGEN, OPS_VIDEO, type OperacionCruda, type TurnoChat } from "../redes/chat";
 import { MODOS_TEXTO, type ModoTexto } from "../redes/texto-ia";
 import { crearClienteClaude } from "./cliente-claude";
@@ -167,6 +168,11 @@ export interface Cerebro {
     pedido: string,
     historial: TurnoChat[],
   ): Promise<{ texto: string; respuesta: string; consumo: Consumo }>;
+  /**
+   * "Apartar tiempo" dicho con sus palabras: devuelve operaciones (fechas ISO y horas HH:MM) que el código revisa
+   * (lib/agenda/apartar-ia.ts). El modelo nunca escribe la fecha que se muestra. Opcional para los dobles de prueba.
+   */
+  entenderApartado?(corredor: Corredor, pedido: { texto: string; contexto: string }): Promise<{ operaciones: OperacionApartarCruda[]; consumo: Consumo }>;
 }
 
 export interface PedidoChatRedes {
@@ -296,6 +302,23 @@ const EsquemaChatRedes = z.object({
 });
 
 const EsquemaTextoPedido = z.object({ texto: z.string(), respuesta: z.string() });
+
+const EsquemaApartar = z.object({
+  operaciones: z.array(
+    z.object({
+      tipo: z.enum(["apartar", "quitar", "duda"]),
+      desde: z.string().nullable(),
+      hasta: z.string().nullable(),
+      rato: z.enum(["todo", "manana", "tarde", "noche", "horas"]).nullable(),
+      hora_inicio: z.string().nullable(),
+      hora_fin: z.string().nullable(),
+      repetir: z.object({ dias_semana: z.array(z.number().int()), hasta: z.string() }).nullable(),
+      motivo: z.string().nullable(),
+      pregunta: z.string().nullable(),
+      opciones: z.array(z.string()),
+    }),
+  ),
+});
 
 const conversacionRedes = (h: TurnoChat[]) =>
   h.length ? h.map((t) => `${t.autor === "corredor" ? "Corredor" : "Asistente"}: ${comoDato(t.texto)}`).join("\n") : "(ninguna)";
@@ -871,6 +894,21 @@ export function crearCerebroClaude(client: Anthropic = crearClienteClaude()): Ce
       if (res.stop_reason === "refusal") throw new RechazoModelo(c);
       if (!res.parsed_output) throw new Error(`Texto pedido sin salida (stop_reason ${res.stop_reason})`);
       return { texto: res.parsed_output.texto, respuesta: res.parsed_output.respuesta.trim().slice(0, 600), consumo: c };
+    },
+
+    async entenderApartado(corredor, pedido) {
+      // Extraer fechas de una frase: Haiku, como las demás tareas de clasificar o extraer.
+      const res = await client.beta.messages.parse({
+        model: MODELO_CLASIFICAR,
+        max_tokens: 2000,
+        output_config: { effort: "low", format: betaZodOutputFormat(EsquemaApartar) },
+        system: `${instruccion("apartar")}\n\n<corredor>\n${corredor.nombre_contacto}, de ${corredor.nombre}.\n</corredor>`,
+        messages: [{ role: "user", content: `${pedido.contexto}\n\n<pedido>\n${comoDato(pedido.texto.slice(0, 500))}\n</pedido>` }],
+      });
+      const c = consumo(MODELO_CLASIFICAR, res.usage);
+      if (res.stop_reason === "refusal") throw new RechazoModelo(c);
+      if (!res.parsed_output) throw new Error(`Apartar sin salida (stop_reason ${res.stop_reason})`);
+      return { operaciones: res.parsed_output.operaciones.slice(0, 30), consumo: c };
     },
   };
 }

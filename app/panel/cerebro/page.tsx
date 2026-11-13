@@ -1,12 +1,12 @@
 import { PREFIJO_UBICACION, leerTemaUbicacion } from "@/lib/sitio/ubicacion";
 import { sesionConCorredor } from "@/lib/panel/sesion";
-import { VISTAS, VistaCerebro, type PorUbicar, type Ver } from "./vista";
+import { VistaCerebro, type PorUbicar } from "./vista";
 import type { Ubicada } from "./lo-que-sabe";
 import "./cerebro.css";
 
-// Segundo cerebro de la asistente: qué sabe, de dónde aprende y qué no supo contestar. Cada duda que el
-// corredor responde pasa a ser algo que la asistente ya sabe y usa al contestar. Esta página solo lee con la
-// sesión (RLS) y pasa los datos a la vista (vista.tsx).
+// Cerebro de IA (NOMBRE_CEREBRO): lo que la asistente necesita del corredor, lo que sabe y cómo contesta. Cada duda
+// que el corredor responde pasa a ser algo que la asistente ya sabe y usa al contestar. Esta página solo lee con la
+// sesión (RLS) y pasa los datos a la vista (vista.tsx), que decide la sección por `?ver=` (resumen.ts, vistaCerebro).
 
 type Item = { id: string; tema: string; respuesta: string | null; origen: string; veces: number; updated_at: string; estado: string };
 type Casa = { id: string; titulo: string; codigo: string | null; precio: number | null; fotos: unknown; estado: string };
@@ -52,10 +52,11 @@ export default async function Cerebro({ searchParams }: { searchParams: Promise<
     ubicadas.push({ id: i.id, codigo: p.codigo, titulo: casa?.titulo ?? p.titulo, zona: i.respuesta ?? "", casaId: casa?.id ?? null, updated_at: i.updated_at });
   }
 
-  const ver: Ver = VISTAS.find((v) => v === pedido) ?? "inicio";
   return (
     <VistaCerebro
-      ver={ver}
+      pedido={pedido}
+      ahora={new Date().toISOString()}
+      automatica={corredor.respuesta_automatica}
       aviso={aviso}
       errorCodigo={errorCerebro ? (errorCerebro.code ?? "") : null}
       nombre={corredor.nombre_asistente || "Patty"}

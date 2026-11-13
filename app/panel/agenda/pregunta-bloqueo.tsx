@@ -95,6 +95,9 @@ export function PreguntaBloqueo({
         <Link href={`/panel/agenda/bloquear?fecha=${fecha}`} className="boton chico" onClick={contestar}>
           Otro día u hora…
         </Link>
+        <Link href="/panel/agenda/bloquear?dimelo=1" className="boton chico" onClick={contestar} data-patty="pregunta-bloqueo-dimelo">
+          Otro… dímelo
+        </Link>
         <button
           type="button"
           className="chico enlace"

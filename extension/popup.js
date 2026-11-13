@@ -1,15 +1,16 @@
 import { APP } from "./config.js";
 import { esPaginaDeAnuncio } from "./comun.js";
+import { activa, textoFase } from "./maquina.js";
+import { textoRestante } from "./ritmo.js";
 
 const $ = (id) => document.getElementById(id);
-const ACTIVAS = ["buscando", "verificar", "revisando"];
 // Sin latido por este tiempo, la búsqueda se cortó (Chrome cerró la extensión).
 const LATIDO_MAX_MS = 90_000;
 
-function mostrarMensaje(texto, error = false) {
-  $("mensaje").hidden = !texto;
-  $("mensaje").textContent = texto ?? "";
-  $("mensaje").classList.toggle("error", error);
+function mostrar(id, texto, error = false) {
+  $(id).hidden = !texto;
+  $(id).textContent = texto ?? "";
+  $(id).classList.toggle("error", error);
 }
 
 /** La pestaña activa, si es la página de un anuncio de Encuentra24 (no un listado). */
@@ -24,19 +25,51 @@ async function pestanaDeAnuncio() {
 
 const hace = (n) => (n === 0 ? "hoy" : n === 1 ? "ayer" : `hace ${n} días`);
 
+const TITULOS = {
+  buscando: "Buscando dueños",
+  pausada: "En pausa",
+  verificacion: "Encuentra24 pide que confirmes que eres tú",
+  revisando: "Revisando lo que leyó",
+};
+
+function pintarBusqueda(b) {
+  const viva = !!b && activa(b.fase) && Date.now() - (b.latido ?? 0) < LATIDO_MAX_MS;
+  $("en-curso").hidden = !viva;
+  $("buscar").hidden = viva;
+  if (viva) {
+    $("en-curso").dataset.fase = b.fase;
+    $("en-curso-titulo").textContent = TITULOS[b.fase] ?? "Buscando";
+    const partes = [];
+    if (b.total) partes.push(`Página ${b.pagina} de ${b.total}`);
+    if (b.restanteMs && (b.fase === "buscando" || b.fase === "pausada")) partes.push(textoRestante(b.restanteMs));
+    partes.push(b.fase === "buscando" ? b.haciendo || "Buscando…" : textoFase(b));
+    $("en-curso-detalle").textContent = partes.filter(Boolean).join(" · ");
+    $("en-curso-avance").style.width = b.total ? `${Math.min(100, (b.pagina / b.total) * 100)}%` : "0";
+    $("pausar").hidden = b.fase !== "buscando";
+    $("seguir").hidden = !(b.fase === "pausada" || b.fase === "verificacion");
+    $("detener").hidden = b.fase === "revisando";
+    $("detener").textContent = b.fase === "verificacion" ? "Dejarlo para después" : "Detener";
+    mostrar("mensaje", "");
+    return;
+  }
+  if (b && activa(b.fase)) return mostrar("mensaje", "La búsqueda anterior se cortó. Vuelve a empezarla.", true);
+  mostrar("mensaje", b?.mensaje ?? "", b?.fase === "error");
+}
+
 async function pintar() {
-  const { token, corredor, progreso, lectura, buscarSola, ultimaDias } = await chrome.storage.local.get([
+  const { token, corredor, busqueda, lectura, buscarSola, modoSemanal, ultimaDias } = await chrome.storage.local.get([
     "token",
     "corredor",
-    "progreso",
+    "busqueda",
     "lectura",
     "buscarSola",
+    "modoSemanal",
     "ultimaDias",
   ]);
   $("sin-conectar").hidden = !!token;
   $("conectada").hidden = !token;
   $("pie").hidden = !token;
-  if (!token) return;
+  if (!token) return mostrar("mensaje-general", "");
   $("corredor").textContent = corredor ? `Conectada a ${corredor}.` : "Conectada.";
 
   const tab = await pestanaDeAnuncio();
@@ -52,33 +85,44 @@ async function pintar() {
   $("abrir-casa").hidden = !(mia?.fase === "listo" && mia.ruta);
   $("abrir-casa").dataset.ruta = mia?.ruta ?? "";
 
-  $("buscar-sola").checked = buscarSola !== false;
+  const sola = buscarSola !== false;
+  $("buscar-sola").checked = sola;
+  $("modo").disabled = !sola;
+  for (const r of document.querySelectorAll('input[name="modo"]')) r.checked = r.value === (modoSemanal === "vista" ? "vista" : "fondo");
   $("ultima").hidden = typeof ultimaDias !== "number";
   $("ultima").textContent = typeof ultimaDias === "number" ? `Última búsqueda: ${hace(ultimaDias)}.` : "";
-  const viva = progreso && ACTIVAS.includes(progreso.fase) && Date.now() - (progreso.latido ?? 0) < LATIDO_MAX_MS;
-  $("buscar").disabled = !!viva;
-  $("buscar").textContent = viva ? "Buscando…" : "Buscar dueños";
-  if (!progreso) return mostrarMensaje("");
-  if (ACTIVAS.includes(progreso.fase) && !viva) return mostrarMensaje("La búsqueda anterior se cortó. Vuelve a empezarla.", true);
-  mostrarMensaje(progreso.mensaje, progreso.fase === "error");
+  pintarBusqueda(busqueda);
 }
 
 $("form-codigo").addEventListener("submit", async (e) => {
   e.preventDefault();
   const boton = e.submitter;
   boton.disabled = true;
-  mostrarMensaje("Conectando…");
+  mostrar("mensaje-general", "Conectando…");
   const r = await chrome.runtime.sendMessage({ tipo: "conectar", codigo: $("codigo").value });
   boton.disabled = false;
-  if (!r?.ok) return mostrarMensaje(r?.mensaje ?? "No se pudo conectar.", true);
-  mostrarMensaje("");
+  if (!r?.ok) return mostrar("mensaje-general", r?.mensaje ?? "No se pudo conectar.", true);
+  mostrar("mensaje-general", "");
   pintar();
 });
 
 $("buscar").addEventListener("click", async () => {
   $("buscar").disabled = true;
   await chrome.runtime.sendMessage({ tipo: "buscar" });
+  setTimeout(() => ($("buscar").disabled = false), 1500);
 });
+
+for (const [id, tipo] of [
+  ["pausar", "pausar"],
+  ["seguir", "seguir"],
+  ["detener", "detener"],
+]) {
+  $(id).addEventListener("click", async () => {
+    $(id).disabled = true;
+    await chrome.runtime.sendMessage({ tipo }).catch(() => {});
+    $(id).disabled = false;
+  });
+}
 
 $("leer").addEventListener("click", async () => {
   const tab = await pestanaDeAnuncio();
@@ -98,6 +142,10 @@ $("buscar-sola").addEventListener("change", async () => {
   await chrome.runtime.sendMessage({ tipo: "buscar_sola", encendida: $("buscar-sola").checked });
 });
 
+for (const r of document.querySelectorAll('input[name="modo"]')) {
+  r.addEventListener("change", () => chrome.runtime.sendMessage({ tipo: "modo_semanal", modo: r.value }));
+}
+
 $("desconectar").addEventListener("click", async () => {
   if (!confirm("¿Desconectar la extensión? Para volver a usarla necesitas otro código del panel.")) return;
   await chrome.runtime.sendMessage({ tipo: "desconectar" });
@@ -106,5 +154,7 @@ $("desconectar").addEventListener("click", async () => {
 
 chrome.storage.onChanged.addListener(pintar);
 pintar();
+// El aviso "se cortó" depende de la hora: se vuelve a mirar cada tanto.
+setInterval(pintar, 15_000);
 // Hace cuánto fue la última búsqueda (sin reservar nada en el servidor).
 chrome.runtime.sendMessage({ tipo: "ver_ultima" }).catch(() => {});

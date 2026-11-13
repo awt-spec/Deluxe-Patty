@@ -116,6 +116,7 @@ export async function pdfDePatty(titulo: unknown, texto: unknown, diagramas?: un
       marca: corredor.marca ?? null,
       corredor: corredor.nombre,
       fecha: diaLargo(new Date(), corredor.zona_horaria),
+      asistente: corredor.nombre_asistente || "Patty",
     });
     const nombre = `${t.replace(/[\\/:*?"<>|]+/g, "").slice(0, 80)}.pdf`;
     return { ok: true as const, datos: pdf.toString("base64"), nombre };

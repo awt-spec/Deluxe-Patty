@@ -399,6 +399,7 @@ export function EditorVideo(d: DatosEstudio) {
                 <a href={archivo.url} download={archivo.nombre}>
                   Bajarlo otra vez
                 </a>
+                {" · "}<a href={`/panel/propiedades/${d.propiedadId}/redes/subir`} data-patty="redes-video-subir">¿Cómo lo subo a Instagram o WhatsApp?</a>
                 {!archivo.h264 && (
                   <>
                     <br />

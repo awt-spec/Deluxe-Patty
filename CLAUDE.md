@@ -37,7 +37,10 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   de llamar a Claude o a OpenAI lo que cambia la casa o tapa daños. Texto: solo se aceptan las cifras que el corredor escribió
   en su pedido (`conCifrasDichas`). Hasta 6 pedidos por minuto, pedido de máximo 500 caracteres tratado como dato; en la demo
   lo entiende el código (`interpretarDemo`) sin gastar.
-- Ficha de propiedad en PDF con `@react-pdf/renderer` (`lib/fichas/`): la identidad de cada corredor es
+- Ficha de propiedad en PDF con `@react-pdf/renderer` (`lib/fichas/`; A4 tipo folleto: portada, datos, galería y contacto con QR;
+  piezas en `piezas-pdf.tsx` y reglas en `diseno.ts` —`reticulaGaleria`, `anchosColumnas`, `cifrasClave`—; sin marca sale
+  `marcaNeutra`; el PDF de Patty usa las mismas piezas, con portada completa si pasa de 2 páginas y tablas que repiten su cabecera;
+  en react-pdf, nada de `lineHeight` en `Page` porque borra el pie fijo): la identidad de cada corredor es
   dato (`corredores.marca`, tipo `Marca`); la de Deluxe sigue su Manual de Identidad Visual (4 colores oficiales, Playfair Display
   e Inter, logo oficial en `marcas/deluxe/`). Ejemplo: `npx tsx scripts/ficha-ejemplo.mts <salida.pdf> <fotos...>`.
 - Agenda propia en Supabase: horarios, bloqueos y citas en la base; el corredor ve sus citas en el teléfono
@@ -78,6 +81,13 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   paso por pantalla con dibujos SVG de Chrome, avanza solo al ver la extensión, recuerda el paso en el navegador, mini
   asistente para actualizar una versión anterior; en teléfono o Safari/Firefox solo manda el enlace) y su estado se ve en
   Dueños directos (`estado-extension.tsx`); el código a mano queda de respaldo.
+  Desde la 1.3.0 **busca a ritmo de persona** (`extension/ritmo.js`: 8–25 s por página, pausas de 6–20 s, descanso de 45–120 s
+  cada 4–6 páginas, 12 páginas por búsqueda y 24 por día, una sola pestaña) y **sin tocar la identidad del navegador** (hay una
+  prueba que lo vigila). A la vista, `control.js` (Shadow DOM cerrado) pone marco, barra y un cursor dibujado con
+  `nombre_asistente`; si la persona usa la pestaña, se pausa. Se pausa o detiene desde la barra, el popup y el panel
+  (`busqueda-en-vivo.tsx`, canal "busqueda"; estados en `maquina.js`, pedidos válidos en `mensajes.js`); `/api/extension/detener`
+  guarda lo ya leído y una búsqueda detenida no cuenta como la semanal. Verificación de Cloudflare, captcha o 403/429: a la vista
+  se detiene y pide "Seguir" (nunca se salta); de fondo se cancela. Prueba real: `npx tsx scripts/probar-buscador.mts <capturas>`.
   El worker con Playwright (`worker/busqueda-duenos.ts`, `npm run duenos` con Chrome visible) usa el mismo
   recorrido y evaluación (`lib/encuentra24/busqueda.ts`) y queda para soporte;
   `.github/workflows/busqueda-duenos.yml` solo para pruebas a mano.
@@ -222,6 +232,10 @@ Agenda en calendario: día, semana, mes o lista (`?vista=`); se toca una hora li
 horas exactas o varios días (uno por día si son horas), y abajo lo ya bloqueado con "Quitar" (también en la agenda). También por texto, entendido por el código
 (`lib/agenda/bloquear.ts`, `lib/agenda/apartar.ts`): "bloquear mañana en la tarde" por WhatsApp del corredor o en el
 chat de Patty (sin llamar al modelo; es lo único que Patty escribe en la base). La asistente lo pregunta seguido:
+**con sus palabras** ("Cuéntame cuándo no puedes"): el código primero (`codigoLoEntiende`) y, si no alcanza, Haiku
+(`entenderApartado`, `prompts/apartar.md`) devuelve operaciones que `revisarOperaciones` (`lib/agenda/apartar-ia.ts`) valida y
+formatea; la pantalla siempre muestra "Esto entendí" (con choques con visitas) y Deshacer, Patty enlaza la propuesta sin guardar y
+WhatsApp guarda directo solo sin dudas ni choques; demo sin gasto y 6 pedidos por minuto;
 tarjeta diaria "¿Tienes algún compromiso mañana?" en Inicio y Agenda (`app/panel/agenda/pregunta-bloqueo.tsx`, una
 vez al día por navegador) y una línea al final del plan del día. Revisar (`/panel/revisar`, `lib/panel/pendientes.ts`) muestra uno a la
 vez lo que dijo el cliente y la respuesta propuesta, editable, con Enviar, Prefiero escribirle yo y No enviar (o
@@ -281,15 +295,24 @@ Al marcar una visita como hecha queda un recordatorio para mañana; Inicio pide 
 pasadas y avisa de casas nuevas que le sirven a algún cliente, y la ficha de cada casa lista a esos clientes. La ficha muestra las
 casas que le encajan; el inicio, "Para hoy" (seguimientos que vencen y clientes que no contestan hace 3
 días). El corredor edita esos campos con su sesión (permiso por columna; el teléfono no).
-Cerebro de la asistente (`app/panel/cerebro`, desde Más; portada con lo urgente —preguntas y "¿Dónde queda esta casa?"—,
-"Qué tan lista está" (`listaPreparacion`, 7 renglones) y "Enséñale algo" con ideas; pestañas `?ver=dudas|sabe|errores|fuentes|mapa`;
-reglas puras en `resumen.ts`): lo que el corredor le enseña (`conocimiento`,
+Cerebro de IA (`app/panel/cerebro`, nombre en `NOMBRE_CEREBRO`; tablero de la asistente con "N de 7 listos" → `/panel/empezar`
+y tres secciones `?ver=necesita|sabe|contesta`, más `mapa`; los viejos `dudas|errores|fuentes` llevan a su lugar con `vistaCerebro`.
+Lo que necesita de ti: preguntas, "¿Dónde queda esta casa?" y lo que falta. Lo que sabe: "Enséñale algo" y grupos plegables por
+fuente. Cómo contesta: tono, temas que le pasa, si contesta sola, correcciones —las 8 en uso marcadas— y "Probarla"; reglas puras
+en `resumen.ts`, `listaPreparacion`): lo que el corredor le enseña (`conocimiento`,
 tema y respuesta) entra en `responder` como datos suyos; lo que la asistente no supo (`avisar_corredor`)
 queda como duda pendiente (`registrarDuda`, sin repetirse) y al responderla pasa a lo que sabe. Tiene un
 mapa interactivo (grafo en SVG con simulación de fuerzas propia, `app/panel/cerebro/mapa.tsx`): la asistente
 al centro y cada fuente con sus elementos; se arrastra, se acerca, se filtra por fuente y cada fuente se abre. Muestra
 también las correcciones del corredor (antes y después) y de dónde aprende (casas, lo enseñado,
 correcciones, horario, tono y temas que van al corredor).
+**Guías paso a paso** (`app/panel/pasos/`, reglas en `lib/panel/pasos.ts`, clases `pap-*`): un paso por pantalla, recuerdan el paso
+en el navegador, avanzan solas cuando los datos lo dicen y respetan el "Atrás". Puesta en marcha (`/panel/empezar`,
+`lib/panel/puesta.ts`: 6 pasos con las reglas de `listaPreparacion`; tarjeta en Inicio y entrada en Más mientras falten los 5
+obligatorios, Google es opcional); `/panel/empezar/sola` (aprobadas, corregidas y descartadas de 30 días y el interruptor;
+`guardarAjustes` acepta `solo` y `volver` de una lista fija); `/panel/agenda/calendario` (ICS por aparato);
+`/panel/anuncios/<id>/publicar` (copiar, publicar, leer con la extensión; pasa a Listo sola cuando deja de ser borrador) y
+`/panel/propiedades/<id>/redes/subir`. En el chat con un cliente la barra de abajo se oculta y la asistente queda en la cabecera.
 "Probar la asistente" (`app/panel/probar`, desde Chats): el corredor le escribe como si fuera un cliente y
 `lib/simulador/simulador.ts` corre `procesarMensaje` real con un repositorio que solo lee propiedades,
 agenda y correcciones; la conversación, las citas de prueba, los avisos, las calificaciones y la nota viven en el estado del

@@ -7,6 +7,7 @@ import {
   autenticar,
   conectar,
   consultarBusqueda,
+  detenerBusqueda,
   huella,
   iniciarBusqueda,
   nuevoCodigo,
@@ -369,5 +370,73 @@ describe("búsqueda semanal sola (/api/extension/programa)", () => {
     expect(await terminarBusqueda(d, ID, inicio.busqueda)).toMatchObject({ motivo: "sin_resultados", automatica: true });
     // Sin anuncios no cuenta como búsqueda hecha: la semanal se reintenta en el siguiente despertar.
     expect(marcas.hechas).toBe(1);
+  });
+});
+
+describe("detener la búsqueda (/api/extension/detener)", () => {
+  /** Lee las primeras `n` páginas que pida el servidor y se detiene ahí. */
+  async function leerYDetener(d: DependenciasExtension, n: number, motivo?: "usuario" | "tope") {
+    const inicio = await iniciarBusqueda(d, ID);
+    if (!inicio.ok) throw new Error(inicio.motivo);
+    let url: string | null = inicio.siguiente;
+    for (let i = 0; i < n && url; i++) {
+      const r = await recibirPagina(d, ID, { busqueda: inicio.busqueda, url, html: pagina(url) });
+      if (!r.ok) throw new Error(r.motivo);
+      url = r.siguiente;
+    }
+    const corte = await detenerBusqueda(d, ID, inicio.busqueda, motivo);
+    return { busqueda: inicio.busqueda, corte, pendiente: url };
+  }
+
+  it("lo leído hasta ahí se revisa y se guarda; no cuenta como la búsqueda de la semana", async () => {
+    const { almacen, leads, marcas } = almacenEnMemoria(corredor());
+    const d = dependencias(almacen);
+    // Escazú 1 y Santa Ana 1: dueños 2 (Escazú) y 7 (Santa Ana); el 3 está fuera de rango y el 1 es agente.
+    const { busqueda, corte, pendiente } = await leerYDetener(d, 2);
+    expect(pendiente).not.toBeNull();
+    expect(corte).toEqual({ ok: true, paginas: 2 });
+    // Ya no recibe más páginas.
+    expect(await recibirPagina(d, ID, { busqueda, url: pendiente!, html: pagina(pendiente!) })).toEqual({ ok: false, motivo: "no_encontrada" });
+
+    expect(await terminarBusqueda(d, ID, busqueda)).toMatchObject({ resumen: { duenos: 2, paginas: 2, anuncios: 4 }, cortada: "usuario" });
+    expect(leads.map((l) => l.lead.anuncio.id)).toEqual(["2", "7"]);
+    expect(marcas.hechas).toBe(0);
+    expect(await consultarBusqueda(d, ID, busqueda)).toMatchObject({ ok: true, listo: true, resumen: { duenos: 2 } });
+  });
+
+  it("cortada por el tope de páginas sí cuenta como hecha", async () => {
+    const { almacen, marcas } = almacenEnMemoria(corredor());
+    const d = dependencias(almacen);
+    const { busqueda } = await leerYDetener(d, 3, "tope");
+    expect(await terminarBusqueda(d, ID, busqueda)).toMatchObject({ cortada: "tope" });
+    expect(marcas.hechas).toBe(1);
+  });
+
+  it("detenida antes de leer anuncios: nada que guardar y sin aviso a soporte", async () => {
+    const { almacen, leads } = almacenEnMemoria(corredor());
+    const d = dependencias(almacen);
+    const { busqueda } = await leerYDetener(d, 0);
+    expect(await terminarBusqueda(d, ID, busqueda)).toMatchObject({ motivo: "detenida", cortada: "usuario" });
+    expect(leads).toHaveLength(0);
+    expect(await consultarBusqueda(d, ID, busqueda)).toEqual({ ok: false, motivo: "detenida" });
+  });
+
+  it("solo la búsqueda en curso y del mismo corredor; dos veces no", async () => {
+    const { almacen } = almacenEnMemoria(corredor());
+    const d = dependencias(almacen);
+    const inicio = await iniciarBusqueda(d, ID);
+    if (!inicio.ok) throw new Error();
+    expect(await detenerBusqueda(d, "otro", inicio.busqueda)).toEqual({ ok: false, motivo: "no_encontrada" });
+    expect(await detenerBusqueda(d, ID, inicio.busqueda)).toEqual({ ok: true, paginas: 0 });
+    expect(await detenerBusqueda(d, ID, inicio.busqueda)).toEqual({ ok: false, motivo: "no_encontrada" });
+    await terminarBusqueda(d, ID, inicio.busqueda);
+    expect(await detenerBusqueda(d, ID, inicio.busqueda)).toEqual({ ok: false, motivo: "no_encontrada" });
+  });
+
+  it("al empezar, el servidor le da a la extensión el nombre de la asistente para la barra", async () => {
+    const { almacen } = almacenEnMemoria(corredor({ nombre_asistente: "Vale" }));
+    expect(await iniciarBusqueda(dependencias(almacen), ID)).toMatchObject({ ok: true, asistente: "Vale" });
+    const sinNombre = almacenEnMemoria(corredor({ nombre_asistente: undefined }));
+    expect(await iniciarBusqueda(dependencias(sinNombre.almacen), ID)).toMatchObject({ ok: true, asistente: "Patty" });
   });
 });

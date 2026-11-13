@@ -144,6 +144,8 @@ export function useExtension(o: OpcionesExtension) {
         pendientes.current.get(m.pedido)?.(m);
         return;
       }
+      // El estado de la búsqueda lo lee BusquedaEnVivo.
+      if (m.tipo !== "presente") return;
       setDeteccion({ estado: "si", version: m.version, conectada: m.conectada, corredor: m.corredor });
       const op = opciones.current;
       const falta = !m.conectada || !op.servidor.conectada;

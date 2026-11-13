@@ -4,6 +4,8 @@ import { fechaIso, fechaLocal, limitesDia, sumarDias } from "@/lib/agenda/tiempo
 import { minutosEntre } from "@/lib/agenda/zonas";
 import { encaja, telefonoBonito, type Busca } from "@/lib/crm/perfil";
 import { pendientesDe } from "@/lib/panel/pendientes";
+import { PASOS_PUESTA, datosPuesta, estadoPuesta } from "@/lib/panel/puesta";
+import { TarjetaPuesta } from "./empezar/tarjeta";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Aviso } from "./aviso";
 import { PreguntaBloqueo } from "./agenda/pregunta-bloqueo";
@@ -202,6 +204,8 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
     seguimientos.length ? `${seguimientos.length} ${seguimientos.length === 1 ? "por llamar" : "por llamar"}` : null,
   ].filter((x): x is string => !!x);
   const nombreAsistente = corredor.nombre_asistente ?? "Patty";
+  // Puesta en marcha: mientras falte lo obligatorio, la tarjeta va debajo de lo urgente.
+  const puesta = estadoPuesta(await datosPuesta(supabase, corredor));
 
   return (
     <div className="inicio">
@@ -278,6 +282,17 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
               </section>
             )}
           </div>
+          {!puesta.completa && (
+            <div className="inicio-bloque bloque-puesta">
+              <TarjetaPuesta
+                corredor={corredor.id}
+                asistente={nombreAsistente}
+                listos={puesta.listos}
+                total={puesta.total}
+                hechos={PASOS_PUESTA.map((p) => puesta.hechos.includes(p))}
+              />
+            </div>
+          )}
           <div className="inicio-bloque bloque-hoy">
             {visitas.length === 0 && seguimientos.length === 0 && sinRespuesta.length === 0 && pasadas.length === 0 && casasNuevas.length === 0 && (
               <section className="hoy hoy-vacio" aria-label="Hoy">

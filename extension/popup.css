@@ -5,6 +5,11 @@
   --principal: #1a2b4a;
   --borde: #d2d2d7;
   --alerta: #8a1c1c;
+  --verde: #008069;
+  --verde-fondo: #e7f7f1;
+  --verde-borde: #a6e3d2;
+  --ambar: #b07800;
+  --ambar-fondo: #fff6e0;
   color-scheme: light dark;
 }
 @media (prefers-color-scheme: dark) {
@@ -15,6 +20,11 @@
     --principal: #8fb0e8;
     --borde: #3a3a3c;
     --alerta: #ff8a80;
+    --verde: #21c063;
+    --verde-fondo: #0f2a22;
+    --verde-borde: #1f5c49;
+    --ambar: #f0b429;
+    --ambar-fondo: #2e2510;
   }
 }
 body {
@@ -83,6 +93,7 @@ button.enlace {
   padding: 4px;
 }
 #mensaje {
+  margin-top: 0;
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid var(--borde);
@@ -124,4 +135,138 @@ label.interruptor input {
 #anuncio {
   border-bottom: 1px solid var(--borde);
   margin-bottom: 12px;
+}
+button.parar {
+  color: var(--alerta);
+  border-color: var(--alerta);
+}
+.en-curso {
+  border: 1px solid var(--verde-borde);
+  background: var(--verde-fondo);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+.en-curso[data-fase="pausada"] {
+  background: transparent;
+  border-color: var(--borde);
+}
+.en-curso[data-fase="verificacion"] {
+  background: var(--ambar-fondo);
+  border-color: var(--ambar);
+}
+.en-curso-cabeza {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.en-curso p {
+  margin: 0 0 8px;
+}
+.punto {
+  position: relative;
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--verde);
+}
+.en-curso[data-fase="buscando"] .punto::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid var(--verde);
+  animation: latido 1.8s ease-out infinite;
+}
+.en-curso[data-fase="pausada"] .punto {
+  background: var(--suave);
+}
+.en-curso[data-fase="verificacion"] .punto {
+  background: var(--ambar);
+}
+@keyframes latido {
+  from {
+    transform: scale(0.7);
+    opacity: 0.8;
+  }
+  to {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .en-curso .punto::after {
+    animation: none !important;
+  }
+}
+.avance {
+  display: block;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--borde);
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.avance span {
+  display: block;
+  height: 100%;
+  background: var(--verde);
+  border-radius: 999px;
+  transition: width 0.5s ease;
+}
+.fila-botones {
+  display: flex;
+  gap: 8px;
+}
+.fila-botones button {
+  margin-bottom: 0;
+  padding: 10px 8px;
+}
+.semanal {
+  border-top: 1px solid var(--borde);
+  padding-top: 10px;
+  margin-top: 4px;
+}
+.modo {
+  border: 0;
+  padding: 0 0 0 26px;
+  margin: 0 0 8px;
+  display: flex;
+  gap: 14px;
+}
+.modo label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 400;
+  font-size: 13px;
+  margin: 0;
+  cursor: pointer;
+}
+.modo input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  padding: 0;
+}
+.modo:disabled {
+  opacity: 0.5;
+}
+.solo-lector {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+#mensaje-general {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--borde);
+}
+#mensaje-general.error {
+  color: var(--alerta);
+  border-color: var(--alerta);
 }

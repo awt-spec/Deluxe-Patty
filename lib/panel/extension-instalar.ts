@@ -4,8 +4,10 @@
 //
 // Canal página ↔ extensión: la extensión tiene un content script (extension/canal.js + extension/panel.js) que
 // corre solo en las páginas /panel/duenos* del panel. La página y ese script se hablan con window.postMessage:
-//  - página → extensión: "hola" (¿estás?) y "conectar" con un código de un solo uso (el mismo del método a mano);
-//  - extensión → página: "presente" (versión, si está conectada y a quién) y "resultado" de la conexión.
+//  - página → extensión: "hola" (¿estás?), "conectar" con un código de un solo uso (el mismo del método a mano) y
+//    "busqueda" con una orden sin parámetros (estado, pausar, seguir, detener, buscar; desde la versión 1.3.0);
+//  - extensión → página: "presente" (versión, si está conectada y a quién), "resultado" de la conexión y "busqueda"
+//    (cómo va la búsqueda de dueños: fase, página, total, tiempo que falta).
 // El permiso que la extensión canjea con el código nunca vuelve a la página.
 
 /** Quién habla en cada sentido (se repite en extension/canal.js; una prueba revisa que coincidan). */
@@ -185,9 +187,32 @@ export function numeroDePaso(p: Paso): { numero: number; total: number } {
 
 // --- Mensajes del canal ------------------------------------------------------------------------------
 
+/** Lo que la página le puede pedir a la búsqueda (se repite en extension/canal.js; una prueba revisa que coincidan). */
+export const ORDENES_BUSQUEDA = ["estado", "pausar", "seguir", "detener", "buscar"] as const;
+export type OrdenBusqueda = (typeof ORDENES_BUSQUEDA)[number];
+
+export const FASES_BUSQUEDA = ["lista", "buscando", "pausada", "verificacion", "revisando", "terminada", "detenida", "error"] as const;
+export type FaseBusqueda = (typeof FASES_BUSQUEDA)[number];
+
+/** Cómo va la búsqueda de dueños en la extensión de este navegador. */
+export interface EstadoBusquedaExt {
+  fase: FaseBusqueda;
+  motivoPausa: "usuario" | "actividad" | null;
+  detenida: boolean;
+  automatica: boolean;
+  pagina: number;
+  total: number;
+  restanteMs: number;
+  haciendo: string;
+  mensaje: string;
+  /** Última señal de vida (ms): sin latido reciente, la búsqueda se cortó. */
+  latido: number;
+}
+
 export type MensajeDeExtension =
   | { tipo: "presente"; version: string; conectada: boolean; corredor: string }
-  | { tipo: "resultado"; pedido: string; ok: boolean; corredor: string; mensaje: string };
+  | { tipo: "resultado"; pedido: string; ok: boolean; corredor: string; mensaje: string }
+  | { tipo: "busqueda"; pedido: string; ok: boolean; estado: EstadoBusquedaExt };
 
 /** Lo mínimo de un MessageEvent (para poder probarlo sin navegador). */
 export interface Evento {
@@ -215,8 +240,74 @@ export function leerMensajeDeExtension(e: Evento, ventana: unknown, origen: stri
     if (typeof d.pedido !== "string" || !/^[a-z0-9-]{1,40}$/.test(d.pedido)) return null;
     return { tipo: "resultado", pedido: d.pedido, ok: d.ok === true, corredor: texto(d.corredor, 120), mensaje: texto(d.mensaje, 300) };
   }
+  if (d.tipo === "busqueda") {
+    if (typeof d.pedido !== "string" || !/^[a-z0-9-]{1,40}$/.test(d.pedido)) return null;
+    const fase = FASES_BUSQUEDA.find((f) => f === d.fase);
+    if (!fase) return null;
+    const numero = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? Math.max(0, Math.round(v)) : 0);
+    return {
+      tipo: "busqueda",
+      pedido: d.pedido,
+      ok: d.ok === true,
+      estado: {
+        fase,
+        motivoPausa: d.motivoPausa === "usuario" || d.motivoPausa === "actividad" ? d.motivoPausa : null,
+        detenida: d.detenida === true,
+        automatica: d.automatica === true,
+        pagina: numero(d.pagina),
+        total: numero(d.total),
+        restanteMs: numero(d.restanteMs),
+        haciendo: texto(d.haciendo, 120),
+        mensaje: texto(d.mensaje, 300),
+        latido: numero(d.latido),
+      },
+    };
+  }
   return null;
 }
+
+// --- La búsqueda vista desde el panel ------------------------------------------------------------------------
+
+/** Sin latido por este tiempo, la búsqueda se dio por cortada (Chrome cerró la extensión). */
+export const LATIDO_MAX_MS = 90_000;
+const EN_CURSO: FaseBusqueda[] = ["buscando", "pausada", "verificacion", "revisando"];
+
+/** ¿Hay una búsqueda viva en este navegador? */
+export function busquedaEnCurso(e: EstadoBusquedaExt | null, ahora = Date.now()): boolean {
+  return !!e && EN_CURSO.includes(e.fase) && ahora - e.latido < LATIDO_MAX_MS;
+}
+
+/** "quedan ~6 min" */
+export function textoRestante(ms: number): string {
+  const min = Math.round(ms / 60_000);
+  return min < 1 ? "queda menos de 1 min" : `quedan ~${min} min`;
+}
+
+/** Título y detalle de la tarjeta "Buscando ahora" del panel. */
+export function textoBusqueda(e: EstadoBusquedaExt): { titulo: string; detalle: string } {
+  const pagina = e.total ? `página ${e.pagina} de ${e.total}` : "";
+  switch (e.fase) {
+    case "buscando":
+      return {
+        titulo: `Buscando ahora${pagina ? ` · ${pagina}` : ""}`,
+        detalle: [e.haciendo, e.restanteMs ? textoRestante(e.restanteMs) : ""].filter(Boolean).join(" · "),
+      };
+    case "pausada":
+      return {
+        titulo: `En pausa${pagina ? ` · ${pagina}` : ""}`,
+        detalle: e.motivoPausa === "actividad" ? "Se pausó porque usaste la pestaña de Encuentra24." : "Sigue desde aquí, la extensión o la pestaña.",
+      };
+    case "verificacion":
+      return { titulo: "Encuentra24 pide que confirmes que eres tú", detalle: "Resuélvelo en la pestaña de Encuentra24 y toca Seguir." };
+    case "revisando":
+      return { titulo: "Revisando lo que leyó", detalle: e.detenida ? "La detuviste: revisa y guarda lo que alcanzó a leer." : "Viendo cuáles son dueños directos…" };
+    default:
+      return { titulo: "", detalle: e.mensaje };
+  }
+}
+
+/** La extensión responde a "busqueda" desde la 1.3.0: las anteriores no tienen estos botones. */
+export const VERSION_BUSQUEDA_EN_VIVO = "1.3.0";
 
 /** El código del panel tal como lo acepta la extensión ("K7PM-4QXR"). */
 export const CODIGO = /^[A-Z0-9]{4}-?[A-Z0-9]{4}$/;

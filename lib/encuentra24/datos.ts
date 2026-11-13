@@ -20,7 +20,7 @@ function verificar(error: { message: string; code?: string } | null, que: string
 }
 
 const COLUMNAS_BUSQUEDA =
-  "id, nombre, nombre_contacto, whatsapp_numero, whatsapp_phone_number_id, whatsapp_corredor, zona_horaria, tono, reglas_escalamiento, tope_mensajes_mes, aviso_mensajes_mes, respuesta_automatica, duracion_visita_min, margen_visitas_min, anticipacion_min_horas, horizonte_agenda_dias, hora_plan_dia, marca, zonas_e24, categoria_busqueda_e24, precio_busqueda_min, precio_busqueda_max";
+  "id, nombre, nombre_contacto, whatsapp_numero, whatsapp_phone_number_id, whatsapp_corredor, zona_horaria, tono, reglas_escalamiento, tope_mensajes_mes, aviso_mensajes_mes, respuesta_automatica, duracion_visita_min, margen_visitas_min, anticipacion_min_horas, horizonte_agenda_dias, hora_plan_dia, marca, nombre_asistente, zonas_e24, categoria_busqueda_e24, precio_busqueda_min, precio_busqueda_max";
 
 export async function corredoresConBusqueda(db: SupabaseClient): Promise<CorredorBusqueda[]> {
   const { data, error } = await db

@@ -7,7 +7,7 @@ import { errorSeguro } from "../monitoreo/errores";
 import { createAdminClient } from "../supabase/admin";
 import type { DependenciasAnuncio } from "./anuncio";
 import { crearAlmacenExtension } from "./datos";
-import type { DependenciasExtension } from "./extension";
+import { terminarBusqueda, type DependenciasExtension } from "./extension";
 
 // Piezas comunes de las rutas /api/extension/*: dependencias, respuestas y manejo de errores. Los
 // mensajes para el corredor salen de aquí y no de la extensión, para cambiarlos sin reinstalarla.
@@ -37,6 +37,7 @@ export const MENSAJES: Record<string, string> = {
   sin_zonas: "Primero escribe tus zonas de Encuentra24 en el panel, en Más y luego Ajustes, en Búsqueda de dueños.",
   sin_presupuesto: SIN_PRESUPUESTO,
   no_encontrada: "La búsqueda se interrumpió. Vuelve a empezarla.",
+  detenida: "La detuviste antes de que leyera anuncios: no hay nada que guardar.",
   fuera_de_orden: "La búsqueda se interrumpió. Vuelve a empezarla.",
   sin_resultados:
     "Encuentra24 no mostró anuncios: pudo pedir la verificación o cambiar su página. Vuelve a intentarlo; si sigue pasando, avísale a soporte.",
@@ -77,5 +78,24 @@ export async function conManejo(ruta: string, f: () => Promise<Response>): Promi
     return responder({ ok: false, motivo: "servidor", mensaje: MENSAJES.servidor, detalle: errorSeguro(e) }, 500);
   } finally {
     await esperarAlertas();
+  }
+}
+
+/**
+ * Después de la última página (o al detenerla): Haiku revisa lo leído en segundo plano y los dueños quedan en el panel.
+ * Soporte se entera si ninguna página trajo anuncios, salvo en la búsqueda semanal sola (ahí suele ser la verificación
+ * de Cloudflare y se reintenta en el siguiente despertar) y cuando la persona la cortó.
+ */
+export async function terminarEnSegundoPlano(d: DependenciasExtension, corredorId: string, busqueda: string): Promise<void> {
+  try {
+    const r = await terminarBusqueda(d, corredorId, busqueda);
+    if (r && "resumen" in r) console.log(JSON.stringify({ evento: "busqueda_extension", corredorId, cortada: r.cortada, ...r.resumen }));
+    if (r && "motivo" in r && r.motivo === "sin_resultados" && !r.automatica && !r.cortada) {
+      console.error(JSON.stringify({ evento: "error_busqueda_extension", corredorId, detalle: r.mensaje }));
+      alertar(`error_busqueda_extension:${corredorId}`, `Búsqueda desde la extensión sin anuncios: ${r.mensaje}`);
+    }
+  } catch (e) {
+    console.error(JSON.stringify({ evento: "error_busqueda_extension", corredorId, error: errorSeguro(e) }));
+    alertar(`error_busqueda_extension:${corredorId}`, `La búsqueda desde la extensión falló: ${errorSeguro(e)}`);
   }
 }

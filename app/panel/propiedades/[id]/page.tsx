@@ -96,9 +96,11 @@ export default async function Propiedad({
     .slice(0, 12);
 
   // Movimiento de la casa: visitas y clientes que la tienen como "la que le interesa".
-  const [{ count: visitas }, { count: interesadosEnElla }] = await Promise.all([
+  const [{ count: visitas }, { count: interesadosEnElla }, { data: anuncioListo }] = await Promise.all([
     supabase.from("citas").select("id", { count: "exact", head: true }).eq("corredor_id", corredor.id).eq("propiedad_id", p.id),
     supabase.from("contactos").select("id", { count: "exact", head: true }).eq("corredor_id", corredor.id).eq("propiedad_interes_id", p.id),
+    // Un anuncio ya preparado y sin publicar: enlace a publicarlo paso a paso.
+    supabase.from("anuncios_e24").select("id").eq("corredor_id", corredor.id).eq("propiedad_id", p.id).eq("estado", "borrador").limit(1).maybeSingle(),
   ]);
   const ESTADO_CASA: Record<string, string> = {
     activa: "Disponible",
@@ -191,6 +193,11 @@ export default async function Propiedad({
               <input type="hidden" name="id" value={p.id} />
               <BotonEnviar texto={<><IconoMegafono tamano={20} /> Anuncio de Encuentra24</>} pendiente="Escribiendo el anuncio…" />
             </form>
+            {anuncioListo && (
+              <Link href={`/panel/anuncios/${anuncioListo.id as string}/publicar`} className="boton" data-patty="casa-publicar-anuncio">
+                Publicar el anuncio paso a paso
+              </Link>
+            )}
             {fotos.length > 0 && (
               <Link href={`/panel/propiedades/${p.id}/redes`} className="boton" data-patty="casa-redes">
                 Imagen para redes

@@ -1,8 +1,6 @@
 import { after } from "next/server";
-import { alertar } from "@/lib/asistente/dependencias";
-import { autenticar, recibirPagina, terminarBusqueda } from "@/lib/encuentra24/extension";
-import { conManejo, dependenciasExtension, fallo, leerJson, responder, UUID } from "@/lib/encuentra24/extension-servidor";
-import { errorSeguro } from "@/lib/monitoreo/errores";
+import { autenticar, recibirPagina } from "@/lib/encuentra24/extension";
+import { conManejo, dependenciasExtension, fallo, leerJson, responder, terminarEnSegundoPlano, UUID } from "@/lib/encuentra24/extension-servidor";
 
 export const runtime = "nodejs";
 // Después de la última página Haiku revisa los candidatos (hasta unos 60) en segundo plano.
@@ -21,24 +19,7 @@ export async function POST(req: Request) {
     const busqueda = c.busqueda;
     const avance = await recibirPagina(d, corredorId, { busqueda, url: c.url, html: c.html });
     if (!avance.ok) return fallo(avance.motivo);
-
-    if (avance.siguiente === null) {
-      after(async () => {
-        try {
-          const r = await terminarBusqueda(d, corredorId, busqueda);
-          if (r && "resumen" in r) console.log(JSON.stringify({ evento: "busqueda_extension", corredorId, ...r.resumen }));
-          // Ninguna página trajo anuncios: Encuentra24 pudo cambiar. Soporte se entera como con el worker, salvo en la
-          // búsqueda semanal sola: ahí suele ser la verificación de Cloudflare y se reintenta en el siguiente despertar.
-          if (r && "motivo" in r && !r.automatica) {
-            console.error(JSON.stringify({ evento: "error_busqueda_extension", corredorId, detalle: r.mensaje }));
-            alertar(`error_busqueda_extension:${corredorId}`, `Búsqueda desde la extensión sin anuncios: ${r.mensaje}`);
-          }
-        } catch (e) {
-          console.error(JSON.stringify({ evento: "error_busqueda_extension", corredorId, error: errorSeguro(e) }));
-          alertar(`error_busqueda_extension:${corredorId}`, `La búsqueda desde la extensión falló: ${errorSeguro(e)}`);
-        }
-      });
-    }
+    if (avance.siguiente === null) after(() => terminarEnSegundoPlano(d, corredorId, busqueda));
     return responder(avance);
   });
 }

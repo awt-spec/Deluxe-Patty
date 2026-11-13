@@ -23,6 +23,7 @@ import {
   IconoSalir,
   IconoSelector,
 } from "./iconos";
+import { NOMBRE_CEREBRO } from "./cerebro/nombre";
 import { esActiva } from "./navegacion";
 import { abrirPatty } from "./patty";
 
@@ -58,7 +59,7 @@ const grupos = (asistente: string): { titulo: string; enlaces: Enlace[] }[] => [
   {
     titulo: "Tu asistente",
     enlaces: [
-      { ruta: "/panel/cerebro", nombre: "Cerebro", Icono: IconoIdea, lugar: "nav-cerebro" },
+      { ruta: "/panel/cerebro", nombre: NOMBRE_CEREBRO, Icono: IconoIdea, lugar: "nav-cerebro" },
       { ruta: "/panel/probar", nombre: "Probar la asistente", Icono: IconoProbar, lugar: "nav-probar" },
       { ruta: "/panel/patty", nombre: `Chat con ${asistente}`, Icono: IconoPantalla, lugar: "nav-patty" },
     ],

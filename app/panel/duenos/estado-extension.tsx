@@ -1,6 +1,7 @@
 "use client";
 
 import { dondeInstalar, estadoExtension, type DelServidor, type Entorno } from "@/lib/panel/extension-instalar";
+import { BusquedaEnVivo } from "./busqueda-en-vivo";
 import { useEntorno, useExtension } from "./extension/usar-extension";
 import { TarjetaEstado } from "./extension/vista";
 
@@ -12,6 +13,8 @@ interface Props {
   version: string;
   demo: boolean;
   corredor: string;
+  /** Nombre de la asistente, para "verás a Patty trabajar". */
+  asistente: string;
   /** El formulario de Desconectar (acción del servidor), para cuando está conectada. */
   desconectar: React.ReactNode;
 }
@@ -27,7 +30,7 @@ export function EstadoExtensionDuenos(p: Props) {
   return <ConNavegador {...p} entorno={entorno} />;
 }
 
-function ConNavegador({ servidor, version, demo, corredor, desconectar, entorno }: Props & { entorno: Entorno }) {
+function ConNavegador({ servidor, version, demo, corredor, asistente, desconectar, entorno }: Props & { entorno: Entorno }) {
   const aqui = dondeInstalar(entorno) === "aqui";
   const { estado: visto, conexion, conectar } = useExtension({ servidor, version, demo, corredor, autoconectar: false });
   // En el teléfono o en otro navegador no hay extensión que mirar: vale lo del servidor.
@@ -55,6 +58,8 @@ function ConNavegador({ servidor, version, demo, corredor, desconectar, entorno 
       <TarjetaEstado estado={estado} conexion={conexion} demo={demo}>
         {accion}
       </TarjetaEstado>
+      {/* Conectada y al día en este navegador: la búsqueda en vivo (Buscar ahora, o cómo va con Pausar y Detener). */}
+      {aqui && !demo && estado.tipo === "conectada" && <BusquedaEnVivo asistente={asistente} />}
       {conexion.fase === "error" && (
         <p className="aviso" role="alert">
           {conexion.mensaje} <a href={RUTA}>Hazlo paso a paso</a>.

@@ -35,8 +35,14 @@ export interface EstadoBusqueda {
   esperada: string | null;
   /** La empezó la extensión sola (búsqueda semanal): si Encuentra24 no deja leer, no se avisa a soporte. */
   automatica?: boolean;
+  /**
+   * La cortó la extensión antes de que el servidor dijera "no hay más": "usuario" (la persona tocó Detener, cerró la
+   * pestaña o dejó la verificación para después) o "tope" (llegó al máximo de páginas por búsqueda o por día). Lo
+   * leído hasta ahí se revisa y se guarda igual.
+   */
+  cortada?: "usuario" | "tope";
   /** Al terminar: cuántos dueños salieron, o por qué no. */
-  resultado?: { resumen: Resumen } | { motivo: "sin_resultados" | "servidor"; mensaje?: string };
+  resultado?: { resumen: Resumen } | { motivo: "sin_resultados" | "servidor" | "detenida"; mensaje?: string };
 }
 
 export interface AlmacenExtension {
@@ -109,7 +115,7 @@ export function tokenDe(cabecera: string | null): string | null {
 }
 
 export type Inicio =
-  | { ok: true; busqueda: string; siguiente: string; zonas: number }
+  | { ok: true; busqueda: string; siguiente: string; zonas: number; asistente: string }
   | { ok: false; motivo: "sin_corredor" | "sin_zonas" | "sin_presupuesto" };
 
 export async function iniciarBusqueda(d: DependenciasExtension, corredorId: string, opciones: { automatica?: boolean } = {}): Promise<Inicio> {
@@ -127,7 +133,9 @@ export async function iniciarBusqueda(d: DependenciasExtension, corredorId: stri
     ...(opciones.automatica ? { automatica: true } : {}),
   };
   const busqueda = await d.almacen.crearBusqueda(corredorId, estado);
-  return { ok: true, busqueda, siguiente: estado.esperada!, zonas: recorrido.activas.length };
+  // El nombre de la asistente va en la barra que se ve sobre Encuentra24 ("Patty está buscando dueños…").
+  const asistente = (corredor.nombre_asistente ?? "").trim().slice(0, 40) || "Patty";
+  return { ok: true, busqueda, siguiente: estado.esperada!, zonas: recorrido.activas.length, asistente };
 }
 
 export interface Resumen {
@@ -192,7 +200,10 @@ export async function terminarBusqueda(d: DependenciasExtension, corredorId: str
   if (!estado || estado.esperada || !corredor) return;
   try {
     const leidos = await d.almacen.anuncios(corredorId, id);
-    if (leidos.length === 0) {
+    if (leidos.length === 0 && estado.cortada) {
+      // La detuvo antes de leer anuncios: no hay nada que revisar ni que avisarle a soporte.
+      estado.resultado = { motivo: "detenida" };
+    } else if (leidos.length === 0) {
       estado.resultado = { motivo: "sin_resultados", mensaje: sinResultados(estado.recorrido).message };
     } else {
       const r = await evaluarAnuncios(leidos, await parametros(d, corredor), d.cerebro);
@@ -206,7 +217,9 @@ export async function terminarBusqueda(d: DependenciasExtension, corredorId: str
       estado.resultado = {
         resumen: { duenos: r.leads.length, paginas: estado.recorrido.paginas, anuncios: leidos.length, candidatos: r.candidatos },
       };
-      await d.almacen.marcarBusquedaHecha(corredorId);
+      // Detenida por la persona: lo leído se guarda, pero la de la semana no cuenta como hecha (la sola vuelve a
+      // intentarlo). Cortada por el tope de páginas, sí.
+      if (estado.cortada !== "usuario") await d.almacen.marcarBusquedaHecha(corredorId);
     }
   } catch (e) {
     estado.resultado = { motivo: "servidor" };
@@ -215,13 +228,36 @@ export async function terminarBusqueda(d: DependenciasExtension, corredorId: str
     await d.almacen.guardarEstado(corredorId, id, estado);
     await d.almacen.terminar(corredorId, id, ahora);
   }
-  return { ...estado.resultado, automatica: estado.automatica === true };
+  return { ...estado.resultado, automatica: estado.automatica === true, cortada: estado.cortada ?? null };
+}
+
+export type Corte =
+  | { ok: true; paginas: number }
+  | { ok: false; motivo: "no_encontrada" };
+
+/**
+ * La extensión corta la búsqueda (Detener, la pestaña cerrada, la verificación dejada para después o el tope de
+ * páginas). No se pierde lo leído: la búsqueda queda sin página esperada y la ruta corre terminarBusqueda en segundo
+ * plano, igual que después de la última página. Solo una búsqueda en curso y del mismo corredor.
+ */
+export async function detenerBusqueda(
+  d: DependenciasExtension,
+  corredorId: string,
+  id: string,
+  motivo: "usuario" | "tope" = "usuario",
+): Promise<Corte> {
+  const estado = await d.almacen.busqueda(corredorId, id);
+  if (!estado || !estado.esperada) return { ok: false, motivo: "no_encontrada" };
+  estado.esperada = null;
+  estado.cortada = motivo;
+  await d.almacen.guardarEstado(corredorId, id, estado);
+  return { ok: true, paginas: estado.recorrido.paginas };
 }
 
 export type Consulta =
   | { ok: true; listo: false; paginas: number }
   | { ok: true; listo: true; resumen: Resumen }
-  | { ok: false; motivo: "no_encontrada" | "sin_resultados" | "servidor"; mensaje?: string };
+  | { ok: false; motivo: "no_encontrada" | "sin_resultados" | "servidor" | "detenida"; mensaje?: string };
 
 /** La extensión pregunta si la búsqueda ya terminó. */
 export async function consultarBusqueda(d: DependenciasExtension, corredorId: string, id: string): Promise<Consulta> {

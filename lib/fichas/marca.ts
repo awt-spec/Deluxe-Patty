@@ -22,6 +22,20 @@ export interface Marca {
   };
   eslogan: string | null;
   firma: { nombre: string; cargo: string } | null;
+  /** Correo de contacto que va en la tarjeta de cierre de la ficha (opcional). */
+  correo?: string | null;
+  /** Sitio web del corredor, sin inventar: solo si está en la marca (opcional). */
+  sitio?: string | null;
+  /** "serif" (títulos en Playfair Display, la de Deluxe) o "sistema" (todo en Inter, sobria). Por defecto, serif. */
+  tipografia?: "serif" | "sistema";
+}
+
+/** Colores de la versión neutra (corredor sin identidad visual): verde de WhatsApp sobrio sobre blanco. */
+export const COLORES_NEUTROS: Marca["colores"] = { principal: "#008069", soporte: "#667781", profundo: "#111b21", base: "#ffffff" };
+
+/** Marca neutra y elegante para un corredor sin `marca`: su nombre, sin logo, tipografía del sistema. */
+export function marcaNeutra(nombre: string): Marca {
+  return { nombre, logoSobreProfundo: "", colores: COLORES_NEUTROS, eslogan: null, firma: null, tipografia: "sistema" };
 }
 
 export const MARCA_DELUXE: Marca = {

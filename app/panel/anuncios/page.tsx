@@ -82,6 +82,11 @@ export default async function Anuncios({ searchParams }: { searchParams: Promise
             {a.estado === "activo" && a.contactos_periodo === 0 && (
               <p className="suave">Sin contactos: revisa foto principal, título o precio.</p>
             )}
+            {a.estado === "borrador" && (
+              <Link href={`/panel/anuncios/${a.id}/publicar`} className="boton primario" data-patty="anuncios-publicar-pasos">
+                Publicarlo paso a paso
+              </Link>
+            )}
             {a.estado === "borrador" && textos.get(a.id)?.es && (
               <details>
                 <summary>Texto para publicar (ref. {a.referencia})</summary>

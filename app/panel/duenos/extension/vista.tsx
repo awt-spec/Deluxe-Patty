@@ -400,6 +400,10 @@ export function Asistente(p: PropsAsistente) {
               <div className="ext-listo-item">
                 <h3>Busca sola cada semana</h3>
                 <p>Mientras {nav} esté abierto, una vez por semana abre Encuentra24 en una pestaña de fondo y los dueños aparecen en Dueños directos.</p>
+                <p>
+                  Busca a tu ritmo, como lo harías tú: lee cada página, hace pausas y no abre más de una pestaña. Si Encuentra24 te pide confirmar que
+                  eres tú, se detiene y te avisa.
+                </p>
               </div>
               <div className="ext-listo-item">
                 <h3>Leer este anuncio</h3>
