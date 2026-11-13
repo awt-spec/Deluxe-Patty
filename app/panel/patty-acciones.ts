@@ -1,5 +1,6 @@
 "use server";
 
+import { nombreArchivo } from "@/lib/panel/nombre-archivo";
 import type { Adjunto } from "@/lib/asistente/cerebro";
 import { dependenciasPara } from "@/lib/asistente/dependencias";
 import { SIN_PRESUPUESTO, hayPresupuestoHoy } from "@/lib/asistente/limites";
@@ -118,7 +119,7 @@ export async function pdfDePatty(titulo: unknown, texto: unknown, diagramas?: un
       fecha: diaLargo(new Date(), corredor.zona_horaria),
       asistente: corredor.nombre_asistente || "Patty",
     });
-    const nombre = `${t.replace(/[\\/:*?"<>|]+/g, "").slice(0, 80)}.pdf`;
+    const nombre = nombreArchivo(t, "pdf");
     return { ok: true as const, datos: pdf.toString("base64"), nombre };
   } catch (e) {
     console.error(JSON.stringify({ evento: "error_pdf_patty", error: errorSeguro(e) }));

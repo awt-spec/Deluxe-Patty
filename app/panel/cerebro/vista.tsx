@@ -28,7 +28,7 @@ import {
   diferenciaPalabras,
   faltaPreparacion,
   fraseEstado,
-  listaPreparacion,
+  listaPuesta,
   pendientesCerebro,
   resumenHorario,
   seccionesCerebro,
@@ -88,6 +88,8 @@ export type DatosCerebro = {
   franjas: { dia_semana: number; hora_inicio: string; hora_fin: string }[];
   tono: string;
   temas: string[];
+  /** Google conectado (cuenta como un paso de la puesta en marcha). */
+  google: boolean;
 };
 
 /** Lo que la vista calcula una vez y comparten las secciones. */
@@ -106,13 +108,13 @@ const ICONOS: Record<Seccion, typeof IconoIdea> = {
 };
 
 export function VistaCerebro(d: DatosCerebro) {
-  const lista = listaPreparacion({
+  // Los mismos 6 pasos y el mismo conteo que la puesta en marcha; las preguntas son un pendiente aparte.
+  const lista = listaPuesta({
     casas: d.casas,
     franjas: d.franjas.length,
     tono: d.tono,
     temasCorredor: d.temas.length,
-    sabe: d.sabe.length,
-    preguntas: d.dudas.length + d.porUbicar.length,
+    google: d.google,
   });
   const falta = faltaPreparacion(lista);
   const pendientes = pendientesCerebro({

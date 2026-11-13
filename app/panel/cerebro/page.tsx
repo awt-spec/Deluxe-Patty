@@ -1,5 +1,7 @@
 import { PREFIJO_UBICACION, leerTemaUbicacion } from "@/lib/sitio/ubicacion";
 import { sesionConCorredor } from "@/lib/panel/sesion";
+import type { Metadata } from "next";
+import { NOMBRE_CEREBRO } from "./nombre";
 import { VistaCerebro, type PorUbicar } from "./vista";
 import type { Ubicada } from "./lo-que-sabe";
 import "./cerebro.css";
@@ -8,13 +10,15 @@ import "./cerebro.css";
 // que el corredor responde pasa a ser algo que la asistente ya sabe y usa al contestar. Esta página solo lee con la
 // sesión (RLS) y pasa los datos a la vista (vista.tsx), que decide la sección por `?ver=` (resumen.ts, vistaCerebro).
 
+export const metadata: Metadata = { title: NOMBRE_CEREBRO };
+
 type Item = { id: string; tema: string; respuesta: string | null; origen: string; veces: number; updated_at: string; estado: string };
 type Casa = { id: string; titulo: string; codigo: string | null; precio: number | null; fotos: unknown; estado: string };
 
 export default async function Cerebro({ searchParams }: { searchParams: Promise<{ ver?: string; aviso?: string }> }) {
   const { ver: pedido, aviso } = await searchParams;
   const { supabase, corredor } = await sesionConCorredor();
-  const [{ data: items, error: errorCerebro }, { data: correcciones }, { data: casasData }, { data: franjasData }] = await Promise.all([
+  const [{ data: items, error: errorCerebro }, { data: correcciones }, { data: casasData }, { data: franjasData }, { data: googleData }] = await Promise.all([
     supabase
       .from("conocimiento")
       .select("id, tema, respuesta, origen, veces, updated_at, estado")
@@ -31,6 +35,7 @@ export default async function Cerebro({ searchParams }: { searchParams: Promise<
     // Todas las casas (no solo las activas): una pregunta de ubicación puede ser de una casa pausada.
     supabase.from("propiedades").select("id, titulo, codigo, precio, fotos, estado").eq("corredor_id", corredor.id).limit(300),
     supabase.from("horarios_visitas").select("dia_semana, hora_inicio, hora_fin").eq("corredor_id", corredor.id).order("dia_semana"),
+    supabase.from("google_conexiones").select("correo").eq("corredor_id", corredor.id).limit(1),
   ]);
   const todos = (items ?? []) as Item[];
   const casasTodas = (casasData ?? []) as Casa[];
@@ -71,6 +76,7 @@ export default async function Cerebro({ searchParams }: { searchParams: Promise<
       franjas={(franjasData ?? []) as { dia_semana: number; hora_inicio: string; hora_fin: string }[]}
       tono={corredor.tono ?? ""}
       temas={corredor.reglas_escalamiento ?? []}
+      google={((googleData ?? []) as unknown[]).length > 0}
     />
   );
 }

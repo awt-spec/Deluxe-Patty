@@ -15,6 +15,7 @@ import { monedaDe, montoExacto } from "../crm/dinero";
 import { NOMBRE_ETAPA, resumenBusca, type Busca, type Etapa } from "../crm/perfil";
 import type { Corredor } from "../datos/tipos";
 import { errorSeguro } from "../monitoreo/errores";
+import { NOMBRE_CEREBRO } from "@/app/panel/cerebro/nombre";
 import { PREFIJO_UBICACION } from "../sitio/ubicacion";
 
 // Chat del corredor con su asistente (Patty) desde cualquier página del panel. Patty contesta con un
@@ -145,7 +146,7 @@ const PANTALLAS: [RegExp, string][] = [
   [/^\/panel\/propiedades\/nueva/, "Agregar casa"],
   [/^\/panel\/propiedades\/[0-9a-f-]{36}/, "Ficha de una casa"],
   [/^\/panel\/propiedades/, "Mis casas"],
-  [/^\/panel\/cerebro/, "Cerebro de la asistente"],
+  [/^\/panel\/cerebro/, NOMBRE_CEREBRO],
   [/^\/panel\/duenos/, "Dueños directos"],
   [/^\/panel\/anuncios\/[0-9a-f-]{36}\/publicar/, "Guía: publicar un anuncio en Encuentra24"],
   [/^\/panel\/anuncios/, "Anuncios"],

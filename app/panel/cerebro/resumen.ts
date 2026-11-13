@@ -241,6 +241,26 @@ export function vistaCerebro(pedido: string | undefined, pendientes: number): { 
 }
 
 /** Lo que falta de "Qué tan lista está", sin las preguntas (esas ya se cuentan aparte, una por una). */
+/**
+ * Los renglones de la puesta en marcha (/panel/empezar): los mismos 6 pasos y el mismo conteo ("5 de 6"). Lo enseñado y
+ * las preguntas no cuentan aquí: son pendientes propios del Cerebro (`preguntas` va aparte en `pendientesCerebro`).
+ */
+export function listaPuesta(d: Omit<DatosLista, "sabe" | "preguntas"> & { google: boolean }): Renglon[] {
+  const claves = ["casas", "fichas", "horario", "tono", "temas"];
+  const base = listaPreparacion({ ...d, sabe: 0, preguntas: 0 }).filter((r) => claves.includes(r.clave));
+  return [
+    ...base,
+    {
+      clave: "google",
+      listo: d.google,
+      titulo: "Google conectado",
+      detalle: d.google ? "Tu calendario y tu correo están conectados" : "Opcional: conecta tu calendario y tu correo",
+      href: "/panel/ajustes",
+      accion: d.google ? "Ver" : "Conectar",
+    },
+  ];
+}
+
 export function faltaPreparacion(lista: Renglon[]): Renglon[] {
   return lista.filter((r) => !r.listo && r.clave !== "preguntas");
 }

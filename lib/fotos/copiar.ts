@@ -18,6 +18,11 @@ export interface CopiaFoto {
   tiempoMs?: number;
 }
 
+/** Huella con la que se nombra la copia de una dirección (la misma dirección da siempre el mismo nombre). */
+export function huellaFoto(url: string): string {
+  return createHash("sha256").update(url).digest("hex").slice(0, 16);
+}
+
 /** Dirección pública de la copia, o null si la foto no se pudo (o no se debía) copiar. */
 export async function copiarFotoExterna(db: SupabaseClient, c: CopiaFoto): Promise<string | null> {
   if (!c.permitida(c.url)) return null;
@@ -28,7 +33,7 @@ export async function copiarFotoExterna(db: SupabaseClient, c: CopiaFoto): Promi
   const datos = Buffer.from(await r.arrayBuffer());
   if (datos.length === 0 || datos.length > MAX_FOTO_COPIADA) return null;
   const ext = tipo === "image/png" ? "png" : tipo === "image/webp" ? "webp" : "jpg";
-  const camino = `${c.corredorId}/${c.propiedadId}/originales/${c.prefijo}-${createHash("sha256").update(c.url).digest("hex").slice(0, 16)}.${ext}`;
+  const camino = `${c.corredorId}/${c.propiedadId}/originales/${c.prefijo}-${huellaFoto(c.url)}.${ext}`;
   const { error } = await db.storage.from("fotos").upload(camino, datos, { contentType: tipo, upsert: true });
   if (error) return null;
   return db.storage.from("fotos").getPublicUrl(camino).data.publicUrl;

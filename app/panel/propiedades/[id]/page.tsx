@@ -5,6 +5,7 @@ import { Volver } from "../../volver";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Foto } from "@/lib/datos/tipos";
+import { fotosPropias } from "@/lib/fotos/origen";
 import { ordenarFotos } from "@/lib/panel/formularios";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Aviso } from "../../aviso";
@@ -188,6 +189,11 @@ export default async function Propiedad({
             <form action={generarFicha}>
               <input type="hidden" name="id" value={p.id} />
               <BotonEnviar texto={<><IconoDocumento tamano={20} /> Ficha para un cliente</>} pendiente="Armando la ficha…" className="primario" />
+              {fotosPropias(fotos, corredor.id).length === 0 && (
+                <p className="suave" style={{ margin: "6px 0 0", fontSize: "0.85rem" }}>
+                  Esta casa no tiene fotos subidas al portal: la ficha saldrá sin fotos.
+                </p>
+              )}
             </form>
             <form action={prepararAnuncioPanel}>
               <input type="hidden" name="id" value={p.id} />
