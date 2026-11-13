@@ -474,21 +474,23 @@ export function EditorVideo(d: DatosEstudio) {
                         +
                       </button>
                     </span>
-                    {(e.tipo === "foto" || e.tipo === "datos") && (
-                      <>
-                        <button type="button" onClick={() => cambiar(mover(escenas, i, -1))} disabled={ocupado || escenas[i - 1]?.tipo === "portada"} aria-label="Subir">
-                          ↑
+                    <span className="redes-escena-orden">
+                      {(e.tipo === "foto" || e.tipo === "datos") && (
+                        <>
+                          <button type="button" onClick={() => cambiar(mover(escenas, i, -1))} disabled={ocupado || escenas[i - 1]?.tipo === "portada"} aria-label="Subir">
+                            ↑
+                          </button>
+                          <button type="button" onClick={() => cambiar(mover(escenas, i, 1))} disabled={ocupado || escenas[i + 1]?.tipo === "cierre"} aria-label="Bajar">
+                            ↓
+                          </button>
+                        </>
+                      )}
+                      {e.tipo === "foto" && (
+                        <button type="button" className="peligro" onClick={() => cambiar(quitar(escenas, i))} disabled={ocupado}>
+                          Quitar
                         </button>
-                        <button type="button" onClick={() => cambiar(mover(escenas, i, 1))} disabled={ocupado || escenas[i + 1]?.tipo === "cierre"} aria-label="Bajar">
-                          ↓
-                        </button>
-                      </>
-                    )}
-                    {e.tipo === "foto" && (
-                      <button type="button" className="peligro" onClick={() => cambiar(quitar(escenas, i))} disabled={ocupado}>
-                        Quitar
-                      </button>
-                    )}
+                      )}
+                    </span>
                   </div>
                 </div>
               </li>

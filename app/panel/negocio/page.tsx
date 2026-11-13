@@ -3,7 +3,6 @@ import { hayMonto, monedaDe, plataMontos, sumar, type Montos } from "@/lib/crm/d
 import { fechaIso, fechaLocal } from "@/lib/agenda/tiempo";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { PreguntarPatty } from "../preguntar-patty";
-import { Volver } from "../volver";
 import { IconoCheck, IconoEstrella, IconoPersonas, IconoReloj, IconoResumen } from "../iconos";
 import { Cifra, EncabezadoPagina, Vacio } from "../piezas";
 
@@ -105,8 +104,7 @@ export default async function Negocio() {
 
   return (
     <>
-      <Volver href="/panel/mas" texto="Más" />
-      <EncabezadoPagina titulo="Cómo va el negocio" apoyo="Con lo que anotas en Clientes y lo que hace la asistente." />
+      <EncabezadoPagina titulo="Cómo va el negocio" apoyo="Con lo que anotas en Clientes y lo que hace la asistente." atras={{ href: "/panel/mas", texto: "Más", soloTelefono: true }} />
       <div className="preguntas-patty">
         <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="¿Cómo va el mes comparado con el anterior?" />
         <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="¿Qué puedo hacer para cerrar más?" />
@@ -220,7 +218,9 @@ export default async function Negocio() {
             {cuentaDuenos("contactado") + cuentaDuenos("respondio") + cuentaDuenos("visitada")} en conversación ·{" "}
             {cuentaDuenos("nuevo")} por escribirles
           </p>
-          <Link href="/panel/duenos">Ver dueños directos</Link>
+          <Link href="/panel/duenos" className="enlace">
+            Ver dueños directos
+          </Link>
           {uso && (
             <p className="suave">
               La asistente atendió {Number(uso.mensajes_total ?? 0).toLocaleString("es-CR")} mensajes este mes.

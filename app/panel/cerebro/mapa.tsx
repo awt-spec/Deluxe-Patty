@@ -160,6 +160,23 @@ function vistaQueAbarca(nodos: Nodo[], ancho: number, alto: number) {
   return { x: (x0 + x1) / 2 - w / 2, y: (y0 + y1) / 2 - h / 2, w, h };
 }
 
+/**
+ * En el teléfono, abarcar todo el grafo deja los rótulos a 4–7 px (el mapa se achica a la mitad). Allí la vista abre
+ * a escala 1 (una unidad del mapa = un píxel: rama 12 px, elemento 14 px), centrada en la asistente; con el dedo se
+ * arrastra y se pellizca para ver el resto, y "Centrar" vuelve aquí. En pantallas anchas sigue abarcando todo.
+ */
+export const ANCHO_TELEFONO = 600;
+export const ESCALA_MINIMA_TELEFONO = 1;
+export function vistaInicial(nodos: Nodo[], ancho: number, alto: number) {
+  const todo = vistaQueAbarca(nodos, ancho, alto);
+  if (ancho < 50 || alto < 50 || ancho >= ANCHO_TELEFONO || ancho / todo.w >= ESCALA_MINIMA_TELEFONO) return todo;
+  const centro = nodos.find((n) => n.tipo === "centro");
+  if (!centro) return todo;
+  const w = ancho / ESCALA_MINIMA_TELEFONO;
+  const h = alto / ESCALA_MINIMA_TELEFONO;
+  return { x: centro.x - w / 2, y: centro.y - h / 2, w, h };
+}
+
 export function MapaCerebro({ ramas }: { ramas: Rama[] }) {
   const [activas, setActivas] = useState(() => new Set(ramas.map((r) => r.clave)));
   const [abiertas, setAbiertas] = useState<Set<string>>(() => new Set());
@@ -296,7 +313,7 @@ export function MapaCerebro({ ramas }: { ramas: Rama[] }) {
 
   const ajustar = () => {
     const r = svg.current?.getBoundingClientRect();
-    setVista(vistaQueAbarca(grafo.current.nodos, r?.width ?? 0, r?.height ?? 0));
+    setVista(vistaInicial(grafo.current.nodos, r?.width ?? 0, r?.height ?? 0));
   };
   ajustarRef.current = () => {
     if (auto.current) ajustar();

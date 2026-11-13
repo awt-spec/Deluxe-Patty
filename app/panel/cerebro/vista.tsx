@@ -3,7 +3,6 @@ import { fechaCorta } from "@/lib/formato";
 import { Aviso } from "../aviso";
 import { IconoAgenda, IconoCampana, IconoCasa, IconoChats, IconoCheck, IconoFlecha, IconoIdea, IconoLapiz } from "../iconos";
 import { EncabezadoPagina, Vacio } from "../piezas";
-import { Volver } from "../volver";
 import { archivar, responderDuda } from "./acciones";
 import { EnsenaleAlgo } from "./ensenar";
 import { LoQueSabe, type Ubicada } from "./lo-que-sabe";
@@ -58,8 +57,7 @@ export function VistaCerebro(d: DatosCerebro) {
 
   return (
     <div className={`cerebro cerebro-${d.ver}`}>
-      <Volver href="/panel/mas" texto="Más" />
-      <EncabezadoPagina titulo="Cerebro de la asistente" apoyo={`Lo que ${d.nombre} sabe para contestar, y lo que te pregunta.`} />
+      <EncabezadoPagina titulo="Cerebro de la asistente" apoyo={`Lo que ${d.nombre} sabe para contestar, y lo que te pregunta.`} atras={{ href: "/panel/mas", texto: "Más", soloTelefono: true }} />
       <Aviso texto={d.aviso} />
       {d.errorCodigo !== undefined && d.errorCodigo !== null && (
         <p className="aviso">No se pudo leer lo que sabe la asistente. Avísale a soporte con este código: {d.errorCodigo || "sin código"}.</p>

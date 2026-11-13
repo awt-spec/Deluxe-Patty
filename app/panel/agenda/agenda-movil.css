@@ -69,11 +69,11 @@
   .marco.tema main .cal.cal-semana::-webkit-scrollbar {
     display: none;
   }
-  /* Tres columnas anchas y un filo del día siguiente asomando a la derecha; la pista vacía del final deja que el
-     domingo también quede como tercera columna sin un filo del jueves a la izquierda. */
+  /* Tres columnas que llenan el ancho (sin pista vacía a la derecha): el lunes y el viernes caben justo después de
+     la columna de horas, así que el domingo también queda como tercera columna sin hueco ni filo del jueves. */
   .marco.tema main .cal-semana .cal-cabecera,
   .marco.tema main .cal-semana .cal-cuerpo {
-    grid-template-columns: 54px repeat(7, calc((100cqw - 54px - 22px) / 3)) 22px;
+    grid-template-columns: 54px repeat(7, calc((100cqw - 54px) / 3));
     width: max-content;
     min-width: 0;
   }
@@ -450,9 +450,10 @@
     position: fixed;
     left: 0;
     right: 0;
-    bottom: calc(var(--nav-alto, 64px) + var(--nav-saliente, 14px));
+    /* Sólida hasta la barra de navegación: el relleno de abajo cubre la franja por donde se asomaba el contenido. */
+    bottom: var(--nav-alto, 64px);
     z-index: 20;
-    padding: 10px 16px;
+    padding: 10px 16px calc(10px + var(--nav-saliente, 14px));
     background: #fff;
     border-top: 1px solid var(--borde);
     box-shadow: 0 -6px 16px rgb(17 27 33 / 10%);

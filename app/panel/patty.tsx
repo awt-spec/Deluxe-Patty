@@ -672,7 +672,7 @@ export function ChatPatty({
     >
       <header className="patty-cabecera">
         {modo === "pagina" && (
-          <Link href="/panel" className="patty-volver" aria-label="Volver">
+          <Link href="/panel" className="patty-volver solo-telefono" aria-label="Volver">
             ‹
           </Link>
         )}

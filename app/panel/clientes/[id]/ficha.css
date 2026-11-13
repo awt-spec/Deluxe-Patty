@@ -1052,10 +1052,10 @@
 
   /* Barra de acciones: íconos con rótulo chico, 56 px, sobre la navegación; se esconde al bajar (movil.tsx). */
   .marco.tema main .fc-acciones {
-    bottom: calc(var(--nav-alto, 64px) + var(--nav-saliente, 14px));
+    bottom: var(--nav-alto, 64px);
     z-index: 20;
     gap: 4px;
-    padding: 5px 8px;
+    padding: 5px 8px calc(5px + var(--nav-saliente, 14px));
     background: #fff;
     border-top: 1px solid var(--borde);
     box-shadow: 0 -6px 16px rgb(17 27 33 / 10%);

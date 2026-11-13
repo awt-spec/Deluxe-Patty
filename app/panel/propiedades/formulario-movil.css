@@ -79,10 +79,10 @@
   .marco.tema main .form-casa-guardar {
     display: block;
     position: sticky;
-    bottom: calc(var(--nav-alto, 64px) + var(--nav-saliente, 14px));
+    bottom: var(--nav-alto, 64px);
     z-index: 15;
     margin: 4px -16px 0;
-    padding: 10px 16px;
+    padding: 10px 16px calc(10px + var(--nav-saliente, 14px));
     background: #fff;
     border-top: 1px solid var(--borde);
     box-shadow: 0 -6px 16px rgb(17 27 33 / 10%);

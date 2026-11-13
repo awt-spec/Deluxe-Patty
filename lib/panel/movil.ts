@@ -1,6 +1,7 @@
 // Reglas puras de las pantallas del panel en el teléfono (< 900 px): dónde arranca la semana, los puntos del mes,
 // la barra que se esconde al bajar, el resumen de una sección plegada y cuánto mover la página para que se vea lo
 // que cambió encima de una hoja. Sin DOM: los componentes cliente las usan y las pruebas las cubren.
+import { monedaDe, montoExacto } from "../crm/dinero";
 
 /** Columna con la que abre la semana en el teléfono: la de hoy si está en la semana mostrada; si no, el lunes (0). */
 export function columnaInicialSemana(dias: string[], hoy: string): number {
@@ -35,6 +36,16 @@ export function cambioBarra(anterior: number, actual: number, umbral = 8, arriba
   if (d > umbral) return "ocultar";
   if (d < -umbral) return "mostrar";
   return null;
+}
+
+/** El precio de la sección plegada como lo muestra el panel: "$350.000" o "₡350.000"; lo que no sea un número queda tal cual. */
+export function resumenPrecio(precio: string, moneda: string): string {
+  // Mismas reglas que lib/panel/formularios.ts (leerNumero): "450.000", "450,000", "$ 450000".
+  let cifra = precio.replace(/[$\s₡]|USD|CRC/gi, "");
+  if (!cifra) return "";
+  cifra = /^\d{1,3}(?:[.,]\d{3})+$/.test(cifra) ? cifra.replace(/[.,]/g, "") : cifra.replace(",", ".");
+  const n = Number(cifra);
+  return Number.isFinite(n) && n >= 0 ? montoExacto(n, monedaDe(moneda)) : precio.trim();
 }
 
 /** Resumen de lo ya llenado en una sección plegada: los valores no vacíos, separados por " · ", cortado a `max`. */

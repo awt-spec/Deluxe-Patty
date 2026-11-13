@@ -30,7 +30,7 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
 
   return (
     <>
-      <Volver href="/panel/mas" texto="Más" />
+      <Volver href="/panel/mas" texto="Más" className="solo-telefono" />
       <header className="encabezado">
         <h1>Ajustes</h1>
       </header>
