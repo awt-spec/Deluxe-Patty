@@ -301,7 +301,7 @@ async function ubicarCasa(db: SupabaseClient, corredorId: string, casa: CasaSiti
   }
   // Solo se pregunta por las casas en oferta, y una sola vez.
   if (pregunta || fila.estado !== "activa") return;
-  const tema = temaUbicacion(fila.codigo as string, fila.titulo as string, loQueDiceElSitio(casa), r.opciones ?? []);
+  const tema = temaUbicacion(fila.codigo as string, fila.titulo as string, loQueDiceElSitio({ ubicacion: casa.ubicacion, distrito: casa.distrito, canton: casa.canton }), r.opciones ?? []);
   const { error } = await db.from("conocimiento").insert({ corredor_id: corredorId, tema, estado: "pendiente", origen: "duda" });
   if (!error) res.ubicacionesPorConfirmar++;
 }

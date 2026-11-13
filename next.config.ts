@@ -36,6 +36,9 @@ const nextConfig: NextConfig = {
     "/panel/patty": ARCHIVOS_ASISTENTE,
     // Imagen para redes: logos y tipografías.
     "/panel/propiedades/[id]/redes/imagen": ARCHIVOS_ASISTENTE,
+    // Estudio de redes: instrucciones de texto y guion con IA, y el logo para el video.
+    "/panel/propiedades/[id]/redes": ARCHIVOS_ASISTENTE,
+    "/panel/propiedades/[id]/redes/foto": ["./marcas/**/*"],
     // Logo de la pantalla de entrada.
     "/marca/[slug]/logo": ["./marcas/**/*"],
   },

@@ -5,7 +5,7 @@
 .marco.tema .fc-ficha {
   --fc-verde-texto: #00684f;
   --fc-gris: #f6f8fa;
-  --fc-barra: 72px;
+  --fc-barra: 78px;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -69,14 +69,14 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 14px;
+  gap: 0 14px;
   font-size: 1.02rem;
 }
 .marco.tema .fc-telefono > a:first-child {
   color: var(--profundo);
   font-weight: 600;
   text-decoration: none;
-  min-height: 32px;
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
 }
@@ -88,7 +88,7 @@
   font-weight: 600;
   font-size: 0.95rem;
   text-decoration: none;
-  min-height: 32px;
+  min-height: 44px;
 }
 .marco.tema .fc-origen {
   color: var(--suave);
@@ -120,6 +120,9 @@
   white-space: nowrap;
 }
 .marco.tema a.fc-chip-enlace {
+  min-height: 44px;
+  background: #eef4fc;
+  border-color: #cfe0f5;
   color: #1f5fae;
   text-decoration: none;
 }
@@ -269,8 +272,13 @@
   margin: 0;
   min-width: 0;
 }
-.marco.tema .fc-cifras .cifra strong {
-  white-space: nowrap;
+.marco.tema .fc-ficha .fc-cifras .cifra strong {
+  font-size: 1.45rem;
+  line-height: 1.15;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
 }
 
 /* ---------- Camino del cliente ---------- */
@@ -943,4 +951,8 @@
     grid-auto-columns: auto;
     overflow: visible;
   }
+}
+
+.marco.tema .fc-preguntas .preguntar-patty {
+  min-height: 44px;
 }

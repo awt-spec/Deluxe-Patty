@@ -13,6 +13,7 @@ import { monedaDe, montoExacto } from "../crm/dinero";
 import { NOMBRE_ETAPA, resumenBusca, type Busca, type Etapa } from "../crm/perfil";
 import type { Corredor } from "../datos/tipos";
 import { errorSeguro } from "../monitoreo/errores";
+import { PREFIJO_UBICACION } from "../sitio/ubicacion";
 
 // Chat del corredor con su asistente (Patty) desde cualquier página del panel. Patty contesta con un
 // resumen del negocio que arma el código (plan de hoy, clientes, visitas y casas): no escribe en la base,
@@ -49,7 +50,7 @@ export async function contextoPatty(deps: Dependencias, db: SupabaseClient, corr
       .lt("inicio", en7.toISOString())
       .order("inicio")
       .limit(40),
-    db.from("conocimiento").select("tema").eq("corredor_id", corredor.id).eq("estado", "pendiente").limit(10),
+    db.from("conocimiento").select("tema").eq("corredor_id", corredor.id).eq("estado", "pendiente").limit(20),
   ]);
   // Lo último que pasó con cada cliente (para no sugerir llamar a quien ya llamó hoy).
   const { data: actividades } = await db
@@ -108,13 +109,19 @@ export async function contextoPatty(deps: Dependencias, db: SupabaseClient, corr
     return `- ${etiquetaHorario(new Date(c.inicio), zona)}: ${cl?.nombre ?? cl?.telefono ?? "cliente"}${casa ? `, ${casa.titulo}${casa.zona ? ` (${casa.zona})` : ""}` : ""}${c.estado === "confirmada" ? ", confirmada" : ", por confirmar"}`;
   });
 
+  const temasDudas = ((dudas ?? []) as { tema: string }[]).map((d) => d.tema);
+  const porUbicar = temasDudas.filter((t) => t.startsWith(PREFIJO_UBICACION)).slice(0, 10);
   return [
     `Ahora: ${etiquetaHorario(ahora, zona)}.`,
     corredor.zona_base ? `${corredor.nombre_contacto} sale cada día desde ${corredor.zona_base}.` : null,
     `Plan de hoy:\n${armarPlan(corredor, plan, ahora)}`,
     `Visitas de los próximos 7 días:\n${lineasCitas.join("\n") || "- ninguna"}`,
     `Clientes (los más recientes primero):\n${lineasClientes.join("\n") || "- todavía no hay"}`,
-    `Preguntas de clientes que la asistente no supo contestar: ${(dudas ?? []).map((d) => d.tema as string).join("; ") || "ninguna"}`,
+    `Preguntas de clientes que la asistente no supo contestar: ${temasDudas.filter((t) => !t.startsWith(PREFIJO_UBICACION)).slice(0, 10).join("; ") || "ninguna"}`,
+    // Casas del sitio cuya zona no quedó clara: Patty puede preguntarle dónde quedan (se contesta en Mis casas).
+    porUbicar.length
+      ? `Casas con la ubicación por confirmar (pregúntale dónde quedan; lo contesta en [Mis casas](/panel/propiedades) con "¿Dónde queda esta casa?"):\n${porUbicar.map((t) => `- ${t}`).join("\n")}`
+      : null,
     `Comisión de ${corredor.nombre_contacto}: en venta, ${corredor.comision_pct ?? 5}% del precio; en alquiler, un mes de renta. Dólares y colones no se suman entre sí.`,
     `Casas activas:\n${fichaPropiedades(propiedades)}`,
   ]
@@ -211,7 +218,7 @@ export async function hablarConPatty(
   // "Hazme una imagen de…" o, con una foto adjunta, "amuebla esta sala": la hace OpenAI, sin el modelo de texto.
   const pedidoImagen = pideImagen(limpio, adjuntos);
   if (pedidoImagen) return imagenParaPatty(deps, corredor, pedidoImagen, limpio);
-  // "Bloquear mañana en la tarde": lo entiende y lo guarda el código (las fechas nunca las pone el modelo).
+  // "Apartar (o bloquear) mañana en la tarde": lo entiende y lo guarda el código (las fechas nunca las pone el modelo).
   if (pideBloqueo(limpio) && adjuntos.length === 0) {
     const pedido = entenderBloqueo(limpio, new Date(), corredor.zona_horaria);
     if (!pedido) return { ok: true, texto: `No entendí qué día. ${AYUDA_BLOQUEO}` };
@@ -220,7 +227,7 @@ export async function hablarConPatty(
       return { ok: true, texto: r.ok ? r.texto.replace(/en la Agenda\.$/, "en la [Agenda](/panel/agenda).").replace(/ahí\.$/, "ahí. Lo ves en la [Agenda](/panel/agenda).") : r.texto, cambio: r.ok };
     } catch (e) {
       console.error(JSON.stringify({ evento: "error_patty_bloqueo", corredorId: corredor.id, error: errorSeguro(e) }));
-      return { ok: false, motivo: "No pude bloquear ese rato. Inténtalo de nuevo o hazlo en la Agenda." };
+      return { ok: false, motivo: "No pude apartar ese tiempo. Inténtalo de nuevo o hazlo en la Agenda." };
     }
   }
   if (!(await hayPresupuestoHoy(deps.repo, corredor))) {

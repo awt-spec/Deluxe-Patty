@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { bloquearRapido } from "./acciones";
 
-// La pregunta de cada día: "¿Tienes algún compromiso mañana?". Con un toque se bloquea la mañana, la
+// La pregunta de cada día: "¿Tienes algún compromiso mañana?". Con un toque se aparta la mañana, la
 // tarde o el día entero y la asistente no agenda visitas ahí. Sale una vez al día (se recuerda en el
 // navegador) y desaparece al contestar.
 
@@ -18,7 +18,7 @@ export function PreguntaBloqueo({
   volverA,
 }: {
   nombre: string;
-  /** Mañana, en AAAA-MM-DD (lo que se bloquea). */
+  /** Mañana, en AAAA-MM-DD (lo que se aparta). */
   fecha: string;
   /** "mañana sábado 8" para la pregunta. */
   dia: string;

@@ -75,7 +75,7 @@ describe("el corredor bloquea por WhatsApp", () => {
     const r = await procesarMensaje(deps, entrante("bloquear mañana en la tarde", { telefono: PATRICIA, timestamp: AHORA }));
     expect(r).toEqual({ tipo: "corredor", accion: "bloqueo" });
     expect(db.bloqueos).toHaveLength(1);
-    expect(enviados.at(-1)).toContain("bloqueé el sábado 7 de noviembre en la tarde");
+    expect(enviados.at(-1)).toContain("aparté el sábado 7 de noviembre en la tarde");
   });
 });
 
@@ -96,7 +96,7 @@ describe("Patty bloquea desde el chat del panel", () => {
     };
     const r = await hablarConPatty(deps as never, {} as never, corredor, [], "Bloquear mañana en la tarde por el dentista");
     expect(r.ok).toBe(true);
-    expect(r.ok && r.texto).toContain("bloqueé");
+    expect(r.ok && r.texto).toContain("aparté");
     expect(r.ok && r.cambio).toBe(true);
     expect(db.bloqueos).toHaveLength(1);
     expect(llamadas).toBe(0);
@@ -168,6 +168,66 @@ describe("no se repite un bloqueo", () => {
     await apartar(db.repo, "c1", pedido, AHORA);
     const otra = await apartar(db.repo, "c1", pedido, AHORA);
     expect(db.bloqueos).toHaveLength(1);
-    expect(otra.texto).toContain("ya estaba bloqueado");
+    expect(otra.texto).toContain("ya estaba apartado");
+  });
+});
+
+describe("«Apartar tiempo»: el nombre nuevo se entiende igual que «bloquear»", () => {
+  it("reconoce apartar con un día o un rato, y no «aparta la casa»", () => {
+    expect(pideBloqueo("apartar mañana en la tarde")).toBe(true);
+    expect(pideBloqueo("Apártame el viernes de 2 a 4")).toBe(true);
+    expect(pideBloqueo("aparta tiempo hoy todo el día")).toBe(true);
+    expect(pideBloqueo("apartar del 20 al 25 de diciembre")).toBe(true);
+    expect(pideBloqueo("aparta la casa DP-01 para Juan")).toBe(false);
+    expect(pideBloqueo("apartar a Juan")).toBe(false);
+  });
+
+  it("«apartar» y «bloquear» dan el mismo rato", () => {
+    const a = entenderBloqueo("apartar mañana en la tarde", AHORA, CR)!;
+    const b = entenderBloqueo("bloquear mañana en la tarde", AHORA, CR)!;
+    expect([hora(a.inicio), hora(a.fin)]).toEqual([hora(b.inicio), hora(b.fin)]);
+    const t = entenderBloqueo("aparta tiempo el viernes de 2 a 4 por una reunión", AHORA, CR)!;
+    expect(describirBloqueo(t)).toBe("el viernes 13 de noviembre, de 2 p. m. a 4 p. m.");
+    expect(t.motivo).toBe("una reunión");
+  });
+
+  it("por WhatsApp, «apartar mañana en la tarde» aparta la tarde y responde «Aparté…»", async () => {
+    const { procesarMensaje } = await import("../lib/asistente/procesar");
+    const { PATRICIA, corredorBase, entrante, repoEnMemoria } = await import("./dobles");
+    const db = repoEnMemoria(corredorBase());
+    const enviados: string[] = [];
+    const deps = {
+      repo: db.repo,
+      cerebro: {} as never,
+      whatsapp: { texto: async (_p: string, _a: string, t: string) => (enviados.push(t), "wamid.x"), plantilla: async () => "wamid.p" } as never,
+      plantillaAviso: "aviso",
+      plantillaRecordatorio: "rec",
+      registrar: () => {},
+      ahora: () => AHORA,
+    };
+    const r = await procesarMensaje(deps, entrante("apartar mañana en la tarde", { telefono: PATRICIA, timestamp: AHORA }));
+    expect(r).toEqual({ tipo: "corredor", accion: "bloqueo" });
+    expect(db.bloqueos).toHaveLength(1);
+    expect(enviados.at(-1)).toContain("Listo, aparté el sábado 7 de noviembre en la tarde");
+  });
+
+  it("en el chat de Patty, «apartar…» lo guarda el código sin llamar al modelo", async () => {
+    const { hablarConPatty } = await import("../lib/panel/patty");
+    const { corredorBase, repoEnMemoria } = await import("./dobles");
+    const corredor = corredorBase();
+    const db = repoEnMemoria(corredor);
+    let llamadas = 0;
+    const deps = {
+      repo: db.repo,
+      cerebro: { conversarConCorredor: async () => (llamadas++, { texto: "", consumo: { tokensEntrada: 0, tokensSalida: 0, costoUsd: 0 } }) } as never,
+      whatsapp: {} as never,
+      plantillaAviso: "aviso",
+      plantillaRecordatorio: "rec",
+      registrar: () => {},
+    };
+    const r = await hablarConPatty(deps as never, {} as never, corredor, [], "Apartar tiempo mañana en la mañana");
+    expect(r.ok && r.texto).toContain("aparté");
+    expect(db.bloqueos).toHaveLength(1);
+    expect(llamadas).toBe(0);
   });
 });

@@ -131,7 +131,7 @@ async function yaBloqueado(supabase: Awaited<ReturnType<typeof sesionConCorredor
   return (count ?? 0) > 0;
 }
 
-/** "Bloquear": un día (o varios seguidos), entero, la mañana, la tarde, la noche o unas horas exactas. */
+/** "Apartar tiempo": un día (o varios seguidos), entero, la mañana, la tarde, la noche o unas horas exactas. */
 export async function bloquearDesdeAgenda(f: FormData) {
   const { supabase, corredor } = await sesionConCorredor();
   const rato = campo(f, "rato");
@@ -167,9 +167,9 @@ export async function bloquearDesdeAgenda(f: FormData) {
   if (filas.length === 0) irA(volver, problema ?? "Revisa el día y las horas.");
   const repetidos = await Promise.all(filas.map((b) => yaBloqueado(supabase, corredor.id, b.inicio, b.fin)));
   const nuevas = filas.filter((_, i) => !repetidos[i]);
-  if (nuevas.length === 0) irA(`/panel/agenda?vista=dia&fecha=${desde}`, "Ese rato ya estaba bloqueado.");
+  if (nuevas.length === 0) irA(`/panel/agenda?vista=dia&fecha=${desde}`, "Ese rato ya estaba apartado.");
   const { error } = await supabase.from("bloqueos_agenda").insert(nuevas);
-  if (error) irA(volver, "No se pudo guardar el bloqueo.");
+  if (error) irA(volver, "No se pudo apartar ese tiempo.");
   const { data: encima } = await supabase
     .from("citas")
     .select("inicio, fin")
@@ -181,8 +181,8 @@ export async function bloquearDesdeAgenda(f: FormData) {
   irA(
     `/panel/agenda?vista=dia&fecha=${desde}`,
     chocan
-      ? `Bloqueado. Ojo: ya tienes ${chocan} ${chocan === 1 ? "visita" : "visitas"} en ese rato; siguen en pie.`
-      : "Bloqueado: la asistente no ofrecerá esas horas.",
+      ? `Tiempo apartado. Ojo: ya tienes ${chocan} ${chocan === 1 ? "visita" : "visitas"} en ese rato; siguen en pie.`
+      : "Tiempo apartado: la asistente no ofrecerá esas horas.",
   );
 }
 
@@ -200,9 +200,9 @@ export async function bloquearRapido(f: FormData) {
   const destino = campo(f, "volver_a") === "/panel" ? "/panel" : "/panel/agenda";
   if (!r.ok) irA(destino, r.motivo);
   const { inicio, fin } = (r as Extract<typeof r, { ok: true }>).valor;
-  if (await yaBloqueado(supabase, corredor.id, inicio.toISOString(), fin.toISOString())) irA(destino, "Ese rato ya estaba bloqueado.");
+  if (await yaBloqueado(supabase, corredor.id, inicio.toISOString(), fin.toISOString())) irA(destino, "Ese rato ya estaba apartado.");
   const { error } = await supabase.from("bloqueos_agenda").insert({ corredor_id: corredor.id, inicio: inicio.toISOString(), fin: fin.toISOString(), motivo: null });
-  irA(destino, error ? "No se pudo guardar el bloqueo." : "Listo, bloqueado: no se agendarán visitas en ese rato.");
+  irA(destino, error ? "No se pudo apartar ese tiempo." : "Listo, tiempo apartado: no se agendarán visitas en ese rato.");
 }
 
 export async function quitarBloqueoAgenda(f: FormData) {
@@ -210,5 +210,5 @@ export async function quitarBloqueoAgenda(f: FormData) {
   const id = campo(f, "id");
   if (esId(id)) await supabase.from("bloqueos_agenda").delete().eq("corredor_id", corredor.id).eq("id", id);
   const volver = campo(f, "volver");
-  irA(volver.startsWith("/panel/agenda") ? volver : "/panel/agenda", "Bloqueo quitado: esas horas vuelven a estar libres.");
+  irA(volver.startsWith("/panel/agenda") ? volver : "/panel/agenda", "Listo, quitado: esas horas vuelven a estar libres.");
 }

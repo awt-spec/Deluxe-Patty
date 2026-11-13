@@ -15,7 +15,7 @@ import { PreguntarPatty } from "../../preguntar-patty";
 import { Volver } from "../../volver";
 import { cambiarEtapa, guardarBusca, guardarCierre, guardarNotas, guardarOportunidad, guardarSeguimiento, unirCliente } from "../acciones";
 import { Historia, type EventoHistoria } from "./historia";
-import { DIAS_QUIETO, diasDesde, queSigue, type AccionQueSigue, type VisitaFicha } from "./que-sigue";
+import { DIAS_QUIETO, diasDesde, nombreDia, queSigue, type AccionQueSigue, type VisitaFicha } from "./que-sigue";
 
 // Ficha de un cliente, solo forma: la página lee los datos (con la sesión del corredor) y los pasa aquí.
 // Arriba quién es y las acciones; luego "Qué sigue", cifras, el camino por etapas y la historia; al lado
@@ -138,6 +138,7 @@ export function FichaCliente(d: DatosFicha) {
 
   const diasEnEtapa = diasDesde(c.etapa_at, ahora);
   const diasCliente = diasDesde(c.created_at, ahora);
+  const llego = nombreDia(new Date(c.created_at), ahora, zona);
   const venceRecordatorio = !!c.seguimiento_fecha && c.seguimiento_fecha <= hoy;
   const casaInteres = d.casaInteres;
   // Lo que vale el negocio: la oferta en su moneda o, si no hay, el precio de la casa que le interesa.
@@ -210,17 +211,19 @@ export function FichaCliente(d: DatosFicha) {
           <Avatar nombre={c.nombre} telefono={c.telefono} grande />
           <div className="fc-quien">
             <h1>{nombre}</h1>
-            <p className="fc-telefono">
-              <a href={`tel:${c.telefono}`}>{telefonoBonito(c.telefono)}</a>
-              {d.conversacionId && (
-                <Link href={`/panel/conversaciones/${d.conversacionId}`} className="fc-ver-chat">
-                  <IconoChats tamano={16} />
-                  Ver el chat
-                </Link>
-              )}
-            </p>
+            {(c.nombre || d.conversacionId) && (
+              <p className="fc-telefono">
+                {c.nombre && <a href={`tel:${c.telefono}`}>{telefonoBonito(c.telefono)}</a>}
+                {d.conversacionId && (
+                  <Link href={`/panel/conversaciones/${d.conversacionId}`} className="fc-ver-chat">
+                    <IconoChats tamano={16} />
+                    Ver el chat
+                  </Link>
+                )}
+              </p>
+            )}
             <p className="fc-origen">
-              Llegó por {ORIGEN[c.origen] ?? c.origen} el {diaLargo(new Date(c.created_at), zona)}
+              Llegó por {ORIGEN[c.origen] ?? c.origen} {llego === "hoy" || llego === "ayer" ? llego : `el ${llego}`}
               {diasCliente > 1 ? ` (${hace(diasCliente)})` : ""}
             </p>
             <div className="fc-chips">

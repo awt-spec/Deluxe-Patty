@@ -40,7 +40,7 @@ const fetchFotos = () =>
 describe("Casas del sitio web → portal", () => {
   it("traduce la casa del sitio a la ficha del portal (destacados en la descripción, amenidades en español)", () => {
     const f = filaDesdeSitio(casa())!;
-    expect(f).toMatchObject({ codigo: "DP-1A2B3C", tipo: "casa", operacion: "venta", zona: "Santa Ana", estado: "activa", habitaciones: 4, m2_terreno: 1330 });
+    expect(f).toMatchObject({ codigo: "DP-1A2B3C", tipo: "casa", operacion: "venta", zona: "Lindora", estado: "activa", habitaciones: 4, m2_terreno: 1330 });
     expect(f.descripcion).toContain("- Piscina con spa");
     expect(f.amenidades).toEqual(["piscina", "seguridad 24/7"]);
     expect(filaDesdeSitio(casa({ estado: "sold", operacion: "rent" }))).toMatchObject({ estado: "alquilada", operacion: "alquiler" });

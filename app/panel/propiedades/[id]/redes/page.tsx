@@ -1,19 +1,26 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { telefonoBonito } from "@/lib/crm/perfil";
 import type { Foto, Propiedad } from "@/lib/datos/tipos";
+import type { Marca } from "@/lib/fichas/marca";
 import { fotosPropias } from "@/lib/fotos/origen";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { fotosParaRedes, opcionesDeFoto } from "@/lib/redes/fotos";
-import { TAMANOS, textoPublicacion, type Formato } from "@/lib/redes/texto";
+import { textoPublicacion } from "@/lib/redes/texto";
+import { datosDelVideo } from "@/lib/redes/video";
 import { Volver } from "../../../volver";
-import { CopiarTexto } from "./copiar";
+import { Estudio, type Pestana } from "./estudio";
+import "./redes.css";
 
-// Imagen para redes de una casa: se elige la foto y sale lista en cuadrado (publicación) y vertical
-// (historia), con el texto para copiar. La arma el código con los datos de la ficha.
+// Estudio de redes de una casa: Imagen (post cuadrado e historia con la foto elegida), Video (con las fotos
+// reales, armado en el teléfono) y Texto (editable, con IA). El precio y los datos salen siempre de la ficha.
 
-export default async function Redes({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ img?: string }> }) {
+const MARCA_NEUTRA: Marca["colores"] = { principal: "#00A884", soporte: "#667781", profundo: "#111B21", base: "#FFFFFF" };
+const PESTANAS: Pestana[] = ["imagen", "video", "texto"];
+
+export default async function Redes({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ img?: string; ver?: string }> }) {
   const { id } = await params;
-  const { img } = await searchParams;
+  const { img, ver } = await searchParams;
   const { supabase, corredor } = await sesionConCorredor();
   const { data } = await supabase
     .from("propiedades")
@@ -24,63 +31,46 @@ export default async function Redes({ params, searchParams }: { params: Promise<
   if (!data) notFound();
   const p = data as Propiedad & { fotos: Foto[] };
   const opciones = opcionesDeFoto(fotosParaRedes(p.fotos ?? [], corredor, fotosPropias));
-  const elegida = opciones.find((o) => o.url === img) ?? opciones[0];
-  const enlace = (formato: Formato, descargar = false) =>
-    `/panel/propiedades/${p.id}/redes/imagen?formato=${formato}${elegida ? `&img=${encodeURIComponent(elegida.url)}` : ""}${descargar ? "&descargar=1" : ""}`;
   const texto = textoPublicacion(p, { nombre: corredor.nombre_contacto, whatsapp: corredor.whatsapp_numero });
+  const marca = (corredor as { marca?: Marca | null }).marca ?? null;
+  const logo = marca?.logoSobreProfundo
+    ? /^https:\/\//.test(marca.logoSobreProfundo)
+      ? marca.logoSobreProfundo
+      : `/panel/propiedades/${p.id}/redes/foto?logo=1`
+    : null;
+  const sinMejorar =
+    corredor.activo === false
+      ? "En la demostración no se mejoran fotos."
+      : corredor.imagenes_activas === false
+        ? "Las imágenes con IA están apagadas para tu cuenta."
+        : !process.env.OPENAI_API_KEY
+          ? "La mejora de fotos con IA todavía no está configurada."
+          : null;
 
   return (
     <>
       <Volver href={`/panel/propiedades/${p.id}`} texto={p.titulo} />
       <header className="encabezado">
-        <h1>Imagen para redes</h1>
+        <h1>Para redes</h1>
       </header>
       {opciones.length === 0 ? (
         <p className="vacio">
           Primero sube fotos de la casa. <Link href={`/panel/propiedades/${p.id}#fotos`}>Ir a las fotos</Link>
         </p>
       ) : (
-        <>
-          <p className="suave">Elige la foto. El precio y los datos salen de la ficha de la casa.</p>
-          <div className="redes-fotos" role="list">
-            {opciones.map((o) => (
-              <Link
-                key={o.url}
-                role="listitem"
-                href={`/panel/propiedades/${p.id}/redes?img=${encodeURIComponent(o.url)}`}
-                className={o.url === elegida.url ? "elegida" : undefined}
-                aria-current={o.url === elegida.url ? "true" : undefined}
-                title={o.nombre}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={o.url} alt={o.nombre} loading="lazy" />
-                {o.ilustrativa && <span>Ilustrativa</span>}
-              </Link>
-            ))}
-          </div>
-          {elegida.ilustrativa && (
-            <p className="aviso">Esta foto está hecha con IA: la imagen dice “Imagen ilustrativa” para que nadie la tome como real.</p>
-          )}
-          <div className="redes-vistas">
-            {(Object.keys(TAMANOS) as Formato[]).map((f) => (
-              <figure key={f} className={`redes-vista ${f}`}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={enlace(f)} alt={TAMANOS[f].nombre} />
-                <figcaption>
-                  <span>{TAMANOS[f].nombre}</span>
-                  <a href={enlace(f, true)} className="boton primario chico" download>
-                    Descargar
-                  </a>
-                </figcaption>
-              </figure>
-            ))}
-          </div>
-          <section className="tarjeta pila">
-            <h2>Texto para acompañarla</h2>
-            <textarea readOnly value={texto} rows={10} aria-label="Texto para la publicación" />
-            <CopiarTexto texto={texto} />
-          </section>
-        </>
+        <Estudio
+          propiedadId={p.id}
+          codigo={p.codigo}
+          opciones={opciones}
+          elegidaInicial={img ?? null}
+          texto={texto}
+          datosVideo={datosDelVideo(p, corredor.whatsapp_numero ? telefonoBonito(corredor.whatsapp_numero) : null, marca?.nombre ?? corredor.nombre)}
+          colores={marca?.colores ?? MARCA_NEUTRA}
+          fondoLogo={marca?.fondoLogo ?? marca?.colores.profundo ?? MARCA_NEUTRA.profundo}
+          logo={logo}
+          sinMejorar={sinMejorar}
+          pestana={PESTANAS.includes(ver as Pestana) ? (ver as Pestana) : "imagen"}
+        />
       )}
     </>
   );

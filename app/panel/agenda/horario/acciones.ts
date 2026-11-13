@@ -60,18 +60,18 @@ export async function agregarBloqueo(f: FormData) {
     .in("estado", ["agendada", "confirmada"])
     .lt("inicio", fin.toISOString())
     .gt("fin", inicio.toISOString());
-  if (error) volver("No se pudo guardar el bloqueo.");
+  if (error) volver("No se pudo apartar ese tiempo.");
   volver(
     count
-      ? `Bloqueo guardado. Ojo: ya tienes ${count} ${count === 1 ? "visita" : "visitas"} en esas fechas; esas siguen en pie.`
-      : "Bloqueo guardado: la asistente no ofrecerá esas horas.",
+      ? `Tiempo apartado. Ojo: ya tienes ${count} ${count === 1 ? "visita" : "visitas"} en esas fechas; esas siguen en pie.`
+      : "Tiempo apartado: la asistente no ofrecerá esas horas.",
   );
 }
 
 export async function quitarBloqueo(f: FormData) {
   const { supabase, corredor } = await sesionConCorredor();
   await supabase.from("bloqueos_agenda").delete().eq("corredor_id", corredor.id).eq("id", String(f.get("id") ?? ""));
-  volver("Bloqueo quitado.");
+  volver("Listo, quitado.");
 }
 
 const entero = (f: FormData, k: string, min: number, max: number) => {

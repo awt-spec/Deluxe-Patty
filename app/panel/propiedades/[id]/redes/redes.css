@@ -1,0 +1,217 @@
+/* Estudio de redes (Imagen · Video · Texto). Usa los mismos tokens del tema del panel (globals.css):
+   --principal, --profundo, --base, --superficie, --superficie-alta, --borde, --suave, --radio. */
+
+.redes-estudio {
+  display: grid;
+  gap: 14px;
+}
+
+.redes-pestanas {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--superficie-alta, var(--superficie));
+  border: 1px solid var(--borde);
+  position: sticky;
+  top: 8px;
+  z-index: 5;
+}
+.redes-pestanas button {
+  min-height: 48px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  font-size: 1.05rem;
+}
+.redes-pestanas button[aria-selected="true"] {
+  background: var(--profundo);
+  color: var(--base);
+}
+.marco.tema .redes-pestanas button[aria-selected="true"] {
+  background: var(--principal);
+  color: var(--onyx, #111);
+}
+
+.redes-estudio .enlace {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--principal);
+  text-decoration: underline;
+}
+
+/* Miniaturas como botones (la tira de globals.css era de enlaces). */
+.redes-tira button {
+  position: relative;
+  flex: 0 0 auto;
+  width: 96px;
+  height: 72px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  outline: 3px solid transparent;
+  outline-offset: -3px;
+  background: var(--superficie-alta, var(--superficie));
+}
+.redes-tira button.elegida {
+  outline-color: var(--ok, #00a884);
+}
+.redes-tira button img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.redes-botones-ia {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.redes-botones-ia button {
+  min-height: 52px;
+}
+@media (min-width: 720px) {
+  .redes-botones-ia {
+    grid-template-columns: repeat(5, auto);
+    justify-content: start;
+  }
+}
+
+/* Video */
+.redes-formato {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.redes-video-cuerpo {
+  display: grid;
+  gap: 18px;
+}
+@media (min-width: 900px) {
+  .redes-video-cuerpo {
+    grid-template-columns: minmax(280px, 380px) 1fr;
+    align-items: start;
+  }
+  .redes-lienzo {
+    position: sticky;
+    top: 72px;
+  }
+}
+.redes-lienzo {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+.redes-lienzo canvas {
+  width: 100%;
+  max-width: 340px;
+  height: auto;
+  border-radius: 14px;
+  background: #000;
+  box-shadow: 0 2px 14px rgb(0 0 0 / 18%);
+}
+.redes-lienzo canvas.cuadrado {
+  max-width: 380px;
+}
+.redes-lienzo input[type="range"] {
+  width: 100%;
+  max-width: 380px;
+  accent-color: var(--principal);
+}
+.redes-controles,
+.redes-descarga {
+  width: 100%;
+  max-width: 380px;
+  text-align: center;
+}
+.redes-controles p {
+  margin: 6px 0 0;
+}
+
+.redes-escenas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.redes-escena {
+  display: grid;
+  grid-template-columns: 76px 1fr;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio, 12px);
+  background: var(--superficie);
+}
+.redes-escena-ver {
+  width: 76px;
+  height: 96px;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--profundo);
+  color: var(--base);
+}
+.redes-escena-ver img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.redes-escena-icono {
+  font-size: 0.85rem;
+}
+.redes-escena-cuerpo {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.redes-escena-titulo {
+  margin: 0;
+  font-weight: 600;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.redes-ilustrativa {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 62%);
+  color: #fff;
+}
+.redes-escena input {
+  width: 100%;
+  min-height: 44px;
+}
+.redes-escena-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.redes-escena-acciones button {
+  min-width: 44px;
+  padding: 6px 10px;
+}
+.redes-duracion {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: auto;
+}
+.redes-duracion span {
+  min-width: 3.2em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}

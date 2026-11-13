@@ -162,12 +162,11 @@ function PestanaImagen(d: DatosEstudio) {
 /** Miniaturas de todas las fotos de la casa (originales, mejoradas e ilustrativas). */
 export function TiraFotos({ opciones, elegida, alElegir, marcadas }: { opciones: OpcionFoto[]; elegida?: string; alElegir: (url: string) => void; marcadas?: Set<string> }) {
   return (
-    <div className="redes-fotos redes-tira" role="list" data-patty="redes-fotos">
+    <div className="redes-fotos redes-tira" role="group" aria-label="Fotos de la casa" data-patty="redes-fotos">
       {opciones.map((o) => (
         <button
           key={o.url}
           type="button"
-          role="listitem"
           onClick={() => alElegir(o.url)}
           className={o.url === elegida || marcadas?.has(o.url) ? "elegida" : undefined}
           aria-pressed={o.url === elegida || marcadas?.has(o.url) ? "true" : "false"}
