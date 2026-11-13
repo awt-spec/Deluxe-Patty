@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Volver } from "../volver";
 import { fechaCorta } from "@/lib/formato";
 import { sesionConCorredor } from "@/lib/panel/sesion";
@@ -122,6 +123,11 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
                 defaultChecked={corredor.respuesta_automatica}
               />
             </label>
+            <p>
+              <Link href="/panel/empezar/sola" className="enlace" data-patty="ajustes-ir-sola">
+                ¿No sabes si ya está lista? Revísalo paso a paso
+              </Link>
+            </p>
 
             <label htmlFor="tono">Cómo escribe la asistente</label>
             <textarea

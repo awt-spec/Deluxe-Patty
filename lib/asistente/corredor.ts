@@ -1,5 +1,7 @@
 import { apartar } from "../agenda/apartar";
-import { AYUDA_BLOQUEO, entenderBloqueo, pideBloqueo } from "../agenda/bloquear";
+import { codigoLoEntiende, pideApartarLibre } from "../agenda/apartar-ia";
+import { pideBloqueo } from "../agenda/bloquear";
+import { apartarPorWhatsApp } from "../agenda/whatsapp-apartar";
 import { prepararAnuncio } from "../anuncios/preparar";
 import { DIAS_REPORTE, armarReporte } from "../anuncios/reporte";
 import type { Conversacion, Corredor } from "../datos/tipos";
@@ -201,15 +203,18 @@ export async function procesarMensajeCorredor(
     return { tipo: "corredor", accion: "reporte" };
   }
 
-  // "apartar (o bloquear) mañana en la tarde": aparta ese rato de la agenda (el código entiende la fecha).
-  if (pideBloqueo(texto)) {
-    const pedido = entenderBloqueo(texto, ahora, corredor.zona_horaria);
-    if (!pedido) {
-      await responder(`No entendí qué día. ${AYUDA_BLOQUEO}`);
-      return { tipo: "corredor", accion: "ayuda" };
+  // "apartar (o bloquear) mañana en la tarde": si el código lo entiende entero, aparta ese rato como siempre. Si no
+  // ("el martes tengo dentista de 2 a 4 y el viernes no trabajo", "quita lo del viernes"), lo entiende Haiku y el
+  // código lo revisa (lib/agenda/whatsapp-apartar.ts).
+  if (adjuntos.length === 0 && (pideBloqueo(texto) || pideApartarLibre(texto))) {
+    const entero = codigoLoEntiende(texto, ahora, corredor.zona_horaria);
+    if (entero) {
+      await responder((await apartar(repo, corredor.id, entero, ahora)).texto);
+      return { tipo: "corredor", accion: "bloqueo" };
     }
-    await responder((await apartar(repo, corredor.id, pedido, ahora)).texto);
-    return { tipo: "corredor", accion: "bloqueo" };
+    const r = await apartarPorWhatsApp(deps, corredor, texto, ahora, (c) => ctx.usoClaude(1, c));
+    await responder(r.texto);
+    return { tipo: "corredor", accion: r.guardado ? "bloqueo" : "ayuda" };
   }
 
   const pedidoAnuncio = /^anuncio\s+(?:de\s+)?(\S+)/i.exec(texto);

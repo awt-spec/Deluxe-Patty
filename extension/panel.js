@@ -45,6 +45,7 @@
     if (!m || !enPanel()) return;
     if (!vivo()) return apagar();
     if (m.tipo === "hola") return presentarse();
+    if (m.tipo === "busqueda") return busqueda(m);
     let r = null;
     try {
       r = await chrome.runtime.sendMessage({ tipo: "panel_conectar", codigo: m.codigo });
@@ -59,6 +60,33 @@
       mensaje: r?.ok ? "" : typeof r?.mensaje === "string" ? r.mensaje.slice(0, 300) : "La extensión no respondió. Recarga la página.",
     });
     if (r?.ok) presentarse();
+  }
+
+  /** Cómo va la búsqueda de dueños, o pausarla, seguirla, detenerla o empezarla. A la página vuelve solo el estado. */
+  async function busqueda(m) {
+    let e = null;
+    try {
+      e = await chrome.runtime.sendMessage({ tipo: "panel_busqueda", orden: m.orden });
+    } catch {
+      e = null;
+    }
+    const n = (v) => (Number.isFinite(v) ? Math.max(0, Math.round(v)) : 0);
+    const t = (v, max) => (typeof v === "string" ? v.slice(0, max) : "");
+    decir({
+      tipo: "busqueda",
+      pedido: m.pedido,
+      ok: !!e && typeof e.fase === "string",
+      fase: t(e?.fase, 20),
+      motivoPausa: t(e?.motivoPausa, 20),
+      detenida: e?.detenida === true,
+      automatica: e?.automatica === true,
+      pagina: n(e?.pagina),
+      total: n(e?.total),
+      restanteMs: n(e?.restanteMs),
+      haciendo: t(e?.haciendo, 120),
+      mensaje: t(e?.mensaje, 300),
+      latido: n(e?.latido),
+    });
   }
 
   // Al actualizar la extensión se vuelve a inyectar: la copia anterior (ya sin extensión detrás) se apaga.

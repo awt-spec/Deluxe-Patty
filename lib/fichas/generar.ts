@@ -4,7 +4,8 @@ import QRCode from "qrcode";
 import { createElement, type ReactElement } from "react";
 import { enlaceWhatsAppConTexto } from "../anuncios/atribucion";
 import type { PropiedadConFotos } from "../datos/tipos";
-import { FichaPropiedad, registrarFuentes } from "./ficha";
+import { MAX_FOTOS_GALERIA } from "./diseno";
+import { FichaPropiedad, registrarFuentes, type FotoFicha } from "./ficha";
 import type { Marca } from "./marca";
 
 export interface OpcionesFicha {
@@ -14,31 +15,40 @@ export interface OpcionesFicha {
   whatsappAsistente: string | null;
 }
 
-/** PDF de la ficha. Usa la foto mejorada cuando existe y la original si no. */
+/**
+ * Fotos de la ficha, en orden: la mejorada cuando existe y la original si no (nunca una variante amueblada o
+ * limpia). El PDF baja cada una: a lo sumo la portada y la galería.
+ */
+export function fotosDeFicha(propiedad: PropiedadConFotos): FotoFicha[] {
+  return [...propiedad.fotos]
+    .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
+    .slice(0, 1 + MAX_FOTOS_GALERIA)
+    .map((f) => ({ src: f.mejorada_url ?? f.url, ilustrativa: false }));
+}
+
+/** PDF de la ficha. Una marca sin logo (la neutra) muestra su nombre. */
 export async function generarFicha({ propiedad, marca, whatsappAsistente }: OpcionesFicha): Promise<Buffer> {
   registrarFuentes();
-  const fotos = [...propiedad.fotos]
-    .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
-    .map((f) => f.mejorada_url ?? f.url);
-  const qr = whatsappAsistente
-    ? await QRCode.toDataURL(
-        enlaceWhatsAppConTexto(whatsappAsistente, `Hola, me interesa la propiedad ${propiedad.codigo} (${propiedad.titulo}).`),
-        {
-        margin: 0,
-        width: 300,
-          color: { dark: marca.colores.profundo, light: marca.colores.base },
-        },
-      )
+  const enlace = whatsappAsistente
+    ? enlaceWhatsAppConTexto(whatsappAsistente, `Hola, me interesa la propiedad ${propiedad.codigo} (${propiedad.titulo}).`)
+    : null;
+  const qr = enlace
+    ? await QRCode.toDataURL(enlace, { margin: 0, width: 300, color: { dark: marca.colores.profundo, light: marca.colores.base } })
     : null;
   // Un logo local (marcas/<corredor>/…) se resuelve solo dentro de marcas/.
-  const logo = /^https?:\/\//.test(marca.logoSobreProfundo) ? marca.logoSobreProfundo : rutaDeMarca(marca.logoSobreProfundo);
-  if (!logo) throw new Error("El logo de la marca no es un archivo de marcas/ ni una dirección https");
+  let logo: string | null = null;
+  if (marca.logoSobreProfundo) {
+    logo = /^https?:\/\//.test(marca.logoSobreProfundo) ? marca.logoSobreProfundo : rutaDeMarca(marca.logoSobreProfundo);
+    if (!logo) throw new Error("El logo de la marca no es un archivo de marcas/ ni una dirección https");
+  }
   const documento = createElement(FichaPropiedad, {
     propiedad,
-    marca: { ...marca, logoSobreProfundo: logo },
+    marca,
+    logo,
     whatsapp: whatsappAsistente,
+    enlaceWhatsApp: enlace,
     qr,
-    fotos,
+    fotos: fotosDeFicha(propiedad),
   });
   return renderToBuffer(documento as unknown as ReactElement<DocumentProps>);
 }

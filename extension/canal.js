@@ -5,10 +5,14 @@
 
 // `var`: script clásico que se puede volver a inyectar en la misma pestaña.
 var CANAL = { pagina: "panel-duenos", extension: "buscador-duenos" };
+// Lo único que la página puede pedirle a la búsqueda de dueños: ver cómo va, pausar, seguir, detener o empezar (sin
+// parámetros: zonas, páginas y ritmo los deciden el servidor y la extensión).
+var ORDENES_BUSQUEDA = ["estado", "pausar", "seguir", "detener", "buscar"];
 
 /**
  * Lee un mensaje de la página. Solo se acepta lo que viene de esta misma ventana (no de un iframe ni de otra
- * pestaña) y del origen del panel, con la forma exacta: "hola" o "conectar" con un código de un solo uso.
+ * pestaña) y del origen del panel, con la forma exacta: "hola", "conectar" con un código de un solo uso o
+ * "busqueda" con una de ORDENES_BUSQUEDA.
  * Todo lo demás se ignora (null).
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- la usa panel.js (mismo mundo aislado)
@@ -21,6 +25,11 @@ function validarDePagina(evento, ventana, origen) {
     if (typeof d.codigo !== "string" || !/^[A-Z0-9]{4}-?[A-Z0-9]{4}$/.test(d.codigo)) return null;
     if (typeof d.pedido !== "string" || !/^[a-z0-9-]{1,40}$/.test(d.pedido)) return null;
     return { tipo: "conectar", codigo: d.codigo, pedido: d.pedido };
+  }
+  if (d.tipo === "busqueda") {
+    if (typeof d.orden !== "string" || !ORDENES_BUSQUEDA.includes(d.orden)) return null;
+    if (typeof d.pedido !== "string" || !/^[a-z0-9-]{1,40}$/.test(d.pedido)) return null;
+    return { tipo: "busqueda", orden: d.orden, pedido: d.pedido };
   }
   return null;
 }

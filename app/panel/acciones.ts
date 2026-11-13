@@ -180,23 +180,35 @@ export async function guardarAjustes(f: FormData) {
     const v = texto(f, k).replace(/[^\d]/g, "");
     return v ? Number(v) : null;
   };
-  const { error } = await supabase
-    .from("corredores")
-    .update({
-      tono: texto(f, "tono").trim(),
-      reglas_escalamiento: lineas("reglas"),
-      hora_plan_dia: texto(f, "hora_plan") || "07:00",
-      respuesta_automatica: f.get("respuesta_automatica") === "on",
-      zonas_e24: lineas("zonas_e24"),
-      precio_busqueda_min: numero("precio_min"),
-      precio_busqueda_max: numero("precio_max"),
-      nombre_asistente: texto(f, "nombre_asistente").trim().slice(0, 40) || "Patty",
-      comision_pct: Math.min(20, Math.max(0, Number(texto(f, "comision_pct").replace(",", ".")) || 5)),
-    })
-    .eq("id", corredor.id);
+  const todo = {
+    tono: texto(f, "tono").trim(),
+    reglas_escalamiento: lineas("reglas"),
+    hora_plan_dia: texto(f, "hora_plan") || "07:00",
+    respuesta_automatica: f.get("respuesta_automatica") === "on",
+    zonas_e24: lineas("zonas_e24"),
+    precio_busqueda_min: numero("precio_min"),
+    precio_busqueda_max: numero("precio_max"),
+    nombre_asistente: texto(f, "nombre_asistente").trim().slice(0, 40) || "Patty",
+    comision_pct: Math.min(20, Math.max(0, Number(texto(f, "comision_pct").replace(",", ".")) || 5)),
+  };
+  // Las guías paso a paso (/panel/empezar) guardan un solo campo con la misma lectura: `solo` dice cuál, y el resto
+  // no se toca. Sin `solo`, el formulario completo de Ajustes, como siempre.
+  const solo = SOLO_AJUSTE[texto(f, "solo")];
+  const cambios = solo ? { [solo]: todo[solo] } : todo;
+  const { error } = await supabase.from("corredores").update(cambios).eq("id", corredor.id);
   revalidatePath("/panel", "layout");
-  redirect(`/panel/ajustes?aviso=${encodeURIComponent(error ? "No se pudo guardar. Revisa los datos." : "Guardado.")}`);
+  const volver = VOLVER_AJUSTES.includes(texto(f, "volver")) ? texto(f, "volver") : "/panel/ajustes";
+  redirect(`${volver}?aviso=${encodeURIComponent(error ? "No se pudo guardar. Revisa los datos." : "Guardado.")}`);
 }
+
+/** Lo que una guía puede guardar sola desde guardarAjustes (nombre del campo del formulario → columna). */
+const SOLO_AJUSTE: Record<string, "tono" | "reglas_escalamiento" | "respuesta_automatica" | undefined> = {
+  tono: "tono",
+  reglas: "reglas_escalamiento",
+  respuesta_automatica: "respuesta_automatica",
+};
+/** Adónde puede volver guardarAjustes (nada de direcciones de afuera). */
+const VOLVER_AJUSTES = ["/panel/ajustes", "/panel/empezar", "/panel/empezar/sola"];
 
 export async function elegirCorredor(f: FormData) {
   (await cookies()).set(COOKIE_CORREDOR, texto(f, "corredor"), { httpOnly: true, sameSite: "lax", path: "/" });

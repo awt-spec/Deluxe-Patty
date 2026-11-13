@@ -133,3 +133,45 @@ describe("Probar WhatsApp desde Ajustes", () => {
     expect(url).toMatch(/^\/panel\/ajustes\?prueba=.+&ok=0#probar-whatsapp$/);
   });
 });
+
+describe("Ajustes desde las guías paso a paso (guardarAjustes con solo y volver)", () => {
+  const filas = () => [
+    { id: ID.deluxe, corredor_id: ID.deluxe, tono: "", reglas_escalamiento: ["Quejas"], respuesta_automatica: false, hora_plan_dia: "06:30" },
+    { id: ID.otro, corredor_id: ID.otro, tono: "del otro", reglas_escalamiento: [], respuesta_automatica: false, hora_plan_dia: "08:00" },
+  ];
+
+  it("solo=tono cambia solo el tono del propio corredor y vuelve a la puesta en marcha", async () => {
+    const db = supabaseFalso({ corredores: filas() });
+    estado.sesion = { corredor, usuario: { id: ID.usuario, email: "patricia@ejemplo.com" }, supabase: db };
+    const url = await redirigeA(acciones.guardarAjustes(formulario({ solo: "tono", tono: "  Cordial, de usted  ", volver: "/panel/empezar" })));
+    expect(url).toBe("/panel/empezar?aviso=Guardado.");
+    const [w] = db.escrituras;
+    expect(w).toMatchObject({ tabla: "corredores", op: "update", valores: { tono: "Cordial, de usted" } });
+    expect(Object.keys(w.valores as object)).toEqual(["tono"]);
+    expect(w.filtros).toContainEqual(["id", ID.deluxe]);
+  });
+
+  it("solo=respuesta_automatica la enciende sin tocar el horario del plan ni los temas", async () => {
+    const db = supabaseFalso({ corredores: filas() });
+    estado.sesion = { corredor, usuario: { id: ID.usuario, email: "patricia@ejemplo.com" }, supabase: db };
+    await redirigeA(acciones.guardarAjustes(formulario({ solo: "respuesta_automatica", respuesta_automatica: "on", volver: "/panel/empezar/sola" })));
+    expect(db.escrituras[0].valores).toEqual({ respuesta_automatica: true });
+  });
+
+  it("con datos de otro corredor no hace nada: el id del formulario se ignora y la fila ajena queda igual", async () => {
+    const db = supabaseFalso({ corredores: filas() });
+    estado.sesion = { corredor, usuario: { id: ID.usuario, email: "patricia@ejemplo.com" }, supabase: db };
+    await redirigeA(acciones.guardarAjustes(formulario({ solo: "tono", tono: "hackeado", id: ID.otro, corredor_id: ID.otro })));
+    expect(db.escrituras.every((w) => w.filtros.some(([c, v]) => c === "id" && v === ID.deluxe))).toBe(true);
+    expect(db.escrituras.some((w) => w.filtros.some(([, v]) => v === ID.otro))).toBe(false);
+  });
+
+  it("solo con un campo desconocido guarda el formulario completo, y volver solo acepta rutas de la lista", async () => {
+    const db = supabaseFalso({ corredores: filas() });
+    estado.sesion = { corredor, usuario: { id: ID.usuario, email: "patricia@ejemplo.com" }, supabase: db };
+    const url = await redirigeA(acciones.guardarAjustes(formulario({ solo: "token_calendario", tono: "x", volver: "https://malo.example" })));
+    expect(url).toMatch(/^\/panel\/ajustes\?/);
+    expect(Object.keys(db.escrituras[0].valores as object)).toContain("hora_plan_dia");
+    expect(Object.keys(db.escrituras[0].valores as object)).not.toContain("token_calendario");
+  });
+});

@@ -1,0 +1,307 @@
+/* "Dímelo con tus palabras" en Apartar tiempo (dimelo.tsx). Teléfono primero, tema claro tipo WhatsApp,
+   controles de al menos 44 px. Todo cuelga de .apartar-ia (con .marco.tema para ganarle a los estilos generales del tema) y no toca nada más. */
+
+.marco.tema .apartar-ia {
+  --ai-verde: #008069;
+  --ai-verde-claro: #e7f6f1;
+  --ai-ambar: #8a5a00;
+  --ai-ambar-fondo: #fff6e0;
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+  border: 2px solid color-mix(in srgb, var(--ai-verde) 35%, transparent);
+}
+
+.marco.tema .apartar-ia-form,
+.marco.tema .apartar-ia-propuesta {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.marco.tema .apartar-ia-titulo,
+.marco.tema .apartar-ia-propuesta h2 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.marco.tema .apartar-ia-sub {
+  margin: -4px 0 0;
+  font-size: 0.95rem;
+}
+
+.marco.tema .apartar-ia-caja {
+  position: relative;
+}
+
+.marco.tema .apartar-ia-caja textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 96px;
+  padding: 12px 60px 12px 14px;
+  font: inherit;
+  font-size: 1.05rem;
+  line-height: 1.4;
+  border: 1.5px solid var(--borde, #d1d7db);
+  border-radius: 14px;
+  background: var(--superficie, #fff);
+  color: inherit;
+  resize: vertical;
+}
+
+.marco.tema .apartar-ia-caja textarea:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--ai-verde) 45%, transparent);
+  border-color: var(--ai-verde);
+}
+
+.marco.tema .apartar-ia-micro {
+  position: absolute;
+  right: 8px;
+  bottom: 10px;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  border: none;
+  display: grid;
+  place-items: center;
+  background: var(--ai-verde);
+  color: #fff;
+  cursor: pointer;
+}
+
+.marco.tema .apartar-ia-micro.grabando {
+  background: #d1393f;
+  animation: apartar-ia-latido 1.2s ease-in-out infinite;
+}
+
+.marco.tema .apartar-ia-micro:disabled {
+  opacity: 0.6;
+}
+
+@keyframes apartar-ia-latido {
+  50% {
+    box-shadow: 0 0 0 8px rgb(209 57 63 / 20%);
+  }
+}
+
+.marco.tema .apartar-ia-puntos::after {
+  content: "…";
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.marco.tema .apartar-ia-grabando {
+  margin: 0;
+  color: #d1393f;
+  font-weight: 600;
+}
+
+.marco.tema .apartar-ia-ejemplos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.marco.tema .apartar-ia-ejemplo {
+  min-height: 44px;
+  padding: 8px 14px;
+  border-radius: 22px;
+  border: 1px solid color-mix(in srgb, var(--ai-verde) 30%, transparent);
+  background: var(--ai-verde-claro);
+  color: #0b4f43;
+  font: inherit;
+  font-size: 0.95rem;
+  text-align: left;
+  cursor: pointer;
+  max-width: 100%;
+}
+
+.marco.tema .apartar-ia-enviar,
+.marco.tema .apartar-ia-botones .primario {
+  min-height: 52px;
+  background: var(--ai-verde);
+  border-color: var(--ai-verde);
+  color: #fff;
+}
+
+.marco.tema .apartar-ia-enviar:disabled,
+.marco.tema .apartar-ia-botones .primario:disabled {
+  opacity: 0.5;
+}
+
+.marco.tema .apartar-ia-dicho {
+  margin: 0;
+  color: var(--suave, #667781);
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+.marco.tema .apartar-ia-aviso {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--ai-ambar-fondo);
+  color: var(--ai-ambar);
+  font-weight: 600;
+}
+
+.marco.tema .apartar-ia-renglones {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.marco.tema .apartar-ia-renglones li {
+  border: 1px solid var(--borde, #e2e6e9);
+  border-left: 4px solid var(--ai-verde);
+  border-radius: 12px;
+  background: var(--superficie, #fff);
+  overflow: hidden;
+}
+
+.marco.tema .apartar-ia-renglones.quitar li {
+  border-left-color: #d1393f;
+}
+
+.marco.tema .apartar-ia-renglones li.con-choque {
+  border-left-color: #d79a00;
+}
+
+.marco.tema .apartar-ia-renglon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px 6px 14px;
+  min-height: 52px;
+  font-size: 1.02rem;
+  font-weight: 600;
+}
+
+.marco.tema .apartar-ia-renglon span {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.marco.tema .apartar-ia-x {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--suave, #667781);
+  font-size: 1.6rem;
+  line-height: 1;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.marco.tema .apartar-ia-x:hover {
+  background: var(--superficie-alta, #f0f2f5);
+}
+
+.marco.tema .apartar-ia-choque {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px 10px;
+  min-height: 44px;
+  padding: 8px 14px;
+  background: var(--ai-ambar-fondo);
+  color: var(--ai-ambar);
+  font-size: 0.95rem;
+  text-decoration: none;
+}
+
+.marco.tema .apartar-ia-choque span {
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.marco.tema .apartar-ia-sub-titulo {
+  margin: 4px 0 0;
+  font-size: 1rem;
+}
+
+.marco.tema .apartar-ia-duda {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #eef4ff;
+  color: #173a6a;
+  display: grid;
+  gap: 8px;
+}
+
+.marco.tema .apartar-ia-duda p {
+  margin: 0;
+  font-weight: 600;
+}
+
+.marco.tema .apartar-ia-opciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.marco.tema .apartar-ia-opciones button {
+  min-height: 44px;
+}
+
+.marco.tema .apartar-ia-nota {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.marco.tema .apartar-ia-botones {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.marco.tema .apartar-ia-botones button {
+  min-height: 52px;
+}
+
+.marco.tema .apartar-ia-listo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 8px 8px 14px;
+  border-radius: 12px;
+  background: var(--ai-verde-claro);
+  color: #0b4f43;
+  font-weight: 600;
+}
+
+.marco.tema .apartar-ia-listo button {
+  min-height: 44px;
+}
+
+.marco.tema .apartar-ia-error {
+  margin: 0;
+  color: #b3261e;
+  font-weight: 600;
+}
+
+@media (min-width: 720px) {
+  .marco.tema .apartar-ia-botones {
+    grid-template-columns: auto auto;
+    justify-content: start;
+  }
+}
+
+.marco.tema .bloquear-o-manual {
+  margin: 4px 0 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--suave, #667781);
+}

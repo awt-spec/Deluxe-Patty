@@ -10,6 +10,7 @@ import { desconectarExtension, pasarAMisCasas } from "./acciones";
 import { EstadoExtensionDuenos } from "./estado-extension";
 import { estadoDelServidor } from "./estado-servidor";
 import "./extension/extension.css";
+import "./busqueda.css";
 
 // Dueños directos como embudo de captación: Encontrado → Le escribí → Respondió → Visité la casa →
 // Firmó conmigo → Publicada. Cada dueño tiene su siguiente paso con un botón; al firmar, la casa pasa a
@@ -189,6 +190,7 @@ export default async function Duenos({ searchParams }: { searchParams: Promise<{
           version={manifiesto.version}
           demo={extension.demo}
           corredor={extension.corredor}
+          asistente={extension.asistente}
           desconectar={
             <form action={desconectarExtension}>
               <button type="submit" data-patty="duenos-desconectar">
@@ -197,9 +199,13 @@ export default async function Duenos({ searchParams }: { searchParams: Promise<{
             </form>
           }
         />
+        <p className="busq-nota">
+          Busca a tu ritmo, como lo harías tú: lee cada página, hace pausas y no abre más de una pestaña. Si Encuentra24 te pide
+          confirmar que eres tú, se detiene y te avisa.
+        </p>
         <p className="suave">
           La extensión abre Encuentra24 en una pestaña de tu Chrome, lee los anuncios de tus zonas y aquí aparecen los dueños. Busca
-          sola una vez por semana mientras Chrome esté abierto.{" "}
+          sola una vez por semana mientras Chrome esté abierto; la puedes pausar o detener desde la pestaña, la extensión o aquí.{" "}
           <a href="/panel/duenos/extension">Ver la instalación paso a paso</a>.
         </p>
       </section>

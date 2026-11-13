@@ -13,6 +13,7 @@ y se combinan con los datos del corredor (`corredores.tono`, `reglas_escalamient
 | `foto.md` | OpenAI `gpt-image-2` | Mejora de una foto: solo luz, color, nitidez y verticales, sin cambiar el espacio | 2 |
 | `dueno_o_corredor.md` | Haiku | Clasificar un anuncio de Encuentra24 como dueño directo o corredor | 2 |
 | `redes-texto.md` | Sonnet | Reescribir el texto para redes (mejorar, más corto, más vendedor, en inglés) solo con la ficha; el código revisa las cifras | — |
+| `apartar.md` | Haiku | "Apartar tiempo" dicho con sus palabras: operaciones apartar/quitar/duda con fechas ISO; el código las revisa y arma los textos | — |
 | `redes-video.md` | Sonnet (con visión) | Guion del video para redes: orden de fotos y un texto corto por foto; precio y datos los pone el código | — |
 
 Ninguna instrucción es específica de Deluxe: lo propio de cada corredor vive en la base de datos.

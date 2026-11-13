@@ -199,7 +199,7 @@ export function listaPreparacion(d: DatosLista): Renglon[] {
       listo: d.sabe >= MINIMO_ENSENADO,
       titulo: `Al menos ${MINIMO_ENSENADO} cosas enseñadas`,
       detalle: d.sabe ? `Lleva ${cosas(d.sabe, "cosa", "cosas")}` : "Todavía no le enseñaste nada",
-      href: "/panel/cerebro#ensenar",
+      href: "/panel/cerebro?ver=sabe#ensenar",
       accion: "Enseñarle",
     },
     {
@@ -207,8 +207,152 @@ export function listaPreparacion(d: DatosLista): Renglon[] {
       listo: d.preguntas === 0,
       titulo: "Preguntas contestadas",
       detalle: d.preguntas ? `${cosas(d.preguntas, "pregunta espera", "preguntas esperan")} tu respuesta` : "No te debe ninguna",
-      href: "/panel/cerebro?ver=dudas",
+      href: "/panel/cerebro?ver=necesita",
       accion: "Contestar",
     },
   ];
+}
+
+// --- Las tres secciones -------------------------------------------------------------------------------
+// El Cerebro responde tres preguntas: qué necesita de ti, qué sabe y cómo contesta. El mapa es otra forma de ver
+// "lo que sabe". Las direcciones viejas (?ver=dudas, errores, fuentes, inicio) siguen llevando a su lugar.
+
+export type Seccion = "necesita" | "sabe" | "contesta";
+export type VerCerebro = Seccion | "mapa";
+
+const VIEJAS: Record<string, { ver: VerCerebro; ancla?: string }> = {
+  necesita: { ver: "necesita" },
+  sabe: { ver: "sabe" },
+  contesta: { ver: "contesta" },
+  mapa: { ver: "mapa" },
+  dudas: { ver: "necesita" },
+  errores: { ver: "contesta", ancla: "correcciones" },
+  fuentes: { ver: "sabe" },
+};
+
+/**
+ * Qué mostrar con el `?ver=` pedido. Sin `ver` (o uno que no existe, o el viejo "inicio") va a la portada, que es
+ * "Lo que necesita de ti" si hay algo pendiente y "Lo que sabe" si no. `ancla` es dónde bajar al abrir.
+ */
+export function vistaCerebro(pedido: string | undefined, pendientes: number): { ver: VerCerebro; ancla?: string; portada: boolean } {
+  const v = pedido && Object.hasOwn(VIEJAS, pedido) ? VIEJAS[pedido] : undefined;
+  if (v) return { ...v, portada: false };
+  return { ver: pendientes > 0 ? "necesita" : "sabe", portada: true };
+}
+
+/** Lo que falta de "Qué tan lista está", sin las preguntas (esas ya se cuentan aparte, una por una). */
+export function faltaPreparacion(lista: Renglon[]): Renglon[] {
+  return lista.filter((r) => !r.listo && r.clave !== "preguntas");
+}
+
+export type Cuentas = {
+  preguntas: number;
+  porUbicar: number;
+  /** Renglones de la preparación que faltan (sin "preguntas"). */
+  falta: number;
+  ensenado: number;
+  ubicadas: number;
+  casas: number;
+  correcciones: number;
+  automatica: boolean;
+};
+
+/** Lo pendiente: preguntas, casas sin zona clara y lo que falta para que esté lista. */
+export const pendientesCerebro = (c: Pick<Cuentas, "preguntas" | "porUbicar" | "falta">) => c.preguntas + c.porUbicar + c.falta;
+
+export type InfoSeccion = {
+  clave: Seccion;
+  titulo: string;
+  corto: string;
+  numero: number | null;
+  linea: string;
+  urgente: boolean;
+};
+
+/** Las tres secciones como se ven en la navegación: título, nombre corto (teléfono), contador y una línea. */
+export function seccionesCerebro(c: Cuentas): InfoSeccion[] {
+  const pendientes = pendientesCerebro(c);
+  const partes = [
+    c.preguntas ? cosas(c.preguntas, "pregunta", "preguntas") : "",
+    c.porUbicar ? cosas(c.porUbicar, "casa sin zona", "casas sin zona") : "",
+    c.falta ? `${cosas(c.falta, "cosa", "cosas")} por preparar` : "",
+  ].filter(Boolean);
+  const sabe = c.ensenado + c.ubicadas;
+  return [
+    {
+      clave: "necesita",
+      titulo: "Lo que necesita de ti",
+      corto: "Te necesita",
+      numero: pendientes,
+      linea: partes.length ? partes.join(" · ") : "Todo al día",
+      urgente: pendientes > 0,
+    },
+    {
+      clave: "sabe",
+      titulo: "Lo que sabe",
+      corto: "Lo que sabe",
+      numero: sabe,
+      linea: `${cosas(c.casas, "casa", "casas")} · ${cosas(c.ensenado, "cosa enseñada", "cosas enseñadas")}`,
+      urgente: false,
+    },
+    {
+      clave: "contesta",
+      titulo: "Cómo contesta",
+      corto: "Cómo contesta",
+      numero: c.correcciones,
+      linea: `${c.automatica ? "Contesta sola" : "Espera tu visto bueno"} · ${cosas(c.correcciones, "corrección", "correcciones")}`,
+      urgente: false,
+    },
+  ];
+}
+
+/** Cuántas correcciones hizo en los últimos `dias` días (para "esta semana corregiste…"). */
+export function correccionesRecientes(fechas: string[], ahora: Date, dias = 7): number {
+  const desde = ahora.getTime() - dias * 86_400_000;
+  return fechas.filter((f) => {
+    const t = Date.parse(f);
+    return Number.isFinite(t) && t >= desde;
+  }).length;
+}
+
+// --- El horario en una línea por día ----------------------------------------------------------------
+
+const NOMBRES_DIA = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+/** Lunes primero, el domingo al final. */
+const ORDEN_DIAS = [1, 2, 3, 4, 5, 6, 0];
+
+/** "08:00:00" → "8:00", "13:30" → "13:30": reloj de 24 horas sin el cero de adelante ni los segundos. */
+function hora(h: string): string {
+  const [hh = "0", mm = "00"] = h.split(":");
+  return `${Number(hh)}:${mm.padStart(2, "0").slice(0, 2)}`;
+}
+
+export type DiaHorario = { dia: string; texto: string };
+
+/** Una línea por día con horario: "Lunes: 8:00–12:00 y 13:00–17:00". Los días sin horario no salen. */
+export function resumenHorario(franjas: { dia_semana: number; hora_inicio: string; hora_fin: string }[]): DiaHorario[] {
+  const salida: DiaHorario[] = [];
+  for (const d of ORDEN_DIAS) {
+    const del = franjas
+      .filter((f) => f.dia_semana === d)
+      .sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio))
+      .map((f) => `${hora(f.hora_inicio)}–${hora(f.hora_fin)}`);
+    if (del.length)
+      salida.push({
+        dia: NOMBRES_DIA[d],
+        texto: del.length > 1 ? `${del.slice(0, -1).join(", ")} y ${del.at(-1)}` : del[0],
+      });
+  }
+  return salida;
+}
+
+/** "Lunes a viernes", "Lunes, miércoles y sábado" o "Sin horario": la línea plegada del horario. */
+export function diasDelHorario(dias: DiaHorario[]): string {
+  if (!dias.length) return "Sin horario: no puede ofrecer citas";
+  const idx = dias.map((d) => ORDEN_DIAS.indexOf(NOMBRES_DIA.indexOf(d.dia)));
+  const seguidos = idx.every((n, i) => i === 0 || n === idx[i - 1] + 1);
+  const nombres = dias.map((d, i) => (i === 0 ? d.dia : d.dia.toLowerCase()));
+  if (dias.length === 1) return nombres[0];
+  if (seguidos && dias.length > 2) return `${nombres[0]} a ${nombres.at(-1)}`;
+  return `${nombres.slice(0, -1).join(", ")} y ${nombres.at(-1)}`;
 }

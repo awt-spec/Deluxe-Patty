@@ -71,6 +71,10 @@ export interface Repositorio {
   datosAgenda(corredorId: string, desde: Date, hasta: Date): Promise<DatosAgenda>;
   /** Aparta un rato de la agenda (la asistente no ofrece esas horas). */
   crearBloqueo(corredorId: string, inicio: Date, fin: Date, motivo: string | null): Promise<void>;
+  /** Tiempo apartado (solo el de la base, no lo ocupado en Google) que toca ese rango, con su id. */
+  bloqueosEntre?(corredorId: string, desde: Date, hasta: Date): Promise<{ id: string; inicio: Date; fin: Date; motivo: string | null }[]>;
+  /** Quita tiempo apartado del corredor ("quita lo del viernes"). */
+  quitarBloqueos?(corredorId: string, ids: string[]): Promise<void>;
   citasProximasContacto(corredorId: string, contactoId: string, desde: Date): Promise<Cita[]>;
   /** Devuelve null si el horario ya está tomado (restricción citas_sin_choques). */
   crearCita(cita: NuevaCita): Promise<string | null>;
@@ -392,6 +396,25 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
         .from("bloqueos_agenda")
         .insert({ corredor_id: corredorId, inicio: inicio.toISOString(), fin: fin.toISOString(), motivo });
       verificar(error, "crearBloqueo");
+    },
+
+    async bloqueosEntre(corredorId, desde, hasta) {
+      const { data, error } = await db
+        .from("bloqueos_agenda")
+        .select("id, inicio, fin, motivo")
+        .eq("corredor_id", corredorId)
+        .lt("inicio", hasta.toISOString())
+        .gt("fin", desde.toISOString())
+        .order("inicio")
+        .limit(50);
+      verificar(error, "bloqueosEntre");
+      return (data ?? []).map((b) => ({ id: b.id as string, inicio: new Date(b.inicio), fin: new Date(b.fin), motivo: (b.motivo as string | null) ?? null }));
+    },
+
+    async quitarBloqueos(corredorId, ids) {
+      if (!ids.length) return;
+      const { error } = await db.from("bloqueos_agenda").delete().eq("corredor_id", corredorId).in("id", ids);
+      verificar(error, "quitarBloqueos");
     },
 
     async citasProximasContacto(corredorId, contactoId, desde) {

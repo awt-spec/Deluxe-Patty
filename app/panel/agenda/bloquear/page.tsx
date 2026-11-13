@@ -6,6 +6,7 @@ import { BotonEnviar } from "../../boton-enviar";
 import { Volver } from "../../volver";
 import "../agenda-movil.css";
 import { bloquearDesdeAgenda, quitarBloqueoAgenda } from "../acciones";
+import { Dimelo } from "./dimelo";
 import { ElegirDia } from "./elegir-dia";
 
 // "Apartar tiempo" (la ruta y las tablas siguen llamándose bloquear/bloqueos): un día o unas horas en que la
@@ -22,8 +23,8 @@ const RATOS = [
 
 const capitalizar = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 
-export default async function Bloquear({ searchParams }: { searchParams: Promise<{ fecha?: string; aviso?: string }> }) {
-  const { fecha, aviso } = await searchParams;
+export default async function Bloquear({ searchParams }: { searchParams: Promise<{ fecha?: string; aviso?: string; p?: string; dimelo?: string }> }) {
+  const { fecha, aviso, p, dimelo } = await searchParams;
   const { supabase, corredor } = await sesionConCorredor();
   const zona = corredor.zona_horaria;
   const hoyLocal = fechaLocal(new Date(), zona);
@@ -53,6 +54,10 @@ export default async function Bloquear({ searchParams }: { searchParams: Promise
       </header>
       <Aviso texto={aviso} />
 
+      {/* Arriba, con sus palabras (código o IA, siempre con confirmación); abajo, lo de siempre con botones. */}
+      <Dimelo asistente={corredor.nombre_asistente ?? "Patty"} propuestaInicial={typeof p === "string" ? p : undefined} enfocar={dimelo === "1"} />
+
+      <h2 className="bloquear-o-manual">O elígelo con botones</h2>
       <form action={bloquearDesdeAgenda} className="tarjeta pila form-bloquear">
         <h2 className="bloquear-paso">
           <span>1</span> ¿Qué día?
@@ -123,7 +128,7 @@ export default async function Bloquear({ searchParams }: { searchParams: Promise
       </section>
 
       <p className="suave bloquear-pie">
-        También puedes escribirle a {corredor.nombre_asistente ?? "Patty"} o a la asistente por WhatsApp: «apartar el viernes de 2 a 4».
+        También puedes escribirle a {corredor.nombre_asistente ?? "Patty"} o a la asistente por WhatsApp: «el martes tengo dentista de 2 a 4 y el viernes no trabajo».
       </p>
     </div>
   );

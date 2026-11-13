@@ -11,6 +11,7 @@ import { aprobar, descartar, devolver, escribir, tomar } from "../../acciones";
 import { Aviso } from "../../aviso";
 import { Avatar } from "../../avatar";
 import { IconoAtras, IconoTelefono } from "../../iconos";
+import "../../pasos/pasos.css";
 
 type Mensaje = {
   id: string;
@@ -109,6 +110,16 @@ export default async function Conversacion({
             <span className={`etapa etapa-${contacto.etapa}`}>{NOMBRE_ETAPA[contacto.etapa] ?? contacto.etapa}</span>
             <span className="barra-chat-busca">{resumenBusca(contacto.busca ?? {}) || "toca para ver su ficha"}</span>
           </span>
+        </Link>
+        {/* En el chat la barra de abajo deja lugar a la caja de escribir (como en WhatsApp): la asistente queda aquí. */}
+        <Link
+          href="/panel/patty"
+          className="chat-patty"
+          aria-label={`Pregúntale a ${corredor.nombre_asistente ?? "Patty"}`}
+          title={`Pregúntale a ${corredor.nombre_asistente ?? "Patty"}`}
+          data-patty="chat-preguntar"
+        >
+          {(corredor.nombre_asistente ?? "Patty").trim().charAt(0).toUpperCase() || "P"}
         </Link>
         <a href={`tel:${contacto.telefono}`} className="llamar" aria-label="Llamar">
           <IconoTelefono tamano={26} />

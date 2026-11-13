@@ -25,15 +25,42 @@
         <p id="lectura" role="status" aria-live="polite" hidden></p>
         <a id="abrir-casa" href="#" hidden>Abrir en el panel</a>
       </div>
-      <button id="buscar" class="primario">Buscar dueños</button>
-      <label class="interruptor"><input type="checkbox" id="buscar-sola" /> Buscar dueños sola cada semana</label>
-      <p class="suave" id="ultima" hidden></p>
+
+      <div id="en-curso" class="en-curso" hidden role="status" aria-live="polite">
+        <div class="en-curso-cabeza">
+          <span class="punto" aria-hidden="true"></span>
+          <strong id="en-curso-titulo"></strong>
+        </div>
+        <p id="en-curso-detalle" class="suave"></p>
+        <span class="avance" aria-hidden="true"><span id="en-curso-avance"></span></span>
+        <div class="fila-botones">
+          <button id="pausar" type="button">Pausar</button>
+          <button id="seguir" type="button" class="primario" hidden>Seguir</button>
+          <button id="detener" type="button" class="parar">Detener</button>
+        </div>
+      </div>
+
+      <button id="buscar" class="primario">Buscar dueños ahora</button>
+      <p id="mensaje" role="status" aria-live="polite" hidden></p>
+
+      <div class="semanal">
+        <label class="interruptor"><input type="checkbox" id="buscar-sola" /> Buscar dueños sola cada semana</label>
+        <fieldset id="modo" class="modo">
+          <legend class="solo-lector">Cómo busca la semanal</legend>
+          <label><input type="radio" name="modo" value="fondo" /> En segundo plano</label>
+          <label><input type="radio" name="modo" value="vista" /> A la vista</label>
+        </fieldset>
+        <p class="suave" id="ultima" hidden></p>
+      </div>
     </section>
 
-    <p id="mensaje" role="status" aria-live="polite" hidden></p>
+    <p id="mensaje-general" role="status" aria-live="polite" hidden></p>
 
     <footer id="pie" hidden>
-      <p class="suave">Una vez por semana. Se abre una pestaña de Encuentra24 y tarda unos 5 minutos; puedes seguir usando Chrome. Con el interruptor encendido lo hace sola, con Chrome abierto.</p>
+      <p class="suave">
+        Busca a tu ritmo, como lo harías tú: lee cada página, hace pausas y no abre más de una pestaña. Si Encuentra24 te pide confirmar que
+        eres tú, se detiene y te avisa. La puedes pausar o detener aquí, en la pestaña o en el panel.
+      </p>
       <button id="desconectar" class="enlace">Desconectar</button>
     </footer>
     <script src="popup.js" type="module"></script>

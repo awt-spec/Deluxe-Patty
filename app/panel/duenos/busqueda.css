@@ -1,0 +1,128 @@
+/* La búsqueda de dueños en vivo (Dueños directos → Buscar dueños desde Chrome): estado, avance y botones. */
+
+.marco.tema main .busq-vivo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid #a6e3d2;
+  background: #e7f7f1;
+  margin: 0 0 14px;
+}
+.marco.tema main .busq-vivo[data-fase="pausada"] {
+  background: #f0f2f5;
+  border-color: #d1d7db;
+}
+.marco.tema main .busq-vivo[data-fase="verificacion"] {
+  background: #fff6e0;
+  border-color: #f1d48a;
+}
+.marco.tema main .busq-vivo-punto {
+  position: relative;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #008069;
+}
+.marco.tema main .busq-vivo[data-fase="buscando"] .busq-vivo-punto::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 2px solid #008069;
+  animation: busq-latido 1.8s ease-out infinite;
+}
+.marco.tema main .busq-vivo[data-fase="pausada"] .busq-vivo-punto {
+  background: #667781;
+}
+.marco.tema main .busq-vivo[data-fase="verificacion"] .busq-vivo-punto {
+  background: #b07800;
+}
+@keyframes busq-latido {
+  from {
+    transform: scale(0.7);
+    opacity: 0.8;
+  }
+  to {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+.marco.tema main .busq-vivo-texto {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.marco.tema main .busq-vivo-texto span {
+  color: #3b4a54;
+}
+.marco.tema main .busq-vivo-barra {
+  display: block;
+  height: 6px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: rgb(0 128 105 / 15%);
+  overflow: hidden;
+}
+.marco.tema main .busq-vivo-barra span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #008069;
+  transition: width 0.6s ease;
+}
+.marco.tema main .busq-vivo-acciones {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.marco.tema main .busq-vivo-lista {
+  display: block;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+.marco.tema main .busq-vivo-lista p {
+  margin: 0 0 10px;
+}
+.marco.tema main .busq-vivo-fila {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.marco.tema main .busq-vivo-fila .suave {
+  flex: 1;
+  min-width: 220px;
+}
+.marco.tema main .busq-nota {
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border-left: 3px solid #008069;
+  border-radius: 0 10px 10px 0;
+  background: #f7f8fa;
+  color: #3b4a54;
+}
+@media (max-width: 560px) {
+  .marco.tema main .busq-vivo {
+    flex-wrap: wrap;
+  }
+  .marco.tema main .busq-vivo-acciones {
+    width: 100%;
+  }
+  .marco.tema main .busq-vivo-acciones button {
+    flex: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marco.tema main .busq-vivo-punto::after {
+    animation: none !important;
+  }
+  .marco.tema main .busq-vivo-barra span {
+    transition: none;
+  }
+}

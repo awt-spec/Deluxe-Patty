@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { sincronizarAhora } from "@/lib/google/tareas";
+import { guardarBloqueos } from "@/lib/agenda/guardar-bloqueos";
 import { aUtc, minutosDe } from "@/lib/agenda/tiempo";
 import { dependenciasPara } from "@/lib/asistente/dependencias";
 import { leerBloqueo } from "@/lib/panel/formularios";
@@ -165,11 +166,10 @@ export async function bloquearDesdeAgenda(f: FormData) {
     else problema ??= r.motivo;
   }
   if (filas.length === 0) irA(volver, problema ?? "Revisa el día y las horas.");
-  const repetidos = await Promise.all(filas.map((b) => yaBloqueado(supabase, corredor.id, b.inicio, b.fin)));
-  const nuevas = filas.filter((_, i) => !repetidos[i]);
-  if (nuevas.length === 0) irA(`/panel/agenda?vista=dia&fecha=${desde}`, "Ese rato ya estaba apartado.");
-  const { error } = await supabase.from("bloqueos_agenda").insert(nuevas);
-  if (error) irA(volver, "No se pudo apartar ese tiempo.");
+  // La misma inserción que la confirmación de "Dímelo con tus palabras" (lib/agenda/guardar-bloqueos.ts).
+  const r = await guardarBloqueos(supabase, corredor.id, filas);
+  if (!r.ok) irA(volver, "No se pudo apartar ese tiempo.");
+  if (r.ok && r.ids.length === 0) irA(`/panel/agenda?vista=dia&fecha=${desde}`, "Ese rato ya estaba apartado.");
   const { data: encima } = await supabase
     .from("citas")
     .select("inicio, fin")

@@ -1,16 +1,24 @@
-/* Cerebro de la asistente (app/panel/cerebro). Portada con lo urgente, "Qué tan lista está" y "Enséñale algo";
-   pestañas pegajosas con contadores; en computadora dos columnas (la lateral acompaña al bajar), en el teléfono una
-   sola: "Enséñale algo" va debajo de lo urgente y en las demás pestañas hay un enlace a él (sin botón fijo). Usa los colores y medidas de app/globals.css. */
+/* Cerebro de IA (app/panel/cerebro). Arriba el tablero de la asistente; debajo tres secciones —Lo que necesita de ti,
+   Lo que sabe, Cómo contesta— que en computadora son tres tarjetas grandes y en el teléfono un control segmentado
+   pegajoso. Lo que sabe se agrupa por fuente en grupos plegables (details) con su resumen en la línea plegada. El mapa
+   es otra forma de ver lo que sabe, a pantalla completa. Usa los colores y medidas de app/globals.css. */
 
 .marco.tema main .cerebro {
-  --cer-ambar: #9a5b00;
+  --cer-ambar: #8a4f00;
   --cer-ambar-fondo: #fff6e8;
   --cer-ambar-borde: #f1c27d;
-  --cer-verde-texto: #00735a;
+  --cer-verde-texto: #00664f;
+  --cer-verde-accion: #008069;
   --cer-rojo-fondo: #fdecec;
   --cer-rojo-texto: #8f2a2a;
   --cer-verde-fondo: #dcf5ea;
   --cer-verde-marca: #0b5d48;
+  --cer-azul: #1a5bb0;
+  --cer-azul-fondo: #e8f0fc;
+  --cer-morado: #5e3aa3;
+  --cer-morado-fondo: #f1ebfb;
+  --cer-gris: #46535c;
+  --cer-gris-fondo: #eef1f3;
 }
 
 @media (min-width: 900px) {
@@ -19,148 +27,436 @@
   }
 }
 
-/* --- Pestañas pegajosas --------------------------------------------------------------------------- */
-.marco.tema main .cer-pestanas {
-  position: sticky;
-  top: 0;
-  z-index: 6;
-  margin: 0 -16px 18px;
-  padding: 8px 0;
-  background: var(--fondo-pagina, #f3f6f4);
-  border-bottom: 1px solid var(--borde);
-}
-.marco.tema main .cer-pestanas-fila {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  padding: 2px 16px;
-  scrollbar-width: none;
-  /* Desvanecido a los lados: se nota que hay más pestañas al deslizar. */
-  mask-image: linear-gradient(to right, transparent 0, #000 16px, #000 calc(100% - 28px), transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 16px, #000 calc(100% - 28px), transparent 100%);
-}
-.marco.tema main .cer-pestanas-fila::-webkit-scrollbar {
-  display: none;
-}
-.marco.tema main .cer-pestanas a {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 0 14px;
-  border-radius: 999px;
-  border: 1px solid var(--borde-fuerte);
-  background: #fff;
-  color: var(--titulo, #111b21);
-  font-weight: 600;
-  font-size: 0.95rem;
-  text-decoration: none;
-  white-space: nowrap;
-}
-.marco.tema main .cer-pestanas a:hover {
-  border-color: var(--suave);
-}
-.marco.tema main .cer-pestanas a[aria-current="page"] {
-  background: var(--titulo, #111b21);
-  border-color: var(--titulo, #111b21);
-  color: #fff;
-}
-.marco.tema main .cer-pestanas a:focus-visible,
 .marco.tema main .cerebro a:focus-visible,
 .marco.tema main .cerebro button:focus-visible,
 .marco.tema main .cerebro summary:focus-visible {
   outline: 3px solid #1f6fd1;
   outline-offset: 2px;
 }
-.marco.tema main .cer-n {
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
-  border-radius: 999px;
-  display: inline-grid;
+.marco.tema main .cerebro h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.3;
+}
+.marco.tema main .cerebro h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.3;
+}
+.marco.tema main .cerebro .suave {
+  font-size: max(0.875rem, 13px);
+}
+
+/* --- Tablero ----------------------------------------------------------------------------------------- */
+.marco.tema main .cer-tablero {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  margin-bottom: 14px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #f1faf6 0%, #ffffff 62%);
+  border: 1px solid #cfe9df;
+  box-shadow: var(--sombra-1);
+}
+.marco.tema main .cer-dibujo {
+  position: absolute;
+  right: -18px;
+  top: -10px;
+  width: 150px;
+  height: auto;
+  opacity: 0.5;
+  pointer-events: none;
+}
+.marco.tema main .cer-dibujo line {
+  stroke: #9fc9bb;
+  stroke-width: 1.6;
+}
+.marco.tema main .cer-dibujo-centro {
+  fill: #fff;
+  stroke: #008069;
+  stroke-width: 3;
+}
+.marco.tema main .cer-tablero-quien {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.marco.tema main .cer-avatar {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: grid;
   place-items: center;
-  font-size: 0.78rem;
+  background: var(--cer-verde-accion);
+  color: #fff;
+  box-shadow: 0 0 0 4px #d6efe6;
+}
+.marco.tema main .cer-tablero-nombre {
+  margin: 0;
+  font-size: 1.3rem;
   font-weight: 700;
-  background: #e9edf0;
-  color: #34414b;
+  line-height: 1.2;
+  color: var(--titulo, #111b21);
 }
-.marco.tema main .cer-n.urgente {
-  background: #c46a00;
-  color: #fff;
+.marco.tema main .cer-tablero-rol {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--cer-verde-texto);
 }
-.marco.tema main .cer-pestanas a[aria-current="page"] .cer-n {
-  background: rgb(255 255 255 / 22%);
-  color: #fff;
+.marco.tema main .cer-tablero-frase {
+  position: relative;
+  margin: 0;
+  max-width: 62ch;
+  font-size: 1.02rem;
+  line-height: 1.45;
+  color: var(--titulo, #111b21);
+}
+.marco.tema main .cer-tablero-lista {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  min-height: 44px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: rgb(255 255 255 / 82%);
+  border: 1px solid #dbe7e2;
+  color: var(--texto-2, #46525c);
+  font-size: 0.92rem;
+  text-decoration: none;
+  justify-self: start;
+}
+.marco.tema main .cer-tablero-lista strong {
+  color: var(--titulo, #111b21);
+}
+.marco.tema main .cer-tablero-lista:hover {
+  border-color: var(--cer-verde-accion);
+}
+.marco.tema main .cer-tablero-lista .cer-segmentos {
+  width: 112px;
+  margin: 0;
+}
+.marco.tema main .cer-segmentos {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 3px;
+  margin: 12px 0 6px;
+}
+.marco.tema main .cer-segmentos span {
+  height: 8px;
+  border-radius: 4px;
+  background: #dfe5e2;
+}
+.marco.tema main .cer-segmentos span.listo {
+  background: #00a884;
 }
 @media (min-width: 900px) {
-  .marco.tema main .cer-pestanas {
-    margin: 0 0 22px;
-    padding: 10px 0;
+  .marco.tema main .cer-tablero {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas: "quien frase" "quien lista";
+    column-gap: 22px;
+    align-items: center;
+    padding: 22px 26px;
+    padding-right: 220px;
   }
-  .marco.tema main .cer-pestanas-fila {
-    padding: 2px 0;
-    mask-image: none;
-    -webkit-mask-image: none;
+  .marco.tema main .cer-tablero-quien {
+    grid-area: quien;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding-right: 22px;
+    border-right: 1px solid #d7ebe3;
+    min-width: 150px;
   }
-  /* En la demo la banda de arriba también es pegajosa: las pestañas van debajo. */
-  .marco.tema:has(.banda-demo) main .cer-pestanas {
-    top: 37px;
+  .marco.tema main .cer-avatar {
+    width: 64px;
+    height: 64px;
+  }
+  .marco.tema main .cer-tablero-frase {
+    grid-area: frase;
+    font-size: 1.12rem;
+  }
+  .marco.tema main .cer-tablero-lista {
+    grid-area: lista;
+  }
+  .marco.tema main .cer-dibujo {
+    right: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 190px;
+    opacity: 1;
   }
 }
 
-/* --- Cuerpo: principal + lateral -------------------------------------------------------------------- */
-.marco.tema main .cer-cuerpo {
+/* --- Las tres secciones --------------------------------------------------------------------------------- */
+.marco.tema main .cer-secciones {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 18px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 22px;
 }
-.marco.tema main .cer-urgente,
-.marco.tema main .cer-principal,
-.marco.tema main .cer-lateral,
+.marco.tema main .cer-sec {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 84px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--borde);
+  background: #fff;
+  box-shadow: var(--sombra-1);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.marco.tema main .cer-sec:hover {
+  border-color: var(--borde-fuerte);
+  box-shadow: var(--sombra-2);
+}
+.marco.tema main .cer-sec[aria-current="page"] {
+  border-color: var(--cer-verde-accion);
+  box-shadow: inset 0 0 0 1px var(--cer-verde-accion), var(--sombra-2);
+  background: #f4fbf8;
+}
+.marco.tema main .cer-sec[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -8px;
+  width: 14px;
+  height: 14px;
+  transform: translateX(-50%) rotate(45deg);
+  background: #f4fbf8;
+  border-right: 2px solid var(--cer-verde-accion);
+  border-bottom: 2px solid var(--cer-verde-accion);
+}
+.marco.tema main .cer-sec-icono {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+}
+.marco.tema main .sec-necesita .cer-sec-icono { background: var(--cer-gris-fondo); color: var(--cer-gris); }
+.marco.tema main .sec-necesita.urgente .cer-sec-icono { background: var(--cer-ambar-fondo); color: var(--cer-ambar); }
+.marco.tema main .sec-sabe .cer-sec-icono { background: var(--cer-azul-fondo); color: var(--cer-azul); }
+.marco.tema main .sec-contesta .cer-sec-icono { background: var(--cer-morado-fondo); color: var(--cer-morado); }
+.marco.tema main .cer-sec-texto {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.marco.tema main .cer-sec-titulo {
+  font-weight: 700;
+  font-size: 1.02rem;
+  color: var(--titulo, #111b21);
+}
+.marco.tema main .cer-sec-linea {
+  font-size: 0.875rem;
+  line-height: 1.35;
+  color: var(--texto-2, #46525c);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.marco.tema main .cer-sec-n {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 8px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 1.05rem;
+  font-weight: 750;
+  background: var(--cer-gris-fondo);
+  color: var(--cer-gris);
+}
+.marco.tema main .cer-sec-n.al-dia {
+  background: var(--cer-verde-fondo);
+  color: var(--cer-verde-marca);
+}
+.marco.tema main .cer-sec.urgente .cer-sec-n {
+  background: #b35f00;
+  color: #fff;
+}
+.marco.tema main .cer-corto {
+  display: none;
+}
+
+/* Teléfono: un control segmentado de tres, pegajoso arriba. */
+@media (max-width: 899px) {
+  .marco.tema main .cer-secciones {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    gap: 4px;
+    margin: 0 -16px 18px;
+    padding: 8px 16px;
+    background: var(--fondo-pagina, #f0f2f5);
+    border-bottom: 1px solid var(--borde);
+  }
+  .marco.tema main .cer-sec {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    gap: 2px;
+    min-height: 54px;
+    padding: 6px 4px;
+    border-radius: 12px;
+    box-shadow: none;
+    text-align: center;
+  }
+  .marco.tema main .cer-sec[aria-current="page"] {
+    background: var(--titulo, #111b21);
+    border-color: var(--titulo, #111b21);
+    box-shadow: none;
+  }
+  .marco.tema main .cer-sec[aria-current="page"]::after {
+    display: none;
+  }
+  .marco.tema main .cer-sec[aria-current="page"] .cer-sec-titulo {
+    color: #fff;
+  }
+  .marco.tema main .cer-sec-icono,
+  .marco.tema main .cer-sec-linea,
+  .marco.tema main .cer-largo {
+    display: none;
+  }
+  .marco.tema main .cer-corto {
+    display: inline;
+  }
+  .marco.tema main .cer-sec-titulo {
+    font-size: 0.875rem;
+    line-height: 1.2;
+  }
+  .marco.tema main .cer-sec-n {
+    grid-row: 2;
+    min-width: 24px;
+    height: 20px;
+    font-size: 0.8125rem;
+    padding: 0 7px;
+  }
+  .marco.tema main .cer-sec-n.al-dia {
+    height: 20px;
+  }
+  .marco.tema main .cer-sec[aria-current="page"] .cer-sec-n {
+    background: rgb(255 255 255 / 22%);
+    color: #fff;
+  }
+  .marco.tema main .cer-sec[aria-current="page"].urgente .cer-sec-n {
+    background: #f0a040;
+    color: #111b21;
+  }
+  .marco.tema main .cer-tablero {
+    padding: 16px;
+    padding-right: 16px;
+  }
+  .marco.tema main .cer-dibujo {
+    width: 116px;
+    right: -22px;
+    top: -18px;
+    opacity: 0.35;
+  }
+  .marco.tema main .cer-tablero-frase {
+    font-size: 0.98rem;
+  }
+}
+@media (min-width: 900px) {
+  /* En la demo la banda de arriba es pegajosa en computadora; aquí la navegación no lo es, nada que ajustar. */
+  .marco.tema main .cer-sec-titulo .cer-largo {
+    display: inline;
+  }
+}
+
+/* --- Piezas de cada sección ------------------------------------------------------------------------------ */
+.marco.tema main .cer-seccion {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
 .marco.tema main .cer-pila {
   display: grid;
   gap: 16px;
   align-content: start;
   min-width: 0;
 }
-@media (min-width: 900px) {
-  .marco.tema main .cer-cuerpo {
-    grid-template-columns: minmax(0, 1fr) 360px;
-    grid-template-areas: "urgente lateral" "principal lateral";
-    grid-template-rows: auto 1fr;
-    gap: 0 28px;
-    align-items: start;
-  }
-  .marco.tema main .cer-urgente {
-    grid-area: urgente;
-    margin-bottom: 20px;
-  }
-  .marco.tema main .cer-principal {
-    grid-area: principal;
-  }
-  .marco.tema main .cer-lateral {
-    grid-area: lateral;
-  }
+.marco.tema main .cer-dos {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
 }
-/* La lateral acompaña al bajar solo si cabe entera en la pantalla. */
-@media (min-width: 900px) and (min-height: 1180px) {
-  .marco.tema main .cer-lateral {
-    position: sticky;
-    top: 84px;
-  }
-  .marco.tema:has(.banda-demo) main .cer-lateral {
-    top: 121px;
+@media (min-width: 900px) {
+  .marco.tema main .cer-dos {
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 28px;
+    align-items: start;
   }
 }
 @media (min-width: 1200px) {
-  .marco.tema main .cer-cuerpo {
+  .marco.tema main .cer-dos {
     grid-template-columns: minmax(0, 1fr) 380px;
-    column-gap: 32px;
+    gap: 32px;
+  }
+}
+/* "Enséñale algo" es lo primero de "Lo que sabe": en el teléfono va arriba; en computadora, a la derecha y acompaña al bajar. */
+@media (max-width: 899px) {
+  .marco.tema main .cer-dos-sabe .cer-lateral {
+    order: -1;
+  }
+  .marco.tema main .cer-dos-sabe {
+    gap: 22px;
+  }
+}
+@media (min-width: 900px) {
+  .marco.tema main .cer-dos-sabe .cer-lateral {
+    position: sticky;
+    top: 16px;
+  }
+  .marco.tema:has(.banda-demo) main .cer-dos-sabe .cer-lateral {
+    top: 53px;
   }
 }
 
-/* --- Cajas ------------------------------------------------------------------------------------------ */
+.marco.tema main .cer-cabeza {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+}
+.marco.tema main .cer-cabeza h2 {
+  font-size: 1.3rem;
+}
+.marco.tema main .cer-cabeza .suave {
+  margin: 4px 0 0;
+}
+.marco.tema main .cer-cabeza-acciones .boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+}
+.marco.tema main .cer-probar {
+  padding: 0 22px;
+  font-size: 1.02rem;
+}
+@media (max-width: 899px) {
+  .marco.tema main .cer-cabeza-acciones,
+  .marco.tema main .cer-cabeza-acciones .boton {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 .marco.tema main .cer-caja {
   display: block;
   background: #fff;
@@ -171,84 +467,66 @@
   color: inherit;
   text-decoration: none;
 }
-.marco.tema main .cerebro h2 {
-  margin: 0;
-  font-size: 1.1rem;
-  line-height: 1.3;
-}
 .marco.tema main .cerebro .cer-caja > .suave,
 .marco.tema main .cerebro .cer-bloque > .suave {
-  margin: 4px 0 0;
+  margin: 0;
 }
 .marco.tema main .cer-sobre {
   margin: 0 0 4px;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--suave);
 }
 .marco.tema main .cer-mas {
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   min-height: 44px;
-  font-weight: 600;
+  font-weight: 650;
   color: var(--cer-verde-texto);
   text-decoration: none;
 }
 .marco.tema main .cer-mas:hover {
   text-decoration: underline;
 }
-.marco.tema main .cer-intro {
-  margin: 0;
-}
-
-/* Frase de arriba */
-.marco.tema main .cer-estado {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  margin: 0;
-  font-size: 1.12rem;
-  line-height: 1.45;
-  font-weight: 600;
-  color: var(--titulo, #111b21);
-}
-.marco.tema main .cer-estado-icono {
-  flex: none;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+.marco.tema main .cer-bloque {
   display: grid;
-  place-items: center;
-  background: var(--principal-claro, #e6f6f1);
-  color: var(--cer-verde-texto);
+  gap: 10px;
 }
-@media (min-width: 900px) {
-  .marco.tema main .cer-estado {
-    font-size: 1.22rem;
-  }
+.marco.tema main .cer-bloque-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.marco.tema main .cer-grupo-n {
+  min-width: 24px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  background: var(--cer-gris-fondo);
+  color: var(--cer-gris);
+}
+.marco.tema main .cer-grupo-n.urgente {
+  background: #b35f00;
+  color: #fff;
 }
 
-/* Lo urgente: la pregunta que no supo contestar */
-.marco.tema main .cer-pendiente {
-  border-color: var(--cer-ambar-borde);
-  box-shadow: inset 4px 0 0 #c46a00, var(--sombra-1);
-  padding-left: 22px;
-}
-.marco.tema main .cer-pendiente .cer-sobre {
-  color: var(--cer-ambar);
-}
-.marco.tema main .cer-duda-form,
+/* --- 1. Lo que necesita de ti ----------------------------------------------------------------------------- */
 .marco.tema main .cer-duda {
   display: grid;
   gap: 8px;
 }
-.marco.tema main .cer-pendiente .cer-duda-form {
-  margin-top: 12px;
-  padding: 14px;
-  border-radius: 10px;
-  background: var(--cer-ambar-fondo);
+.marco.tema main .cer-duda.destacada {
+  border-color: var(--cer-ambar-borde);
+  box-shadow: inset 4px 0 0 #c46a00, var(--sombra-1);
+  background: linear-gradient(#fffaf2, #fff 70%);
+  padding-left: 22px;
 }
 .marco.tema main .cer-duda-tema {
   margin: 0;
@@ -257,7 +535,6 @@
   line-height: 1.35;
   color: var(--titulo, #111b21);
 }
-.marco.tema main .cer-duda-form .suave,
 .marco.tema main .cer-duda .suave {
   margin: 0;
 }
@@ -270,132 +547,424 @@
 .marco.tema main .cerebro .botones > button {
   flex: 1 1 140px;
 }
-
-.marco.tema main .cer-al-dia {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  margin: 0;
-  padding: 14px 16px;
-  border-radius: var(--radio-g, 14px);
-  background: var(--principal-claro, #e6f6f1);
-  color: var(--cer-verde-marca);
-}
-.marco.tema main .cer-al-dia > span {
-  flex: none;
-  margin-top: 2px;
+.marco.tema main .cer-angosta {
+  max-width: 720px;
 }
 
-/* ¿Dónde queda esta casa? */
-.marco.tema main .cer-ubicar ul {
+.marco.tema main .cer-filas {
   list-style: none;
-  margin: 12px 0 0;
+  margin: 0;
   padding: 0;
   display: grid;
   gap: 8px;
 }
-.marco.tema main .cer-ubicar li a {
+.marco.tema main .cer-filas a,
+.marco.tema main a.cer-recientes {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
-  min-height: 56px;
-  padding: 10px 12px;
+  min-height: 60px;
+  padding: 10px 14px;
   border: 1px solid var(--borde);
-  border-radius: 10px;
+  border-radius: 12px;
+  background: #fff;
   text-decoration: none;
   color: inherit;
 }
-.marco.tema main .cer-ubicar li a:hover {
+.marco.tema main .cer-filas a:hover,
+.marco.tema main a.cer-recientes:hover {
   border-color: var(--borde-fuerte);
-  background: #f8faf9;
+  box-shadow: var(--sombra-2);
 }
-.marco.tema main .cer-ubicar-texto {
+.marco.tema main .cer-fila-icono {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+}
+.marco.tema main .cer-fila-icono.tono-ambar { background: var(--cer-ambar-fondo); color: var(--cer-ambar); }
+.marco.tema main .cer-fila-icono.tono-morado { background: var(--cer-morado-fondo); color: var(--cer-morado); }
+.marco.tema main .cer-fila-texto {
+  flex: 1;
   display: grid;
   gap: 2px;
   min-width: 0;
 }
-.marco.tema main .cer-ubicar-texto strong {
+.marco.tema main .cer-fila-texto strong {
   overflow-wrap: anywhere;
+  line-height: 1.3;
 }
-@media (max-width: 599px) {
-  .marco.tema main .cer-ubicar li a {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
-  }
-}
-.marco.tema main .cer-ubicar-accion {
+.marco.tema main .cer-fila-accion {
   flex: none;
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  font-weight: 600;
+  font-weight: 650;
   color: var(--cer-verde-texto);
 }
-
-/* Bloques de la portada */
-.marco.tema main .cer-bloque {
-  display: grid;
-  gap: 10px;
+@media (max-width: 599px) {
+  .marco.tema main .cer-filas a {
+    flex-wrap: wrap;
+  }
+  .marco.tema main .cer-filas .cer-fila-texto {
+    flex: 1 1 calc(100% - 64px);
+  }
+  .marco.tema main .cer-filas .cer-fila-accion {
+    margin-left: 52px;
+  }
+  .marco.tema main .cer-filas a:not(:has(.cer-fila-icono)) .cer-fila-accion {
+    margin-left: 0;
+  }
 }
-.marco.tema main .cer-bloque-titulo {
+
+/* Para que esté lista */
+.marco.tema main .cer-prep-cabeza {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  min-height: 44px;
+  flex-wrap: wrap;
 }
-.marco.tema main .cer-lista {
-  list-style: none;
+.marco.tema main .cer-prep-cuenta {
   margin: 0;
+  color: var(--suave);
+  font-size: 0.95rem;
+}
+.marco.tema main .cer-prep-cuenta strong {
+  color: var(--titulo, #111b21);
+  font-size: 1.2rem;
+}
+.marco.tema main .cer-prep-lista {
+  list-style: none;
+  margin: 4px -8px 0;
   padding: 0;
+}
+.marco.tema main .cer-prep-lista a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px;
+  border-radius: 10px;
+  color: inherit;
+  text-decoration: none;
+}
+.marco.tema main .cer-prep-lista a:hover {
+  background: #f5f7f6;
+}
+.marco.tema main .cer-marca {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px dashed #c98a2b;
+}
+.marco.tema main .cer-renglon {
+  flex: 1;
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+.marco.tema main .cer-renglon strong {
+  font-size: 0.97rem;
+  line-height: 1.3;
+}
+.marco.tema main .cer-renglon .suave {
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.marco.tema main .cer-renglon-accion {
+  flex: none;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--cer-ambar-fondo);
+  color: var(--cer-ambar);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.marco.tema main .cer-prep-ok {
+  margin: 4px 0 0;
+}
+
+/* Todo al día */
+.marco.tema main .cer-al-dia {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 32px 20px;
+  text-align: center;
+  border-radius: 18px;
+  background: radial-gradient(circle at 50% 0%, #e3f6ee 0%, #ffffff 70%);
+  border: 1px solid #cfe9df;
+  box-shadow: var(--sombra-1);
+}
+.marco.tema main .cer-al-dia-icono {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--cer-verde-accion);
+  color: #fff;
+  box-shadow: 0 0 0 8px #d6efe6;
+  margin-bottom: 6px;
+}
+.marco.tema main .cer-al-dia h2 {
+  font-size: 1.4rem;
+}
+.marco.tema main .cer-al-dia p {
+  margin: 0;
+  max-width: 52ch;
+  color: var(--texto-2, #46525c);
+  line-height: 1.5;
+}
+.marco.tema main .cer-al-dia-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+.marco.tema main .cer-al-dia-acciones .boton {
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* --- 2. Lo que sabe: grupos plegables por fuente ----------------------------------------------------------- */
+.marco.tema main .cer-grupos {
+  display: grid;
+  gap: 12px;
+}
+.marco.tema main .cer-plegable {
   background: #fff;
   border: 1px solid var(--borde);
   border-radius: var(--radio-g, 14px);
   box-shadow: var(--sombra-1);
-  overflow: hidden;
+  scroll-margin-top: 84px;
 }
-.marco.tema main .cer-lista li + li {
-  border-top: 1px solid var(--borde);
+.marco.tema main .cer-plegable > summary {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 72px;
+  padding: 12px 16px;
+  list-style: none;
+  cursor: pointer;
+  border-radius: var(--radio-g, 14px);
 }
-.marco.tema main .cer-lista a {
-  display: grid;
-  gap: 2px;
-  padding: 14px 16px;
-  min-height: 56px;
-  color: inherit;
-  text-decoration: none;
+.marco.tema main .cer-plegable > summary::-webkit-details-marker {
+  display: none;
 }
-.marco.tema main .cer-lista a:hover {
+.marco.tema main .cer-plegable > summary:hover {
   background: #f8faf9;
 }
-.marco.tema main .cer-lista .suave {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+.marco.tema main .cer-plegable-icono {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--fondo-icono, var(--cer-gris-fondo));
+  color: var(--color-icono, var(--cer-gris));
+}
+.marco.tema main .cer-plegable.tono-verde { --fondo-icono: #e3f6ee; --color-icono: #00664f; }
+.marco.tema main .cer-plegable.tono-azul { --fondo-icono: var(--cer-azul-fondo); --color-icono: var(--cer-azul); }
+.marco.tema main .cer-plegable.tono-ambar { --fondo-icono: var(--cer-ambar-fondo); --color-icono: var(--cer-ambar); }
+.marco.tema main .cer-plegable.tono-morado { --fondo-icono: var(--cer-morado-fondo); --color-icono: var(--cer-morado); }
+.marco.tema main .cer-plegable-texto {
+  flex: 1;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.marco.tema main .cer-plegable-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--titulo, #111b21);
+}
+.marco.tema main .cer-plegable-resumen {
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--texto-2, #46525c);
+  overflow-wrap: anywhere;
+}
+.marco.tema main .cer-plegable-flecha {
+  flex: none;
+  color: var(--suave);
+  transform: rotate(90deg);
+  transition: transform 0.15s;
+}
+.marco.tema main .cer-plegable[open] > summary .cer-plegable-flecha {
+  transform: rotate(-90deg);
+}
+.marco.tema main .cer-plegable[open] > summary {
+  border-bottom: 1px solid var(--borde);
+  border-radius: var(--radio-g, 14px) var(--radio-g, 14px) 0 0;
+}
+.marco.tema main .cer-plegable-cuerpo {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+.marco.tema main .cer-plegable-cuerpo > .suave {
+  margin: 0;
+}
+.marco.tema main .cer-plegable-cuerpo > .cer-mas {
+  justify-self: start;
+}
+@media (max-width: 599px) {
+  .marco.tema main .cer-plegable-cuerpo {
+    padding: 14px 12px;
+  }
+}
+
+.marco.tema main .cer-horario {
+  margin: 0;
+  display: grid;
+  border: 1px solid var(--borde);
+  border-radius: 12px;
   overflow: hidden;
 }
-.marco.tema main .cer-ver-mapa {
+.marco.tema main .cer-horario > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  min-height: 44px;
+  align-items: center;
+}
+.marco.tema main .cer-horario > div + div {
+  border-top: 1px solid var(--borde);
+}
+.marco.tema main .cer-horario dt {
+  font-weight: 650;
+}
+.marco.tema main .cer-horario dd {
+  margin: 0;
+  color: var(--texto-2, #46525c);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* --- 3. Cómo contesta ------------------------------------------------------------------------------------- */
+.marco.tema main .cer-contesta-rejilla {
+  display: grid;
+  gap: 16px;
+}
+@media (min-width: 900px) {
+  .marco.tema main .cer-contesta-rejilla {
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+.marco.tema main .cer-tono,
+.marco.tema main .cer-modo,
+.marco.tema main .cer-temas {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+.marco.tema main .cer-tono .cer-mas,
+.marco.tema main .cer-modo .cer-mas,
+.marco.tema main .cer-temas .cer-mas {
+  justify-self: start;
+}
+.marco.tema main .cer-cita {
+  margin: 4px 0;
+  padding: 12px 16px;
+  border-left: 4px solid #00a884;
+  border-radius: 0 10px 10px 0;
+  background: #f4fbf8;
+  font-size: 1.05rem;
+  line-height: 1.45;
+  color: var(--titulo, #111b21);
+}
+.marco.tema main .cer-ejemplos-titulo {
+  margin: 6px 0 0;
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--texto-2, #46525c);
+}
+.marco.tema main .cer-burbujas {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #efeae2;
+}
+.marco.tema main .cer-burbuja {
+  justify-self: end;
+  max-width: 92%;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px 10px 2px 10px;
+  background: #d9fdd3;
+  color: #111b21;
+  line-height: 1.45;
+  box-shadow: 0 1px 1px rgb(17 27 33 / 10%);
+  overflow-wrap: anywhere;
+}
+.marco.tema main .cer-modo h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.marco.tema main .cer-punto {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+.marco.tema main .cer-modo.sola .cer-punto { background: #00a884; box-shadow: 0 0 0 4px #d6f3e8; }
+.marco.tema main .cer-modo.espera .cer-punto { background: #c46a00; box-shadow: 0 0 0 4px #fbe7cc; }
+.marco.tema main .cer-chips {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.marco.tema main .cer-chips li {
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: var(--cer-ambar-fondo);
+  border: 1px solid var(--cer-ambar-borde);
+  color: #5c3a00;
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+.marco.tema main .cer-correcciones {
+  scroll-margin-top: 84px;
+  margin-top: 6px;
+}
+.marco.tema main .cer-correccion-pie {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  min-height: 64px;
+  gap: 8px;
+  margin: 0;
 }
-.marco.tema main .cer-ver-mapa > span {
-  display: grid;
-  gap: 2px;
-}
-.marco.tema main .cer-ver-mapa:hover {
-  border-color: var(--borde-fuerte);
-  box-shadow: var(--sombra-2);
+.marco.tema main .cer-en-uso {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--cer-morado-fondo);
+  color: var(--cer-morado);
+  font-size: 0.8125rem;
+  font-weight: 700;
 }
 
 /* --- Enséñale algo ---------------------------------------------------------------------------------- */
 .marco.tema main .cer-ensenar {
   scroll-margin-top: 80px;
-  border-top: 4px solid var(--principal);
+  border-top: 4px solid #00a884;
 }
 .marco.tema main .cer-ideas {
   display: flex;
@@ -455,106 +1024,10 @@
 .marco.tema main .cer-ensenar-form button {
   margin-top: 8px;
 }
-
-/* --- Qué tan lista está ----------------------------------------------------------------------------- */
-.marco.tema main .cer-lista-cabeza {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.marco.tema main .cer-lista-cuenta {
-  margin: 0;
-  color: var(--suave);
-  font-size: 0.95rem;
-}
-.marco.tema main .cer-lista-cuenta strong {
-  color: var(--titulo, #111b21);
-  font-size: 1.15rem;
-}
-.marco.tema main .cer-segmentos {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 1fr;
-  gap: 4px;
-  margin: 12px 0 6px;
-}
-.marco.tema main .cer-segmentos span {
-  height: 8px;
-  border-radius: 4px;
-  background: #e3e8e5;
-}
-.marco.tema main .cer-segmentos span.listo {
-  background: var(--principal);
-}
-.marco.tema main .cer-lista-lista ul {
-  list-style: none;
-  margin: 0 -8px;
-  padding: 0;
-}
-.marco.tema main .cer-lista-lista li a {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 56px;
-  padding: 8px;
-  border-radius: 10px;
-  color: inherit;
-  text-decoration: none;
-}
-.marco.tema main .cer-lista-lista li a:hover {
-  background: #f5f7f6;
-}
-.marco.tema main .cer-marca {
-  flex: none;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-}
-.marco.tema main .cer-lista-lista li.listo .cer-marca {
-  background: var(--cer-verde-fondo);
-  color: var(--cer-verde-marca);
-}
-.marco.tema main .cer-lista-lista li.falta .cer-marca {
-  border: 2px dashed #c98a2b;
-  background: #fff;
-}
-.marco.tema main .cer-renglon {
-  flex: 1;
-  display: grid;
-  gap: 1px;
-  min-width: 0;
-}
-.marco.tema main .cer-renglon strong {
-  font-size: 0.97rem;
-  line-height: 1.3;
-}
-.marco.tema main .cer-renglon .suave {
-  font-size: 0.87rem;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-}
-.marco.tema main .cer-lista-lista li.listo .cer-renglon strong {
-  color: var(--texto-2, #46525c);
-  font-weight: 600;
-}
-.marco.tema main .cer-renglon-accion {
-  flex: none;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: var(--cer-ambar-fondo);
-  color: var(--cer-ambar);
-  font-weight: 700;
-  font-size: 0.85rem;
-}
-
 /* --- Lo que sabe ------------------------------------------------------------------------------------ */
 .marco.tema main .cer-sabe {
   display: grid;
-  gap: 24px;
+  gap: 20px;
 }
 .marco.tema main .cer-buscar {
   display: grid;
@@ -573,15 +1046,10 @@
   display: grid;
   gap: 10px;
 }
-.marco.tema main .cer-grupo h2 {
+.marco.tema main .cer-grupo h3 {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-.marco.tema main .cer-grupo-n {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--suave);
 }
 .marco.tema main .cer-tarjetas {
   display: grid;
@@ -590,11 +1058,12 @@
 @media (min-width: 700px) {
   .marco.tema main .cer-tarjetas {
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    align-items: start;
+    align-items: stretch;
   }
 }
 .marco.tema main .cer-saber {
   display: grid;
+  grid-template-rows: auto 1fr auto;
   gap: 6px;
   padding: 16px;
   background: #fff;
@@ -602,7 +1071,7 @@
   border-radius: var(--radio-g, 14px);
   box-shadow: var(--sombra-1);
 }
-.marco.tema main .cer-saber h3 {
+.marco.tema main .cer-saber h4 {
   margin: 0;
   font-size: 1rem;
   font-weight: 650;
@@ -691,7 +1160,6 @@
   font-size: 0.85rem;
   font-weight: 600;
 }
-
 /* --- Correcciones: antes y después ------------------------------------------------------------------ */
 .marco.tema main .cer-correccion {
   display: grid;
@@ -745,67 +1213,6 @@
   border-radius: 3px;
   padding: 0 2px;
 }
-
-/* --- Fuentes ---------------------------------------------------------------------------------------- */
-.marco.tema main .cer-fuentes {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 12px;
-}
-@media (min-width: 700px) {
-  .marco.tema main .cer-fuentes {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-.marco.tema main .cer-fuente {
-  height: 100%;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-rows: 1fr auto;
-  gap: 10px 14px;
-}
-.marco.tema main .cer-fuente:hover {
-  border-color: var(--borde-fuerte);
-  box-shadow: var(--sombra-2);
-}
-.marco.tema main .cer-fuente-icono {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  background: var(--fondo-icono, #eef1f3);
-  color: var(--color-icono, #34414b);
-}
-.marco.tema main .fuente-casas { --fondo-icono: #e7f8f3; --color-icono: #00735a; }
-.marco.tema main .fuente-sabe { --fondo-icono: #e8f0fc; --color-icono: #1a5fb4; }
-.marco.tema main .fuente-correcciones { --fondo-icono: #f1ebfb; --color-icono: #6a3fb8; }
-.marco.tema main .fuente-horario { --fondo-icono: #fff3e3; --color-icono: #8a5300; }
-.marco.tema main .cer-fuente-texto {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-.marco.tema main .cer-fuente-n {
-  font-size: 1.6rem;
-  font-weight: 700;
-  line-height: 1.1;
-  color: var(--titulo, #111b21);
-}
-.marco.tema main .cer-fuente-texto .suave {
-  overflow-wrap: anywhere;
-}
-.marco.tema main .cer-fuente-ir {
-  grid-column: 2;
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  font-weight: 600;
-  color: var(--cer-verde-texto);
-}
-
 /* --- Mapa ------------------------------------------------------------------------------------------- */
 .marco.tema main .cer-mapa {
   display: flex;
@@ -958,25 +1365,6 @@
     font-size: 0.82rem;
   }
 }
-
-/* En el teléfono, fuera de la portada, primero lo de la pestaña y después "Enséñale algo" (sin la lista de
-   preparación, que vive en la portada). */
-@media (max-width: 899px) {
-  .marco.tema main .cerebro:not(.cerebro-inicio) .cer-lateral {
-    order: 3;
-  }
-  .marco.tema main .cerebro:not(.cerebro-inicio) .cer-lista-lista {
-    display: none;
-  }
-}
-
-/* --- Teléfono: pestañas con nombres cortos, enlace a "Enséñale algo", mapa tocable ------------------------- */
-.marco.tema main .cer-corto {
-  display: none;
-}
-.marco.tema main .cer-ir-ensenar {
-  display: none;
-}
 .marco.tema main .mapa-cerebro .nodo-hoja circle.nodo-toque,
 .marco.tema main .mapa-cerebro .nodo-hoja:hover circle.nodo-toque {
   fill: transparent;
@@ -984,39 +1372,6 @@
   pointer-events: none;
 }
 @media (max-width: 899px) {
-  .marco.tema main .cer-largo {
-    display: none;
-  }
-  .marco.tema main .cer-corto {
-    display: inline;
-  }
-  .marco.tema main .cer-pestanas a {
-    padding: 0 12px;
-    font-size: 0.92rem;
-  }
-  .marco.tema main .cer-n {
-    font-size: 0.82rem;
-  }
-  /* La fila es una tira-desliza (app/panel/tiras.tsx): desvanecido hacia donde hay más y la activa a la vista. */
-  /* Fuera de la portada, "Enséñale algo" es un enlace al de la portada (antes era un botón fijo que tapaba). */
-  .marco.tema main .cerebro:not(.cerebro-inicio) .cer-lateral {
-    display: none;
-  }
-  .marco.tema main .cer-ir-ensenar {
-    display: block;
-    margin: 0;
-  }
-  .marco.tema main .cer-ir-ensenar a {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    min-height: 44px;
-    font-weight: 650;
-    color: var(--verde-texto, #00664f);
-  }
-  .marco.tema main #ensenar {
-    scroll-margin-top: 76px;
-  }
   /* Mapa: filtros de 44 px con texto AA sobre su color claro; los puntos chicos con área de toque de 44 px. */
   .marco.tema main .cer-mapa button.mapa-filtro {
     min-height: 44px;

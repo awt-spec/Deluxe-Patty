@@ -13,6 +13,8 @@ export async function estadoDelServidor({ supabase, corredor }: Sesion): Promise
   ultimaBusquedaDias: number | null;
   demo: boolean;
   corredor: string;
+  /** Nombre de la asistente (el que se ve en la barra sobre Encuentra24). */
+  asistente: string;
 }> {
   const demo = corredor.activo === false;
   const { data: conexiones } = await supabase
@@ -31,5 +33,5 @@ export async function estadoDelServidor({ supabase, corredor }: Sesion): Promise
       .catch(() => null);
     if (ultima) ultimaBusquedaDias = Math.max(0, Math.floor((Date.now() - ultima.getTime()) / DIA));
   }
-  return { conectada, ultimaBusquedaDias, demo, corredor: corredor.nombre ?? "" };
+  return { conectada, ultimaBusquedaDias, demo, corredor: corredor.nombre ?? "", asistente: corredor.nombre_asistente?.trim() || "Patty" };
 }

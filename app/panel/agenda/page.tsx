@@ -652,7 +652,10 @@ export default async function Agenda({
         <details className="tarjeta pila" style={{ marginTop: 20 }}>
           <summary>Ver las visitas en el calendario de tu teléfono</summary>
           <p className="suave">Agrégalo una vez y tus visitas salen solas en tu calendario. No lo compartas.</p>
-          <a href={`webcal://${enlace}`} className="boton primario">
+          <Link href="/panel/agenda/calendario" className="boton primario" data-patty="agenda-calendario-guia">
+            Agregarlo paso a paso
+          </Link>
+          <a href={`webcal://${enlace}`} className="boton">
             Suscribirme desde el iPhone
           </a>
           <p className="suave">En Google Calendar: “Otros calendarios” y luego “Desde URL” y pega este enlace:</p>

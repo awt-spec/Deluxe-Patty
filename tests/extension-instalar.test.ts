@@ -75,13 +75,21 @@ describe("versiones", () => {
     expect(compararVersiones("2.0.0", "1.9.9")).toBe(1);
   });
 
-  it("el manifiesto va en 1.2.0 con el content script solo en /panel/duenos* del panel", () => {
-    expect(manifiesto.version).toBe("1.2.0");
+  it("el manifiesto va en 1.3.0 con el content script solo en /panel/duenos* del panel", () => {
+    expect(manifiesto.version).toBe("1.3.0");
     expect(manifiesto.content_scripts).toEqual([{ matches: ["__APP__/panel/duenos*"], js: ["canal.js", "panel.js"], run_at: "document_idle" }]);
     // Sin permisos nuevos ni conexión externa abierta
     expect(manifiesto.host_permissions).toEqual(["https://www.encuentra24.com/*", "__APP__/*"]);
     expect(manifiesto.permissions).toEqual(["storage", "scripting", "alarms"]);
     expect("externally_connectable" in manifiesto).toBe(false);
+    // La barra de la búsqueda (control.js) se pone desde el trabajador de fondo, nunca la puede pedir una página.
+    expect("web_accessible_resources" in manifiesto).toBe(false);
+  });
+
+  it("la 1.2.0 instalada se ve como versión anterior (con el asistente para actualizar)", () => {
+    const e = estadoExtension({ estado: "si", version: "1.2.0", conectada: true, corredor: "Deluxe" }, { conectada: true, ultimaBusquedaDias: 2 }, manifiesto.version);
+    expect(e).toEqual({ tipo: "nueva_version", version: "1.3.0", conectada: true });
+    expect(pideActualizar(e)).toBe(true);
   });
 });
 

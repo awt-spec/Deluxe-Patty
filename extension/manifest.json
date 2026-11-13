@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Buscador de dueños",
-  "description": "Busca dueños directos en Encuentra24 desde tu Chrome (sola, cada semana) y trae anuncios a tu panel de la asistente.",
-  "version": "1.2.0",
+  "description": "Busca dueños directos en Encuentra24 desde tu Chrome, a ritmo de persona y a la vista (o sola, cada semana), y trae anuncios a tu panel.",
+  "version": "1.3.0",
   "action": { "default_popup": "popup.html", "default_title": "Buscador de dueños" },
   "background": { "service_worker": "background.js", "type": "module" },
   "permissions": ["storage", "scripting", "alarms"],

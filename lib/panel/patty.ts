@@ -2,7 +2,9 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { apartar } from "../agenda/apartar";
 import { imagenParaPatty, pideImagen } from "./imagenes-patty";
-import { AYUDA_BLOQUEO, entenderBloqueo, pideBloqueo } from "../agenda/bloquear";
+import { codigoLoEntiende, pideApartarLibre } from "../agenda/apartar-ia";
+import { pideBloqueo } from "../agenda/bloquear";
+import { apartarConPatty } from "../agenda/patty-apartar";
 import { etiquetaHorario } from "../agenda/formato";
 import { fechaIso, fechaLocal } from "../agenda/tiempo";
 import { fichaPropiedades, RechazoModelo, type Adjunto } from "../asistente/cerebro";
@@ -138,13 +140,17 @@ const PANTALLAS: [RegExp, string][] = [
   [/^\/panel\/agenda\/horario/, "Mi horario"],
   [/^\/panel\/agenda\/nueva/, "Agendar una visita"],
   [/^\/panel\/agenda\/visita\//, "Una visita"],
+  [/^\/panel\/agenda\/calendario/, "Guía: tus visitas en el calendario del teléfono"],
   [/^\/panel\/agenda/, "Agenda"],
   [/^\/panel\/propiedades\/nueva/, "Agregar casa"],
   [/^\/panel\/propiedades\/[0-9a-f-]{36}/, "Ficha de una casa"],
   [/^\/panel\/propiedades/, "Mis casas"],
   [/^\/panel\/cerebro/, "Cerebro de la asistente"],
   [/^\/panel\/duenos/, "Dueños directos"],
+  [/^\/panel\/anuncios\/[0-9a-f-]{36}\/publicar/, "Guía: publicar un anuncio en Encuentra24"],
   [/^\/panel\/anuncios/, "Anuncios"],
+  [/^\/panel\/empezar\/sola/, "Guía: ¿lista para contestar sola?"],
+  [/^\/panel\/empezar/, "Guía: puesta en marcha"],
   [/^\/panel\/ajustes/, "Ajustes"],
   [/^\/panel\/mas/, "Más"],
 ];
@@ -219,9 +225,11 @@ export async function hablarConPatty(
   const pedidoImagen = pideImagen(limpio, adjuntos);
   if (pedidoImagen) return imagenParaPatty(deps, corredor, pedidoImagen, limpio);
   // "Apartar (o bloquear) mañana en la tarde": lo entiende y lo guarda el código (las fechas nunca las pone el modelo).
-  if (pideBloqueo(limpio) && adjuntos.length === 0) {
-    const pedido = entenderBloqueo(limpio, new Date(), corredor.zona_horaria);
-    if (!pedido) return { ok: true, texto: `No entendí qué día. ${AYUDA_BLOQUEO}` };
+  // Si el código no lo entiende entero ("el martes tengo dentista de 2 a 4 y el viernes no trabajo"), lo entiende
+  // Haiku y Patty responde con lo que entendió y un botón a Apartar tiempo, donde se confirma (apartarConPatty).
+  if ((pideBloqueo(limpio) || pideApartarLibre(limpio)) && adjuntos.length === 0) {
+    const pedido = codigoLoEntiende(limpio, new Date(), corredor.zona_horaria);
+    if (!pedido) return apartarConPatty(deps, db, corredor, limpio);
     try {
       const r = await apartar(deps.repo, corredor.id, pedido);
       return { ok: true, texto: r.ok ? r.texto.replace(/en la Agenda\.$/, "en la [Agenda](/panel/agenda).").replace(/ahí\.$/, "ahí. Lo ves en la [Agenda](/panel/agenda).") : r.texto, cambio: r.ok };
