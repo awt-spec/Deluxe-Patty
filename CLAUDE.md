@@ -19,6 +19,14 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   `uso_mensual` (`registrar_imagenes`). **Imagen para redes** (`/panel/propiedades/<id>/redes`, `lib/redes/`): post
   cuadrado e historia con foto, precio, datos y la marca del corredor, armada por código con `next/og` (sin IA,
   sin cifras inventadas), y el texto para copiar.
+  Esa pantalla es un **estudio** con tres pestañas (`?ver=imagen|video|texto`): Imagen (se elige la foto; "Mejorar esta
+  foto con IA" usa `mejorarFotos(…, soloUrl)`), Texto editable con IA (`mejorarTextoRedes`, `cerebro.textoRedes`,
+  `prompts/redes-texto.md`) y **Video**, que se arma en el navegador con canvas + MediaRecorder (`dibujo.ts`,
+  `lib/redes/video.ts`) con las fotos reales: portada, fotos (zoom lento y fundido), datos y cierre con la marca; 9:16 o
+  1:1, hasta 45 s, sin audio; prefiere MP4 H.264 y si no cae a WebM. La IA solo propone el guion (`proponerGuionVideo`,
+  `prompts/redes-video.md`: orden de fotos por id y textos de hasta 60 caracteres); precio y datos los escribe el código.
+  `lib/redes/cifras.ts` descarta lo que traiga cifras fuera de la ficha y repone precio, código y contacto; en la demo la
+  respuesta es simulada. Las fotos para el canvas se cargan con CORS y, si no, por `redes/foto?img=` (solo fotos de esa casa).
 - Ficha de propiedad en PDF con `@react-pdf/renderer` (`lib/fichas/`): la identidad de cada corredor es
   dato (`corredores.marca`, tipo `Marca`); la de Deluxe sigue su Manual de Identidad Visual (4 colores oficiales, Playfair Display
   e Inter, logo oficial en `marcas/deluxe/`). Ejemplo: `npx tsx scripts/ficha-ejemplo.mts <salida.pdf> <fotos...>`.
@@ -183,7 +191,7 @@ Las pantallas principales tienen botones "Pregúntale" (`app/panel/preguntar-pat
 Agenda en calendario: día, semana, mes o lista (`?vista=`); se toca una hora libre para agendar
 (`/panel/agenda/nueva`), cada visita se abre para confirmarla, moverla o cancelarla con aviso al cliente
 (`/panel/agenda/visita/<id>`, `lib/panel/visitas.ts`), con color por zona y el traslado entre visitas.
-**Bloquear** (`/panel/agenda/bloquear`): el día en chips (Hoy, Mañana, la semana) u otro día, mañana, tarde, noche,
+**Apartar tiempo** (antes "Bloquear"; la ruta `/panel/agenda/bloquear` y las tablas no cambian, y el comando entiende "apartar…" y "bloquear…"): el día en chips (Hoy, Mañana, la semana) u otro día, mañana, tarde, noche,
 horas exactas o varios días (uno por día si son horas), y abajo lo ya bloqueado con "Quitar" (también en la agenda). También por texto, entendido por el código
 (`lib/agenda/bloquear.ts`, `lib/agenda/apartar.ts`): "bloquear mañana en la tarde" por WhatsApp del corredor o en el
 chat de Patty (sin llamar al modelo; es lo único que Patty escribe en la base). La asistente lo pregunta seguido:
@@ -232,7 +240,14 @@ comisión (`corredores.comision_pct`, 5% por defecto, en ventas; en alquileres s
 cierre llevan su moneda (`oferta_moneda`, `cierre_moneda`: dólares o colones) y **dólares y colones nunca se suman**
 (`lib/crm/dinero.ts`). Las cifras usan ese dinero real (en negociación, ganado del mes). Clientes se ve por Todos, Compras o Alquileres (`?tipo=`; los alquileres avisan antes). Dos clientes que son la
 misma persona se unen desde la ficha (`unir_contactos`, una sola transacción en la base; se avisa si coinciden
-nombre o correo) y las zonas se eligen de una lista (`ZONAS_CONOCIDAS`, `normalizarZona`). "Cómo va el negocio"
+nombre o correo) y las zonas se eligen de una lista (`ZONAS_CONOCIDAS`, `normalizarZona`). Zonas
+(`lib/agenda/zonas.ts`): cada una con cantón, distrito y nivel; traslado de ciudad hasta 20 km y de carretera después; una
+casa lejana se ofrece en la última hora de cada franja. `resolverZona` (`lib/sitio/ubicacion.ts`, la usa la importación
+del sitio): el barrio dentro de su distrito gana; contradicción, nombre ambiguo o zona genérica → **ubicación por
+confirmar**, que vive en `conocimiento` (tema `Ubicación <código>: …`: pendiente, activa —la `respuesta` manda sobre el
+sitio— o archivada) y se contesta en Mis casas y en la ficha (`confirmarUbicacion`). En Mis casas las pausadas van
+siempre al final, en "Pausadas (N)" (`lib/panel/orden-casas.ts`). La ficha del cliente (`app/panel/clientes/[id]/vista.tsx`)
+abre con **Qué sigue**, una recomendación armada por código (`que-sigue.ts`). "Cómo va el negocio"
 (`app/panel/negocio`, desde Más y Clientes): lo ganado mes a mes, hasta dónde llegan los clientes, de dónde vienen,
 por qué se pierden y las casas conseguidas con dueños.
 Al marcar una visita como hecha queda un recordatorio para mañana; Inicio pide cómo salieron las visitas

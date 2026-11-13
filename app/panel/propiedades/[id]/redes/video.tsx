@@ -52,7 +52,7 @@ export function EditorVideo(d: DatosEstudio) {
   const [tiempo, setTiempo] = useState(0);
   const [reproduciendo, setReproduciendo] = useState(false);
   const [grabando, setGrabando] = useState<number | null>(null);
-  const [archivo, setArchivo] = useState<{ url: string; extension: string; nombre: string } | null>(null);
+  const [archivo, setArchivo] = useState<{ url: string; extension: string; nombre: string; h264: boolean } | null>(null);
   const [aviso, setAviso] = useState<{ texto: string; error: boolean } | null>(null);
   const [pensando, setPensando] = useState(false);
   const [cargando, setCargando] = useState(true);
@@ -178,7 +178,7 @@ export function EditorVideo(d: DatosEstudio) {
       const r = await grabarVideo(lienzo.current, total, pintar, { alAvanzar: setGrabando, cancelado: () => cancelar.current });
       const nombre = `${d.codigo}-video-${formato}.${r.extension}`;
       const url = URL.createObjectURL(r.archivo);
-      setArchivo({ url, extension: r.extension, nombre });
+      setArchivo({ url, extension: r.extension, nombre, h264: r.h264 });
       const a = document.createElement("a");
       a.href = url;
       a.download = nombre;
@@ -268,11 +268,11 @@ export function EditorVideo(d: DatosEstudio) {
                 <a href={archivo.url} download={archivo.nombre}>
                   Bajarlo otra vez
                 </a>
-                {archivo.extension === "webm" && (
+                {!archivo.h264 && (
                   <>
                     <br />
-                    Ojo: salió en WebM. WhatsApp e Instagram a veces piden MP4; si no lo aceptan, ábrelo desde Safari en el iPhone o
-                    en Chrome actualizado.
+                    {archivo.extension === "webm" ? "Ojo: salió en WebM." : "Ojo: este navegador no lo grabó en el MP4 más común."} WhatsApp e
+                    Instagram a veces piden MP4 (H.264); si no lo aceptan, hazlo desde Safari en el iPhone o en Google Chrome actualizado.
                   </>
                 )}
               </p>

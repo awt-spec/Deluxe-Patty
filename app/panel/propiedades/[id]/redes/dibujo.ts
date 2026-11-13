@@ -131,7 +131,7 @@ function escena(ctx: CanvasRenderingContext2D, w: number, h: number, e: Escena, 
       }
       ctx.font = `600 ${w * 0.03}px ${SANS}`;
       ctx.fillStyle = "rgba(255,255,255,0.85)";
-      ctx.fillText(d.etiqueta.toUpperCase(), m, y + paso * 0.25);
+      ctx.fillText(d.etiqueta.toUpperCase(), m, y + paso * 0.02);
       ctx.restore();
     } else if (e.texto) {
       degradado(ctx, w, h, 0.62);
@@ -198,7 +198,7 @@ function escena(ctx: CanvasRenderingContext2D, w: number, h: number, e: Escena, 
     entrada(ctx, local, 0, h);
     if (r.logo) {
       const cajaW = w * 0.62;
-      const cajaH = h * (vertical ? 0.16 : 0.22);
+      const cajaH = h * (vertical ? 0.2 : 0.24);
       const s = Math.min(cajaW / r.logo.naturalWidth, cajaH / r.logo.naturalHeight);
       const lw = r.logo.naturalWidth * s;
       const lh = r.logo.naturalHeight * s;
@@ -247,7 +247,7 @@ export function dibujarCuadro(ctx: CanvasRenderingContext2D, escenas: Escena[], 
 }
 
 /** El formato de video que este navegador sabe grabar: primero MP4 (Safari y Chrome recientes), si no WebM. */
-export function formatoDeGrabacion(): { mime: string; extension: "mp4" | "webm" } | null {
+export function formatoDeGrabacion(): { mime: string; extension: "mp4" | "webm"; h264: boolean } | null {
   if (typeof MediaRecorder === "undefined" || typeof HTMLCanvasElement === "undefined" || !("captureStream" in HTMLCanvasElement.prototype)) return null;
   const candidatos: [string, "mp4" | "webm"][] = [
     ["video/mp4;codecs=avc1.42E01F", "mp4"],
@@ -257,7 +257,8 @@ export function formatoDeGrabacion(): { mime: string; extension: "mp4" | "webm" 
     ["video/webm;codecs=vp8", "webm"],
     ["video/webm", "webm"],
   ];
-  for (const [mime, extension] of candidatos) if (MediaRecorder.isTypeSupported(mime)) return { mime, extension };
+  // Un "video/mp4" sin avc1 puede salir con VP9 adentro (Chromium sin H.264): sirve, pero no siempre lo aceptan.
+  for (const [mime, extension] of candidatos) if (MediaRecorder.isTypeSupported(mime)) return { mime, extension, h264: mime.includes("avc1") };
   return null;
 }
 
@@ -270,7 +271,7 @@ export async function grabarVideo(
   duracion: number,
   pintar: (t: number) => void,
   o: { alAvanzar?: (x: number) => void; cancelado?: () => boolean } = {},
-): Promise<{ archivo: Blob; mime: string; extension: "mp4" | "webm" }> {
+): Promise<{ archivo: Blob; mime: string; extension: "mp4" | "webm"; h264: boolean }> {
   const formato = formatoDeGrabacion();
   if (!formato) throw new Error("sin_grabacion");
   pintar(0);
@@ -300,7 +301,7 @@ export async function grabarVideo(
   await terminado;
   if (o.cancelado?.()) throw new Error("cancelado");
   const mime = formato.mime.split(";")[0];
-  return { archivo: new Blob(partes, { type: mime }), mime, extension: formato.extension };
+  return { archivo: new Blob(partes, { type: mime }), mime, extension: formato.extension, h264: formato.h264 };
 }
 
 /** Si una imagen ya cargada se puede leer desde el lienzo (si no, el canvas quedaría "manchado" y no se graba). */
