@@ -1,4 +1,5 @@
-import { IconoAgregar, IconoCasa } from "../iconos";
+import { IconoAgenda, IconoAgregar, IconoCamara, IconoCasa, IconoLlave } from "../iconos";
+import { Cifra, Vacio } from "../piezas";
 import Link from "next/link";
 import { hayMonto, monedaDe, plataMontos, sumar } from "@/lib/crm/dinero";
 import type { Foto } from "@/lib/datos/tipos";
@@ -118,22 +119,18 @@ export default async function Propiedades({
 
       {enOferta.length > 0 && (
         <div className="cifras casas-cifras">
-          <Link href={enlace("venta")} className="tarjeta cifra">
-            <strong>{ventas.length}</strong>
-            <span className="suave">en venta{hayMonto(valorVentas) ? ` · ${plataMontos(valorVentas)}` : ""}</span>
-          </Link>
-          <Link href={enlace("alquiler")} className="tarjeta cifra">
-            <strong>{alquileres.length}</strong>
-            <span className="suave">en alquiler</span>
-          </Link>
-          <div className="tarjeta cifra">
-            <strong>{[...visitasDe.values()].reduce((s, n) => s + n, 0)}</strong>
-            <span className="suave">visitas que vienen</span>
-          </div>
-          <div className={`tarjeta cifra${porMejorar ? " alerta" : ""}`}>
-            <strong>{porMejorar}</strong>
-            <span className="suave">{porMejorar === 1 ? "le falta foto o precio" : "les faltan fotos o precio"}</span>
-          </div>
+          <Cifra href={enlace("venta")} Icono={IconoCasa} tono="verde" numero={ventas.length}>
+            en venta{hayMonto(valorVentas) ? ` · ${plataMontos(valorVentas)}` : ""}
+          </Cifra>
+          <Cifra href={enlace("alquiler")} Icono={IconoLlave} tono="azul" numero={alquileres.length}>
+            en alquiler
+          </Cifra>
+          <Cifra Icono={IconoAgenda} tono="morado" numero={[...visitasDe.values()].reduce((s, n) => s + n, 0)}>
+            visitas que vienen
+          </Cifra>
+          <Cifra Icono={IconoCamara} tono="ambar" alerta={porMejorar > 0} numero={porMejorar}>
+            {porMejorar === 1 ? "le falta foto o precio" : "les faltan fotos o precio"}
+          </Cifra>
         </div>
       )}
 
@@ -157,23 +154,27 @@ export default async function Propiedades({
       </div>
 
       {visibles.length === 0 && (
-        <div className="vacio casas-vacio">
-          <IconoCasa tamano={40} />
-          <p>
-            {buscar
-              ? "No encontré casas con esa búsqueda."
-              : filtro === "todas"
-                ? "No tienes casas vendidas ni pausadas."
-                : todas.length === 0
-                  ? "Todavía no tienes casas. Agrégala contándola con tus palabras y la asistente arma la ficha."
-                  : "No hay casas en esta lista."}
-          </p>
-          {todas.length === 0 && (
-            <Link href="/panel/propiedades/nueva" className="boton primario">
-              <IconoAgregar tamano={22} /> Agregar mi primera casa
-            </Link>
-          )}
-        </div>
+        <Vacio
+          Icono={IconoCasa}
+          className="casas-vacio"
+          accion={
+            todas.length === 0 ? (
+              <Link href="/panel/propiedades/nueva" className="boton primario">
+                <IconoAgregar tamano={22} /> Agregar mi primera casa
+              </Link>
+            ) : buscar || filtro ? (
+              <Link href="/panel/propiedades">Ver las casas en oferta</Link>
+            ) : undefined
+          }
+        >
+          {buscar
+            ? "No encontré casas con esa búsqueda."
+            : filtro === "todas"
+              ? "No tienes casas vendidas ni pausadas."
+              : todas.length === 0
+                ? "Todavía no tienes casas. Agrégala contándola con tus palabras y la asistente arma la ficha."
+                : "No hay casas en esta lista."}
+        </Vacio>
       )}
 
       <div className="casas-grid casas-lista">
@@ -198,8 +199,9 @@ export default async function Propiedades({
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={principal.mejorada_url ?? principal.url} alt="" loading="lazy" />
                 ) : (
-                  <span className="sin-foto" aria-hidden>
-                    <IconoCasa tamano={36} />
+                  <span className="sin-foto">
+                    <IconoCamara tamano={28} />
+                    <span className="sin-foto-texto">Agregar fotos</span>
                   </span>
                 )}
                 <span className={`casa-item-operacion ${p.operacion === "alquiler" ? "alquiler" : "venta"}`}>

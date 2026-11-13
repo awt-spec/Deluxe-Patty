@@ -10,7 +10,8 @@ import { PreguntaBloqueo } from "./agenda/pregunta-bloqueo";
 import { PreguntarPatty } from "./preguntar-patty";
 import { ComoLlegar } from "./como-llegar";
 import { Avatar } from "./avatar";
-import { IconoCampana, IconoCheck, IconoDobleCheck, IconoFlecha, IconoMas } from "./iconos";
+import { IconoAgenda, IconoCampana, IconoChats, IconoCheck, IconoDobleCheck, IconoFlecha, IconoIdea, IconoMas, IconoPersonas } from "./iconos";
+import { Cifra, Vacio } from "./piezas";
 
 // Inicio: arriba lo urgente (un botón para revisar lo que espera), el resumen de lo que hizo la
 // asistente en las últimas 24 horas y lo que hay que hacer hoy (visitas con su hora de salida,
@@ -384,7 +385,11 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
           </div>
           <div className="inicio-bloque bloque-chats">
             <h2 id="chats">Chats</h2>
-            {conversaciones.length === 0 && <p className="vacio">Todavía no te ha escrito ningún cliente.</p>}
+            {conversaciones.length === 0 && (
+              <Vacio Icono={IconoChats} compacto accion={<Link href="/panel/probar">Probar la asistente</Link>}>
+                Todavía no te ha escrito ningún cliente.
+              </Vacio>
+            )}
             <ul className="chat-lista" aria-label="Todos los chats">
               {conversaciones.map((c) => {
                 const contacto = uno(c.contactos);
@@ -453,22 +458,18 @@ export default async function Inicio({ searchParams }: { searchParams: Promise<{
             <section className="resumen-asistente" aria-label="Lo que hizo la asistente">
               <h2>Lo que hizo {nombreAsistente} en 24 horas</h2>
               <div className="cifras inicio-cifras">
-                <Link href="/panel#chats" className="tarjeta cifra">
-                  <strong>{contestados}</strong>
-                  <span className="suave">{contestados === 1 ? "mensaje contestado" : "mensajes contestados"}</span>
-                </Link>
-                <Link href="/panel/agenda" className="tarjeta cifra">
-                  <strong>{agendadas}</strong>
-                  <span className="suave">{agendadas === 1 ? "visita agendada" : "visitas agendadas"}</span>
-                </Link>
-                <Link href="/panel/clientes" className="tarjeta cifra">
-                  <strong>{nuevos}</strong>
-                  <span className="suave">{nuevos === 1 ? "cliente nuevo" : "clientes nuevos"}</span>
-                </Link>
-                <Link href="/panel/cerebro?ver=dudas" className="tarjeta cifra">
-                  <strong>{dudas}</strong>
-                  <span className="suave">{dudas === 1 ? "pregunta que no supo" : "preguntas que no supo"}</span>
-                </Link>
+                <Cifra href="/panel#chats" Icono={IconoChats} tono="verde" numero={contestados}>
+                  {contestados === 1 ? "mensaje contestado" : "mensajes contestados"}
+                </Cifra>
+                <Cifra href="/panel/agenda" Icono={IconoAgenda} tono="azul" numero={agendadas}>
+                  {agendadas === 1 ? "visita agendada" : "visitas agendadas"}
+                </Cifra>
+                <Cifra href="/panel/clientes" Icono={IconoPersonas} tono="morado" numero={nuevos}>
+                  {nuevos === 1 ? "cliente nuevo" : "clientes nuevos"}
+                </Cifra>
+                <Cifra href="/panel/cerebro?ver=dudas" Icono={IconoIdea} tono="ambar" numero={dudas}>
+                  {dudas === 1 ? "pregunta que no supo" : "preguntas que no supo"}
+                </Cifra>
               </div>
             </section>
           </div>

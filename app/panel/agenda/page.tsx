@@ -13,6 +13,8 @@ import { PreguntarPatty } from "../preguntar-patty";
 import { cambiarEnlaceCalendario, quitarBloqueoAgenda } from "./acciones";
 import { PreguntaBloqueo } from "./pregunta-bloqueo";
 import { VistaDelTelefono } from "./vista-telefono";
+import { IconoAgenda } from "../iconos";
+import { Vacio } from "../piezas";
 
 type Cita = {
   id: string;
@@ -571,7 +573,16 @@ export default async function Agenda({
       )}
 
       {vista === "lista" && citas.length === 0 && (
-        <p className="vacio">No tienes visitas agendadas. Cuando la asistente agende una, aparece aquí.</p>
+        <Vacio
+          Icono={IconoAgenda}
+          accion={
+            <Link href="/panel/agenda/nueva" className="boton primario">
+              Agendar una visita
+            </Link>
+          }
+        >
+          No tienes visitas agendadas. Cuando la asistente agende una, aparece aquí.
+        </Vacio>
       )}
       {vista === "lista" &&
         [...porDia.entries()].map(([dia, lista]) => (

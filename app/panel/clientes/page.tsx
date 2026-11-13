@@ -5,7 +5,8 @@ import { AYUDA_ETAPA, ETAPAS, NOMBRE_ETAPA, resumenBusca, telefonoBonito, type B
 import { fechaCorta } from "@/lib/formato";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Avatar, colorEInicial } from "../avatar";
-import { IconoAgregar } from "../iconos";
+import { IconoAgregar, IconoCheck, IconoPersonas, IconoResumen, IconoTelefono } from "../iconos";
+import { Cifra, Vacio } from "../piezas";
 import { Tablero, type ColumnaTablero } from "./tablero";
 
 // Clientes por etapa, como un embudo: arriba las cifras que importan (activos, cuánto hay en juego,
@@ -213,31 +214,23 @@ export default async function Clientes({
 
       {todos.length > 0 && (
         <div className="cifras embudo-cifras">
-          <Link href="/panel/clientes" className="tarjeta cifra">
-            <strong>{activos.length}</strong>
-            <span className="suave">{activos.length === 1 ? "cliente activo" : "clientes activos"}</span>
-          </Link>
-          <Link href="/panel/clientes?etapa=negociando" className="tarjeta cifra">
-            <strong>{hayMonto(enNegociacion) ? plataMontos(enNegociacion) : "—"}</strong>
-            <span className="suave">
-              en negociación{negociando.length ? ` (${negociando.length} ${negociando.length === 1 ? "cliente" : "clientes"})` : ""}
-              {hayMonto(comisionPosible) ? ` · comisión posible ${plataMontos(comisionPosible)}` : ""}
-            </span>
-          </Link>
-          <Link href="/panel/clientes?etapa=cerrado" className="tarjeta cifra">
-            <strong>{hayMonto(ganadoMes) ? plataMontos(ganadoMes) : cerradosMes.length}</strong>
-            <span className="suave">
-              {hayMonto(ganadoMes)
-                ? `ganado este mes (${cerradosMes.length} ${cerradosMes.length === 1 ? "cierre" : "cierres"})`
-                : cerradosMes.length === 1
-                  ? "cerró este mes"
-                  : "cerraron este mes"}
-            </span>
-          </Link>
-          <Link href="/panel/clientes?ver=atencion" className={`tarjeta cifra${atencion.length ? " alerta" : ""}`}>
-            <strong>{atencion.length}</strong>
-            <span className="suave">{atencion.length === 1 ? "necesita que lo llames" : "necesitan que los llames"}</span>
-          </Link>
+          <Cifra href="/panel/clientes" Icono={IconoPersonas} tono="verde" numero={activos.length}>
+            {activos.length === 1 ? "cliente activo" : "clientes activos"}
+          </Cifra>
+          <Cifra href="/panel/clientes?etapa=negociando" Icono={IconoResumen} tono="azul" numero={hayMonto(enNegociacion) ? plataMontos(enNegociacion) : "—"}>
+            en negociación{negociando.length ? ` (${negociando.length} ${negociando.length === 1 ? "cliente" : "clientes"})` : ""}
+            {hayMonto(comisionPosible) ? ` · comisión posible ${plataMontos(comisionPosible)}` : ""}
+          </Cifra>
+          <Cifra href="/panel/clientes?etapa=cerrado" Icono={IconoCheck} tono="morado" numero={hayMonto(ganadoMes) ? plataMontos(ganadoMes) : cerradosMes.length}>
+            {hayMonto(ganadoMes)
+              ? `ganado este mes (${cerradosMes.length} ${cerradosMes.length === 1 ? "cierre" : "cierres"})`
+              : cerradosMes.length === 1
+                ? "cerró este mes"
+                : "cerraron este mes"}
+          </Cifra>
+          <Cifra href="/panel/clientes?ver=atencion" Icono={IconoTelefono} tono="ambar" alerta={atencion.length > 0} numero={atencion.length}>
+            {atencion.length === 1 ? "necesita que lo llames" : "necesitan que los llames"}
+          </Cifra>
         </div>
       )}
       <Link href="/panel/negocio" className="ver-negocio solo-telefono">
@@ -288,12 +281,30 @@ export default async function Clientes({
         <p className="aviso">No se pudieron cargar los clientes. Avísale a soporte con este código: {error.code ?? "sin código"}.</p>
       )}
       {!error && todos.length === 0 && (
-        <p className="vacio">Cuando un cliente te escriba por WhatsApp, aparece aquí. También puedes agregarlo tú.</p>
+        <Vacio
+          Icono={IconoPersonas}
+          titulo="Todavía no tienes clientes."
+          accion={
+            <Link href="/panel/clientes/nuevo" className="boton primario">
+              <IconoAgregar tamano={20} /> Agregar un cliente
+            </Link>
+          }
+        >
+          Cuando un cliente te escriba por WhatsApp, aparece aquí. También puedes agregarlo tú.
+        </Vacio>
       )}
-      {!error && todos.length > 0 && buscar && clientes.length === 0 && <p className="vacio">No hay ningún cliente con ese nombre o teléfono.</p>}
+      {!error && todos.length > 0 && buscar && clientes.length === 0 && (
+        <Vacio Icono={IconoPersonas} compacto accion={<Link href={enlace(elegida ? { etapa: elegida } : {})}>Ver todos los clientes</Link>}>
+          No hay ningún cliente con ese nombre o teléfono.
+        </Vacio>
+      )}
       {elegida && <p className="suave ayuda-etapa">{AYUDA_ETAPA[elegida]}</p>}
       {verAtencion && <p className="suave ayuda-etapa">Llevan días sin moverse o tienen un recordatorio para hoy.</p>}
-      {(elegida || verAtencion) && visibles.length === 0 && <p className="vacio">Nadie por aquí.</p>}
+      {(elegida || verAtencion) && visibles.length === 0 && (
+        <Vacio Icono={IconoPersonas} compacto accion={<Link href="/panel/clientes">Ver los clientes activos</Link>}>
+          Nadie por aquí.
+        </Vacio>
+      )}
 
       {/* Teléfono: lista */}
       <div className="clientes-lista">{visibles.map(tarjeta)}</div>

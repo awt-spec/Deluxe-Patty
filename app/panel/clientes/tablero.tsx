@@ -108,6 +108,7 @@ export function Tablero({ columnas, comisionPct }: { columnas: ColumnaTablero[];
               </h2>
               <p className="suave">{col.ayuda}</p>
               {col.valor && <p className="tablero-valor">{col.valor}</p>}
+              {tarjetas.length === 0 && <p className="tablero-vacia">Arrastra aquí un cliente</p>}
               {tarjetas.map((t) => (
                 <Link
                   key={t.id}

@@ -14,6 +14,7 @@ import {
   IconoResumen,
   IconoSalir,
 } from "../iconos";
+import { EncabezadoPagina } from "../piezas";
 
 // Lo que no se usa todos los días. Lo que ya tiene su pestaña (agenda, horario, clientes) no se repite aquí.
 const GRUPOS = [
@@ -38,9 +39,7 @@ export default async function Mas() {
   return (
     <>
       <Volver href="/panel" texto="Chats" />
-      <header className="encabezado">
-        <h1>Más</h1>
-      </header>
+      <EncabezadoPagina titulo="Más" apoyo="Lo que no usas todos los días: herramientas, ajustes y tu cuenta." />
       <nav aria-label="Más opciones" className="mas-grupos">
         {GRUPOS.map((grupo, i) => (
           <ul key={i} className="opciones">

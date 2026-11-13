@@ -4,6 +4,8 @@ import { fechaIso, fechaLocal } from "@/lib/agenda/tiempo";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { PreguntarPatty } from "../preguntar-patty";
 import { Volver } from "../volver";
+import { IconoCheck, IconoEstrella, IconoPersonas, IconoReloj, IconoResumen } from "../iconos";
+import { Cifra, EncabezadoPagina, Vacio } from "../piezas";
 
 // Cómo va el negocio: ingresos y cierres por mes, de dónde vienen los clientes que cierran, cuántos
 // avanzan en cada etapa, cuánto tardan en cerrar, por qué se pierden y cómo va la captación de casas.
@@ -104,50 +106,50 @@ export default async function Negocio() {
   return (
     <>
       <Volver href="/panel/mas" texto="Más" />
-      <header className="encabezado">
-        <div>
-          <h1>Cómo va el negocio</h1>
-          <p className="suave">Con lo que anotas en Clientes y lo que hace la asistente.</p>
-        </div>
-      </header>
+      <EncabezadoPagina titulo="Cómo va el negocio" apoyo="Con lo que anotas en Clientes y lo que hace la asistente." />
       <div className="preguntas-patty">
         <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="¿Cómo va el mes comparado con el anterior?" />
         <PreguntarPatty nombre={corredor.nombre_asistente ?? "Patty"} pregunta="¿Qué puedo hacer para cerrar más?" />
       </div>
 
       <div className="cifras embudo-cifras">
-        <div className="tarjeta cifra">
-          <strong>{plata(esteMes.ganado)}</strong>
-          <span className="suave">
-            ganado este mes{hayMonto(mesPasado.ganado) ? ` (el pasado: ${plata(mesPasado.ganado)})` : ""}
-          </span>
-        </div>
-        <div className="tarjeta cifra">
-          <strong>{plata(ganadoAnio)}</strong>
-          <span className="suave">ganado en {hoy.anio}</span>
-        </div>
-        <div className="tarjeta cifra">
-          <strong>{esteMes.nuevos}</strong>
-          <span className="suave">clientes nuevos este mes</span>
-        </div>
-        <div className="tarjeta cifra">
-          <strong>{promedioDias ?? "—"}</strong>
-          <span className="suave">{promedioDias === null ? "días hasta cerrar (todavía sin cierres)" : "días en promedio hasta cerrar"}</span>
-        </div>
+        <Cifra Icono={IconoEstrella} tono="verde" numero={plata(esteMes.ganado)}>
+          ganado este mes{hayMonto(mesPasado.ganado) ? ` (el pasado: ${plata(mesPasado.ganado)})` : ""}
+        </Cifra>
+        <Cifra Icono={IconoResumen} tono="azul" numero={plata(ganadoAnio)}>
+          ganado en {hoy.anio}
+        </Cifra>
+        <Cifra Icono={IconoPersonas} tono="morado" numero={esteMes.nuevos}>
+          clientes nuevos este mes
+        </Cifra>
+        <Cifra Icono={IconoReloj} tono="ambar" numero={promedioDias ?? "—"}>
+          {promedioDias === null ? "días hasta cerrar (todavía sin cierres)" : "días en promedio hasta cerrar"}
+        </Cifra>
       </div>
 
       <section className="tarjeta pila negocio-seccion">
         <h2>Lo ganado mes a mes</h2>
-        <div className="barras-mes" role="img" aria-label="Comisiones de los últimos seis meses">
-          {meses.map((m) => (
-            <div key={m.clave} className="barra-mes">
-              <span className="barra-valor">{hayMonto(m.ganado) ? plata(m.ganado) : ""}</span>
-              <span className="barra" style={{ height: `${Math.max(2, (m.ganado[principal] / maxGanado) * 100)}%` }} />
-              <span className="barra-nombre">{m.nombre}</span>
-              <span className="suave barra-cierres">{m.cierres ? `${m.cierres} ${m.cierres === 1 ? "cierre" : "cierres"}` : "—"}</span>
-            </div>
-          ))}
-        </div>
+        {meses.some((m) => hayMonto(m.ganado) || m.cierres > 0) ? (
+          <div className="barras-mes" role="img" aria-label="Comisiones de los últimos seis meses">
+            {meses.map((m) => (
+              <div key={m.clave} className="barra-mes">
+                <span className="barra-valor">{hayMonto(m.ganado) ? plata(m.ganado) : ""}</span>
+                <span className="barra" style={{ height: `${Math.max(2, (m.ganado[principal] / maxGanado) * 100)}%` }} />
+                <span className="barra-nombre">{m.nombre}</span>
+                <span className="suave barra-cierres">{m.cierres ? `${m.cierres} ${m.cierres === 1 ? "cierre" : "cierres"}` : "—"}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <Vacio
+            Icono={IconoResumen}
+            compacto
+            titulo="Todavía no hay cierres en estos seis meses."
+            accion={<Link href="/panel/clientes?etapa=negociando">Ver los clientes que negocian</Link>}
+          >
+            Cuando un cliente cierre, márcalo en su ficha como «Cerró» con el precio: aquí verás la comisión de cada mes.
+          </Vacio>
+        )}
       </section>
 
       <div className="negocio-columnas">
@@ -195,7 +197,9 @@ export default async function Negocio() {
         <section className="tarjeta pila negocio-seccion">
           <h2>Por qué se pierden</h2>
           {perdidos === 0 ? (
-            <p className="suave">No has perdido clientes. Cuando pase, anota por qué en su ficha.</p>
+            <Vacio Icono={IconoCheck} compacto>
+              No has perdido clientes. Cuando pase, anota por qué en su ficha.
+            </Vacio>
           ) : (
             listaMotivos.map(([m, n]) => (
               <div key={m} className="fila-barra">

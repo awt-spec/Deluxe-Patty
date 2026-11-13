@@ -1,6 +1,7 @@
 import { Volver } from "../volver";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Chat } from "./chat";
+import { EncabezadoPagina } from "../piezas";
 
 // Cada turno llama a Claude una o dos veces.
 export const maxDuration = 300;
@@ -10,11 +11,21 @@ export default async function Probar() {
   return (
     <>
       <Volver href="/panel/mas" texto="Más" />
-      <header className="encabezado">
-        <h1>Probar la asistente</h1>
-      </header>
-      <p className="suave">Escríbele como si fueras un cliente. Nada se envía de verdad.</p>
-      <Chat nombreCorredor={corredor.nombre_contacto} />
+      <EncabezadoPagina titulo="Probar la asistente" apoyo="Escríbele como si fueras un cliente. Nada se envía de verdad." />
+      <div className="chat-con-ayuda">
+        <div className="chat-centro">
+          <Chat nombreCorredor={corredor.nombre_contacto} />
+        </div>
+        <aside className="tarjeta pila ayuda-lateral solo-computadora" aria-label="Qué probar">
+          <h2>Qué probar</h2>
+          <ul className="pasos-ayuda">
+            <li>Pregunta por una casa, como lo haría un cliente nuevo.</li>
+            <li>Pide una visita: verás los horarios que ofrece según tu agenda.</li>
+            <li>Habla de precio u ofertas: debe pasártelo a ti.</li>
+          </ul>
+          <p className="suave">Usa tus casas, tu agenda y tus correcciones, pero no escribe nada en tus chats ni en tu agenda y no cuenta para el tope del mes.</p>
+        </aside>
+      </div>
     </>
   );
 }
