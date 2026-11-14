@@ -65,7 +65,7 @@ describe("parsearWebhook", () => {
     const { estados } = parsearWebhook(
       payload({ metadata: { phone_number_id: "PNID" }, statuses: [{ id: "wamid.9", status: "read" }] }),
     );
-    expect(estados).toEqual([{ waMessageId: "wamid.9", estado: "leido" }]);
+    expect(estados).toEqual([{ phoneNumberId: "PNID", waMessageId: "wamid.9", estado: "leido" }]);
     expect(parsearWebhook({ object: "page" })).toEqual({ mensajes: [], estados: [] });
   });
 });

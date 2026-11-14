@@ -65,7 +65,7 @@ export interface Repositorio {
   entrantesDesde(corredorId: string, conversacionId: string, desde: Date): Promise<number>;
   /** Marca el aviso de tope del mes. true solo para la llamada que lo marcó (evita avisos dobles). */
   marcarAvisoTope(corredorId: string, mes: string): Promise<boolean>;
-  actualizarEstadoEntrega(waMessageId: string, estado: NonNullable<NuevoMensaje["estado_entrega"]>): Promise<void>;
+  actualizarEstadoEntrega(corredorId: string, waMessageId: string, estado: NonNullable<NuevoMensaje["estado_entrega"]>): Promise<void>;
 
   // Agenda
   datosAgenda(corredorId: string, desde: Date, hasta: Date): Promise<DatosAgenda>;
@@ -347,8 +347,12 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
       return (data ?? []).length > 0;
     },
 
-    async actualizarEstadoEntrega(waMessageId, estado) {
-      const { error } = await db.from("mensajes").update({ estado_entrega: estado }).eq("wa_message_id", waMessageId);
+    async actualizarEstadoEntrega(corredorId, waMessageId, estado) {
+      const { error } = await db
+        .from("mensajes")
+        .update({ estado_entrega: estado })
+        .eq("corredor_id", corredorId)
+        .eq("wa_message_id", waMessageId);
       verificar(error, "actualizarEstadoEntrega");
     },
 

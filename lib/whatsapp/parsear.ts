@@ -23,6 +23,8 @@ export interface MensajeEntrante {
 }
 
 export interface EstadoEntrega {
+  /** Número de la asistente al que llegó el aviso: dice de qué corredor es el mensaje. */
+  phoneNumberId: string;
   waMessageId: string;
   estado: "enviado" | "entregado" | "leido" | "fallido";
 }
@@ -95,7 +97,7 @@ export function parsearWebhook(payload: any): EventosWebhook {
 
       for (const s of value.statuses ?? []) {
         const estado = ESTADOS[s.status];
-        if (s.id && estado) estados.push({ waMessageId: s.id, estado });
+        if (s.id && estado) estados.push({ phoneNumberId, waMessageId: s.id, estado });
       }
     }
   }

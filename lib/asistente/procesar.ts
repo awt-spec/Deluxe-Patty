@@ -244,5 +244,8 @@ export async function procesarMensaje(deps: Dependencias, entrante: MensajeEntra
 }
 
 export async function procesarEstado(deps: Pick<Dependencias, "repo">, estado: EstadoEntrega): Promise<void> {
-  await deps.repo.actualizarEstadoEntrega(estado.waMessageId, estado.estado);
+  // El corredor sale del número que recibió el aviso; sin corredor conocido no se toca nada.
+  const corredor = await deps.repo.corredorPorPhoneNumberId(estado.phoneNumberId);
+  if (!corredor) return;
+  await deps.repo.actualizarEstadoEntrega(corredor.id, estado.waMessageId, estado.estado);
 }
