@@ -130,6 +130,10 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   `lib/admin/superadmin.ts`; quién lo es: tabla `superadmins`, por correo): los de la plataforma (`plataforma`) y,
   si hace falta, uno propio por corredor (`corredores.tope_ia_dia_usd` / `tope_ia_mes_usd`, vacío = plataforma, 0 =
   apagado) y si puede usar imágenes (`imagenes_activas`). El corredor no los puede leer ni cambiar fuera de su fila.
+  El corredor no ve dinero sino **tokens de IA** (`lib/ia/tokens.ts`: 1 dólar = 100 tokens, hacia abajo; el tanque es el tope
+  del mes de `presupuesto_ia()`; ámbar con ≤ 15 %, rojo agotado o tope 0): barra en el menú lateral (anillo en el riel), Ajustes
+  y Más (`app/panel/tokens-ia.tsx`, colores `PALETA_TOKENS`); `/admin` muestra el equivalente en vivo (`campo-usd.tsx`) y la
+  extensión lo lee en `GET /api/extension/estado` (`tokens`).
   `/admin` tiene cinco secciones (menú lateral; en el teléfono, pestañas): **Resumen** (cifras, "Atención" con lo
   que falta o se pasa, alertas), **Corredores** (y `/admin/corredores/<id>`: Phone number ID, número de la asistente,
   celular del corredor, activo, respuesta automática, topes, accesos y "Probar WhatsApp"), **WhatsApp** (diagnóstico

@@ -28,6 +28,24 @@ export const PALETA_MENU = {
   sobreGlobo: "#ffffff",
 } as const;
 
+/**
+ * Barra de "Tokens de IA" (menú, Ajustes y Más; app/panel/tokens-ia.tsx): verde normal, ámbar con poco, rojo
+ * agotado. Son las variables --t-* de la capa "Tokens de IA" de globals.css (mismo test que la paleta del menú).
+ */
+export const PALETA_TOKENS = {
+  /** Pista de la barra (vacía). */
+  pista: "#e9edef",
+  bien: "#008069",
+  poco: "#b45309",
+  agotado: "#b42318",
+  /** Fondo y letra del aviso con pocos tokens. */
+  fondoPoco: "#fff7e6",
+  textoPoco: "#7a3e00",
+  /** Fondo y letra del aviso de tokens agotados. */
+  fondoAgotado: "#fef3f2",
+  textoAgotado: "#912018",
+} as const;
+
 /** Luminancia relativa (WCAG 2.x) de un color #rrggbb. */
 export function luminancia(hex: string): number {
   const [r, g, b] = [1, 3, 5].map((i) => {

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cargarCorredores } from "@/lib/admin/datos";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { Barra, Insignia, Mensaje, hace, usd } from "../ui";
+import { Barra, Insignia, Mensaje, TokensMes, hace, usd } from "../ui";
 
 export default async function Corredores({ searchParams }: { searchParams: Promise<{ m?: string; ok?: string }> }) {
   const { m, ok } = await searchParams;
@@ -45,6 +45,7 @@ export default async function Corredores({ searchParams }: { searchParams: Promi
                 IA hoy <strong>{usd(f.gastoHoy)}</strong> <span className="adm-suave">de {usd(f.topeDia)}</span>
               </span>
               <Barra gasto={f.gastoHoy} tope={f.topeDia} />
+              <TokensMes gastoMes={f.gastoMes} topeMes={f.topeMes} />
               <span>
                 Mensajes del mes{" "}
                 <strong>

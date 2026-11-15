@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 72" fill="none">
+  <style>
+    .linea { stroke: #d6e2dd; } .punto { fill: #ffffff; stroke: #b9d9cc; } .activo { fill: #008069; } .texto { fill: #e1e9e5; } .claro { fill: #cfe9de; }
+    @media (prefers-color-scheme: dark) {
+      .linea { stroke: #2e4049; } .punto { fill: #1b2b33; stroke: #33454f; } .activo { fill: #00a884; } .texto { fill: #26363f; } .claro { fill: #1f4a3e; }
+    }
+  </style>
+  <path class="linea" d="M22 16v40" stroke-width="2" stroke-linecap="round" stroke-dasharray="2 5"/>
+  <circle class="activo" cx="22" cy="14" r="7"/>
+  <circle class="punto" cx="22" cy="36" r="6" stroke-width="2"/>
+  <circle class="punto" cx="22" cy="58" r="6" stroke-width="2"/>
+  <rect class="claro" x="38" y="10" width="58" height="8" rx="4"/>
+  <rect class="texto" x="38" y="32" width="72" height="8" rx="4"/>
+  <rect class="texto" x="38" y="54" width="46" height="8" rx="4"/>
+</svg>

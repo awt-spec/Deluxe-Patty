@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cargarCorredores, llavesWhatsApp } from "@/lib/admin/datos";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { Cifra, Insignia, Mensaje, hace, usd } from "./ui";
+import { Cifra, Insignia, Mensaje, TokensMes, hace, usd } from "./ui";
 
 // Resumen: lo primero que se ve. Cifras del mes, lo que pide atención (lo que falta o se está pasando) y las
 // últimas alertas de monitoreo.
@@ -94,6 +94,7 @@ export default async function Resumen({ searchParams }: { searchParams: Promise<
                 <th>Último mensaje</th>
                 <th>Mensajes del mes</th>
                 <th>IA hoy</th>
+                <th>Tokens del mes</th>
               </tr>
             </thead>
             <tbody>
@@ -117,11 +118,14 @@ export default async function Resumen({ searchParams }: { searchParams: Promise<
                       {usd(f.gastoHoy)} <span className="adm-suave">de {usd(f.topeDia)}</span>
                     </span>
                   </td>
+                  <td data-etiqueta="Tokens del mes">
+                    <TokensMes gastoMes={f.gastoMes} topeMes={f.topeMes} />
+                  </td>
                 </tr>
               ))}
               {filas.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="adm-vacio">
+                  <td colSpan={6} className="adm-vacio">
                     Todavía no hay corredores.
                   </td>
                 </tr>

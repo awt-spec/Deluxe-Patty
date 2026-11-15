@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { cargarCorredores } from "@/lib/admin/datos";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { Barra, Cifra, Mensaje, usd } from "../ui";
+import { Barra, Cifra, EXPLICA_TOKENS, Mensaje, TokensMes, usd } from "../ui";
+import { CampoUsd } from "../campo-usd";
 import { guardarTopesPlataforma } from "../acciones";
 
 // IA y topes: cuánto gasta cada corredor (Claude + imágenes de OpenAI) y los topes de la plataforma, que valen
@@ -32,18 +33,13 @@ export default async function IA({ searchParams }: { searchParams: Promise<{ m?:
       <section className="adm-seccion">
         <h2>Topes de la plataforma</h2>
         <form action={guardarTopesPlataforma} className="adm-form en-linea">
-          <label>
-            Por día (USD)
-            <input name="tope_dia" inputMode="decimal" defaultValue={plataforma.topeDia} required />
-          </label>
-          <label>
-            Por mes (USD)
-            <input name="tope_mes" inputMode="decimal" defaultValue={plataforma.topeMes} required />
-          </label>
+          <CampoUsd etiqueta="Por día (USD)" name="tope_dia" defaultValue={plataforma.topeDia} periodo="día" required />
+          <CampoUsd etiqueta="Por mes (USD)" name="tope_mes" defaultValue={plataforma.topeMes} periodo="mes" required />
           <button type="submit" className="adm-boton primario">
             Guardar
           </button>
         </form>
+        <p className="adm-suave">{EXPLICA_TOKENS}</p>
         <p className="adm-suave">Un corredor puede tener topes propios en su pantalla (vacío usa estos; 0 apaga la IA de ese corredor).</p>
       </section>
 
@@ -56,6 +52,7 @@ export default async function IA({ searchParams }: { searchParams: Promise<{ m?:
                 <th>Corredor</th>
                 <th>Hoy</th>
                 <th>Este mes</th>
+                <th>Tokens del mes</th>
                 <th>Imágenes</th>
               </tr>
             </thead>
@@ -78,6 +75,9 @@ export default async function IA({ searchParams }: { searchParams: Promise<{ m?:
                       {usd(f.gastoMes)} <span className="adm-suave">de {usd(f.topeMes)}</span>
                       <Barra gasto={f.gastoMes} tope={f.topeMes} />
                     </span>
+                  </td>
+                  <td data-etiqueta="Tokens del mes">
+                    <TokensMes gastoMes={f.gastoMes} topeMes={f.topeMes} />
                   </td>
                   <td data-etiqueta="Imágenes">{f.c.imagenes_activas ? `${f.mes.imagenes} este mes` : "Apagadas"}</td>
                 </tr>

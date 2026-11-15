@@ -3,6 +3,7 @@ import { esPaginaDeAnuncio, esVerificacion } from "./comun.js";
 import { activa, mensajeInterrumpida, textoFase, transicion } from "./maquina.js";
 import { agregarPaso, contarEnPagina, leerBitacora, pasoDeEvento, textoPaso } from "./bitacora.js";
 import { deQuien, esUrlDeE24, estadoPublico, leerPedido } from "./mensajes.js";
+import { limpiarTokens } from "./vista-panel.js";
 import {
   azar,
   estimarRestanteMs,
@@ -78,7 +79,7 @@ async function api(ruta, cuerpo, token, metodo = "POST") {
   } catch {
     return { ok: false, mensaje: "No hay conexión con el panel. Revisa el internet y vuelve a intentarlo." };
   }
-  if (r.status === 401) await chrome.storage.local.remove(["token", "corredor"]);
+  if (r.status === 401) await chrome.storage.local.remove(["token", "corredor", "tokens"]);
   try {
     return await r.json();
   } catch {
@@ -496,6 +497,9 @@ async function esperarResultado(origen = null) {
     mensaje = r.mensaje ?? "No se pudo revisar.";
   }
   await cambiar({ tipo: "terminar" }, { mensaje, fecha: Date.now() });
+  // La revisión gastó tokens: el panel lateral muestra lo que queda del mes.
+  if (r && typeof r === "object" && "tokens" in r) await chrome.storage.local.set({ tokens: limpiarTokens(r.tokens) });
+  verTokens().catch(() => {});
 }
 
 /** La semanal de fondo no molesta: se vuelve a lo que se mostraba antes y se reintenta en el siguiente despertar. */
@@ -590,7 +594,7 @@ async function desconectar() {
   detener("popup");
   const { token } = await chrome.storage.local.get("token");
   if (token) await api("/api/extension/desconectar", {}, token);
-  await chrome.storage.local.remove(["token", "corredor", "busqueda", "busquedaViva", "bitacora", "asistente"]);
+  await chrome.storage.local.remove(["token", "corredor", "busqueda", "busquedaViva", "bitacora", "asistente", "tokens"]);
   return { ok: true };
 }
 
@@ -621,6 +625,19 @@ async function verUltima() {
   const r = await api("/api/extension/programa?ver=1", null, token, "GET");
   if (r?.ok) await chrome.storage.local.set({ ultimaDias: r.ultimaDias ?? null });
   return r;
+}
+
+/**
+ * Los tokens de IA del mes (GET /api/extension/estado, campo `tokens`): se guardan limpios para el panel lateral. Con
+ * `tokens: null` o sin el campo en una respuesta buena, la tarjeta se esconde; si no hubo respuesta, queda lo de antes.
+ */
+async function verTokens() {
+  const { token } = await chrome.storage.local.get("token");
+  if (!token) return { ok: false };
+  const r = await api("/api/extension/estado", null, token, "GET");
+  if (r && typeof r === "object" && "tokens" in r) await chrome.storage.local.set({ tokens: limpiarTokens(r.tokens) });
+  else if (r?.ok === true) await chrome.storage.local.set({ tokens: null });
+  return { ok: true };
 }
 
 function programarAlarma() {
@@ -794,6 +811,8 @@ chrome.runtime.onMessage.addListener((mensaje, remitente, responder) => {
       return false;
     case "ver_ultima":
       return conRespuesta(verUltima());
+    case "ver_tokens":
+      return conRespuesta(verTokens());
     case "estado":
       // El panel lateral pregunta cuando el latido se quedó viejo: con eso despierta al trabajador de fondo.
       return conRespuesta(estadoParaAfuera());

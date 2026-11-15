@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cargarCorredores } from "@/lib/admin/datos";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { Barra, Insignia, Mensaje, hace, usd } from "../../ui";
+import { Barra, EXPLICA_TOKENS, Insignia, Mensaje, TokensMes, hace, usd } from "../../ui";
+import { CampoUsd } from "../../campo-usd";
 import { darAcceso, guardarDatosCorredor, guardarTopesCorredor, probarWhatsApp, quitarAcceso } from "../../acciones";
 
 export default async function CorredorDetalle({
@@ -129,6 +130,7 @@ export default async function CorredorDetalle({
               {usd(f.gastoMes)} <span className="adm-suave">de {usd(f.topeMes)}</span>
             </strong>
             <Barra gasto={f.gastoMes} tope={f.topeMes} />
+            <TokensMes gastoMes={f.gastoMes} topeMes={f.topeMes} />
             <small>
               Claude {usd(f.mes.costoClaude)} ({f.mes.llamadas} llamadas) · Imágenes {usd(f.mes.costoImagenes)} ({f.mes.imagenes}) · Audio {usd(f.mes.costoAudio)} ({Math.round(f.mes.segundosAudio / 60)} min)
             </small>
@@ -144,14 +146,22 @@ export default async function CorredorDetalle({
         </div>
         <form action={guardarTopesCorredor} className="adm-form en-linea">
           <input type="hidden" name="id" value={id} />
-          <label>
-            Tope propio por día (USD)
-            <input name="tope_dia" defaultValue={c.tope_ia_dia_usd ?? ""} inputMode="decimal" placeholder={`${plataforma.topeDia} (plataforma)`} />
-          </label>
-          <label>
-            Tope propio por mes (USD)
-            <input name="tope_mes" defaultValue={c.tope_ia_mes_usd ?? ""} inputMode="decimal" placeholder={`${plataforma.topeMes} (plataforma)`} />
-          </label>
+          <CampoUsd
+            etiqueta="Tope propio por día (USD)"
+            name="tope_dia"
+            defaultValue={c.tope_ia_dia_usd ?? ""}
+            placeholder={`${plataforma.topeDia} (plataforma)`}
+            periodo="día"
+            respaldo={plataforma.topeDia}
+          />
+          <CampoUsd
+            etiqueta="Tope propio por mes (USD)"
+            name="tope_mes"
+            defaultValue={c.tope_ia_mes_usd ?? ""}
+            placeholder={`${plataforma.topeMes} (plataforma)`}
+            periodo="mes"
+            respaldo={plataforma.topeMes}
+          />
           <label>
             Tope de mensajes por mes
             <input name="tope_mensajes" defaultValue={c.tope_mensajes_mes} inputMode="numeric" required />
@@ -168,6 +178,7 @@ export default async function CorredorDetalle({
             Guardar topes
           </button>
         </form>
+        <p className="adm-suave">{EXPLICA_TOKENS}</p>
         <p className="adm-suave">Vacío usa el de la plataforma; 0 apaga la IA de este corredor. Los topes de IA cuentan Claude, imágenes y transcripción de audio. Al llegar al tope de mensajes del mes la IA no contesta: el chat queda para el corredor.</p>
       </section>
 
