@@ -51,16 +51,6 @@ export function nombreZona(url) {
     .join(" ");
 }
 
-/** Número de la página en la dirección (`?page=N`); sin él, 1. */
-export function paginaDeUrl(url) {
-  try {
-    const n = Number(new URL(url).searchParams.get("page"));
-    return Number.isInteger(n) && n > 1 ? n : 1;
-  } catch {
-    return 1;
-  }
-}
-
 /**
  * Cuántos anuncios trae la página y cuántos dicen ser del dueño ("Propietario"). Son posibles dueños: la revisión del
  * servidor confirma después cuáles lo son. Cuenta en el payload de Next.js, donde las comillas van escapadas.
@@ -86,8 +76,7 @@ export const textoPaso = {
   inicio: (minutos) => (minutos ? `Empecé a buscar dueños. Tardaré ${minutos}.` : "Empecé a buscar dueños."),
   abrir: (url, pagina, total) => {
     const zona = nombreZona(url);
-    const n = paginaDeUrl(url);
-    const donde = zona ? `Abriendo ${zona}${n > 1 ? ` (página ${n} de la zona)` : ""}` : "Abriendo la siguiente página";
+    const donde = zona ? `Abriendo ${zona}` : "Abriendo la siguiente página";
     return total ? `${donde}, página ${pagina} de ${total}` : donde;
   },
   leer: ({ anuncios, propietarios }) =>
@@ -111,7 +100,9 @@ export function pasoDeEvento(evento, nuevo) {
     case "seguir":
       return { icono: "seguir", texto: "Sigo buscando" };
     case "verificacion":
-      return { icono: "verificacion", texto: "Verificación de Encuentra24: toca «Seguir» cuando la completes" };
+      return /^Todavía/.test(nuevo?.mensaje ?? "")
+        ? { icono: "verificacion", texto: "Todavía veo la verificación: complétala y toca «Seguir»" }
+        : { icono: "verificacion", texto: "Verificación de Encuentra24: toca «Seguir» cuando la completes" };
     case "revisar":
       return { icono: "revisar", texto: "Terminé de leer. Reviso cuáles son dueños directos" };
     case "detener":
