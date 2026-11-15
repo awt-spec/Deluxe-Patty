@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { choquesConVisitas, desempacarPropuesta, resumenGuardado, revisarOperaciones, textoLimpio, type Apartado, type Duda } from "@/lib/agenda/apartar-ia";
+import { choquesConVisitas, desempacarPropuesta, operacionEnManana, resumenGuardado, revisarOperaciones, textoLimpio, type Apartado, type Duda } from "@/lib/agenda/apartar-ia";
 import { entenderPedidoApartado, type FuenteApartado } from "@/lib/agenda/entender-apartado";
 import { conPunto, horaCorta, rangoBloqueo } from "@/lib/agenda/formato";
 import { guardarBloqueos } from "@/lib/agenda/guardar-bloqueos";
@@ -117,6 +117,29 @@ export async function entenderApartadoPanel(textoCrudo: unknown, p?: unknown): P
 }
 
 /**
+ * «¿Era de la mañana?»: pasa ese renglón a a. m. con el mismo código que lo armó (sin llamar a la IA) y lo devuelve con
+ * sus choques. Las horas salen del renglón que mandó el navegador, pero se vuelven a revisar igual que siempre.
+ */
+export async function cambiarAMananaPanel(renglon: unknown): Promise<Resultado<{ renglon: RenglonApartado; notas: string[] }>> {
+  const s = await sesionConCorredor();
+  const { corredor } = s;
+  const a = (renglon && typeof renglon === "object" ? renglon : {}) as Partial<Apartado>;
+  const op = operacionEnManana(a);
+  if (!op) return { ok: false, motivo: "No pude pasarlo a la mañana." };
+  const revisado = revisarOperaciones([op], { ahora: new Date(), zona: corredor.zona_horaria, texto: "" });
+  if (revisado.apartados.length !== 1 || revisado.dudas.length) {
+    return { ok: false, motivo: revisado.notas[0] ?? "No pude pasarlo a la mañana." };
+  }
+  try {
+    const { apartados, notas } = await completar(s, revisado);
+    return { ok: true, renglon: apartados[0], notas };
+  } catch (e) {
+    console.error(JSON.stringify({ evento: "error_apartar_manana", corredorId: corredor.id, error: errorSeguro(e) }));
+    return { ok: false, motivo: "No pude pasarlo a la mañana." };
+  }
+}
+
+/**
  * "Sí, apartarlo": guarda los renglones que quedaron en la tarjeta y quita lo apartado que se listó. Cada renglón se
  * vuelve a revisar con las mismas reglas (sin repeticiones: ya vienen expandidas) y se guarda con la misma inserción
  * que el formulario. Lo que se quita se lee primero (solo del corredor) para poder deshacerlo.
@@ -128,7 +151,7 @@ export async function guardarApartadosPanel(
   const { supabase, corredor } = await sesionConCorredor();
   const ahora = new Date();
   const crudos = (Array.isArray(apartadosCrudos) ? apartadosCrudos : []).slice(0, 40) as Partial<Apartado>[];
-  const ops = crudos.map((a) => ({ tipo: "apartar" as const, desde: a?.desde, hasta: a?.hasta, rato: a?.rato, hora_inicio: a?.hora_inicio, hora_fin: a?.hora_fin, motivo: a?.motivo }));
+  const ops = crudos.map((a) => ({ tipo: "apartar" as const, desde: a?.desde, hasta: a?.hasta, rato: a?.rato, hora_inicio: a?.hora_inicio, hora_fin: a?.hora_fin, motivo: a?.motivo, periodo_confirmado: a?.hora_confirmada === true }));
   const revisado = revisarOperaciones(ops, { ahora, zona: corredor.zona_horaria, texto: "" });
   if (revisado.apartados.length !== crudos.length || revisado.dudas.length) return { ok: false, motivo: "Algo cambió (o ya pasó). Vuelve a decírmelo." };
   const ids = (Array.isArray(quitarCrudos) ? quitarCrudos : []).filter(esId).slice(0, 40);

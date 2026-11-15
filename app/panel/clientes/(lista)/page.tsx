@@ -5,10 +5,10 @@ import { delMes } from "@/lib/crm/ganado";
 import { AYUDA_ETAPA, ETAPAS, NOMBRE_ETAPA, resumenBusca, telefonoBonito, type Busca, type Etapa } from "@/lib/crm/perfil";
 import { fechaCorta } from "@/lib/formato";
 import { sesionConCorredor } from "@/lib/panel/sesion";
-import { Avatar, colorEInicial } from "../avatar";
-import { IconoAgregar, IconoCheck, IconoPersonas, IconoResumen, IconoTelefono } from "../iconos";
-import { Cifra, Vacio } from "../piezas";
-import { Tablero, type ColumnaTablero } from "./tablero";
+import { Avatar, colorEInicial } from "../../avatar";
+import { IconoAgregar, IconoCheck, IconoPersonas, IconoResumen, IconoTelefono } from "../../iconos";
+import { Cifra, Vacio } from "../../piezas";
+import { Tablero, type ColumnaTablero } from "../tablero";
 
 // Clientes por etapa, como un embudo: arriba las cifras que importan (activos, cuánto hay en juego,
 // cuántos cerraron este mes, quiénes necesitan atención), en el teléfono una lista por etapa y en la

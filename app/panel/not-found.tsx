@@ -1,8 +1,10 @@
 import Link from "next/link";
 
 // "No encontrado" del panel (un cliente, una casa o una visita que no existe o no es de este corredor), en español y
-// dentro del panel. Ojo: con el esqueleto de carga (app/panel/loading.tsx) Next ya mandó la respuesta 200 cuando la
-// página llama a notFound(); el navegador ve esta pantalla y Next agrega <meta name="robots" content="noindex">.
+// dentro del panel, con estado 404. Ningún loading.tsx puede envolver las páginas [id]: un esqueleto de carga empieza a
+// mandar la respuesta (con 200) antes de que la página llame a notFound(). Por eso los esqueletos de las listas viven
+// en grupos de rutas — app/panel/(inicio), clientes/(lista), agenda/(vista), propiedades/(lista), anuncios/(lista) —
+// y no en app/panel/loading.tsx ni en clientes/loading.tsx.
 export default function NoEncontrado() {
   return (
     <section className="pantalla-error">

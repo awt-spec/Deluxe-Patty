@@ -314,3 +314,10 @@
   margin: 0;
   font-size: 0.85rem;
 }
+
+/* «Entendí 3:00 p. m. · ¿Era de la mañana?»: la hora que se supuso de la tarde y el toque para corregirla. */
+.apartar-ia-supuesta {
+  margin: 4px 0 0;
+  font-size: 0.95rem;
+  color: var(--suave, #667781);
+}

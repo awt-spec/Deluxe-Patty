@@ -1,4 +1,4 @@
-import { entenderBloqueo, PARTES, type Parte, type PedidoBloqueo } from "./bloquear";
+import { entenderBloqueo, horasEnManana, PARTES, type HoraSupuesta, type Parte, type PedidoBloqueo } from "./bloquear";
 import { aUtc, fechaIso, fechaLocal, minutosLocales, sumarDias, type FechaLocal } from "./tiempo";
 
 // "Apartar tiempo" con IA: el corredor lo dice con sus palabras ("el martes tengo dentista de 2 a 4 y el viernes no
@@ -22,6 +22,10 @@ export interface OperacionApartarCruda {
   motivo?: string | null;
   pregunta?: string | null;
   opciones?: string[] | null;
+  /** Qué hora(s) se supuso de la tarde sin que el corredor dijera a. m. ni p. m. (si falta, se busca en su texto). */
+  hora_supuesta?: HoraSupuesta | null;
+  /** El corredor ya dijo el periodo (tocó «¿Era de la mañana?»): no se supone ni se duda de la madrugada. */
+  periodo_confirmado?: boolean;
 }
 
 /** Un rato concreto ya revisado (un día, o varios días enteros seguidos). */
@@ -38,6 +42,10 @@ export interface Apartado {
   fin: string;
   /** "Martes 17 de noviembre · 2:00 a 4:00 p. m. · Dentista" (armado aquí). */
   texto: string;
+  /** Hora que se entendió de la tarde sin que lo dijera: la tarjeta lo muestra con «¿Era de la mañana?». */
+  hora_supuesta?: HoraSupuesta;
+  /** El corredor ya eligió el periodo de esas horas. */
+  hora_confirmada?: boolean;
 }
 
 export interface RangoQuitar {
@@ -154,6 +162,40 @@ function armar(desde: FechaLocal, hasta: FechaLocal, rato: Rato, horas: [number,
   };
 }
 
+/**
+ * ¿Qué hora(s) dijo el corredor sin a. m./p. m. y quedaron de la tarde (1 a 6 p. m.)? Se busca en su texto "a las 3",
+ * "de 2 a 4" y no "a las 3 pm", "a las 15" ni "3 de la tarde". El fin que no aparece en el texto (una hora derivada del
+ * inicio) se mueve junto con el inicio.
+ */
+export function detectarHoraSupuesta(texto: string, inicio: number, fin: number): HoraSupuesta | undefined {
+  const t = ` ${sinTildes(texto)} `;
+  const sin = (min: number) => {
+    const h = Math.floor(min / 60);
+    if (h < 13 || h > 18) return false;
+    const m = String(min % 60).padStart(2, "0");
+    return new RegExp(
+      `(?:\\b(?:a|de|desde|hasta)\\s+(?:las?\\s+)?|\\blas?\\s+)${h - 12}(?::${m})?\\b(?!\\s*(?:a\\.?\\s?m\\b|p\\.?\\s?m\\b|am\\b|pm\\b|(?:de|en|por) la (?:manana|tarde|noche)|:))`,
+    ).test(t);
+  };
+  const ini = sin(inicio);
+  let f = sin(fin);
+  const hf = Math.floor(fin / 60);
+  if (ini && !f && hf >= 13 && hf <= 18 && !new RegExp(`\\b${hf - 12}\\b`).test(t)) f = true;
+  const en: HoraSupuesta | undefined = ini && f ? "ambas" : ini ? "inicio" : f ? "fin" : undefined;
+  return en && horasEnManana({ desde: inicio, hasta: fin }, en) ? en : undefined;
+}
+
+/** La operación que pasa el renglón a la mañana (las horas supuestas, 12 horas antes), o null si así no cuadra. */
+export function operacionEnManana(a: Partial<Apartado>): OperacionApartarCruda | null {
+  const ini = minutosHora(a.hora_inicio);
+  const fin = minutosHora(a.hora_fin);
+  const en = a.hora_supuesta;
+  if (ini === null || fin === null || (en !== "inicio" && en !== "fin" && en !== "ambas")) return null;
+  const h = horasEnManana({ desde: ini, hasta: fin }, en);
+  if (!h) return null;
+  return { tipo: "apartar", desde: a.desde, hasta: a.desde, rato: "horas", hora_inicio: hhmmIso(h.desde), hora_fin: hhmmIso(h.hasta), motivo: a.motivo ?? null, periodo_confirmado: true };
+}
+
 /** Días de la semana que nombró el corredor, si los únicos días que dijo son esos (para revisar al modelo). */
 function diasNombrados(texto: string): Set<number> | null {
   const t = ` ${sinTildes(texto)} `;
@@ -247,7 +289,7 @@ export function revisarOperaciones(crudas: unknown, ctx: { ahora: Date; zona: st
         nota(`Las horas del ${fechaTexto(desde)} no cuadran (tienen que ser en cuartos de hora y la primera antes que la segunda).`);
         continue;
       }
-      if (a < 6 * 60) {
+      if (a < 6 * 60 && !c.periodo_confirmado) {
         out.dudas.push({
           pregunta: `¿Las ${reloj(a)} del ${fechaTexto(desde)} son de la mañana o de la tarde?`,
           opciones: [`A las ${reloj(a)} de la mañana`, `A las ${reloj(a)} de la tarde`],
@@ -256,6 +298,14 @@ export function revisarOperaciones(crudas: unknown, ctx: { ahora: Date; zona: st
       }
       horas = [a, b];
     }
+    // Hora que se entendió de la tarde sin que lo dijera: se marca para que la tarjeta se lo muestre.
+    let supuesta: HoraSupuesta | undefined;
+    if (horas && !c.periodo_confirmado) {
+      const dada = c.hora_supuesta;
+      const en = dada === undefined ? detectarHoraSupuesta(ctx.texto, horas[0], horas[1]) : dada === "inicio" || dada === "fin" || dada === "ambas" ? dada : undefined;
+      if (en && horasEnManana({ desde: horas[0], hasta: horas[1] }, en)) supuesta = en;
+    }
+    const marcas = (x: Apartado): Apartado => ({ ...x, ...(supuesta ? { hora_supuesta: supuesta } : {}), ...(c.periodo_confirmado && horas ? { hora_confirmada: true } : {}) });
     const motivo = textoLimpio(c.motivo, 60) || null;
     const r = c.repetir;
     if (r && typeof r === "object") {
@@ -272,7 +322,7 @@ export function revisarOperaciones(crudas: unknown, ctx: { ahora: Date; zona: st
       for (let d = diasEntre(hoy, desde) < 0 ? hoy : desde; diasEntre(d, fin) >= 0; d = sumarDias(d, 1)) {
         if (!dias.includes(d.diaSemana)) continue;
         if (yaPaso(d, horas ? horas[1] : rato === "horas" ? 24 * 60 : PARTES[rato as Parte].hasta)) continue;
-        poner(armar(d, d, rato, horas, motivo, zona));
+        poner(marcas(armar(d, d, rato, horas, motivo, zona)));
       }
       continue;
     }
@@ -300,11 +350,11 @@ export function revisarOperaciones(crudas: unknown, ctx: { ahora: Date; zona: st
         nota(`Ese rato de hoy ya pasó; no lo aparté.`);
         continue;
       }
-      poner(armar(inicioReal, hasta, rato, horas, motivo, zona));
+      poner(marcas(armar(inicioReal, hasta, rato, horas, motivo, zona)));
     } else {
       // La mañana (o unas horas) de varios días: uno por día, como en el formulario.
       for (let d = inicioReal; diasEntre(d, hasta) >= 0; d = sumarDias(d, 1)) {
-        if (!yaPaso(d, finMin)) poner(armar(d, d, rato, horas, motivo, zona));
+        if (!yaPaso(d, finMin)) poner(marcas(armar(d, d, rato, horas, motivo, zona)));
       }
     }
   }
@@ -323,6 +373,7 @@ export function operacionDeCodigo(p: PedidoBloqueo): OperacionApartarCruda {
     hora_inicio: p.horas ? hhmmIso(p.horas.desde) : null,
     hora_fin: p.horas ? hhmmIso(Math.min(p.horas.hasta, 23 * 60 + 45)) : null,
     motivo: p.motivo,
+    ...(p.horaSupuesta ? { hora_supuesta: p.horaSupuesta } : {}),
   };
 }
 

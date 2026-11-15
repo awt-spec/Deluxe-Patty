@@ -26,6 +26,10 @@ export const LIMITES = {
   regla: 200,
   reglas: 30,
   motivo: 300,
+  tema: 200,
+  respuesta: 2000,
+  /** Un mensaje de texto de WhatsApp admite hasta 4.096 caracteres. */
+  mensajeCliente: 4096,
 } as const;
 
 const miles = (n: number) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
@@ -41,7 +45,7 @@ export function textoLibre(
 ): { ok: true; valor: string | null } | { ok: false; motivo: string } {
   const limpio = limpiarTexto(valor).trim();
   if (limpio.length > max) {
-    return { ok: false, motivo: `${nombre} es muy largo: hasta ${miles(max)} letras (tiene ${miles(limpio.length)}).` };
+    return { ok: false, motivo: `${nombre} es muy ${/^(la|una)\s/i.test(nombre) ? "larga" : "largo"}: hasta ${miles(max)} letras (tiene ${miles(limpio.length)}).` };
   }
   return { ok: true, valor: limpio || null };
 }

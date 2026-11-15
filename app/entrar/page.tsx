@@ -22,7 +22,11 @@ export default async function Entrar({ searchParams }: { searchParams: Promise<{
   const volverA = esRutaInterna(volverPedido) ? volverPedido : null;
   const corredor = slugValido(c) ? c : null;
   const marca = await marcaDeEntrada(corredor);
-  const volver = corredor ? `/entrar?c=${corredor}` : "/entrar";
+  // "Pedir otro enlace" vuelve a la entrada con la misma marca y la misma pantalla a la que volver.
+  const otra = new URLSearchParams();
+  if (corredor) otra.set("c", corredor);
+  if (volverA) otra.set("volver", volverA);
+  const volver = otra.size ? `/entrar?${otra}` : "/entrar";
 
   if (aviso === "enviado") {
     return (

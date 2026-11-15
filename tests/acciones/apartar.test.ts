@@ -149,3 +149,33 @@ describe("Guardar y deshacer", () => {
     expect(filas.map((b) => b.inicio)).toEqual(["2026-11-20T06:00:00.000Z"]);
   });
 });
+
+describe("«¿Era de la mañana?» (cambiarAMananaPanel)", () => {
+  it("entender marca la hora supuesta; cambiarla recalcula el renglón sin llamar a la IA y con los choques solo del corredor", async () => {
+    const r = await acciones.entenderApartadoPanel("apartar el martes a las 3");
+    expect(r).toMatchObject({ ok: true, propuesta: { fuente: "codigo", apartados: [{ hora_inicio: "15:00", hora_fin: "16:00", hora_supuesta: "ambas" }] } });
+    expect(entenderApartado).not.toHaveBeenCalled();
+    const renglon = (r as { propuesta: { apartados: unknown[] } }).propuesta.apartados[0];
+    const c = await acciones.cambiarAMananaPanel(renglon);
+    expect(c).toMatchObject({ ok: true, renglon: { hora_inicio: "03:00", hora_fin: "04:00", hora_confirmada: true, choques: [] } });
+    expect((c as { renglon: { hora_supuesta?: string } }).renglon.hora_supuesta).toBeUndefined();
+    expect(entenderApartado).not.toHaveBeenCalled();
+    expect(estado.sesion!.supabase.escrituras).toEqual([]);
+  });
+
+  it("lo que ya confirmó se puede guardar (las 3 a. m. no se vuelven duda) y solo escribe en el corredor de la sesión", async () => {
+    const r = await acciones.entenderApartadoPanel("apartar el martes a las 3");
+    const renglon = (r as { propuesta: { apartados: unknown[] } }).propuesta.apartados[0];
+    const c = (await acciones.cambiarAMananaPanel(renglon)) as { renglon: unknown };
+    const g = await acciones.guardarApartadosPanel([c.renglon], []);
+    expect(g).toMatchObject({ ok: true });
+    for (const e of estado.sesion!.supabase.escrituras) expect(JSON.stringify(e)).not.toContain(ID.otro);
+    expect(estado.sesion!.supabase.tablas.bloqueos_agenda.filter((b) => b.corredor_id === ID.otro)).toHaveLength(1);
+  });
+
+  it("un renglón sin hora supuesta o inventado no se cambia", async () => {
+    expect(await acciones.cambiarAMananaPanel({ desde: "2026-11-17", hora_inicio: "09:00", hora_fin: "10:00" })).toMatchObject({ ok: false });
+    expect(await acciones.cambiarAMananaPanel(null)).toMatchObject({ ok: false });
+  });
+});
+

@@ -4,9 +4,9 @@ import { crearRepositorioSupabase } from "@/lib/datos/repositorio";
 import { fechaCorta } from "@/lib/formato";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import Link from "next/link";
-import { Aviso } from "../aviso";
-import { IconoAnuncio, IconoCasa } from "../iconos";
-import { EncabezadoPagina, Vacio } from "../piezas";
+import { Aviso } from "../../aviso";
+import { IconoAnuncio, IconoCasa } from "../../iconos";
+import { EncabezadoPagina, Vacio } from "../../piezas";
 
 type Texto = {
   es?: { titulo: string; descripcion: string };

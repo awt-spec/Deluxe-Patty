@@ -3,7 +3,7 @@
 import { createHash } from "node:crypto";
 import { crearRepositorioSupabase } from "@/lib/datos/repositorio";
 import { errorSeguro } from "@/lib/monitoreo/errores";
-import { ensenarAlCerebro } from "@/lib/panel/cerebro";
+import { ensenarAlCerebro, textoParaCerebro } from "@/lib/panel/cerebro";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { pedidoValido, queGuardar, type PlanGuardado } from "@/lib/simulador/calificar";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -38,6 +38,10 @@ export async function calificarRespuesta(entrada: unknown): Promise<RespuestaCal
   if (!pedido) return { ok: false, error: "Elige qué estuvo mal." };
   const plan = queGuardar(pedido);
   if (plan.irAAjustes || (!plan.correccion && !plan.conocimiento && !plan.duda)) return { ok: true, plan };
+  if (plan.conocimiento) {
+    const limpio = textoParaCerebro(plan.conocimiento.tema, plan.conocimiento.respuesta);
+    if (!limpio.ok) return { ok: false, error: limpio.motivo };
+  }
   const repo = crearRepositorioSupabase(createAdminClient());
   try {
     if (plan.correccion) {
