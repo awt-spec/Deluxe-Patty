@@ -3,6 +3,7 @@ import { marcaDeEntrada } from "@/lib/panel/marca";
 import { redirect } from "next/navigation";
 import { esSuperadmin } from "@/lib/admin/superadmin";
 import { sesionCorredor } from "@/lib/panel/sesion";
+import { tokensDelCorredor } from "@/lib/panel/tokens";
 import { salir } from "./acciones";
 import { limitesDia } from "@/lib/agenda/tiempo";
 import { MenuLateral } from "./menu-lateral";
@@ -37,7 +38,7 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
   // el número que se ve sobre "Chats".
   // Y las visitas de hoy por hacer (solo el número, con el índice de citas por corredor e inicio): van en Agenda.
   const hoy = limitesDia(new Date(), corredor.zona_horaria || "America/Costa_Rica");
-  const [{ data: borradores }, { data: escaladas }, { count: visitasHoy, error: errorVisitas }, superadmin] = await Promise.all([
+  const [{ data: borradores }, { data: escaladas }, { count: visitasHoy, error: errorVisitas }, superadmin, tokens] = await Promise.all([
     supabase.from("mensajes").select("conversacion_id").eq("corredor_id", corredor.id).eq("estado_borrador", "pendiente"),
     supabase.from("conversaciones").select("id").eq("corredor_id", corredor.id).eq("estado", "escalada"),
     supabase
@@ -48,6 +49,7 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
       .gte("inicio", hoy.desde.toISOString())
       .lt("inicio", hoy.hasta.toISOString()),
     esSuperadmin(usuario.email),
+    tokensDelCorredor(corredor.id),
   ]);
   // Logo del corredor para el menú: una URL tal cual, o el archivo de marcas/ servido por /marca/<slug>/logo.
   const logoMarca = corredor.marca?.logoSobreProfundo ?? null;
@@ -92,6 +94,7 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
         nombre={corredor.nombre_contacto ?? ""}
         asistente={corredor.nombre_asistente ?? "Patty"}
         superadmin={superadmin}
+        tokens={tokens}
       />
       <Patty nombre={corredor.nombre_asistente ?? "Patty"} corredor={corredor.id} />
       <TirasDesliza />

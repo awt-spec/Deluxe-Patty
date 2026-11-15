@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 88 72" fill="none">
+  <style>
+    .fondo { fill: #e3f3ec; } .casa { fill: #ffffff; stroke: #0b6b57; } .techo { fill: #008069; } .puerta { fill: #b9e3d3; }
+    .lupa { stroke: #0b6b57; } .vidrio { fill: #ffffff; fill-opacity: .85; } .chispa { fill: #25d366; } .suelo { stroke: #c6e5d8; }
+    @media (prefers-color-scheme: dark) {
+      .fondo { fill: #143128; } .casa { fill: #1b2b33; stroke: #5fd3a6; } .techo { fill: #00a884; } .puerta { fill: #24584a; }
+      .lupa { stroke: #5fd3a6; } .vidrio { fill: #1b2b33; fill-opacity: .9; } .suelo { stroke: #24584a; }
+    }
+  </style>
+  <circle class="fondo" cx="40" cy="36" r="32"/>
+  <path class="suelo" d="M14 60h52" stroke-width="2" stroke-linecap="round"/>
+  <path class="casa" d="M22 37.5V58h30V37.5" stroke-width="2.4" stroke-linejoin="round"/>
+  <path class="techo" d="M18.5 39.5L37 23.5l18.5 16-2.6 2.4L37 28.4 21.1 41.9z"/>
+  <rect class="puerta" x="32.5" y="45" width="9" height="13" rx="2"/>
+  <circle class="vidrio lupa" cx="60" cy="44" r="9" stroke-width="3"/>
+  <path class="lupa" d="M66.5 50.5l6 6" stroke-width="3.6" stroke-linecap="round"/>
+  <path class="chispa" d="M66 14l1.6 4.4L72 20l-4.4 1.6L66 26l-1.6-4.4L60 20l4.4-1.6z"/>
+  <circle class="chispa" cx="15" cy="22" r="2.2"/>
+</svg>

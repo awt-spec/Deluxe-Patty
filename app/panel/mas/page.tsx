@@ -17,6 +17,8 @@ import {
 } from "../iconos";
 import { NOMBRE_CEREBRO } from "../cerebro/nombre";
 import { EncabezadoPagina } from "../piezas";
+import { TokensTarjeta } from "../tokens-ia";
+import { tokensDelCorredor } from "@/lib/panel/tokens";
 
 // Lo que no se usa todos los días. Lo que ya tiene su pestaña (agenda, horario, clientes) no se repite aquí.
 const GRUPOS = [
@@ -37,7 +39,11 @@ const GRUPOS = [
 
 export default async function Mas() {
   const { supabase, corredor, corredores, usuario } = await sesionConCorredor();
-  const [superadmin, puesta] = await Promise.all([esSuperadmin(usuario.email), datosPuesta(supabase, corredor).then(estadoPuesta)]);
+  const [superadmin, puesta, tokens] = await Promise.all([
+    esSuperadmin(usuario.email),
+    datosPuesta(supabase, corredor).then(estadoPuesta),
+    tokensDelCorredor(corredor.id),
+  ]);
   return (
     <>
       <EncabezadoPagina titulo="Más" apoyo="Lo que no usas todos los días: herramientas, ajustes y tu cuenta." atras={{ href: "/panel", texto: "Inicio" }} />
@@ -62,6 +68,10 @@ export default async function Mas() {
           </li>
         </ul>
       )}
+
+      <div style={{ marginBottom: 18 }}>
+        <TokensTarjeta estado={tokens} />
+      </div>
 
       <nav aria-label="Más opciones" className="mas-grupos">
         {GRUPOS.map((grupo, i) => (

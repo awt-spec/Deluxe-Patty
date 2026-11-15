@@ -1,4 +1,5 @@
 // Piezas comunes de /admin (solo presentación).
+import { cifraTokens, estadoTokens } from "@/lib/ia/tokens";
 
 export const usd = (n: number) => `$${n.toLocaleString("es-CR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 export const fechaEn = (zona: string, d = new Date()) => new Intl.DateTimeFormat("en-CA", { timeZone: zona }).format(d);
@@ -44,3 +45,22 @@ export function Cifra({ valor, etiqueta, tono }: { valor: React.ReactNode; etiqu
     </div>
   );
 }
+
+/** Tokens de IA del mes de un corredor (lo que él ve): usados de total, con la misma barra. */
+export function TokensMes({ gastoMes, topeMes }: { gastoMes: number; topeMes: number }) {
+  const e = estadoTokens({ gastoMesUsd: gastoMes, topeMesUsd: topeMes });
+  return (
+    <span className="adm-uso-fila">
+      <span>
+        Tokens del mes{" "}
+        <strong>
+          {cifraTokens(e.usados)} <span className="adm-suave">de {cifraTokens(e.total)}</span>
+        </strong>
+        {e.nivel === "agotado" ? <em className="adm-rojo"> · agotados</em> : e.nivel === "poco" ? <em className="adm-ambar"> · quedan pocos</em> : null}
+      </span>
+      <Barra gasto={e.usados} tope={e.total} />
+    </span>
+  );
+}
+
+export const EXPLICA_TOKENS = "El corredor ve su tope del mes como tokens: 1 dólar = 100 tokens (1 token = 1 centavo). Se guarda en dólares.";

@@ -6,6 +6,11 @@ import { compararVersiones } from "@/lib/panel/extension-instalar";
 
 const NOVEDADES: { version: string; texto: (asistente: string) => string }[] = [
   {
+    version: "1.5.0",
+    texto: (a) =>
+      `El panel de ${a} se ve más claro: el avance en un círculo, los pasos por minuto, cuántos tokens de IA te quedan este mes y botones grandes para buscar dueños o leer el anuncio que estás viendo.`,
+  },
+  {
     version: "1.4.1",
     texto: (a) =>
       `Arregla detalles: en pausa, ${a} se hace a un lado en una ficha chica para que uses la página, y si Chrome la interrumpe guarda lo leído y te lo dice.`,

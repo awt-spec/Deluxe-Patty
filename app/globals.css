@@ -12385,3 +12385,140 @@ html body .marco.tema :is(input[type="time"], input[type="date"], input[type="da
 .noscript-aviso {
   margin: 16px;
 }
+
+/* ================================================================================================
+   Tokens de IA (app/panel/tokens-ia.tsx): cuánta IA le queda al corredor en el mes, sin dinero. Paleta --t-*
+   = PALETA_TOKENS de lib/panel/colores-menu.ts (tests/colores-menu.test.ts comprueba que coincidan y pasen AA).
+   ================================================================================================ */
+.marco.tema {
+  --t-pista: #e9edef;
+  --t-bien: #008069;
+  --t-poco: #b45309;
+  --t-agotado: #b42318;
+  --t-fondo-poco: #fff7e6;
+  --t-texto-poco: #7a3e00;
+  --t-fondo-agotado: #fef3f2;
+  --t-texto-agotado: #912018;
+}
+.tk {
+  --tk-color: var(--t-bien);
+}
+.tk.tk-poco {
+  --tk-color: var(--t-poco);
+}
+.tk.tk-agotado {
+  --tk-color: var(--t-agotado);
+}
+.tk .tk-barra {
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--t-pista);
+  overflow: hidden;
+}
+.tk .tk-barra > i {
+  display: block;
+  height: 100%;
+  min-width: 0;
+  border-radius: inherit;
+  background: var(--tk-color);
+}
+.tk.tk-agotado .tk-barra > i {
+  width: 100% !important;
+}
+.tk .tk-pista {
+  stroke: var(--t-pista);
+}
+.tk .tk-relleno {
+  stroke: var(--tk-color);
+}
+.tk .tk-aviso {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+.tk.tk-poco .tk-aviso {
+  background: var(--t-fondo-poco);
+  color: var(--t-texto-poco);
+}
+.tk.tk-agotado .tk-aviso {
+  background: var(--t-fondo-agotado);
+  color: var(--t-texto-agotado);
+}
+.tk-tarjeta .fila strong {
+  color: var(--m-texto, #111b21);
+}
+.tk-tarjeta.tk-agotado .fila strong {
+  color: var(--t-texto-agotado);
+}
+/* En el menú lateral: una fila sobre la cuenta; en el riel contraído, solo el anillo con su globo. */
+.tk-menu {
+  display: none;
+}
+@media (min-width: 900px) {
+  .marco.tema .lateral .tk-menu {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0 0 4px;
+    padding: 8px;
+    border-radius: 12px;
+    color: var(--m-texto);
+    text-decoration: none;
+    transition: background-color 0.12s;
+  }
+  .marco.tema .lateral .tk-menu:hover {
+    background: var(--m-hover);
+  }
+  .marco.tema .lateral .tk-menu:focus-visible {
+    outline: 2px solid var(--m-verde);
+    outline-offset: 2px;
+  }
+  .marco.tema .lateral .tk-menu .tk-icono-riel {
+    display: none;
+  }
+  .marco.tema .lateral .tk-menu .tk-cuerpo {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    gap: 6px;
+  }
+  .marco.tema .lateral .tk-menu .tk-linea {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--m-suave);
+  }
+  .marco.tema .lateral .tk-menu .tk-linea strong {
+    color: var(--m-texto);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .marco.tema .lateral .tk-menu.tk-agotado .tk-linea strong {
+    color: var(--t-texto-agotado);
+  }
+  .marco.tema .lateral .tk-menu .tk-suave {
+    color: var(--m-suave);
+    font-weight: 400;
+  }
+  .marco.tema .lateral.plegado .tk-menu {
+    justify-content: center;
+    width: 48px;
+    margin: 0 auto 4px;
+    padding: 8px;
+  }
+  .marco.tema .lateral.plegado .tk-menu .tk-icono-riel {
+    display: inline-flex;
+  }
+  .marco.tema .lateral.plegado .tk-menu .tk-cuerpo {
+    display: none;
+  }
+}
+.adm-tokens {
+  display: block;
+  margin-top: 2px;
+  font-weight: 400;
+}

@@ -95,6 +95,13 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   pestaña" que se aparta de lo que mira, con borde que brilla y cursor con onda (respeta `prefers-reduced-motion`). Solo abre
   direcciones de `https://www.encuentra24.com` (`esUrlDeE24`), `storage.local` es solo para contextos de confianza y el zip
   lleva una lista fija de archivos (`ARCHIVOS_EXTENSION`; en producción exige https).
+  La 1.5.0 rediseña el panel lateral (claro y oscuro con contraste AA, letra del sistema, foco visible): cabecera con aro,
+  estado en una palabra y conexión; tarjeta "Ahora" con anillo de avance (3/12), tiempo y botones grandes; pasos por minuto con
+  los viejos plegados (`agruparPasos`); en reposo, "Buscar dueños ahora" y "Leer este anuncio" (solo en un anuncio; si no, dice
+  por qué, `accionLeer`), la semanal como interruptor y el último resultado en tarjeta chica; ilustraciones SVG del paquete
+  (`ilustra-*.svg`). Tarjeta **Tokens de IA** (`vistaTokens`): el campo `tokens` de `GET /api/extension/estado` (pedido
+  `ver_tokens` al abrir el panel y de nuevo al terminar cada búsqueda), verde, ámbar con ≤ 15 % o rojo con "Se acabaron los
+  tokens de este mes"; sin datos no se muestra. La píldora, la ficha de pausa y la etiqueta del cursor de `control.js` van como vidrio.
   El worker con Playwright (`worker/busqueda-duenos.ts`, `npm run duenos` con Chrome visible) usa el mismo
   recorrido y evaluación (`lib/encuentra24/busqueda.ts`) y queda para soporte;
   `.github/workflows/busqueda-duenos.yml` solo para pruebas a mano.
@@ -130,6 +137,10 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   `lib/admin/superadmin.ts`; quién lo es: tabla `superadmins`, por correo): los de la plataforma (`plataforma`) y,
   si hace falta, uno propio por corredor (`corredores.tope_ia_dia_usd` / `tope_ia_mes_usd`, vacío = plataforma, 0 =
   apagado) y si puede usar imágenes (`imagenes_activas`). El corredor no los puede leer ni cambiar fuera de su fila.
+  El corredor no ve dinero sino **tokens de IA** (`lib/ia/tokens.ts`: 1 dólar = 100 tokens, hacia abajo; el tanque es el tope
+  del mes de `presupuesto_ia()`; ámbar con ≤ 15 %, rojo agotado o tope 0): barra en el menú lateral (anillo en el riel), Ajustes
+  y Más (`app/panel/tokens-ia.tsx`, colores `PALETA_TOKENS`); `/admin` muestra el equivalente en vivo (`campo-usd.tsx`) y la
+  extensión lo lee en `GET /api/extension/estado` (`tokens`).
   `/admin` tiene cinco secciones (menú lateral; en el teléfono, pestañas): **Resumen** (cifras, "Atención" con lo
   que falta o se pasa, alertas), **Corredores** (y `/admin/corredores/<id>`: Phone number ID, número de la asistente,
   celular del corredor, activo, respuesta automática, topes, accesos y "Probar WhatsApp"), **WhatsApp** (diagnóstico

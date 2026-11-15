@@ -1,4 +1,4 @@
-// Panel lateral de la extensión (desde la 1.4.0): se abre con el botón de la extensión, junto a la página. Muestra a la
+// Panel lateral de la extensión (desde la 1.4.0; rediseñado en la 1.5.0): se abre con el botón de la extensión, junto a la página. Muestra a la
 // asistente trabajando (cabecera, avance y cada paso) y, en reposo, lo que antes hacía el popup: Leer este anuncio,
 // Buscar dueños ahora, la búsqueda semanal y el último resultado.
 //
@@ -6,7 +6,7 @@
 // que validan mensajes.js y maquina.js. Dibuja con textContent y createElement, sin armar HTML con texto.
 import { APP } from "./config.js";
 import { esPaginaDeAnuncio } from "./comun.js";
-import { latidoViejo, vistaPanel } from "./vista-panel.js";
+import { accionLeer, latidoViejo, textoUltima, vistaPanel } from "./vista-panel.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -55,34 +55,61 @@ async function pestanaDeAnuncio() {
   }
 }
 
-const hace = (n) => (n === 0 ? "hoy" : n === 1 ? "ayer" : `hace ${n} días`);
-
 // Para animar solo los pasos nuevos.
 let pasosVistos = null;
 
-function pintarPasos(pasos) {
-  const lista = $("pasos");
+function filaPaso(p, antes, claves) {
+  const li = document.createElement("li");
+  li.dataset.icono = p.icono;
+  const ic = document.createElement("span");
+  ic.className = "icono";
+  ic.append(icono(p.icono));
+  const texto = document.createElement("span");
+  texto.className = "paso-texto";
+  texto.textContent = p.texto;
+  li.append(ic, texto);
+  const clave = `${p.hora}|${p.icono}|${p.texto}`;
+  if (antes && !antes.has(clave)) li.classList.add("nuevo");
+  claves.push(clave);
+  return li;
+}
+
+/** Un grupo de pasos del mismo minuto: la hora una vez y sus pasos unidos por una línea. */
+function grupoPasos(g, antes, claves) {
+  const caja = document.createElement("div");
+  caja.className = "grupo";
+  const hora = document.createElement("time");
+  hora.className = "grupo-hora";
+  hora.textContent = g.hora || "—";
+  const lista = document.createElement("ol");
+  lista.className = "pasos";
+  lista.append(...g.pasos.map((p) => filaPaso(p, antes, claves)));
+  caja.append(hora, lista);
+  return caja;
+}
+
+function pintarPasos(grupos, total) {
   const antes = pasosVistos;
-  const filas = pasos.map((p) => {
-    const li = document.createElement("li");
-    li.dataset.icono = p.icono;
-    const ic = document.createElement("span");
-    ic.className = "icono";
-    ic.append(icono(p.icono));
-    const texto = document.createElement("span");
-    texto.className = "paso-texto";
-    texto.textContent = p.texto;
-    const hora = document.createElement("time");
-    hora.className = "paso-hora";
-    hora.textContent = p.hora;
-    li.append(ic, texto, hora);
-    const clave = `${p.hora}|${p.icono}|${p.texto}`;
-    if (antes && !antes.has(clave)) li.classList.add("nuevo");
-    return { li, clave };
-  });
-  pasosVistos = new Set(filas.map((f) => f.clave));
-  lista.replaceChildren(...filas.map((f) => f.li));
-  $("sin-pasos").hidden = pasos.length > 0;
+  const claves = [];
+  $("grupos").replaceChildren(...grupos.recientes.map((g) => grupoPasos(g, antes, claves)));
+  $("grupos-anteriores").replaceChildren(...grupos.anteriores.map((g) => grupoPasos(g, antes, claves)));
+  $("anteriores").hidden = grupos.ocultos === 0;
+  $("anteriores-resumen").textContent = grupos.ocultos === 1 ? "Ver 1 paso anterior" : `Ver ${grupos.ocultos} pasos anteriores`;
+  pasosVistos = new Set(claves);
+  $("sin-pasos").hidden = total > 0;
+}
+
+function pintarTokens(t) {
+  $("tokens").hidden = !t;
+  if (!t) return;
+  $("tokens").dataset.nivel = t.nivel;
+  $("tokens-texto").textContent = t.texto;
+  $("tokens-detalle").textContent = t.detalle;
+  $("tokens-detalle").hidden = !t.detalle;
+  $("tokens-barra-pista").hidden = t.uso === null;
+  $("tokens-barra").style.width = `${Math.round((t.uso ?? 0) * 100)}%`;
+  $("tokens-aviso").textContent = t.aviso;
+  $("tokens-aviso").hidden = !t.aviso;
 }
 
 /** Dibuja todo desde la vista (vista-panel.js) y lo de la pestaña activa. */
@@ -93,13 +120,15 @@ function dibujar(v, extra = {}) {
   $("nombre").title = c.nombre;
   $("inicial").textContent = c.inicial;
   $("avatar").dataset.tono = c.tono;
+  $("cabeza").dataset.tono = c.tono;
+  $("estado-texto").textContent = c.estado;
+  // Sin conectar ya lo dice la línea de la conexión.
+  $("estado").hidden = !c.conectada;
   $("conexion-texto").textContent = c.conexion;
   $("conexion-texto").title = c.conexion;
   $("conexion").dataset.conectada = c.conectada ? "si" : "no";
-  $("progreso").hidden = c.progreso === null;
-  $("progreso").dataset.tono = c.tono;
-  $("progreso-barra").style.width = `${Math.round((c.progreso ?? 0) * 100)}%`;
-  $("progreso-texto").textContent = c.progresoTexto;
+  $("linea-avance").hidden = c.progreso === null;
+  $("linea-barra").style.width = `${Math.round((c.progreso ?? 0) * 100)}%`;
 
   $("sin-conectar").hidden = v.conectada;
   $("conectada").hidden = !v.conectada;
@@ -113,34 +142,49 @@ function dibujar(v, extra = {}) {
     $("en-curso").dataset.fase = e.fase;
     $("en-curso-titulo").textContent = e.titulo;
     $("en-curso-detalle").textContent = e.detalle;
+    $("anillo").dataset.conNumero = e.avance ? "si" : "no";
+    $("anillo-texto").textContent = e.avance?.texto ?? "";
+    $("anillo-valor").style.strokeDashoffset = String(100 - Math.round((e.avance?.pct ?? 0) * 100));
+    // El anillo dice la página ("3/12"); para quien no lo ve, la misma cifra va en su etiqueta.
+    $("anillo").setAttribute("aria-label", c.progresoTexto);
+    $("anillo").toggleAttribute("aria-hidden", !c.progresoTexto);
+    if (c.progresoTexto) $("anillo").setAttribute("role", "img");
+    else $("anillo").removeAttribute("role");
     $("en-curso-tiempo").textContent = e.tiempo;
-    $("en-curso-tiempo").hidden = !e.tiempo;
+    $("en-curso-tiempo-chip").hidden = !e.tiempo;
     $("pausar").hidden = !e.botones.pausar;
     $("seguir").hidden = !e.botones.seguir;
     $("detener").hidden = !e.botones.detener;
-    $("detener").textContent = e.botones.detenerTexto;
+    $("detener-texto").textContent = e.botones.detenerTexto;
   }
-  mostrar("resultado", v.resultado?.texto ?? "", v.resultado?.error === true);
 
-  // Leer este anuncio (solo en la página de un anuncio).
+  // El último resultado, en una tarjeta chica.
+  const r = v.resultado;
+  const ultima = textoUltima(extra.ultimaDias);
+  $("resultado-tarjeta").hidden = !r && !ultima;
+  $("resultado-tarjeta").dataset.error = r?.error ? "si" : "no";
+  // Sin resultado guardado, la tarjeta solo dice cuándo fue la última búsqueda.
+  $("resultado-titulo").textContent = r ? (r.error ? "No se pudo terminar" : "Último resultado") : "Última búsqueda";
+  $("resultado").textContent = r?.texto ?? (ultima ? ultima.replace(/^Última búsqueda: (.)/, (_, l) => l.toUpperCase()) + "." : "");
+  $("ultima").textContent = r && ultima ? `${ultima}.` : "";
+  $("ultima").hidden = !(r && ultima);
+
+  // Leer este anuncio: activo solo en la página de un anuncio; si no, dice por qué.
   const l = extra.anuncio;
-  $("anuncio-si").hidden = !l;
-  $("anuncio-no").hidden = !!l;
-  if (l) {
-    $("leer").disabled = l.leyendo;
-    $("leer").textContent = l.leyendo ? "Leyendo…" : "Leer este anuncio";
-    mostrar("lectura", l.mensaje ?? "", l.fase === "error");
-    $("abrir-casa").hidden = !(l.fase === "listo" && l.ruta);
-    $("abrir-casa").dataset.ruta = l.ruta ?? "";
-  }
+  const leer = accionLeer({ enAnuncio: !!l, leyendo: !!l?.leyendo });
+  $("leer").disabled = !leer.activo;
+  $("leer-texto").textContent = leer.texto;
+  $("leer-motivo").textContent = leer.motivo;
+  mostrar("lectura", l?.mensaje ?? "", l?.fase === "error");
+  $("abrir-casa").hidden = !(l && l.fase === "listo" && l.ruta);
+  $("abrir-casa").dataset.ruta = l?.ruta ?? "";
 
   $("buscar-sola").checked = extra.sola !== false;
   $("modo").disabled = extra.sola === false;
   for (const r of document.querySelectorAll('input[name="modo"]')) r.checked = r.value === (extra.modo === "vista" ? "vista" : "fondo");
-  $("ultima").hidden = typeof extra.ultimaDias !== "number";
-  $("ultima").textContent = typeof extra.ultimaDias === "number" ? `Última búsqueda: ${hace(extra.ultimaDias)}.` : "";
 
-  pintarPasos(v.pasos);
+  pintarTokens(v.tokens);
+  pintarPasos(v.grupos, v.pasos.length);
 }
 
 let preguntando = false;
@@ -154,7 +198,7 @@ function preguntarEstado() {
 }
 
 async function pintar() {
-  const g = await chrome.storage.local.get(["token", "corredor", "asistente", "busqueda", "bitacora", "lectura", "buscarSola", "modoSemanal", "ultimaDias"]);
+  const g = await chrome.storage.local.get(["token", "corredor", "asistente", "busqueda", "bitacora", "lectura", "buscarSola", "modoSemanal", "ultimaDias", "tokens"]);
   const v = vistaPanel(g);
   // Latido viejo: se le pregunta al trabajador de fondo (lo despierta). Si se había reiniciado, marca la búsqueda como
   // interrumpida y el cambio en chrome.storage vuelve a dibujar el panel.
@@ -251,5 +295,7 @@ setInterval(() => {
     })
     .catch(() => {});
 }, 2_000);
-// Hace cuánto fue la última búsqueda (sin reservar nada en el servidor).
+// Hace cuánto fue la última búsqueda (sin reservar nada en el servidor) y los tokens de IA que quedan este mes. Al
+// terminar cada búsqueda el trabajador de fondo vuelve a pedir los tokens y el cambio en chrome.storage los redibuja.
 chrome.runtime.sendMessage({ tipo: "ver_ultima" }).catch(() => {});
+chrome.runtime.sendMessage({ tipo: "ver_tokens" }).catch(() => {});

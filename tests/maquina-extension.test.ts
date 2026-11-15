@@ -423,7 +423,7 @@ describe("el panel lateral (extension/vista-panel.js)", () => {
     expect(pausada.enCurso?.botones).toMatchObject({ pausar: false, seguir: true, detener: true });
     expect(pausada.cabecera.tono).toBe("pausa");
     const verif = vp.vistaPanel({ token: "t", busqueda: busqueda({ fase: "verificacion" }) }, AHORA);
-    expect(verif.enCurso).toMatchObject({ titulo: "Encuentra24 pide que confirmes que eres tú" });
+    expect(verif.enCurso).toMatchObject({ titulo: "Patty necesita tu ayuda", detalle: expect.stringMatching(/^Encuentra24 pide que confirmes/) });
     expect(verif.enCurso?.botones).toMatchObject({ seguir: true, detenerTexto: "Dejarlo para después" });
     expect(vp.vistaPanel({ token: "t", busqueda: busqueda({ fase: "revisando" }) }, AHORA).enCurso?.botones.detener).toBe(false);
   });
@@ -495,8 +495,8 @@ describe("seguridad de la extensión", () => {
     expect(normalizar("https://x.example/ruta")).toBeNull();
   });
 
-  it("1.4.1 con panel lateral y permisos mínimos", () => {
-    expect(manifiesto.version).toBe("1.4.1");
+  it("1.5.0 con panel lateral y permisos mínimos", () => {
+    expect(manifiesto.version).toBe("1.5.0");
     expect(manifiesto.side_panel.default_path).toBe("sidepanel.html");
     expect(manifiesto.action.default_popup).toBeUndefined();
     expect(manifiesto.permissions.sort()).toEqual(["alarms", "scripting", "sidePanel", "storage"]);
