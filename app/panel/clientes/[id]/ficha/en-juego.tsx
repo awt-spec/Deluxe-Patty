@@ -3,9 +3,10 @@ import { diaLargo } from "@/lib/agenda/formato";
 import { cuentaEnJuego, datosDelNegocio, liquidacionCierre } from "@/lib/crm/contable";
 import { monedaDe, reglaComision } from "@/lib/crm/dinero";
 import { precio } from "@/lib/formato";
-import { guardarCierre, guardarOportunidad } from "../../acciones";
+import { guardarOportunidad } from "../../acciones";
 import { TablaContable } from "../../../tabla-contable";
 import { SeccionPlegable } from "../movil";
+import { FormularioCierre } from "./formulario-cierre";
 import { FotoCasa } from "./foto-casa";
 import { juegoAbierto, modoJuego, resumenJuego, type EnJuego } from "./reglas";
 import type { CasaCorta, ClienteFicha } from "./tipos";
@@ -116,16 +117,17 @@ function Cerro({ c, casaCierre, zona, visitasHechas, comisionPct, todas }: DelCi
       <details className="fc-editar">
         <summary>Cambiar el cierre</summary>
         <FormularioCierre
-          c={c}
+          // Guardado el cambio, el formulario vuelve a empezar con las cifras nuevas; con un aviso, queda lo escrito.
+          key={`${c.cierre_precio}|${c.cierre_comision}|${c.cierre_moneda}|${casaCierre?.id ?? ""}`}
+          clienteId={c.id}
           prefijo="cambio"
-          alquiler={cuenta.alquiler}
-          operacion={operacion}
+          operacionCliente={(c.busca ?? {}).operacion ?? null}
           comisionPct={comisionPct}
           todas={todas}
           casaId={casaCierre?.id ?? ""}
           precio={precioFinal}
           moneda={moneda}
-          comision={c.cierre_comision}
+          actual={{ precio: precioFinal, moneda, comision: c.cierre_comision === null ? null : Number(c.cierre_comision), operacion }}
           boton="Guardar el cambio"
         />
       </details>
@@ -147,69 +149,16 @@ function AnotarCierre({ c, juego, casaInteres, todas, comisionPct }: Comun) {
     <FormularioCierre
       formId="cierre"
       titulo="¡Cerró! Anota cómo fue"
-      c={c}
+      clienteId={c.id}
       prefijo="cierre"
-      alquiler={juego.alquiler}
-      operacion={juego.operacion}
+      operacionCliente={(c.busca ?? {}).operacion ?? null}
       comisionPct={comisionPct}
       todas={todas}
       casaId={casaInteres?.id ?? ""}
       precio={c.oferta_monto ?? casaInteres?.precio ?? null}
       moneda={juego.moneda}
-      comision={null}
       boton="Guardar el cierre"
     />
-  );
-}
-
-/** Casa, precio, moneda y comisión del cierre (guardarCierre): para anotarlo o, ya cerrado, corregirlo. */
-function FormularioCierre(p: {
-  formId?: string;
-  titulo?: string;
-  c: Pick<Negocio, "id">;
-  prefijo: string;
-  alquiler: boolean;
-  operacion: string | null;
-  comisionPct: number;
-  todas: CasaCorta[];
-  casaId: string;
-  precio: number | null;
-  moneda: string;
-  comision: number | null;
-  boton: string;
-}) {
-  const id = (k: string) => `${p.prefijo}-${k}`;
-  return (
-    <form action={guardarCierre} className="fc-form" id={p.formId}>
-      {p.titulo && <h2>{p.titulo}</h2>}
-      <input type="hidden" name="id" value={p.c.id} />
-      <label htmlFor={id("casa")}>Casa</label>
-      <select id={id("casa")} name="casa" defaultValue={p.casaId}>
-        <option value="">Ninguna de mis casas</option>
-        {p.todas.map((casa) => (
-          <option key={casa.id} value={casa.id}>
-            {casa.titulo}
-          </option>
-        ))}
-      </select>
-      <label htmlFor={id("precio")}>{p.alquiler ? "Renta mensual" : "Precio final"}</label>
-      <div className="fc-monto">
-        <input id={id("precio")} name="precio" type="text" inputMode="decimal" required defaultValue={p.precio ?? ""} />
-        <SelectorMoneda name="moneda" defecto={p.moneda} />
-      </div>
-      <label htmlFor={id("comision")}>Tu comisión (vacía: {reglaComision(p.comisionPct, p.operacion)})</label>
-      <input
-        id={id("comision")}
-        name="comision"
-        type="text"
-        inputMode="decimal"
-        defaultValue={p.comision ?? ""}
-        placeholder={p.alquiler ? "Un mes de renta" : `${p.comisionPct}% del precio`}
-      />
-      <button type="submit" className="primario">
-        {p.boton}
-      </button>
-    </form>
   );
 }
 

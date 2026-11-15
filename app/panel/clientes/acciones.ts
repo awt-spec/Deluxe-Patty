@@ -5,7 +5,9 @@ import { redirect } from "next/navigation";
 import { fechaIso, fechaLocal, sumarDias } from "@/lib/agenda/tiempo";
 import { normalizarZona } from "@/lib/agenda/zonas";
 import { anotar, type TipoActividad } from "@/lib/crm/actividades";
-import { comisionEstimada, monedaDe, montoExacto, validarCierre, validarOferta } from "@/lib/crm/dinero";
+import { comisionAlCorregir, validarCierre } from "@/lib/crm/cierre";
+import { montoContable, porcentaje } from "@/lib/crm/contable";
+import { comisionEstimada, monedaDe, validarOferta, type Moneda } from "@/lib/crm/dinero";
 import { ETAPAS, MOTIVOS_PERDIDA, NOMBRE_ETAPA, type Busca, type Etapa } from "@/lib/crm/perfil";
 import { LIMITES, leerNumero, limpiarTexto, normalizarTelefono, textoLibre } from "@/lib/panel/formularios";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -248,7 +250,7 @@ export async function guardarOportunidad(f: FormData) {
     .eq("id", id);
   if (error) volverA(id, "No se pudo guardar. Vuelve a intentarlo.");
   if (oferta && (oferta !== Number(antes?.oferta_monto ?? 0) || moneda !== antes?.oferta_moneda)) {
-    await anotar(db, corredor.id, id, "oferta", `Oferta de ${montoExacto(oferta, moneda)}${casa ? ` por ${casa.titulo}` : ""}`);
+    await anotar(db, corredor.id, id, "oferta", `Oferta de ${montoContable(oferta, moneda)}${casa ? ` por ${casa.titulo}` : ""}`);
   }
   if (pasa) await anotar(db, corredor.id, id, "etapa", "Pasó a Negociando");
   volverA(id, pasa ? "Guardado. Lo pasé a Negociando." : "Guardado.");
@@ -257,43 +259,70 @@ export async function guardarOportunidad(f: FormData) {
 type CorredorSesion = Awaited<ReturnType<typeof clientePropio>>;
 
 /**
- * Guarda el cierre: casa, precio, moneda y comisión (la escrita o la estimada según venta o alquiler).
- * Lo usan la ficha del cliente y el tablero (al soltar en "Cerró"). Devuelve false si no se guardó, o si fue un cierre
- * nuevo o la corrección de uno ya anotado.
+ * Lo que hace falta para validar y guardar un cierre: la casa (si es suya), si es venta o alquiler (lo dice la casa;
+ * si no hay casa, lo que el cliente buscaba) y el cierre anotado antes, para corregirlo.
+ */
+async function contextoCierre(corredorId: string, id: string, casaId: string | null) {
+  const db = createAdminClient();
+  const casa = casaId ? await casaPropia(corredorId, casaId) : null;
+  const { data: cliente } = await db
+    .from("contactos")
+    .select("busca, etapa, etapa_at, cierre_precio, cierre_comision, cierre_moneda, cierre_propiedad_id, cierre_at")
+    .eq("corredor_id", corredorId)
+    .eq("id", id)
+    .single();
+  const busca = (cliente?.busca as { operacion?: string } | null)?.operacion ?? null;
+  const operacion = casa?.operacion ?? busca;
+  const correccion = cliente?.etapa === "cerrado" && cliente.cierre_precio !== null && cliente.cierre_precio !== undefined;
+  let antes: { precio: number | null; moneda: string | null; comision: number | null; operacion: string | null } | null = null;
+  if (correccion) {
+    const casaAntes = cliente.cierre_propiedad_id ? await casaPropia(corredorId, String(cliente.cierre_propiedad_id)) : null;
+    antes = {
+      precio: Number(cliente.cierre_precio),
+      moneda: (cliente.cierre_moneda as string | null) ?? null,
+      comision: cliente.cierre_comision === null || cliente.cierre_comision === undefined ? null : Number(cliente.cierre_comision),
+      operacion: casaAntes?.operacion ?? busca,
+    };
+  }
+  return { casa, cliente, operacion, correccion, antes };
+}
+type Contexto = Awaited<ReturnType<typeof contextoCierre>>;
+
+/** Valida el cierre con la casa y la operación: el precio tiene que ser creíble frente a la lista (misma moneda). */
+const validarCon = (ctx: Contexto, precio: string, comision: string, moneda: Moneda) =>
+  validarCierre(precio, comision, moneda, { operacion: ctx.operacion, lista: ctx.casa ? { precio: ctx.casa.precio, moneda: ctx.casa.moneda } : null });
+
+/**
+ * Guarda el cierre: casa, precio, moneda y comisión (la escrita, la de antes si se corrige sin cambiar precio, moneda ni
+ * operación, o la estimada según venta o alquiler). Lo usan la ficha del cliente y el tablero (al soltar en "Cerró").
+ * Devuelve false si no se guardó, o si fue un cierre nuevo o la corrección de uno ya anotado.
  */
 async function registrarCierre(
   corredor: CorredorSesion,
   id: string,
-  casaId: string | null,
+  ctx: Contexto,
   precio: number,
-  moneda: "USD" | "CRC",
+  moneda: Moneda,
   comisionEscrita: number | null,
+  pct: number | null,
 ): Promise<false | "nuevo" | "corregido"> {
   const db = createAdminClient();
-  const casa = casaId ? await casaPropia(corredor.id, casaId) : null;
-  // Venta o alquiler: lo dice la casa; si no hay casa, lo que el cliente buscaba.
-  const { data: cliente } = await db
-    .from("contactos")
-    .select("busca, etapa, etapa_at, cierre_precio, cierre_at")
-    .eq("corredor_id", corredor.id)
-    .eq("id", id)
-    .single();
-  const operacion = casa?.operacion ?? (cliente?.busca as { operacion?: string } | null)?.operacion ?? null;
-  const comision = comisionEscrita ?? comisionEstimada(precio, corredor.comision_pct, operacion);
+  const { casa, cliente, operacion, correccion, antes } = ctx;
+  const comision =
+    comisionEscrita ?? (antes ? comisionAlCorregir(antes, { precio, moneda, operacion }) : null) ?? comisionEstimada(precio, corredor.comision_pct, operacion);
   const ahora = new Date().toISOString();
   // Corregir un cierre ya anotado ("Cambiar el cierre") no lo vuelve a fechar: se quedan el día del cierre y el de la etapa.
-  const correccion = cliente?.etapa === "cerrado" && cliente.cierre_precio !== null && cliente.cierre_precio !== undefined;
   const { error } = await db
     .from("contactos")
     .update({
       etapa: "cerrado",
-      etapa_at: correccion ? ((cliente.etapa_at as string | null) ?? ahora) : ahora,
+      etapa_at: correccion ? ((cliente?.etapa_at as string | null) ?? ahora) : ahora,
       motivo_perdida: null,
       cierre_propiedad_id: casa?.id ?? null,
       cierre_precio: precio,
       cierre_comision: comision,
       cierre_moneda: moneda,
-      cierre_at: correccion ? ((cliente.cierre_at as string | null) ?? ahora) : ahora,
+      cierre_at: correccion ? ((cliente?.cierre_at as string | null) ?? ahora) : ahora,
     })
     .eq("corredor_id", corredor.id)
     .eq("id", id);
@@ -303,7 +332,7 @@ async function registrarCierre(
     corredor.id,
     id,
     "cierre",
-    `${correccion ? "Cierre corregido: " : ""}${operacion === "alquiler" ? "Alquiló" : "Cerró"}${casa ? ` ${casa.titulo}` : ""} en ${montoExacto(precio, moneda)}${operacion === "alquiler" ? " al mes" : ""} · comisión ${montoExacto(comision, moneda)}`,
+    `${correccion ? "Cierre corregido: " : ""}${operacion === "alquiler" ? "Alquiló" : "Cerró"}${casa ? ` ${casa.titulo}` : ""} en ${montoContable(precio, moneda)}${operacion === "alquiler" ? " al mes" : ""} · comisión ${montoContable(comision, moneda)}${pct !== null ? ` (${porcentaje(pct)})` : ""}`,
   );
   return correccion ? "corregido" : "nuevo";
 }
@@ -313,9 +342,10 @@ export async function guardarCierre(f: FormData) {
   const id = texto(f, "id");
   const corredor = await clientePropio(id);
   const moneda = monedaDe(texto(f, "moneda"));
-  const cierre = validarCierre(texto(f, "precio"), texto(f, "comision"), moneda);
+  const ctx = await contextoCierre(corredor.id, id, texto(f, "casa") || null);
+  const cierre = validarCon(ctx, texto(f, "precio"), texto(f, "comision"), moneda);
   if (!cierre.ok) volverA(id, cierre.motivo);
-  const r = await registrarCierre(corredor, id, texto(f, "casa") || null, cierre.precio, moneda, cierre.comision);
+  const r = await registrarCierre(corredor, id, ctx, cierre.precio, moneda, cierre.comision, cierre.porcentaje);
   volverA(id, !r ? "No se pudo guardar. Vuelve a intentarlo." : r === "corregido" ? "Listo, cierre corregido." : "¡Felicidades! Cierre guardado.");
 }
 
@@ -332,16 +362,10 @@ export async function cerrarDesdeTablero(
   const { data: propio } = await supabase.from("contactos").select("id, propiedad_interes_id").eq("corredor_id", corredor.id).eq("id", id).maybeSingle();
   if (!propio) return { ok: false, motivo: "No se encontró el cliente." };
   const moneda = monedaDe(datos?.moneda);
-  const cierre = validarCierre(String(datos?.precio ?? ""), String(datos?.comision ?? ""), moneda);
+  const ctx = await contextoCierre(corredor.id, id, (propio.propiedad_interes_id as string | null) ?? (datos?.casa ? String(datos.casa) : null));
+  const cierre = validarCon(ctx, String(datos?.precio ?? ""), String(datos?.comision ?? ""), moneda);
   if (!cierre.ok) return { ok: false, motivo: cierre.motivo };
-  const ok = await registrarCierre(
-    corredor,
-    id,
-    (propio.propiedad_interes_id as string | null) ?? (datos?.casa ? String(datos.casa) : null),
-    cierre.precio,
-    moneda,
-    cierre.comision,
-  );
+  const ok = await registrarCierre(corredor, id, ctx, cierre.precio, moneda, cierre.comision, cierre.porcentaje);
   revalidatePath("/panel/clientes");
   revalidatePath(`/panel/clientes/${id}`);
   return ok ? { ok: true } : { ok: false, motivo: "No se pudo guardar. Vuelve a intentarlo." };

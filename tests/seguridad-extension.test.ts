@@ -96,10 +96,17 @@ describe("B1: freno en /api/extension/conectar", () => {
   let canjes: number;
   beforeEach(() => {
     canjes = 0;
-    const reclamadas = new Set<string>();
+    const reclamadas = new Map<string, number>();
     deps.actual = {
       almacen: {
-        reclamar: async (clave: string) => (reclamadas.has(clave) ? false : (reclamadas.add(clave), true)),
+        reclamar: async (clave: string, minutos: number) => {
+          const antes = reclamadas.get(clave);
+          if (antes !== undefined && Date.now() - antes < minutos * 60_000) return false;
+          reclamadas.set(clave, Date.now());
+          return true;
+        },
+        ultimaVez: async (clave: string) => (reclamadas.has(clave) ? new Date(reclamadas.get(clave)!) : null),
+        borrarViejas: async () => {},
         canjearCodigo: async () => {
           canjes++;
           return null;

@@ -166,10 +166,17 @@ traen contactos (`lib/anuncios/reporte.ts`); "fotos <código>" mejora hasta 12 f
 (`lib/fotos/mejorar.ts`) y se las manda para revisar; "ficha <código>" genera la ficha PDF con la
 marca del corredor (`corredores.marca`), la sube al bucket público `fichas` y se la manda como documento.
 **Seguimiento de visitas** (`lib/agenda/seguimiento-visitas.ts`, en el cron de recordatorios): de 30 min a 18 h después del fin
-de cada visita agendada o confirmada, solo de 7:00 a 21:00 en su zona, le pregunta al corredor "¿Cómo te fue…?" una sola vez
-(`reclamar_alerta('seguimiento_visita:<cita>')`; con la ventana cerrada, plantilla corta sin el nombre del cliente). Durante 36 h (así vale también la respuesta al plan de la mañana, que pregunta por las de ayer) su
-respuesta (texto o nota de voz; no comandos, enlaces, preguntas, acuses ni adjuntos) va a la Historia, la visita pasa a hecha (con
-recordatorio para mañana), o a no llegó / cancelada si dice «no vino» / «se canceló» (lo detecta el código), y la confirmación la arma el código.
+de cada visita de hoy agendada o confirmada, solo de 7:00 a 21:00 en su zona, le pregunta al corredor "¿Cómo te fue…?" una sola vez
+(turno corto `seguimiento_visita_envio:<cita>` antes de enviar; `seguimiento_visita:<cita>` en `alertas` solo cuando la pregunta
+salió, así un envío fallido se reintenta en la corrida siguiente; con la ventana cerrada, plantilla corta sin el nombre del cliente).
+Las visitas que empezaron ayer no se preguntan aparte: las pregunta el plan de la mañana y, al salir (texto o plantilla),
+`marcarPreguntadasEnPlan` las deja como preguntadas. Durante 36 h su respuesta (texto o nota de voz) va a la Historia **solo si
+cuenta cómo fue** (`puedeSerResumen`, reglas del código): nunca saludos, acuses ("Ok gracias", emojis), pedidos o recordatorios,
+comandos, enlaces, preguntas ni adjuntos; sí si nombra al cliente o la casa, usa palabras de visita (le encantó, ofert*, no vino…) o
+tiene 6 palabras o más; en la duda, no. La visita pasa a hecha (con recordatorio para mañana), o a no llegó / cancelada
+(`resultadoDeVisita`: «no vino/no llegaron/no pudo venir/me dejó plantada», «canceló/se canceló», sin tomar «no vino solo» ni «no se
+canceló»). Con varias visitas esperando, se anota en la que nombra (primer nombre sin tildes o la casa) o, si nombra varias, en cada
+una por frase; si no nombra ninguna o no se separa limpio, pregunta cuál (hora y nombre) y no guarda. La confirmación la arma el código.
 
 ## Multimedia (notas de voz, fotos, PDF, Word, Excel y video)
 - **Por WhatsApp** (`lib/asistente/medios.ts`, `lib/whatsapp/media.ts`): el webhook trae el id del archivo

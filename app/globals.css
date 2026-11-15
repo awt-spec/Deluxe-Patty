@@ -5294,6 +5294,45 @@ body:has(.marco.tema) {
 .tema .negocio-mes {
   text-transform: capitalize;
 }
+/* Dos monedas en la misma fila: separadas, nunca pegadas ("+ $59.000,00+ ₡32.500.000,00" parecía una suma). */
+.tema .cont-tabla .cont-monto + .cont-monto {
+  padding-left: 16px;
+}
+.tema .cont-moneda {
+  display: none;
+}
+/* En el teléfono, una línea por moneda con su nombre: dólares y colones nunca quedan uno al lado del otro. */
+@media (max-width: 560px) {
+  .tema .negocio-cifras .cont-dos-monedas thead {
+    display: none;
+  }
+  .tema .negocio-cifras .cont-dos-monedas tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 10px;
+    align-items: baseline;
+  }
+  .tema .negocio-cifras .cont-dos-monedas tr > th {
+    grid-column: 1;
+    grid-row: span 2;
+  }
+  .tema .negocio-cifras .cont-dos-monedas tr > .cont-monto {
+    grid-column: 2;
+    width: auto;
+    padding-left: 0;
+  }
+  .tema .negocio-cifras .cont-dos-monedas tr > .cont-monto + .cont-monto {
+    padding-top: 0;
+    border-top: 0;
+  }
+  .tema .negocio-cifras .cont-dos-monedas .cont-moneda {
+    display: inline;
+    margin-right: 6px;
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--gris-texto, #54656f);
+  }
+}
 
 /* Cómo va el negocio */
 .tema .negocio-columnas {
@@ -6539,6 +6578,16 @@ body:has(.marco.tema) {
   background: var(--superficie, #fff);
   color: inherit;
   box-shadow: 0 20px 60px rgb(0 0 0 / 25%);
+}
+.ventana-cierre .vc-comision-previa,
+.marco.tema .fc-comision-previa {
+  min-height: 1.2em;
+  font-size: 0.85rem;
+  color: var(--verde-texto, #00664f);
+}
+.ventana-cierre .vc-comision-previa.error,
+.marco.tema .fc-comision-previa.error {
+  color: var(--peligro, #c0392b);
 }
 .ventana-cierre::backdrop {
   background: rgb(17 27 33 / 45%);

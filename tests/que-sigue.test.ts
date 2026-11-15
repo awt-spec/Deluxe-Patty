@@ -131,6 +131,15 @@ describe("Qué sigue con un cliente", () => {
     expect(q({ etapa: "cerrado", cierreAnotado: true, diasSinMovimiento: 20 }).titulo).toBe("Cerró. ¡Felicidades!");
   });
 
+  it("cerrado: un recordatorio de la oferta ya no toca («Llamarlo por la oferta» a quien ya compró); otro sí", () => {
+    const viejo = q({ etapa: "cerrado", cierreAnotado: true, seguimientoFecha: "2026-11-13", seguimientoNota: "Llamarlo por la oferta de $1.1M" });
+    expect(viejo.titulo).toBe("Cerró. ¡Felicidades!");
+    const otro = q({ etapa: "cerrado", cierreAnotado: true, seguimientoFecha: "2026-11-13", seguimientoNota: "Llevarle un regalo" });
+    expect(otro).toMatchObject({ motivo: "recordatorio", titulo: "Hoy toca: Llevarle un regalo" });
+    // Un cliente activo con el mismo recordatorio lo sigue viendo primero.
+    expect(q({ etapa: "negociando", seguimientoFecha: "2026-11-13", seguimientoNota: "Llamarlo por la oferta" }).motivo).toBe("recordatorio");
+  });
+
   it("perdido: dice por qué y no insiste con días quieto", () => {
     const r = q({ etapa: "perdido", motivoPerdida: "Compró con otro corredor", diasSinMovimiento: 30 });
     expect(r.motivo).toBe("perdido");

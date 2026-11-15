@@ -1,13 +1,11 @@
 import { APP } from "./config.js";
 import { esPaginaDeAnuncio, esVerificacion } from "./comun.js";
-import { activa, textoFase, transicion } from "./maquina.js";
+import { activa, mensajeInterrumpida, textoFase, transicion } from "./maquina.js";
 import { agregarPaso, contarEnPagina, leerBitacora, pasoDeEvento, textoPaso } from "./bitacora.js";
 import { deQuien, esUrlDeE24, estadoPublico, leerPedido } from "./mensajes.js";
 import {
-  anotarPaginaDelDia,
   azar,
   estimarRestanteMs,
-  hoyLocal,
   planLectura,
   quedanHoy,
   RITMO,
@@ -20,7 +18,7 @@ import {
 // La extensión solo abre páginas: el servidor le dice qué dirección de Encuentra24 sigue, la abre en UNA pestaña de
 // este Chrome (con el internet de la casa), le manda lo que trajo la página y espera la próxima. Va al ritmo de una
 // persona (ritmo.js): lee cada página un rato, baja por tramos, hace pausas y descansa cada pocas páginas, con un tope
-// de páginas por búsqueda y por día. Nada se disfraza: es el Chrome de la persona, con su sesión, sin tocar su
+// de páginas por búsqueda y por día (el día lo cuenta el servidor en la zona del corredor, no este aparato). Nada se disfraza: es el Chrome de la persona, con su sesión, sin tocar su
 // identidad (user agent, huellas) y sin resolver ni saltar verificaciones.
 //
 // A la vista (la empieza la persona, o la semanal si eligió "a la vista"): la pestaña queda activa y control.js pone
@@ -266,7 +264,8 @@ async function abrirPagina(url) {
 async function esperarVerificacion() {
   if (S.automatica && !S.aLaVista) throw new Silencio();
   if (S.fase === "pausada") await cambiar({ tipo: "seguir" });
-  await cambiar({ tipo: "verificacion" });
+  // Sin el "Todavía veo la verificación…" de una verificación anterior.
+  await cambiar({ tipo: "verificacion" }, { mensaje: "" });
   try {
     const tab = await chrome.tabs.update(S.tabId, { active: true });
     await chrome.windows.update(tab.windowId, { focused: true });
@@ -297,12 +296,6 @@ async function esperarVerificacion() {
   }
 }
 
-/** Le cuenta al servidor una página más leída hoy en este Chrome. */
-async function contarPaginaDelDia() {
-  const { paginasHoy } = await chrome.storage.local.get("paginasHoy");
-  await chrome.storage.local.set({ paginasHoy: anotarPaginaDelDia(paginasHoy, hoyLocal()) });
-}
-
 // --- La búsqueda ---------------------------------------------------------------------------------------------
 
 let limpieza = Promise.resolve();
@@ -314,17 +307,13 @@ let limpieza = Promise.resolve();
 async function buscar(automatica = false) {
   await limpieza;
   if (S) return { ok: false, mensaje: "Ya hay una búsqueda en curso." };
-  const guardado = await chrome.storage.local.get(["token", "paginasHoy", "modoSemanal", "velocidadPrueba", "busqueda", "bitacora", "asistente"]);
+  const guardado = await chrome.storage.local.get(["token", "modoSemanal", "velocidadPrueba", "busqueda", "bitacora", "asistente"]);
   const { token } = guardado;
   const fallarAntes = async (mensaje) => {
     if (!automatica) await chrome.storage.local.set({ busqueda: { fase: "error", mensaje, latido: Date.now() } });
     return { ok: false, mensaje };
   };
   if (!token) return fallarAntes("Primero conecta la extensión con el código del panel.");
-  const restantesHoy = quedanHoy(guardado.paginasHoy, hoyLocal());
-  if (restantesHoy <= 0) {
-    return fallarAntes(`Hoy ya leí ${RITMO.maxPaginasDia} páginas de Encuentra24, el máximo del día. Sigo mañana.`);
-  }
 
   const velocidad = PRUEBA_LOCAL && Number(guardado.velocidadPrueba) > 1 ? Math.min(1000, Number(guardado.velocidadPrueba)) : 1;
   S = {
@@ -354,6 +343,13 @@ async function buscar(automatica = false) {
       if (automatica) throw new Silencio();
       await cambiar({ tipo: "fallar" }, { mensaje: inicio.mensaje ?? "No se pudo empezar." });
       return { ok: false, mensaje: inicio.mensaje };
+    }
+    // Las páginas que quedan hoy las cuenta el servidor en el día del corredor (no con la hora de esta computadora):
+    // con el tope del día ya cumplido, el servidor no deja empezar y no se abre ninguna página.
+    const restantesHoy = quedanHoy(inicio.paginasHoy);
+    if (restantesHoy <= 0) {
+      await cambiar({ tipo: "fallar" }, { mensaje: `Hoy ya leí ${RITMO.maxPaginasDia} páginas de Encuentra24, el máximo del día. Sigo mañana.` });
+      return { ok: false };
     }
     S.id = inicio.busqueda;
     S.asistente = typeof inicio.asistente === "string" && inicio.asistente.trim() ? inicio.asistente.trim().slice(0, 40) : "Patty";
@@ -393,7 +389,6 @@ async function buscar(automatica = false) {
       await publicar();
       let pagina = await abrirPagina(url);
       if (esVerificacion(pagina)) pagina = await esperarVerificacion();
-      await contarPaginaDelDia();
       await ponerBarra();
 
       const cuenta = contarEnPagina(pagina.html);
@@ -527,20 +522,25 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 
 /**
  * Al despertar el trabajador de fondo no hay búsqueda en memoria: si el estado guardado dice que había una en curso,
- * Chrome se cerró (o cerró la extensión) a media búsqueda. No se deja colgada: se le pide al servidor que guarde lo
- * leído y se avisa.
+ * se interrumpió (Chrome reinició o actualizó la extensión, o la cerró). No se sabe cuál de esas fue, así que no se
+ * dice "se cerró Chrome". No se deja colgada: se le pide al servidor que guarde lo leído (el mismo /detener del
+ * botón), se cierra su pestaña y se avisa. Corre en cada arranque del trabajador; el panel lateral y el panel lo
+ * despiertan con un mensaje si el latido se quedó viejo, para dejar de mostrar "buscando" enseguida.
  */
 async function limpiarCortada() {
   const { busqueda: b, busquedaViva: viva, token, bitacora } = await chrome.storage.local.get(["busqueda", "busquedaViva", "token", "bitacora"]);
-  if (!b || !activa(b.fase)) return;
+  // El contador del día de antes de la 1.4.1 (ahora lo lleva el servidor).
+  chrome.storage.local.remove("paginasHoy").catch(() => {});
+  if (!b || !activa(b.fase)) {
+    if (viva) await chrome.storage.local.set({ busquedaViva: null });
+    return;
+  }
   if (viva?.tabId) chrome.tabs.remove(viva.tabId).catch(() => {});
-  if (token && viva?.id) await api("/api/extension/detener", { busqueda: viva.id, motivo: "usuario" }, token);
-  const mensaje =
-    viva?.id && !b.automatica
-      ? "La búsqueda anterior se cortó (se cerró Chrome). Guardé lo que alcancé a leer: míralo en el panel."
-      : "La búsqueda anterior se cortó. Vuelve a empezarla.";
+  const corte = token && viva?.id && b.fase !== "revisando" ? await api("/api/extension/detener", { busqueda: viva.id, motivo: "usuario" }, token) : null;
+  const mensaje = mensajeInterrumpida(b.fase, corte);
   await chrome.storage.local.set({
-    busqueda: { fase: "detenida", mensaje, latido: Date.now() },
+    busqueda: { fase: "detenida", detenida: true, mensaje, latido: Date.now() },
+    busquedaViva: null,
     bitacora: agregarPaso(bitacora, { icono: "detenida", texto: mensaje }),
   });
 }
@@ -596,6 +596,8 @@ async function desconectar() {
 
 /** Estado público de la búsqueda (para el panel): el de memoria si hay una en curso, o el último guardado. */
 async function estadoParaAfuera() {
+  // Recién despierto, primero se resuelve una búsqueda que quedó interrumpida (no se contesta "buscando").
+  await limpieza;
   if (S) return estadoPublico({ ...S, haciendo: S.fase === "buscando" ? S.haciendo : textoFase(S), mensaje: S.mensaje || textoFase(S) });
   const { busqueda } = await chrome.storage.local.get("busqueda");
   return estadoPublico(busqueda ?? null);
@@ -792,6 +794,9 @@ chrome.runtime.onMessage.addListener((mensaje, remitente, responder) => {
       return false;
     case "ver_ultima":
       return conRespuesta(verUltima());
+    case "estado":
+      // El panel lateral pregunta cuando el latido se quedó viejo: con eso despierta al trabajador de fondo.
+      return conRespuesta(estadoParaAfuera());
     case "buscar_sola":
       // Al encenderla, el próximo despertar es en un minuto.
       return conRespuesta(

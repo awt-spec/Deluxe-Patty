@@ -148,7 +148,7 @@ export default async function Negocio() {
         {hayMeses && monedasMeses.length > 0 && (
           <details className="negocio-cifras">
             <summary>Ver en cifras exactas</summary>
-            <table className="cont-tabla">
+            <table className={`cont-tabla${monedasMeses.length > 1 ? " cont-dos-monedas" : ""}`}>
               <caption className="oculto">Comisiones de los últimos seis meses, por moneda</caption>
               <thead>
                 <tr>
@@ -169,6 +169,7 @@ export default async function Negocio() {
                     </th>
                     {monedasMeses.map((k) => (
                       <td key={k} className="cont-monto">
+                        <span className="cont-moneda">{k === "USD" ? "Dólares" : "Colones"}</span>
                         {montoContable(m.ganado[k], k, { signo: true })}
                       </td>
                     ))}
@@ -180,6 +181,7 @@ export default async function Negocio() {
                   </th>
                   {monedasMeses.map((k) => (
                     <td key={k} className="cont-monto">
+                      <span className="cont-moneda">{k === "USD" ? "Dólares" : "Colones"}</span>
                       {montoContable(totalMeses(k), k)}
                     </td>
                   ))}

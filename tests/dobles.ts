@@ -198,10 +198,10 @@ export function repoEnMemoria(corredor: Corredor) {
       return fechas.length ? new Date(Math.max(...fechas)) : null;
     },
     corredoresActivos: async () => [corredor],
-    datosPlan: async (_c, ahora, hoy, manana) => ({
+    datosPlan: async (corredorId, ahora, hoy, manana, ayerLocal) => ({
       citasHoy: citas
-        .filter((c) => activa(c) && c.inicio >= hoy.desde && c.inicio < hoy.hasta)
-        .map((c) => ({ inicio: c.inicio, estado: c.estado, cliente: "Ana", propiedad: null })),
+        .filter((c) => c.corredor_id === corredorId && activa(c) && c.inicio >= hoy.desde && c.inicio < hoy.hasta)
+        .map((c) => ({ inicio: c.inicio, fin: c.fin, estado: c.estado, cliente: "Ana", propiedad: null })),
       prospectosNuevos: contactos.filter((c) => !c.es_corredor).map((c) => c.nombre ?? c.telefono),
       conversacionesEscaladas: conversaciones
         .filter((c) => c.estado === "escalada")
@@ -210,8 +210,20 @@ export function repoEnMemoria(corredor: Corredor) {
       citasManana: citas.filter((c) => activa(c) && c.inicio >= manana.desde && c.inicio < manana.hasta).length,
       // Visitas de ayer que ya terminaron sin resultado; lo demás del plan (CRM, dinero, dueños) no vive en este doble.
       visitasSinResultado: citas
-        .filter((c) => activa(c) && c.inicio.getTime() >= hoy.desde.getTime() - 86_400_000 && c.inicio < hoy.desde && c.fin <= ahora)
-        .map((c) => ({ inicio: c.inicio, cliente: "Ana", propiedad: null })),
+        .filter(
+          (c) =>
+            c.corredor_id === corredorId &&
+            activa(c) &&
+            c.inicio.getTime() >= (ayerLocal?.desde.getTime() ?? hoy.desde.getTime() - 86_400_000) &&
+            c.inicio < hoy.desde &&
+            c.fin <= ahora,
+        )
+        .map((c) => ({
+          id: c.id,
+          inicio: c.inicio,
+          cliente: contactos.find((x) => x.id === c.contacto_id && x.corredor_id === corredorId)?.nombre ?? "Ana",
+          propiedad: null,
+        })),
       seguimientos: [],
       seguimientosTotal: 0,
       sinRespuesta: [],

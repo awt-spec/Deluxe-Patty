@@ -15,6 +15,7 @@ import {
   type PasoActualizar,
 } from "@/lib/panel/extension-instalar";
 import { IconoAtras, IconoCheck, IconoFlecha } from "../../iconos";
+import { novedadesDesde } from "./novedades";
 import {
   IlusAbrirBarra,
   IlusAbrirMenu,
@@ -547,6 +548,9 @@ export interface PropsActualizar {
   sistema: "windows" | "mac";
   copiada: boolean;
   version: string;
+  /** La versión instalada en este navegador, si se ve (para contar qué trae la nueva). */
+  instalada?: string | null;
+  asistente?: string;
   acciones: {
     elegir(p: PasoActualizar): void;
     copiar(): void;
@@ -567,9 +571,10 @@ export function Actualizar(p: PropsActualizar) {
     <div className="ext-asistente ext-actualizar" data-paso={paso}>
       <div className="ext-actualizar-cabeza">
         <h2>{p.estado.tipo === "nueva_version" ? "Actualízala en tres pasos" : "Tienes una versión anterior"}</h2>
-        <p>
-          La versión {p.version} se conecta sola con tu panel. Son tres pasos y no pierdes nada: sigue conectada y con tus búsquedas.
-        </p>
+        {novedadesDesde(p.instalada ?? null, p.asistente ?? "Patty").map((t) => (
+          <p key={t}>{t}</p>
+        ))}
+        <p>Son tres pasos y no pierdes nada: sigue conectada y con tus búsquedas.</p>
       </div>
       <nav className="ext-progreso" aria-label="Pasos para actualizar">
         <p className="ext-progreso-cuenta">{`Paso ${i + 1} de 3`}</p>

@@ -102,6 +102,8 @@ export interface Repositorio {
     ahora: Date,
     hoy: { desde: Date; hasta: Date },
     manana: { desde: Date; hasta: Date },
+    /** El día local de ayer (con la zona del corredor). Sin él, las 24 horas antes de `hoy.desde`. */
+    ayerLocal?: { desde: Date; hasta: Date },
   ): Promise<DatosPlan>;
   /** Guarda el plan del día. false si ya había uno para esa fecha. */
   guardarPlan(corredorId: string, fecha: string, contenido: string): Promise<boolean>;
@@ -638,11 +640,12 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
       return (data ?? []) as Corredor[];
     },
 
-    async datosPlan(corredorId, ahora, hoy, manana) {
+    async datosPlan(corredorId, ahora, hoy, manana, ayerLocal) {
       const DIA_MS = 24 * 60 * 60_000;
-      // Ayer: el día local anterior a `hoy`. La fecha local de hoy ("2026-10-20") sale del mediodía local en UTC,
-      // que cae en el mismo día para cualquier zona entre UTC-12 y UTC+12 (no hace falta la zona aquí).
-      const ayer = { desde: new Date(hoy.desde.getTime() - DIA_MS), hasta: hoy.desde };
+      // Ayer: el día local anterior a `hoy` (lo trae datosDelPlan con la zona, así vale con horario de verano).
+      // La fecha local de hoy ("2026-10-20") sale del mediodía local en UTC, que cae en el mismo día para cualquier
+      // zona entre UTC-12 y UTC+12 (no hace falta la zona aquí).
+      const ayer = ayerLocal ?? { desde: new Date(hoy.desde.getTime() - DIA_MS), hasta: hoy.desde };
       const fechaHoy = new Date(hoy.desde.getTime() + 12 * 60 * 60_000).toISOString().slice(0, 10);
       const hace3 = new Date(ahora.getTime() - 3 * DIA_MS);
       type Persona = { nombre: string | null; telefono: string };
@@ -689,7 +692,7 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
         await Promise.all([
           db
             .from("citas")
-            .select("inicio, estado, contactos(nombre, telefono), propiedades(titulo, zona, canton)")
+            .select("inicio, fin, estado, contactos(nombre, telefono), propiedades(titulo, zona, canton)")
             .eq("corredor_id", corredorId)
             .in("estado", CITA_ACTIVA)
             .gte("inicio", hoy.desde.toISOString())
@@ -723,7 +726,7 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
             .lt("inicio", manana.hasta.toISOString()),
           db
             .from("citas")
-            .select("inicio, contactos(nombre, telefono), propiedades(titulo)")
+            .select("id, inicio, contactos(nombre, telefono), propiedades(titulo)")
             .eq("corredor_id", corredorId)
             .in("estado", CITA_ACTIVA)
             .gte("inicio", ayer.desde.toISOString())
@@ -789,6 +792,7 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
           const casa = uno(c.propiedades as Embebido<{ titulo: string; zona: string | null; canton: string | null }>);
           return {
             inicio: new Date(c.inicio as string),
+            fin: c.fin ? new Date(c.fin as string) : undefined,
             estado: c.estado as EstadoCita,
             cliente: nombre(uno(c.contactos as Embebido<Persona>)),
             propiedad: casa?.titulo ?? null,
@@ -800,6 +804,7 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
         borradoresPendientes: borradores.count ?? 0,
         citasManana: citasManana.count ?? 0,
         visitasSinResultado: (ayerSinResultado.data ?? []).map((c) => ({
+          id: c.id as string,
           inicio: new Date(c.inicio as string),
           cliente: nombre(uno(c.contactos as Embebido<Persona>)),
           propiedad: uno(c.propiedades as Embebido<{ titulo: string }>)?.titulo ?? null,

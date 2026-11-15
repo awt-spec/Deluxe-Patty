@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 // extension/ritmo.js es un módulo de la extensión (JavaScript sin compilar): se carga tal cual.
@@ -13,9 +14,7 @@ interface Ritmo {
   planLectura(anuncios: number, rng: () => number): { ms: number; tramos: Tramo[] };
   ritmoInicial(rng: () => number): { paraDescanso: number };
   siguientePausa(e: { paraDescanso: number }, rng: () => number): { tipo: "pausa" | "descanso"; ms: number; estado: { paraDescanso: number } };
-  hoyLocal(fecha?: Date): string;
-  quedanHoy(registro: unknown, hoy: string): number;
-  anotarPaginaDelDia(registro: unknown, hoy: string): { fecha: string; paginas: number };
+  quedanHoy(delServidor: unknown): number;
   totalEstimado(zonas: number, restantesHoy: number, porZona?: number): number;
   estimarRestanteMs(paginas: number, espera?: number): number;
   textoRestante(ms: number): string;
@@ -110,17 +109,22 @@ describe("ritmo de persona (extension/ritmo.js)", () => {
     expect(pausas.size).toBeGreaterThan(10);
   });
 
-  it("tope diario: 24 páginas por día en este Chrome; otro día empieza de cero", () => {
-    expect(r.quedanHoy(null, "2026-11-13")).toBe(24);
-    let reg: unknown = null;
-    for (let i = 0; i < 10; i++) reg = r.anotarPaginaDelDia(reg, "2026-11-13");
-    expect(reg).toEqual({ fecha: "2026-11-13", paginas: 10 });
-    expect(r.quedanHoy(reg, "2026-11-13")).toBe(14);
-    expect(r.quedanHoy(reg, "2026-11-14")).toBe(24);
-    expect(r.anotarPaginaDelDia(reg, "2026-11-14")).toEqual({ fecha: "2026-11-14", paginas: 1 });
-    expect(r.quedanHoy({ fecha: "2026-11-13", paginas: 99 }, "2026-11-13")).toBe(0);
-    expect(r.quedanHoy({ fecha: "2026-11-13", paginas: "x" }, "2026-11-13")).toBe(24);
-    expect(r.hoyLocal(new Date(2026, 0, 5, 23, 59))).toBe("2026-01-05");
+  it("tope diario: lo que quedan hoy lo dice el servidor (día del corredor), no la hora de este aparato", () => {
+    expect(r.quedanHoy(14)).toBe(14);
+    expect(r.quedanHoy(0)).toBe(0);
+    expect(r.quedanHoy(-3)).toBe(0);
+    expect(r.quedanHoy(99)).toBe(24);
+    expect(r.quedanHoy(7.9)).toBe(7);
+    // Sin el dato (servidor anterior) se usa el tope: el servidor corta igual.
+    for (const x of [undefined, null, "5", Number.NaN]) expect(r.quedanHoy(x)).toBe(24);
+    expect("hoyLocal" in r).toBe(false);
+  });
+
+  it("background.js no cuenta el día con la hora del aparato", () => {
+    const fondo = readFileSync("extension/background.js", "utf8");
+    expect(fondo).not.toMatch(/hoyLocal|getDate\(|getFullYear\(|toLocaleDateString|paginasHoy:/);
+    // Usa lo que contesta /api/extension/busqueda.
+    expect(fondo).toMatch(/quedanHoy\(inicio\.paginasHoy\)/);
   });
 
   it("páginas por búsqueda: 12 como mucho, y no más que lo que queda del día ni que las zonas", () => {

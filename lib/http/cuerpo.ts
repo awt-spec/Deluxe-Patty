@@ -10,7 +10,13 @@ export async function leerConTope(cuerpo: ReadableStream<Uint8Array> | null, max
     for (;;) {
       const { done, value } = await lector.read();
       if (done) break;
-      total += value.byteLength;
+      // Un trozo que no es de bytes (sin byteLength) no se puede contar: se corta, nunca se deja pasar sin tope.
+      const n = (value as Uint8Array | undefined)?.byteLength;
+      if (typeof n !== "number" || !Number.isFinite(n) || !ArrayBuffer.isView(value)) {
+        await lector.cancel().catch(() => undefined);
+        return null;
+      }
+      total += n;
       if (total > maxBytes) {
         await lector.cancel().catch(() => undefined);
         return null;

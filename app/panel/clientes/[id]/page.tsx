@@ -63,6 +63,15 @@ export default async function Cliente({
   const busca = (c.busca ?? {}) as Busca;
   const activas = (casasData ?? []) as CasaFicha[];
   const todas = (todasData ?? []) as CasaCorta[];
+  // La casa del cierre y la que le interesa siempre están en la lista, aunque el corredor tenga más casas que el límite:
+  // si no, el selector del cierre caería en "Ninguna" y corregirlo borraría la casa del cierre.
+  const faltan = [c.cierre_propiedad_id, c.propiedad_interes_id].filter(
+    (x, i, l): x is string => typeof x === "string" && l.indexOf(x) === i && !todas.some((p) => p.id === x),
+  );
+  if (faltan.length) {
+    const { data: extra } = await supabase.from("propiedades").select("id, titulo, precio, moneda, estado, operacion").eq("corredor_id", corredor.id).in("id", faltan);
+    todas.push(...((extra ?? []) as CasaCorta[]));
+  }
   const conFoto = (casa: CasaCorta | undefined): CasaCorta | null => {
     if (!casa) return null;
     const activa = activas.find((p) => p.id === casa.id);

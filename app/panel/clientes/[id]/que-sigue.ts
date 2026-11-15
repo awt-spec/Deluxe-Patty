@@ -109,8 +109,10 @@ export function queSigue(e: EntradaQueSigue): QueSigue {
   const hoy = fechaIso(fechaLocal(e.ahora, e.zona));
   const activo = e.etapa !== "cerrado" && e.etapa !== "perdido";
 
-  // 1. El recordatorio que ya toca (hoy o atrasado).
-  if (e.seguimientoFecha && e.seguimientoFecha <= hoy) {
+  // 1. El recordatorio que ya toca (hoy o atrasado). Con el cliente cerrado o perdido, uno que habla de la oferta o de
+  // negociar ya no sirve ("Llamarlo por la oferta" a quien ya compró): pasa a lo que queda por anotar.
+  const recordatorioVencido = !activo && /oferta|negoci/i.test(e.seguimientoNota ?? "");
+  if (e.seguimientoFecha && e.seguimientoFecha <= hoy && !recordatorioVencido) {
     const nota = e.seguimientoNota?.trim() || "escribirle";
     const atrasado = e.seguimientoFecha < hoy;
     const dia = new Date(`${e.seguimientoFecha}T12:00:00Z`);

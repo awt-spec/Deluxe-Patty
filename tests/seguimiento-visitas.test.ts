@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { claveSeguimiento, preguntarPorVisitas, puedeSerResumen, resultadoDeVisita } from "../lib/agenda/seguimiento-visitas";
+import { anotarSeguimiento, claveSeguimiento, preguntarPorVisitas, puedeSerResumen, resultadoDeVisita } from "../lib/agenda/seguimiento-visitas";
+import { enviarPlanes } from "../lib/asistente/plan";
 import type { Cerebro } from "../lib/asistente/cerebro";
 import { SIN_CONSUMO } from "../lib/asistente/costo";
 import { conversacionDelCorredor } from "../lib/asistente/corredor";
@@ -84,19 +85,29 @@ describe("seguimiento de visitas", () => {
     expect(plantillas()[0]).not.toContain("Robert");
   });
 
-  it("de noche no pregunta: espera a la mañana", async () => {
+  it("de noche no pregunta: la visita de anoche la pregunta el plan de la mañana, no un mensaje aparte", async () => {
     cita().estado = "cancelada"; // se deja solo la visita de la noche
-    const noche = await db.repo.crearCita({
+    const noche = (await db.repo.crearCita({
       corredor_id: "c1", contacto_id: "rob", conversacion_id: null, propiedad_id: null,
       inicio: new Date("2026-10-21T02:00:00Z"), fin: new Date("2026-10-21T03:00:00Z"), // 8:00–9:00 p. m.
-    });
+    }))!;
     reloj("2026-10-21T03:40:00Z"); // 9:40 p. m.
     expect((await preguntarPorVisitas(deps)).preguntadas).toBe(0);
     reloj("2026-10-21T06:00:00Z"); // medianoche
     expect((await preguntarPorVisitas(deps)).preguntadas).toBe(0);
-    reloj("2026-10-21T13:10:00Z"); // 7:10 a. m.
-    expect((await preguntarPorVisitas(deps)).preguntadas).toBe(1);
-    expect(db.alertas.has(claveSeguimiento(noche!))).toBe(true);
+    reloj("2026-10-21T13:10:00Z"); // 7:10 a. m.: ninguna pregunta aparte…
+    expect((await preguntarPorVisitas(deps)).preguntadas).toBe(0);
+    expect(db.alertas.has(claveSeguimiento(noche))).toBe(false);
+    // …porque el plan de la mañana ya pregunta por las de ayer, y al salir la deja como preguntada.
+    await enviarPlanes(deps);
+    expect(plantillas()).toHaveLength(1);
+    expect(plantillas()[0]).toContain("1 visita de ayer por anotar");
+    expect(db.alertas.has(claveSeguimiento(noche))).toBe(true);
+    expect((await preguntarPorVisitas(deps)).preguntadas).toBe(0);
+    // La respuesta al plan se anota en esa visita.
+    reloj("2026-10-21T13:30:00Z");
+    await dePatricia("Le encantó, quiere volver el sábado con la esposa");
+    expect(db.citas.find((c) => c.id === noche)!.estado).toBe("realizada");
   });
 
   it("no pregunta por visitas canceladas ni ya marcadas", async () => {
@@ -201,19 +212,101 @@ describe("seguimiento de visitas", () => {
     expect(db.actividades.some((a) => a.corredor_id === "c2" || a.contacto_id === "otro")).toBe(false);
   });
 
-  it("con dos visitas pendientes anota en la última preguntada y avisa de la otra", async () => {
-    await db.repo.crearCita({
-      corredor_id: "c1", contacto_id: "rob", conversacion_id: null, propiedad_id: null,
-      inicio: new Date("2026-10-20T19:00:00Z"), fin: new Date("2026-10-20T20:00:00Z"), // 1:00 p. m.
+  describe("con dos visitas pendientes", () => {
+    let ana: string;
+    beforeEach(async () => {
+      db.contactos.push({ id: "ana", corredor_id: "c1", telefono: "+50688882222", nombre: "Ána Soto" });
+      ana = (await db.repo.crearCita({
+        corredor_id: "c1", contacto_id: "ana", conversacion_id: null, propiedad_id: null,
+        inicio: new Date("2026-10-20T19:00:00Z"), fin: new Date("2026-10-20T20:00:00Z"), // 1:00 p. m.
+      }))!;
+      await abrirVentana();
+      expect((await preguntarPorVisitas(deps)).preguntadas).toBe(2);
     });
+    const estadoAna = () => db.citas.find((c) => c.id === ana)!.estado;
+
+    it("si nombra a un solo cliente (sin importar tildes), anota en esa y avisa de la otra", async () => {
+      await dePatricia("Con Ana muy bien, quiere hacer una oferta");
+      expect(estadoAna()).toBe("realizada");
+      expect(cita().estado).toBe("agendada");
+      expect(textos().at(-1)).toBe(
+        "Listo, lo anoté en la historia de Ána (visita de la 1:00 p. m.). Mañana te recuerdo darle seguimiento. " +
+          "Todavía me falta saber cómo te fue en la visita de las 3:00 p. m. con Robert Miller (Casa Lindora).",
+      );
+    });
+
+    it("si habla de las dos, separa por frase y anota cada una con lo suyo", async () => {
+      await dePatricia("Robert salió bien, le encantó. Ana no vino");
+      expect(cita().estado).toBe("realizada");
+      expect(estadoAna()).toBe("no_asistio");
+      expect(db.actividades.map((a) => `${a.contacto_id}:${a.texto}`)).toEqual([
+        "rob:Fue a ver la casa Casa Lindora",
+        "rob:Cómo fue la visita: Robert salió bien, le encantó",
+        "ana:No llegó a la visita",
+      ]);
+      expect(textos().at(-1)).toBe(
+        "Listo, lo anoté en la historia de Robert (visita de las 3:00 p. m. a Casa Lindora). " +
+          "Anotado: no llegó a la visita de la 1:00 p. m. Lo dejé en la historia de Ána. Mañana te recuerdo darle seguimiento.",
+      );
+    });
+
+    it("si no se puede separar limpio, no anota nada y pide una por una", async () => {
+      await dePatricia("Robert y Ana salieron bien, les encantó");
+      expect(cita().estado).toBe("agendada");
+      expect(estadoAna()).toBe("agendada");
+      expect(db.actividades).toEqual([]);
+      expect(textos().at(-1)).toContain("Escríbeme una por una, empezando por el nombre del cliente:");
+    });
+
+    it("si no nombra a ninguno, pregunta de cuál visita habla (hora y nombre) y no guarda", async () => {
+      const r = await dePatricia("Muy bien, quiere hacer una oferta");
+      expect(r).toEqual({ tipo: "corredor", accion: "seguimiento" });
+      expect(cita().estado).toBe("agendada");
+      expect(estadoAna()).toBe("agendada");
+      expect(db.actividades).toEqual([]);
+      expect(textos().at(-1)).toBe(
+        "¿De cuál visita me cuentas? Escríbeme empezando por el nombre del cliente y lo anoto:\n" +
+          "• 1:00 p. m. · Ána\n• 3:00 p. m. · Robert (Casa Lindora)",
+      );
+      // La respuesta con el nombre ya se anota.
+      await dePatricia("Robert: le gustó mucho la cocina");
+      expect(cita().estado).toBe("realizada");
+      expect(estadoAna()).toBe("agendada");
+    });
+  });
+
+  it("un saludo o acuse con el plan pendiente no se toma como resultado de la visita", async () => {
+    await preguntarPorVisitas(deps); // ventana cerrada: plantilla
+    reloj("2026-10-21T13:00:00Z"); // 7:00 a. m.
+    await db.repo.guardarPlan("c1", "2026-10-21", "plan");
+    expect(await dePatricia("Hola")).toEqual({ tipo: "corredor", accion: "plan_pendiente" });
+    for (const t of ["Buenos días", "Ok gracias", "Gracias Patty", "👍", "Mándamelo", "ya", "Recuérdame llamar a Juan mañana"]) {
+      expect(await anotarSeguimiento(deps, corredor, t, false, ahora), t).toBeNull();
+    }
+    expect(cita().estado).toBe("agendada");
+    expect(db.actividades).toEqual([]);
+  });
+
+  it("si el envío falla, la próxima corrida vuelve a preguntar y el mensaje de antes no cierra la visita", async () => {
     await abrirVentana();
-    expect((await preguntarPorVisitas(deps)).preguntadas).toBe(2);
-    await dePatricia("Muy bien, quiere hacer una oferta");
-    expect(cita().estado).toBe("realizada");
-    expect(textos().at(-1)).toBe(
-      "Listo, lo anoté en la historia de Robert (visita de las 3:00 p. m. a Casa Lindora). Mañana te recuerdo darle seguimiento. " +
-        "Todavía me falta saber cómo te fue en la visita de las 1:00 p. m. con Robert Miller.",
-    );
+    whatsapp.texto.mockRejectedValueOnce(new Error("WA caído"));
+    expect(await preguntarPorVisitas(deps)).toEqual({ preguntadas: 0, fallidos: 1 });
+    expect(db.alertas.has(claveSeguimiento(citaId))).toBe(false);
+    // Nunca se le preguntó: lo que escriba no se toma como resultado.
+    await dePatricia("Le encantó la casa");
+    expect(cita().estado).toBe("agendada");
+    // La corrida siguiente (una hora después) reintenta.
+    reloj("2026-10-21T00:00:00Z");
+    await abrirVentana();
+    expect(await preguntarPorVisitas(deps)).toEqual({ preguntadas: 1, fallidos: 0 });
+    expect(db.alertas.has(claveSeguimiento(citaId))).toBe(true);
+    expect(await preguntarPorVisitas(deps)).toEqual({ preguntadas: 0, fallidos: 0 });
+  });
+
+  it("dos corridas cruzadas no preguntan dos veces", async () => {
+    await abrirVentana();
+    const [a, b] = await Promise.all([preguntarPorVisitas(deps), preguntarPorVisitas(deps)]);
+    expect(a.preguntadas + b.preguntadas).toBe(1);
   });
 });
 
@@ -225,6 +318,41 @@ describe("reglas del seguimiento", () => {
     expect(resultadoDeVisita("No se hizo, la pospusimos")).toBe("cancelada");
     expect(resultadoDeVisita("Llegó tarde pero le gustó")).toBe("realizada");
     expect(resultadoDeVisita("no llegó a tiempo pero la vimos")).toBe("realizada");
+  });
+
+  it.each([
+    ["El cliente no vino solo, vino con la esposa y les encantó", "realizada"],
+    ["No vino el agua en la casa pero les gustó mucho", "realizada"],
+    ["No se presentó ningún problema, les encantó", "realizada"],
+    ["No llegó a ofertar todavía pero le gustó", "realizada"],
+    ["No se canceló, sí vinieron y les gustó", "realizada"],
+    ["No la cancelamos, al final sí se hizo", "realizada"],
+    ["El cliente canceló", "cancelada"],
+    ["Me canceló a última hora", "cancelada"],
+    ["Cancelaron", "cancelada"],
+    ["La cancelamos", "cancelada"],
+    ["No llegaron", "no_asistio"],
+    ["No vinieron", "no_asistio"],
+    ["No pudo venir", "no_asistio"],
+    ["No se presentó", "no_asistio"],
+    ["No vino el cliente", "no_asistio"],
+    ["Me dejó plantada", "no_asistio"],
+    ["Esperé media hora y no vino, ni contestó", "no_asistio"],
+  ])("resultado de «%s» → %s", (texto, esperado) => {
+    expect(resultadoDeVisita(texto)).toBe(esperado);
+  });
+
+  it("saludos, acuses, pedidos y preguntas nunca son resumen; lo que cuenta la visita sí", () => {
+    for (const t of [
+      "Hola", "Buenos días", "Ok gracias", "Gracias Patty", "👍", "👍🙏", "Mándamelo", "ya", "Patty, plan",
+      "Recuérdame llamar a Juan mañana", "Hola Patty, ¿me pasas los clientes de Escazú?", "Y qué tal se ve el mercado en Santa Ana",
+      "Bien", "Hola, dale",
+    ]) {
+      expect(puedeSerResumen(t, false, { asistente: "Patty", nombres: ["robert"] }), t).toBe(false);
+    }
+    for (const t of ["Le encantó", "Hola, no vino", "Robert bien", "Quiere ofertar", "Bien, fuimos con calma y revisamos todo el lote"]) {
+      expect(puedeSerResumen(t, false, { asistente: "Patty", nombres: ["robert"] }), t).toBe(true);
+    }
   });
 
   it("no toma como resumen comandos, enlaces, preguntas, acuses ni adjuntos", () => {

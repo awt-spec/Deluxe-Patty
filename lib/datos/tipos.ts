@@ -211,14 +211,15 @@ export interface CitaCalendario {
 
 /** Lo que entra al plan del día de un corredor. Todo sale de la base; el texto lo arma el código (lib/asistente/plan.ts). */
 export interface DatosPlan {
-  /** Visitas de hoy con la zona de la casa (zona o cantón), para calcular la hora de salida. */
-  citasHoy: { inicio: Date; estado: EstadoCita; cliente: string; propiedad: string | null; zona?: string | null }[];
+  /** Visitas de hoy con la zona de la casa (zona o cantón) y el fin, para calcular la hora de salida. */
+  citasHoy: { inicio: Date; fin?: Date; estado: EstadoCita; cliente: string; propiedad: string | null; zona?: string | null }[];
   prospectosNuevos: string[];
   conversacionesEscaladas: string[];
   borradoresPendientes: number;
   citasManana: number;
   /** Visitas de ayer que ya terminaron y siguen agendadas o confirmadas: no dicen cómo salieron. */
-  visitasSinResultado: { inicio: Date; cliente: string; propiedad: string | null }[];
+  /** `id`: al salir el plan, cuentan como preguntadas en el seguimiento de visitas (su respuesta se anota). */
+  visitasSinResultado: { id?: string; inicio: Date; cliente: string; propiedad: string | null }[];
   /** Seguimientos que vencen hoy o ya vencieron (los primeros) y cuántos son en total. */
   seguimientos: { cliente: string; nota: string | null }[];
   seguimientosTotal: number;

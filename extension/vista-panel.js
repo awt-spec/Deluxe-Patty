@@ -6,8 +6,24 @@ import { activa, textoFase } from "./maquina.js";
 import { estadoPublico } from "./mensajes.js";
 import { textoRestante } from "./ritmo.js";
 
-/** Sin latido por este tiempo, la búsqueda se cortó (Chrome cerró la extensión). */
+/** Sin latido por este tiempo, la búsqueda se dio por interrumpida (el trabajador de fondo ya no la lleva). */
 export const LATIDO_MAX_MS = 90_000;
+/**
+ * Con el latido más viejo que esto, el panel lateral le pregunta al trabajador de fondo (mensaje "estado"): si se
+ * reinició, al despertar marca la búsqueda como interrumpida y el panel deja de mostrar "buscando" enseguida.
+ */
+export const LATIDO_PREGUNTAR_MS = 10_000;
+
+/** ¿Hay que preguntarle al trabajador de fondo si la búsqueda sigue? */
+export function latidoViejo(datos, ahora = Date.now()) {
+  const b = datos?.busqueda ? estadoPublico(datos.busqueda) : null;
+  return !!b && activa(b.fase) && ahora - (b.latido ?? 0) > LATIDO_PREGUNTAR_MS;
+}
+
+/** El detalle en la verificación: "Todavía veo la verificación…" si la persona tocó Seguir sin resolverla. */
+function detalleVerificacion(b) {
+  return typeof b.mensaje === "string" && b.mensaje.startsWith("Todavía") ? b.mensaje : textoFase(b);
+}
 
 const TITULOS = {
   buscando: (n) => `${n} está buscando dueños`,
@@ -53,7 +69,7 @@ export function vistaPanel(datos, ahora = Date.now()) {
     enCurso = {
       fase: b.fase,
       titulo: (TITULOS[b.fase] ?? TITULOS.buscando)(nombre),
-      detalle: b.fase === "buscando" ? b.haciendo || "Buscando…" : textoFase(b),
+      detalle: b.fase === "buscando" ? b.haciendo || "Buscando…" : b.fase === "verificacion" ? detalleVerificacion(b) : textoFase(b),
       tiempo: partes.join(" · "),
       // Los mismos pedidos que la barra y el panel: los valida mensajes.js y los aplica maquina.js.
       botones: {
@@ -66,7 +82,7 @@ export function vistaPanel(datos, ahora = Date.now()) {
   }
 
   let resultado = null;
-  if (cortada) resultado = { texto: "La búsqueda anterior se cortó. Vuelve a empezarla.", error: true };
+  if (cortada) resultado = { texto: "La búsqueda se interrumpió. Toca «Buscar dueños ahora» para seguir.", error: true };
   else if (b && !viva && b.mensaje) resultado = { texto: b.mensaje, error: b.fase === "error" };
 
   // Lo más nuevo arriba.

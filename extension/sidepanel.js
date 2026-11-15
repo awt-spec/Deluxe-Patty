@@ -6,7 +6,7 @@
 // que validan mensajes.js y maquina.js. Dibuja con textContent y createElement, sin armar HTML con texto.
 import { APP } from "./config.js";
 import { esPaginaDeAnuncio } from "./comun.js";
-import { vistaPanel } from "./vista-panel.js";
+import { latidoViejo, vistaPanel } from "./vista-panel.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -89,9 +89,12 @@ function pintarPasos(pasos) {
 function dibujar(v, extra = {}) {
   const c = v.cabecera;
   $("nombre").textContent = c.nombre;
+  // Cortados con "…" si no caben: el texto entero queda al pasar el mouse.
+  $("nombre").title = c.nombre;
   $("inicial").textContent = c.inicial;
   $("avatar").dataset.tono = c.tono;
   $("conexion-texto").textContent = c.conexion;
+  $("conexion-texto").title = c.conexion;
   $("conexion").dataset.conectada = c.conectada ? "si" : "no";
   $("progreso").hidden = c.progreso === null;
   $("progreso").dataset.tono = c.tono;
@@ -140,9 +143,22 @@ function dibujar(v, extra = {}) {
   pintarPasos(v.pasos);
 }
 
+let preguntando = false;
+function preguntarEstado() {
+  if (preguntando) return;
+  preguntando = true;
+  chrome.runtime
+    .sendMessage({ tipo: "estado" })
+    .catch(() => {})
+    .finally(() => (preguntando = false));
+}
+
 async function pintar() {
   const g = await chrome.storage.local.get(["token", "corredor", "asistente", "busqueda", "bitacora", "lectura", "buscarSola", "modoSemanal", "ultimaDias"]);
   const v = vistaPanel(g);
+  // Latido viejo: se le pregunta al trabajador de fondo (lo despierta). Si se había reiniciado, marca la búsqueda como
+  // interrumpida y el cambio en chrome.storage vuelve a dibujar el panel.
+  if (latidoViejo(g)) preguntarEstado();
   let anuncio = null;
   if (v.conectada) {
     const tab = await pestanaDeAnuncio();
@@ -216,7 +232,7 @@ $("desconectar").addEventListener("click", async () => {
 });
 
 // Se vuelve a dibujar cuando cambia lo guardado, al cambiar de pestaña o de página (para "Leer este anuncio") y cada
-// tanto (el aviso "se cortó" depende de la hora).
+// tanto (si el latido se queda viejo, se le pregunta al trabajador de fondo).
 const repintar = () => pintar().catch(() => {});
 chrome.storage.onChanged.addListener(repintar);
 chrome.tabs.onActivated.addListener(repintar);
@@ -225,6 +241,7 @@ chrome.tabs.onUpdated.addListener((_id, info) => {
 });
 chrome.windows?.onFocusChanged?.addListener(repintar);
 repintar();
-setInterval(repintar, 15_000);
+// Cada 5 s: el latido de la búsqueda se renueva cada 4 s, así un trabajador de fondo reiniciado se nota en segundos.
+setInterval(repintar, 5_000);
 // Hace cuánto fue la última búsqueda (sin reservar nada en el servidor).
 chrome.runtime.sendMessage({ tipo: "ver_ultima" }).catch(() => {});
