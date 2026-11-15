@@ -65,8 +65,9 @@
           </div>
           <p id="en-curso-detalle" class="detalle" role="status" aria-live="polite"></p>
           <div class="chips">
-            <span class="chip" id="en-curso-pagina" hidden></span>
-            <span class="chip" id="en-curso-tiempo" hidden></span>
+            <span class="chip" id="en-curso-tiempo-chip" hidden
+              ><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></svg><span id="en-curso-tiempo"></span
+            ></span>
           </div>
           <div class="botones">
             <button id="pausar" type="button" class="grande">
@@ -104,7 +105,7 @@
           </div>
 
           <section id="resultado-tarjeta" class="tarjeta mini" data-error="no" aria-labelledby="resultado-titulo" hidden>
-            <span class="mini-icono" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg></span>
+            <span class="mini-icono" aria-hidden="true"><svg class="si-bien" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg><svg class="si-error" viewBox="0 0 24 24"><path d="M12 7v6" /><path d="M12 16.8v.2" /></svg></span>
             <div class="mini-textos">
               <h3 id="resultado-titulo">Último resultado</h3>
               <p id="resultado" role="status" aria-live="polite"></p>

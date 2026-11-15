@@ -42,47 +42,56 @@
   .barra {
     position: fixed; left: 50%; top: 12px; transform: translateX(-50%);
     width: max-content; max-width: min(720px, calc(100vw - 24px));
-    display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 7px; overflow: hidden;
-    background: rgb(255 255 255 / 96%); color: #111b21; border-radius: 999px;
-    box-shadow: 0 8px 28px rgb(17 27 33 / 16%), 0 1px 3px rgb(17 27 33 / 10%), 0 0 0 1px rgb(17 27 33 / 6%);
+    display: flex; align-items: center; gap: 12px; padding: 6px 6px 6px 6px; overflow: hidden;
+    background: rgb(255 255 255 / 74%); color: #111b21; border-radius: 999px;
+    border: 1px solid rgb(255 255 255 / 70%);
+    box-shadow: 0 10px 30px -8px rgb(17 27 33 / 22%), 0 2px 6px rgb(17 27 33 / 6%), 0 0 0 .5px rgb(17 27 33 / 12%), inset 0 1px 0 rgb(255 255 255 / 80%);
     font: 14px/1.3 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; pointer-events: auto;
-    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(18px) saturate(1.8); -webkit-backdrop-filter: blur(18px) saturate(1.8);
     transition: top .35s ease, bottom .35s ease, opacity .25s ease;
   }
   .barra[data-abajo] { top: auto; bottom: 14px; }
   /* Ficha de la pausa: chica, en la esquina, y el cuerpo deja pasar los clics a la página (solo los botones no). */
   .barra[data-chip] {
     left: auto; right: 14px; top: auto; bottom: 14px; transform: none;
-    max-width: min(340px, calc(100vw - 28px)); gap: 6px; padding: 4px 4px 4px 5px;
-    pointer-events: none; background: rgb(255 255 255 / 92%);
+    max-width: min(340px, calc(100vw - 28px)); gap: 8px; padding: 4px 4px 4px 4px;
+    pointer-events: none; background: rgb(255 255 255 / 80%);
   }
-  .barra[data-chip] .avatar { width: 24px; height: 24px; font-size: 12px; }
-  .barra[data-chip] .titulo { font-size: 12.5px; font-weight: 600; }
+  .barra[data-chip] .avatar { width: 26px; height: 26px; font-size: 12px; }
+  .barra[data-chip] .avatar::before {
+    content: ""; position: absolute; right: -2px; bottom: -2px; width: 10px; height: 10px; border-radius: 50%;
+    background: #fff; box-shadow: inset 0 0 0 2px #8696a0;
+    background-image: linear-gradient(90deg, transparent 3px, #54656f 3px, #54656f 4px, transparent 4px, transparent 6px, #54656f 6px, #54656f 7px, transparent 7px);
+    background-size: 10px 4px; background-position: 0 3px; background-repeat: no-repeat;
+  }
+  .barra[data-chip] .titulo { font-size: 12.5px; font-weight: 600; color: #3b4a54; }
   .barra[data-chip] .detalle, .barra[data-chip] .avance { display: none; }
-  .barra[data-chip] button { pointer-events: auto; padding: 7px 11px; font-size: 12.5px; }
+  .barra[data-chip] button { pointer-events: auto; padding: 7px 12px; font-size: 12.5px; }
   .avatar {
-    position: relative; flex: none; width: 30px; height: 30px; border-radius: 50%;
+    position: relative; flex: none; width: 32px; height: 32px; border-radius: 50%;
     display: grid; place-items: center; background: var(--c); color: #fff; font-weight: 700; font-size: 14px;
+    background-image: linear-gradient(145deg, rgb(255 255 255 / 18%), rgb(0 0 0 / 12%));
+    box-shadow: 0 0 0 2px rgb(255 255 255 / 90%), 0 0 0 3.5px var(--c-suave);
   }
-  .avatar::after { content: ""; position: absolute; inset: -3px; border-radius: 50%; border: 2px solid var(--c); opacity: 0; }
-  [data-fase="buscando"] .avatar::after { animation: latido 1.8s ease-out infinite; }
-  @keyframes latido { 0% { transform: scale(.85); opacity: .7; } 100% { transform: scale(1.4); opacity: 0; } }
-  .textos { min-width: 0; display: flex; flex-direction: column; gap: 0; padding-right: 2px; }
-  .titulo { font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .detalle { color: #54656f; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .detalle b { color: #111b21; font-weight: 600; }
+  .avatar::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--c); opacity: 0; }
+  [data-fase="buscando"] .avatar::after { animation: latido 2.2s ease-out infinite; }
+  @keyframes latido { 0% { transform: scale(.9); opacity: .6; } 100% { transform: scale(1.35); opacity: 0; } }
+  .textos { min-width: 0; display: flex; flex-direction: column; gap: 1px; padding-right: 4px; }
+  .titulo { font-weight: 650; letter-spacing: -.005em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .detalle { color: #4f5f68; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .detalle b { color: #111b21; font-weight: 600; font-variant-numeric: tabular-nums; }
   .botones { display: flex; gap: 4px; flex: none; }
   button {
     font: 600 13px/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding: 9px 14px; border-radius: 999px;
-    border: 0; background: #f0f2f5; color: #111b21; cursor: pointer; white-space: nowrap; transition: background .15s;
+    border: 0; background: rgb(17 27 33 / 6%); color: #111b21; cursor: pointer; white-space: nowrap; transition: background .15s;
   }
-  button:hover { background: #e4e7ea; }
+  button:hover { background: rgb(17 27 33 / 11%); }
   button:focus-visible { outline: 2px solid ${VERDE}; outline-offset: 2px; }
-  button.primario { background: ${VERDE}; color: #fff; }
+  button.primario { background: ${VERDE}; color: #fff; box-shadow: 0 4px 12px -4px rgb(0 128 105 / 60%); }
   button.primario:hover { background: #00664f; }
-  button.parar { background: #fdecea; color: #b42318; }
-  button.parar:hover { background: #fbd9d5; }
-  .avance { position: absolute; left: 0; bottom: 0; height: 2px; background: var(--c); transition: width .6s ease; }
+  button.parar { background: rgb(192 40 28 / 9%); color: #a8231a; }
+  button.parar:hover { background: rgb(192 40 28 / 15%); }
+  .avance { position: absolute; left: 22px; bottom: 0; height: 2px; max-width: calc(100% - 44px); border-radius: 2px 2px 0 0; background: var(--c); transition: width .6s ease; }
   .cursor {
     position: fixed; left: 0; top: 0; pointer-events: none; will-change: transform; transition: opacity .3s;
   }
@@ -95,10 +104,13 @@
   .cursor.clic .onda { animation: onda .55s ease-out; }
   @keyframes onda { from { transform: scale(.3); opacity: 1; } to { transform: scale(1.9); opacity: 0; } }
   .nombre {
-    position: absolute; left: 20px; top: 22px; padding: 4px 10px; border-radius: 999px 999px 999px 4px; background: ${VERDE}; color: #fff;
-    font: 650 12px/1.2 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; white-space: nowrap;
-    box-shadow: 0 2px 8px rgb(0 0 0 / 22%);
+    position: absolute; left: 18px; top: 22px; display: flex; align-items: center; gap: 6px;
+    padding: 4px 10px 4px 6px; border-radius: 4px 999px 999px 999px; color: #fff;
+    background: linear-gradient(135deg, #00957a, ${VERDE});
+    font: 650 12px/1.2 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; white-space: nowrap; letter-spacing: .01em;
+    box-shadow: 0 4px 12px -2px rgb(0 60 48 / 35%), 0 0 0 1px rgb(255 255 255 / 85%);
   }
+  .nombre::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #7dffb8; box-shadow: 0 0 0 2px rgb(125 255 184 / 30%); }
   [data-fase="pausada"] .cursor, [data-fase="verificacion"] .cursor, [data-fase="revisando"] .cursor { opacity: 0; }
   .resalte {
     position: fixed; border-radius: 12px; pointer-events: none; opacity: 0;
@@ -106,6 +118,16 @@
     transition: opacity .3s, top .3s ease, left .3s ease, width .3s ease, height .3s ease;
   }
   .resalte.ver { opacity: 1; }
+  @media (prefers-color-scheme: dark) {
+    .barra { background: rgb(22 34 42 / 72%); color: #e9edef; border-color: rgb(255 255 255 / 8%);
+      box-shadow: 0 10px 30px -8px rgb(0 0 0 / 55%), 0 0 0 .5px rgb(255 255 255 / 10%), inset 0 1px 0 rgb(255 255 255 / 6%); }
+    .barra[data-chip] { background: rgb(22 34 42 / 84%); }
+    .barra[data-chip] .titulo { color: #d1d7db; }
+    .avatar { box-shadow: 0 0 0 2px rgb(22 34 42 / 90%), 0 0 0 3.5px var(--c-suave); }
+    .detalle { color: #aebac1; } .detalle b { color: #e9edef; }
+    button { background: rgb(255 255 255 / 9%); color: #e9edef; } button:hover { background: rgb(255 255 255 / 15%); }
+    button.parar { background: rgb(255 123 112 / 14%); color: #ff9a91; } button.parar:hover { background: rgb(255 123 112 / 22%); }
+  }
   @media (max-width: 560px) { .detalle { display: none; } .barra { gap: 8px; } button { padding: 8px 11px; } }
   @media (prefers-reduced-motion: reduce) {
     .marco::after, .avatar::after, .cursor.clic .onda { animation: none !important; }

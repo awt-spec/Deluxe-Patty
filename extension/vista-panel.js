@@ -29,7 +29,8 @@ function detalleVerificacion(b) {
 const TITULOS = {
   buscando: (n) => `${n} está buscando dueños`,
   pausada: (n) => `${n} está en pausa`,
-  verificacion: () => "Encuentra24 pide que confirmes que eres tú",
+  // El detalle ya dice qué pide Encuentra24: el título no lo repite.
+  verificacion: (n) => `${n} necesita tu ayuda`,
   revisando: (n) => `${n} está revisando lo que leyó`,
 };
 

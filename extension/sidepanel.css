@@ -3,7 +3,7 @@
 :root {
   --texto: #111b21;
   --suave: #4f5f68;
-  --tenue: #6b7b84;
+  --tenue: #5d6d76;
   --fondo: #f3f5f4;
   --tarjeta: #ffffff;
   --tarjeta-2: #f7f9f8;
@@ -28,6 +28,7 @@
   --sombra-1: 0 1px 2px rgb(17 27 33 / 5%);
   --sombra-2: 0 1px 2px rgb(17 27 33 / 4%), 0 8px 24px -8px rgb(17 27 33 / 12%);
   --anillo-foco: 0 0 0 3px rgb(0 128 105 / 28%);
+  --segmento: #ffffff;
   --radio: 16px;
   color-scheme: light dark;
 }
@@ -60,6 +61,7 @@
     --sombra-1: 0 1px 2px rgb(0 0 0 / 30%);
     --sombra-2: 0 1px 2px rgb(0 0 0 / 30%), 0 12px 28px -12px rgb(0 0 0 / 60%);
     --anillo-foco: 0 0 0 3px rgb(0 168 132 / 40%);
+    --segmento: #2b3d47;
   }
 }
 * {
@@ -429,6 +431,7 @@ main {
 .chip {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   padding: 4px 10px;
   border-radius: 999px;
   font-size: 12.5px;
@@ -438,10 +441,18 @@ main {
   border: 1px solid var(--borde);
   font-variant-numeric: tabular-nums;
 }
+.chip svg {
+  width: 14px;
+  height: 14px;
+}
 .botones {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+/* "Dejarlo para después" es largo: en la verificación cada botón va en su fila. */
+.hero[data-fase="verificacion"] .botones button {
+  flex-basis: 100%;
 }
 
 /* Botones */
@@ -678,6 +689,13 @@ button.enlace {
   border-color: var(--alerta-borde);
   background: var(--alerta-claro);
 }
+#resultado-tarjeta .si-error,
+#resultado-tarjeta[data-error="si"] .si-bien {
+  display: none;
+}
+#resultado-tarjeta[data-error="si"] .si-error {
+  display: block;
+}
 #resultado-tarjeta[data-error="si"] .mini-icono {
   background: var(--alerta);
   color: var(--tarjeta);
@@ -773,6 +791,7 @@ button.enlace {
 }
 .interruptor-textos .suave {
   font-size: 13px;
+  font-weight: 400;
 }
 .interruptor input {
   position: absolute;
@@ -847,7 +866,7 @@ button.enlace {
 }
 .segmentos input:checked + span {
   color: var(--texto);
-  background: var(--tarjeta);
+  background: var(--segmento);
   box-shadow: 0 1px 2px rgb(0 0 0 / 10%), 0 0 0 1px var(--borde);
 }
 .segmentos input:focus-visible + span {

@@ -95,6 +95,13 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   pestaña" que se aparta de lo que mira, con borde que brilla y cursor con onda (respeta `prefers-reduced-motion`). Solo abre
   direcciones de `https://www.encuentra24.com` (`esUrlDeE24`), `storage.local` es solo para contextos de confianza y el zip
   lleva una lista fija de archivos (`ARCHIVOS_EXTENSION`; en producción exige https).
+  La 1.5.0 rediseña el panel lateral (claro y oscuro con contraste AA, letra del sistema, foco visible): cabecera con aro,
+  estado en una palabra y conexión; tarjeta "Ahora" con anillo de avance (3/12), tiempo y botones grandes; pasos por minuto con
+  los viejos plegados (`agruparPasos`); en reposo, "Buscar dueños ahora" y "Leer este anuncio" (solo en un anuncio; si no, dice
+  por qué, `accionLeer`), la semanal como interruptor y el último resultado en tarjeta chica; ilustraciones SVG del paquete
+  (`ilustra-*.svg`). Tarjeta **Tokens de IA** (`vistaTokens`): el campo `tokens` de `GET /api/extension/estado` (pedido
+  `ver_tokens` al abrir el panel y de nuevo al terminar cada búsqueda), verde, ámbar con ≤ 15 % o rojo con "Se acabaron los
+  tokens de este mes"; sin datos no se muestra. La píldora, la ficha de pausa y la etiqueta del cursor de `control.js` van como vidrio.
   El worker con Playwright (`worker/busqueda-duenos.ts`, `npm run duenos` con Chrome visible) usa el mismo
   recorrido y evaluación (`lib/encuentra24/busqueda.ts`) y queda para soporte;
   `.github/workflows/busqueda-duenos.yml` solo para pruebas a mano.

@@ -122,6 +122,8 @@ function dibujar(v, extra = {}) {
   $("avatar").dataset.tono = c.tono;
   $("cabeza").dataset.tono = c.tono;
   $("estado-texto").textContent = c.estado;
+  // Sin conectar ya lo dice la línea de la conexión.
+  $("estado").hidden = !c.conectada;
   $("conexion-texto").textContent = c.conexion;
   $("conexion-texto").title = c.conexion;
   $("conexion").dataset.conectada = c.conectada ? "si" : "no";
@@ -143,10 +145,13 @@ function dibujar(v, extra = {}) {
     $("anillo").dataset.conNumero = e.avance ? "si" : "no";
     $("anillo-texto").textContent = e.avance?.texto ?? "";
     $("anillo-valor").style.strokeDashoffset = String(100 - Math.round((e.avance?.pct ?? 0) * 100));
-    $("en-curso-pagina").textContent = c.progresoTexto;
-    $("en-curso-pagina").hidden = !c.progresoTexto;
+    // El anillo dice la página ("3/12"); para quien no lo ve, la misma cifra va en su etiqueta.
+    $("anillo").setAttribute("aria-label", c.progresoTexto);
+    $("anillo").toggleAttribute("aria-hidden", !c.progresoTexto);
+    if (c.progresoTexto) $("anillo").setAttribute("role", "img");
+    else $("anillo").removeAttribute("role");
     $("en-curso-tiempo").textContent = e.tiempo;
-    $("en-curso-tiempo").hidden = !e.tiempo;
+    $("en-curso-tiempo-chip").hidden = !e.tiempo;
     $("pausar").hidden = !e.botones.pausar;
     $("seguir").hidden = !e.botones.seguir;
     $("detener").hidden = !e.botones.detener;
@@ -158,11 +163,11 @@ function dibujar(v, extra = {}) {
   const ultima = textoUltima(extra.ultimaDias);
   $("resultado-tarjeta").hidden = !r && !ultima;
   $("resultado-tarjeta").dataset.error = r?.error ? "si" : "no";
-  $("resultado-titulo").textContent = r?.error ? "No se pudo terminar" : "Último resultado";
-  $("resultado").textContent = r?.texto ?? "";
-  $("resultado").hidden = !r;
-  $("ultima").textContent = ultima ? `${ultima}.` : "";
-  $("ultima").hidden = !ultima;
+  // Sin resultado guardado, la tarjeta solo dice cuándo fue la última búsqueda.
+  $("resultado-titulo").textContent = r ? (r.error ? "No se pudo terminar" : "Último resultado") : "Última búsqueda";
+  $("resultado").textContent = r?.texto ?? (ultima ? ultima.replace(/^Última búsqueda: (.)/, (_, l) => l.toUpperCase()) + "." : "");
+  $("ultima").textContent = r && ultima ? `${ultima}.` : "";
+  $("ultima").hidden = !(r && ultima);
 
   // Leer este anuncio: activo solo en la página de un anuncio; si no, dice por qué.
   const l = extra.anuncio;
