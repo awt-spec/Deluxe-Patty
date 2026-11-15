@@ -15,6 +15,10 @@ function lista(nombres: string[], max = 5): string {
   return nombres.length > max ? `${vistos} y ${nombres.length - max} más` : vistos;
 }
 
+/** "Rosa, Juan y 3 más": los nombres que se muestran y cuántos faltan del total. */
+const conResto = (nombres: string[], total: number) =>
+  total > nombres.length ? `${nombres.join(", ")} y ${total - nombres.length} más` : nombres.join(", ");
+
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
 /** Cuántas visitas de hoy se muestran una por una (cada una ocupa hasta dos líneas); el resto va en "y N más". */
@@ -37,7 +41,8 @@ export function horasDeSalida(
     const min = desde ? minutosEntre(desde, c.zona) : null;
     if (min === null || !desde) return null;
     const hora = horaCorta(new Date(c.inicio.getTime() - min * 60_000), zonaHoraria);
-    return antes ? `Sal a las ${hora} (${min} min desde la anterior)` : `Sal de ${desde} a las ${hora} (${min} min)`;
+    const a = /^1:/.test(hora) ? "a la" : "a las"; // "a la 1:40 p. m.", "a las 9:35 a. m."
+    return antes ? `Sal ${a} ${hora} (${min} min desde la anterior)` : `Sal de ${desde} ${a} ${hora} (${min} min)`;
   });
 }
 
@@ -103,13 +108,10 @@ export function armarPlan(corredor: Corredor, datos: DatosPlan, ahora: Date): st
   const seguimientos = datos.seguimientos ?? [];
   const totalSeg = Math.max(datos.seguimientosTotal ?? 0, seguimientos.length);
   const sinRespuesta = datos.sinRespuesta ?? [];
+  const nombresSeg = seguimientos.slice(0, 3).map((s) => (s.nota ? `${s.cliente} (${s.nota.length > 40 ? `${s.nota.slice(0, 39)}…` : s.nota})` : s.cliente));
   seccion([
     (totalSeg > 0 || sinRespuesta.length > 0) && "*Para hoy*",
-    totalSeg > 0 &&
-      `• Llamar (${totalSeg}): ${lista(
-        seguimientos.map((s) => (s.nota ? `${s.cliente} (${s.nota.length > 40 ? `${s.nota.slice(0, 39)}…` : s.nota})` : s.cliente)),
-        3,
-      )}${totalSeg > Math.min(3, seguimientos.length) && seguimientos.length <= 3 ? ` y ${totalSeg - seguimientos.length} más` : ""}`,
+    totalSeg > 0 && `• Llamar (${totalSeg}): ${conResto(nombresSeg, totalSeg)}`,
     sinRespuesta.length > 0 && `• No contestan hace 3 días: ${lista(sinRespuesta, 3)}`,
   ]);
 
