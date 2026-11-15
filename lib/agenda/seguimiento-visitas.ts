@@ -19,8 +19,8 @@ const HORA = 60 * MINUTO;
 /** La pregunta sale desde 30 minutos después del fin y hasta 18 horas después (si cae de noche, a la mañana). */
 export const ESPERA_TRAS_VISITA_MS = 30 * MINUTO;
 export const LIMITE_PREGUNTA_MS = 18 * HORA;
-/** La respuesta se toma como resumen durante 18 horas desde que se preguntó. */
-export const VIGENCIA_PREGUNTA_MS = 18 * HORA;
+/** La respuesta se toma como resumen durante 36 horas desde que se preguntó: así también vale la que llega después del plan de la mañana, que vuelve a preguntar por las de ayer. */
+export const VIGENCIA_PREGUNTA_MS = 36 * HORA;
 /** Solo se pregunta entre las 7:00 y las 21:00 en la zona del corredor. */
 const DESDE_MIN = 7 * 60;
 const HASTA_MIN = 21 * 60;
@@ -99,7 +99,7 @@ export async function preguntarPorVisitas(deps: Dependencias): Promise<ResumenSe
   return resumen;
 }
 
-/** Visitas preguntadas en las últimas 18 horas que siguen sin resultado, la última preguntada primero. */
+/** Visitas preguntadas dentro de la vigencia (36 horas) que siguen sin resultado, la última preguntada primero. */
 export async function seguimientosPendientes(
   deps: Pick<Dependencias, "repo">,
   corredor: Corredor,

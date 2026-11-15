@@ -173,10 +173,10 @@ describe("seguimiento de visitas", () => {
     expect(cerebro.analizar).toHaveBeenCalledTimes(1);
   });
 
-  it("la pregunta vence a las 18 horas", async () => {
+  it("la pregunta vence a las 36 horas", async () => {
     await abrirVentana();
     await preguntarPorVisitas(deps);
-    reloj("2026-10-21T18:00:00Z");
+    reloj("2026-10-22T12:00:00Z");
     await abrirVentana();
     await dePatricia("Le encantó la casa");
     expect(cita().estado).toBe("agendada");

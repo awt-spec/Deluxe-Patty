@@ -73,7 +73,7 @@ describe("armarPlan (plan del día)", () => {
     expect(texto).toContain("• 10:00 a. m. · Ana Mora · Casa en Escazú (confirmada)");
     expect(texto).toContain(`_Sal de Lindora a las ${hora("2026-10-20T10:00", ida)} (${ida} min)_`);
     expect(texto).toContain("• 2:00 p. m. · Luis Soto · Lote en Santa Ana (por confirmar)");
-    expect(texto).toContain(`_Sal ${entre <= 20 ? "a la" : "a las"} ${hora("2026-10-20T14:00", entre)} (${entre} min desde la anterior)_`);
+    expect(texto).toContain(`_Sal ${hora("2026-10-20T14:00", entre).startsWith("1:") ? "a la" : "a las"} ${hora("2026-10-20T14:00", entre)} (${entre} min desde la anterior)_`);
     expect(texto).toContain("Mañana tienes 1 visita.");
     expect(texto).toContain("*¿Cómo salieron las de ayer?* Respóndeme y lo anoto.\n• 4:00 p. m. · Sofía Vargas · Casa en Escazú");
     expect(texto).toContain("• Llamar (2): Rosa Jiménez (mandar contrato), Juan Pérez");

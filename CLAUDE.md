@@ -151,7 +151,7 @@ corredor con la plantilla `WHATSAPP_PLANTILLA_AVISO`.
 Si quien escribe es el propio corredor (`corredores.whatsapp_corredor`), no se trata como cliente:
 `lib/asistente/corredor.ts` le entrega su plan pendiente, responde "plan" o le hace un análisis con
 Sonnet y `web_fetch` (lee el enlace de Encuentra24). El plan del día lo arma el código
-(`lib/asistente/plan.ts`; `yaTocaPlan`: sale en la primera corrida a la hora elegida o después y, si ya no queda ninguna ese día, en la última); fuera de la ventana de 24 horas solo puede salir la plantilla de aviso con
+(`lib/asistente/plan.ts`; `yaTocaPlan`: sale en la primera corrida a la hora elegida o después y, si ya no queda ninguna ese día, en la última); trae visitas con hora de salida (`horasDeSalida`), las de ayer sin resultado, seguimientos y clientes que no contestan, lo que espera (respuestas, chats, dudas), ofertas en negociación y ganado del mes por moneda, prospectos y dueños nuevos, cada sección solo si tiene algo; fuera de la ventana de 24 horas solo puede salir la plantilla de aviso con
 un resumen, y el plan completo sale cuando el corredor responde. Otros comandos del corredor:
 "anuncio <código>" prepara título y descripción en español e inglés y el orden de fotos
 (`lib/anuncios/preparar.ts`) y lo guarda como borrador con su referencia; "reporte" dice qué anuncios
@@ -160,7 +160,7 @@ traen contactos (`lib/anuncios/reporte.ts`); "fotos <código>" mejora hasta 12 f
 marca del corredor (`corredores.marca`), la sube al bucket público `fichas` y se la manda como documento.
 **Seguimiento de visitas** (`lib/agenda/seguimiento-visitas.ts`, en el cron de recordatorios): de 30 min a 18 h después del fin
 de cada visita agendada o confirmada, solo de 7:00 a 21:00 en su zona, le pregunta al corredor "¿Cómo te fue…?" una sola vez
-(`reclamar_alerta('seguimiento_visita:<cita>')`; con la ventana cerrada, plantilla corta sin el nombre del cliente). Durante 18 h su
+(`reclamar_alerta('seguimiento_visita:<cita>')`; con la ventana cerrada, plantilla corta sin el nombre del cliente). Durante 36 h (así vale también la respuesta al plan de la mañana, que pregunta por las de ayer) su
 respuesta (texto o nota de voz; no comandos, enlaces, preguntas, acuses ni adjuntos) va a la Historia, la visita pasa a hecha (con
 recordatorio para mañana), o a no llegó / cancelada si dice «no vino» / «se canceló» (lo detecta el código), y la confirmación la arma el código.
 
@@ -284,7 +284,7 @@ ofertas, visitas, correos y los días de WhatsApp; anotar algo reinicia el "sin 
 "Lo que está en juego": casa que le interesa y oferta (con oferta pasa a Negociando); al cerrar, casa, precio y
 comisión (`corredores.comision_pct`, 5% por defecto, en ventas; en alquileres se estima un mes de renta). La oferta y el
 cierre llevan su moneda (`oferta_moneda`, `cierre_moneda`: dólares o colones) y **dólares y colones nunca se suman**
-(`lib/crm/dinero.ts`; `leerCifra` lee los montos y lo que no se entiende no guarda nada; `validarCierre`: comisión entre 0 y el precio; "ganado" por mes en la zona del corredor, `lib/crm/ganado.ts`). Las cifras usan ese dinero real (en negociación, ganado del mes). Clientes se ve por Todos, Compras o Alquileres (`?tipo=`; los alquileres avisan antes). Dos clientes que son la
+(`lib/crm/dinero.ts`; `leerCifra` lee los montos y lo que no se entiende no guarda nada; `validarCierre`: comisión entre 0 y el precio; "ganado" por mes en la zona del corredor, `lib/crm/ganado.ts`). Las cifras usan ese dinero real (en negociación, ganado del mes). **Montos contables** (`lib/crm/contable.ts`, `app/panel/tabla-contable.tsx`): `montoContable` con signo (+ / −) y 2 decimales; "Cerró" es una liquidación (`liquidacionCierre`: precio de lista, descuento, precio final, comisión, IVA 13 % estimado y total a facturar; moneda distinta se omite, nunca se mezcla) con "Cambiar el cierre" (`guardarCierre` sobre un cliente ya cerrado corrige y anota "Cierre corregido" en la Historia); en Cómo va el negocio, tabla "en cifras exactas" por moneda. Clientes se ve por Todos, Compras o Alquileres (`?tipo=`; los alquileres avisan antes). Dos clientes que son la
 misma persona se unen desde la ficha (`unir_contactos`, una sola transacción en la base; se avisa si coinciden
 nombre o correo) y las zonas se eligen de una lista (`ZONAS_CONOCIDAS`, `normalizarZona`). Zonas
 (`lib/agenda/zonas.ts`): cada una con cantón, distrito y nivel; traslado de ciudad hasta 20 km y de carretera después; una
