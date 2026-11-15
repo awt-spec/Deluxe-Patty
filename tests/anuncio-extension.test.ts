@@ -119,6 +119,35 @@ describe("Leer este anuncio: anuncio preparado por la asistente", () => {
     expect(fichaConversada).not.toHaveBeenCalled();
   });
 
+  it("con dos referencias propias en la página no marca ninguno (no adivina cuál es) y lo dice", async () => {
+    const { db, d, fichaConversada } = entorno({
+      anuncios_e24: [
+        { id: "a1", corredor_id: ID.deluxe, propiedad_id: ID.casa, referencia: "A1B2C3", estado: "borrador", titulo: "Casa Escazú", publicado_en: null },
+        { id: "a3", corredor_id: ID.deluxe, propiedad_id: null, referencia: "Z9Y8X7", estado: "borrador", titulo: "Otra", publicado_en: null },
+      ],
+    });
+    const r = await leerAnuncio(d, corredor, pagina({ enlaces: [enlaceWhatsApp("+50688887777", "A1B2C3"), enlaceWhatsApp("+50688887777", "Z9Y8X7")] }));
+    expect(r).toMatchObject({ ok: false, motivo: "varias_referencias", mensaje: expect.stringMatching(/No marqué nada/) });
+    expect(db.tablas.anuncios_e24.map((a) => a.estado)).toEqual(["borrador", "borrador"]);
+    expect(escriturasEn(db, "anuncios_e24")).toEqual([]);
+    expect(fichaConversada).not.toHaveBeenCalled();
+  });
+
+  it("los turnos y huellas del freno de más de un día se borran; la marca y lo reciente quedan", async () => {
+    const clave = `leer_anuncio:${ID.deluxe}`;
+    const { db, d } = entorno({
+      alertas: [
+        { clave, enviada_at: "2026-11-10T10:00:00Z" },
+        { clave: `${clave}:t1`, enviada_at: "2026-11-10T10:00:00Z" },
+        { clave: `${clave}:abc`, enviada_at: "2026-11-12T10:00:00Z" },
+        { clave: `${clave}:t2`, enviada_at: "2026-11-13T14:00:00Z" },
+        { clave: `leer_anuncio:${ID.otro}:t1`, enviada_at: "2026-11-01T10:00:00Z" },
+      ],
+    });
+    await leerAnuncio(d, corredor, pagina({ enlaces: [] }));
+    expect(db.tablas.alertas.map((a) => a.clave)).toEqual([clave, `${clave}:t2`, `leer_anuncio:${ID.otro}:t1`]);
+  });
+
   it("un anuncio de otro corredor con esa referencia no se toca (y la casa se trae como nueva)", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(new Uint8Array([1]), { headers: { "content-type": "image/jpeg" } })));
     const { db, d } = entorno({

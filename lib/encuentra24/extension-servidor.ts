@@ -38,6 +38,7 @@ export const MENSAJES: Record<string, string> = {
   sin_corredor: "La extensión ya no está conectada. Conéctala de nuevo desde el panel, en Más y luego Dueños directos.",
   sin_zonas: "Primero escribe tus zonas de Encuentra24 en el panel, en Más y luego Ajustes, en Búsqueda de dueños.",
   sin_presupuesto: SIN_PRESUPUESTO,
+  tope_dia: "Hoy ya leí 24 páginas de Encuentra24, el máximo del día. Sigo mañana.",
   no_encontrada: "La búsqueda se interrumpió. Vuelve a empezarla.",
   detenida: "La detuviste antes de que leyera anuncios: no hay nada que guardar.",
   fuera_de_orden: "La búsqueda se interrumpió. Vuelve a empezarla.",

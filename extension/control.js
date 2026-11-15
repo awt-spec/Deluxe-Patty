@@ -202,7 +202,8 @@
       partes.push(String(estado.haciendo || "Buscando…"), estado.restanteMs ? minutos(estado.restanteMs) : "");
       botones = [boton("Pausar", "", "control_pausar"), boton("Detener", "parar", "control_detener")];
     } else if (f === "pausada") {
-      titulo = estado.motivoPausa === "actividad" ? `${nombre} se pausó para no estorbarte` : `${nombre} está en pausa`;
+      // Corto: en pausa la barra es una ficha chica en la esquina.
+      titulo = `${nombre} en pausa`;
       partes.push(estado.motivoPausa === "actividad" ? "Toca Seguir cuando quieras" : "Espera a que sigas", pagina);
       botones = [boton("Seguir", "primario", "control_seguir"), boton("Detener", "parar", "control_detener")];
     } else if (f === "verificacion") {

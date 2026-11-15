@@ -241,7 +241,15 @@ chrome.tabs.onUpdated.addListener((_id, info) => {
 });
 chrome.windows?.onFocusChanged?.addListener(repintar);
 repintar();
-// Cada 5 s: el latido de la búsqueda se renueva cada 4 s, así un trabajador de fondo reiniciado se nota en segundos.
-setInterval(repintar, 5_000);
+setInterval(repintar, 15_000);
+// Mientras hay una búsqueda en curso, cada 2 s se mira el latido: un trabajador de fondo reiniciado se nota en segundos.
+setInterval(() => {
+  chrome.storage.local
+    .get("busqueda")
+    .then((g) => {
+      if (latidoViejo(g)) preguntarEstado();
+    })
+    .catch(() => {});
+}, 2_000);
 // Hace cuánto fue la última búsqueda (sin reservar nada en el servidor).
 chrome.runtime.sendMessage({ tipo: "ver_ultima" }).catch(() => {});

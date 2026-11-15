@@ -9,10 +9,11 @@ import { textoRestante } from "./ritmo.js";
 /** Sin latido por este tiempo, la búsqueda se dio por interrumpida (el trabajador de fondo ya no la lleva). */
 export const LATIDO_MAX_MS = 90_000;
 /**
- * Con el latido más viejo que esto, el panel lateral le pregunta al trabajador de fondo (mensaje "estado"): si se
- * reinició, al despertar marca la búsqueda como interrumpida y el panel deja de mostrar "buscando" enseguida.
+ * Con el latido más viejo que esto (se renueva cada 4 s), el panel lateral le pregunta al trabajador de fondo (mensaje
+ * "estado"): si se reinició, al despertar marca la búsqueda como interrumpida y el panel deja de mostrar "buscando" en
+ * unos segundos. Preguntarle a uno que sigue vivo no cambia nada.
  */
-export const LATIDO_PREGUNTAR_MS = 10_000;
+export const LATIDO_PREGUNTAR_MS = 3_000;
 
 /** ¿Hay que preguntarle al trabajador de fondo si la búsqueda sigue? */
 export function latidoViejo(datos, ahora = Date.now()) {

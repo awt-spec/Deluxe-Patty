@@ -512,6 +512,25 @@ describe("topes del servidor (seguridad B8, B1, M1)", () => {
     expect(await almacen.reservarPaginaDelDia(ID, "2026-11-16", MAX_PAGINAS_DIA)).toBe(true);
   });
 
+  it("al empezar, el servidor dice cuántas páginas quedan hoy, contadas en el día de Costa Rica (no el del aparato)", async () => {
+    const { almacen, paginasDia } = almacenEnMemoria(corredor());
+    const d = dependencias(almacen);
+    // 16 de noviembre a las 05:30 UTC: en Nueva York ya es 16, en Costa Rica todavía es 15 (23:30).
+    const tarde = new Date("2026-11-16T05:30:00Z");
+    paginasDia.set(`${ID}:2026-11-15`, 20);
+    expect(await iniciarBusqueda(d, ID, { ahora: tarde })).toMatchObject({ ok: true, paginasHoy: 4 });
+    // Con las 24 del día de Costa Rica ya leídas no se empieza (y no se abre ninguna página).
+    paginasDia.set(`${ID}:2026-11-15`, MAX_PAGINAS_DIA);
+    expect(await iniciarBusqueda(d, ID, { ahora: tarde })).toEqual({ ok: false, motivo: "tope_dia" });
+    // A las 06:00 UTC empieza el 16 en Costa Rica: de nuevo 24.
+    expect(await iniciarBusqueda(d, ID, { ahora: new Date("2026-11-16T06:00:00Z") })).toMatchObject({ ok: true, paginasHoy: MAX_PAGINAS_DIA });
+  });
+
+  it("la ruta /api/extension/busqueda contesta el tope del día con un mensaje claro", async () => {
+    const { MENSAJES } = await import("../lib/encuentra24/extension-servidor");
+    expect(MENSAJES.tope_dia).toMatch(/24 páginas.*Sigo mañana/);
+  });
+
   it("canjear el código: un intento cada 6 s por conexión, sin guardar la IP", async () => {
     const { almacen, reclamadas, reloj } = almacenEnMemoria(corredor());
     const t = new Date("2026-11-15T15:00:00.500Z").getTime();

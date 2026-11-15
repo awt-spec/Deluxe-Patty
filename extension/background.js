@@ -522,8 +522,8 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 
 /**
  * Al despertar el trabajador de fondo no hay búsqueda en memoria: si el estado guardado dice que había una en curso,
- * se interrumpió (Chrome reinició o actualizó la extensión, o la cerró). No se sabe cuál de esas fue, así que no se
- * dice "se cerró Chrome". No se deja colgada: se le pide al servidor que guarde lo leído (el mismo /detener del
+ * se interrumpió (Chrome reinició o actualizó la extensión, o la cerró). No se sabe cuál de esas fue, así que el aviso
+ * no culpa a Chrome. No se deja colgada: se le pide al servidor que guarde lo leído (el mismo /detener del
  * botón), se cierra su pestaña y se avisa. Corre en cada arranque del trabajador; el panel lateral y el panel lo
  * despiertan con un mensaje si el latido se quedó viejo, para dejar de mostrar "buscando" enseguida.
  */
