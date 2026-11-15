@@ -1,5 +1,6 @@
 import type { Dependencias } from "../asistente/contexto";
 import type { Corredor } from "../datos/tipos";
+import { LIMITES, textoLibre } from "./texto-libre";
 
 // Acciones del corredor desde el panel. Quien llama ya verificó con la sesión del corredor (RLS)
 // que el mensaje o la conversación son suyos; aquí todo filtra además por corredor_id.
@@ -15,6 +16,13 @@ function ventanaAbierta(ultimo: string | null, ahora: Date): boolean {
 const VENTANA_CERRADA =
   "Pasaron más de 24 horas desde el último mensaje del cliente: WhatsApp no deja escribirle desde la asistente. " +
   "Escríbele desde tu WhatsApp.";
+
+/** Mensaje del corredor para un cliente: limpio y, si pasa del tope de WhatsApp, no se corta, se rechaza. */
+function mensajeParaCliente(texto: string): { ok: true; texto: string } | { ok: false; motivo: string } {
+  const r = textoLibre(texto, LIMITES.mensajeCliente, "El mensaje");
+  if (!r.ok) return { ok: false, motivo: `${r.motivo} WhatsApp no deja más; divídelo en dos mensajes.` };
+  return r.valor ? { ok: true, texto: r.valor } : { ok: false, motivo: "El mensaje está vacío." };
+}
 
 /**
  * Aprueba un borrador del piloto en sombra (con o sin corrección): ejecuta su acción pendiente
@@ -32,7 +40,10 @@ export async function aprobarBorrador(
   if (!b || b.estado_borrador !== "pendiente") return { ok: false, motivo: "Este borrador ya se resolvió." };
   if (!ventanaAbierta(b.ultimo_mensaje_cliente_at, ahora)) return { ok: false, motivo: VENTANA_CERRADA };
 
-  const final = (textoCorregido ?? b.contenido).trim();
+  // Lo que corrige el corredor se limpia (sin caracteres de dirección o control) y no se corta: si pasa del tope, se le dice.
+  const propio = textoCorregido === undefined ? null : mensajeParaCliente(textoCorregido);
+  if (propio && !propio.ok) return propio;
+  const final = propio?.ok ? propio.texto : b.contenido.trim();
   if (!final) return { ok: false, motivo: "El mensaje está vacío." };
   const corregido = final !== b.contenido.trim();
 
@@ -106,8 +117,9 @@ export async function escribirComoCorredor(
   conversacionId: string,
   texto: string,
 ): Promise<Resultado> {
-  const limpio = texto.trim();
-  if (!limpio) return { ok: false, motivo: "El mensaje está vacío." };
+  const m = mensajeParaCliente(texto);
+  if (!m.ok) return m;
+  const limpio = m.texto;
   const ahora = deps.ahora?.() ?? new Date();
   const conv = await deps.repo.conversacionConContacto(corredor.id, conversacionId);
   if (!conv) return { ok: false, motivo: "No encontré la conversación." };

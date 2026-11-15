@@ -132,4 +132,37 @@ describe("panel: piloto en sombra y toma de control", () => {
     expect(conv).toMatchObject({ control: "asistente", estado: "abierta" });
     expect(await llega("Gracias")).toMatchObject({ tipo: "respondido" });
   });
+
+  it("lo que el corredor escribe para un cliente se limpia, conserva emojis y saltos de línea, y no se corta si pasa de 4.096", async () => {
+    corredor.respuesta_automatica = true;
+    await llega("Hola");
+    const conv = db.conversaciones[0];
+    const familia = String.fromCodePoint(0x1f468, 0x200d, 0x1f469, 0x200d, 0x1f467);
+    const bandera = String.fromCodePoint(0x1f1e8, 0x1f1f7);
+    const sucio = `Buenos días, ñandú ${familia} ${bandera}\nLínea 2\u202E\u2066\u0007`;
+    expect(await escribirComoCorredor(deps, corredor, conv.id, sucio)).toEqual({ ok: true });
+    expect(db.mensajes.at(-1)).toMatchObject({ contenido: `Buenos días, ñandú ${familia} ${bandera}\nLínea 2` });
+
+    const antes = db.mensajes.length;
+    whatsapp.texto.mockClear();
+    const r = await escribirComoCorredor(deps, corredor, conv.id, "x".repeat(4097));
+    expect(r).toEqual({ ok: false, motivo: expect.stringContaining("hasta 4.096 letras (tiene 4.097)") });
+    expect(whatsapp.texto).not.toHaveBeenCalled();
+    expect(db.mensajes).toHaveLength(antes);
+    expect(await escribirComoCorredor(deps, corredor, conv.id, "x".repeat(4096))).toEqual({ ok: true });
+    expect(await escribirComoCorredor(deps, corredor, conv.id, `${String.fromCodePoint(0x202e)}  `)).toEqual({ ok: false, motivo: "El mensaje está vacío." });
+  });
+
+  it("corregir un borrador limpia el texto; uno de más de 4.096 no se envía y el borrador sigue pendiente", async () => {
+    await llega("¿Sigue disponible?");
+    const larga = await aprobarBorrador(deps, corredor, borrador().id, "y".repeat(4097));
+    expect(larga).toEqual({ ok: false, motivo: expect.stringContaining("hasta 4.096 letras") });
+    expect(borrador().estado_borrador).toBe("pendiente");
+    expect(whatsapp.texto).not.toHaveBeenCalled();
+
+    const corregido = `Con gusto \u{1F44B}\u202E\nSí está disponible`;
+    expect(await aprobarBorrador(deps, corredor, borrador().id, corregido)).toEqual({ ok: true });
+    expect(whatsapp.texto.mock.calls[0][2]).toBe("Con gusto \u{1F44B}\nSí está disponible");
+    expect(db.correcciones.at(-1)).toMatchObject({ corregido: "Con gusto \u{1F44B}\nSí está disponible" });
+  });
 });

@@ -6,7 +6,8 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { transcribirNota } from "../../patty-acciones";
 import { sinConexion, useBorradorTexto } from "../../conservar-borrador";
 import { clasificarFalla, mensajeDeFalla } from "@/lib/panel/fallas";
-import { deshacerApartadosPanel, entenderApartadoPanel, guardarApartadosPanel, type Propuesta } from "./acciones";
+import { rangoHorasTexto } from "@/lib/agenda/apartar-ia";
+import { cambiarAMananaPanel, deshacerApartadosPanel, entenderApartadoPanel, guardarApartadosPanel, type Propuesta } from "./acciones";
 import "./apartar-ia.css";
 
 // "Dímelo con tus palabras": arriba de Apartar tiempo, un campo donde el corredor cuenta cuándo no puede ("el martes
@@ -64,6 +65,22 @@ export function Dimelo({ asistente, propuestaInicial, enfocar }: { asistente: st
         const r = await entenderApartadoPanel(limpio);
         if (r.ok) setPropuesta(r.propuesta);
         else setError(r.motivo);
+      } catch (e) {
+        setError(mensajeDeFalla(clasificarFalla(e, { enLinea: navigator.onLine })));
+      }
+    });
+  }
+
+  // «¿Era de la mañana?»: ese renglón pasa a a. m. con el mismo código (el servidor lo recalcula; no llama a la IA).
+  function aManana(clave: string) {
+    const renglon = propuesta?.apartados.find((x) => x.clave === clave);
+    if (!renglon || pendiente) return;
+    setError(null);
+    empezar(async () => {
+      try {
+        const r = await cambiarAMananaPanel(renglon);
+        if (!r.ok) return setError(r.motivo);
+        setPropuesta((p) => (p ? { ...p, apartados: p.apartados.map((x) => (x.clave === clave ? r.renglon : x)) } : p));
       } catch (e) {
         setError(mensajeDeFalla(clasificarFalla(e, { enLinea: navigator.onLine })));
       }
@@ -249,6 +266,14 @@ export function Dimelo({ asistente, propuestaInicial, enfocar }: { asistente: st
                       ×
                     </button>
                   </div>
+                  {a.hora_supuesta && a.hora_inicio && a.hora_fin && (
+                    <p className="apartar-ia-supuesta">
+                      Entendí {rangoHorasTexto(Number(a.hora_inicio.slice(0, 2)) * 60 + Number(a.hora_inicio.slice(3)), Number(a.hora_fin.slice(0, 2)) * 60 + Number(a.hora_fin.slice(3)))} ·{" "}
+                      <button type="button" className="chico enlace" onClick={() => aManana(a.clave)} disabled={pendiente} data-patty="apartar-ia-manana">
+                        ¿Era de la mañana?
+                      </button>
+                    </p>
+                  )}
                   {a.choques.map((c) => (
                     <Link key={c.id} href={`/panel/agenda/visita/${c.id}`} className="apartar-ia-choque">
                       {c.texto} <span>Ver la visita</span>

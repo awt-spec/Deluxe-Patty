@@ -7,16 +7,16 @@ import { minutosEntre } from "@/lib/agenda/zonas";
 import { telefonoBonito } from "@/lib/crm/perfil";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { Aviso } from "../aviso";
-import { ComoLlegar } from "../como-llegar";
-import { PreguntarPatty } from "../preguntar-patty";
-import { cambiarEnlaceCalendario, quitarBloqueoAgenda } from "./acciones";
-import { PreguntaBloqueo } from "./pregunta-bloqueo";
-import { VistaDelTelefono } from "./vista-telefono";
-import { MesCalendario, SemanaTelefono, type CeldaMes } from "./movil";
-import "./agenda-movil.css";
-import { IconoAgenda } from "../iconos";
-import { Vacio } from "../piezas";
+import { Aviso } from "../../aviso";
+import { ComoLlegar } from "../../como-llegar";
+import { PreguntarPatty } from "../../preguntar-patty";
+import { cambiarEnlaceCalendario, quitarBloqueoAgenda } from "../acciones";
+import { PreguntaBloqueo } from "../pregunta-bloqueo";
+import { VistaDelTelefono } from "../vista-telefono";
+import { MesCalendario, SemanaTelefono, type CeldaMes } from "../movil";
+import "../agenda-movil.css";
+import { IconoAgenda } from "../../iconos";
+import { Vacio } from "../../piezas";
 
 type Cita = {
   id: string;

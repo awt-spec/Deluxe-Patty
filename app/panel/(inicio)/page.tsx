@@ -5,15 +5,15 @@ import { minutosEntre } from "@/lib/agenda/zonas";
 import { encaja, telefonoBonito, type Busca } from "@/lib/crm/perfil";
 import { pendientesDe } from "@/lib/panel/pendientes";
 import { PASOS_PUESTA, datosPuesta, estadoPuesta } from "@/lib/panel/puesta";
-import { TarjetaPuesta } from "./empezar/tarjeta";
+import { TarjetaPuesta } from "../empezar/tarjeta";
 import { sesionConCorredor } from "@/lib/panel/sesion";
-import { Aviso } from "./aviso";
-import { PreguntaBloqueo } from "./agenda/pregunta-bloqueo";
-import { PreguntarPatty } from "./preguntar-patty";
-import { ComoLlegar } from "./como-llegar";
-import { Avatar } from "./avatar";
-import { IconoAgenda, IconoCampana, IconoChats, IconoCheck, IconoDobleCheck, IconoFlecha, IconoIdea, IconoMas, IconoPersonas } from "./iconos";
-import { Cifra, Vacio } from "./piezas";
+import { Aviso } from "../aviso";
+import { PreguntaBloqueo } from "../agenda/pregunta-bloqueo";
+import { PreguntarPatty } from "../preguntar-patty";
+import { ComoLlegar } from "../como-llegar";
+import { Avatar } from "../avatar";
+import { IconoAgenda, IconoCampana, IconoChats, IconoCheck, IconoDobleCheck, IconoFlecha, IconoIdea, IconoMas, IconoPersonas } from "../iconos";
+import { Cifra, Vacio } from "../piezas";
 
 // Inicio: arriba lo urgente (un botón para revisar lo que espera), el resumen de lo que hizo la
 // asistente en las últimas 24 horas y lo que hay que hacer hoy (visitas con su hora de salida,

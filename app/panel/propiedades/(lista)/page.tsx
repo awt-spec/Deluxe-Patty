@@ -1,16 +1,16 @@
-import { IconoAgenda, IconoAgregar, IconoCamara, IconoCasa, IconoLlave } from "../iconos";
-import { Cifra, Vacio } from "../piezas";
+import { IconoAgenda, IconoAgregar, IconoCamara, IconoCasa, IconoLlave } from "../../iconos";
+import { Cifra, Vacio } from "../../piezas";
 import Link from "next/link";
 import { hayMonto, monedaDe, plataMontos, sumar } from "@/lib/crm/dinero";
 import type { Foto } from "@/lib/datos/tipos";
 import { precio } from "@/lib/formato";
 import { ETIQUETA_ESTADO, ordenarFotos } from "@/lib/panel/formularios";
 import { sesionConCorredor } from "@/lib/panel/sesion";
-import { Aviso } from "../aviso";
-import { PreguntarPatty } from "../preguntar-patty";
+import { Aviso } from "../../aviso";
+import { PreguntarPatty } from "../../preguntar-patty";
 import { ordenarCasas, type FiltroCasas } from "@/lib/panel/orden-casas";
-import { cambiarEstado } from "./acciones";
-import { PreguntaUbicacion, casasPorUbicar } from "./ubicacion";
+import { cambiarEstado } from "../acciones";
+import { PreguntaUbicacion, casasPorUbicar } from "../ubicacion";
 
 // Mis casas: arriba cuántas hay y cuánto valen (dólares y colones aparte); filtros por venta, alquiler
 // y vendidas o pausadas, y un buscador. Cada casa con su foto, lo que es, sus datos, el movimiento

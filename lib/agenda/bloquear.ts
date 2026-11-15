@@ -18,6 +18,19 @@ const DIAS = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "s
 
 const sinTildes = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
+/** Qué hora(s) se supuso de la tarde porque el corredor no dijo a. m. ni p. m. ("a las 3"): la de inicio, la de fin o ambas. */
+export type HoraSupuesta = "inicio" | "fin" | "ambas";
+
+/**
+ * Las mismas horas pasadas a la mañana (las supuestas, 12 horas antes), o null si así no cuadran (el fin tiene que
+ * quedar después del inicio y todo dentro del día).
+ */
+export function horasEnManana(h: { desde: number; hasta: number }, en: HoraSupuesta): { desde: number; hasta: number } | null {
+  const desde = en === "fin" ? h.desde : h.desde - 12 * 60;
+  const hasta = en === "inicio" ? h.hasta : h.hasta - 12 * 60;
+  return desde >= 0 && hasta > desde ? { desde, hasta } : null;
+}
+
 export interface PedidoBloqueo {
   inicio: Date;
   fin: Date;
@@ -28,6 +41,8 @@ export interface PedidoBloqueo {
   parte: Parte | null;
   horas: { desde: number; hasta: number } | null;
   motivo: string | null;
+  /** Se entendió de la tarde sin que lo dijera ("a las 3"): la tarjeta y el resumen se lo dicen para que lo corrija. */
+  horaSupuesta?: HoraSupuesta;
 }
 
 /** Lo que puede seguir a "apartar" cuando es de la agenda (y no "aparta la casa para Juan"). */
@@ -57,16 +72,23 @@ function proximoDia(hoy: FechaLocal, n: number, mes?: number): FechaLocal | null
   return null;
 }
 
-/** Hora escrita ("2", "2:30", "14", "9am", "3 pm") a minutos; sin a. m./p. m., de 1 a 6 se toma de la tarde. */
-function hora(h: string, m: string | undefined, sufijo: string | undefined): number | null {
+/**
+ * Hora escrita ("2", "2:30", "14", "9am", "3 pm") a minutos; sin a. m./p. m., de 1 a 6 se toma de la tarde
+ * (`supuesta`: así se le dice al corredor).
+ */
+function hora(h: string, m: string | undefined, sufijo: string | undefined): { min: number; supuesta: boolean } | null {
   let n = Number(h);
   if (!Number.isInteger(n) || n > 23) return null;
   const s = (sufijo ?? "").replace(/\./g, "").trim();
+  let supuesta = false;
   if (s.startsWith("p") && n < 12) n += 12;
   else if (s.startsWith("a") && n === 12) n = 0;
-  else if (!s && n >= 1 && n <= 6) n += 12;
+  else if (!s && n >= 1 && n <= 6) {
+    n += 12;
+    supuesta = true;
+  }
   const min = m ? Number(m) : 0;
-  return min >= 0 && min < 60 ? n * 60 + min : null;
+  return min >= 0 && min < 60 ? { min: n * 60 + min, supuesta } : null;
 }
 
 /**
@@ -126,20 +148,32 @@ export function entenderBloqueo(texto: string, ahora: Date, zona: string): Pedid
 
   let parte: Parte | null = null;
   let horas: { desde: number; hasta: number } | null = null;
+  let supuestaIni = false;
+  let supuestaFin = false;
   const rango = /\b(?:de|desde)\s+(?:las\s+)?(\d{1,2})(?::(\d{2}))?\s*(a\.?\s?m\.?|p\.?\s?m\.?|am|pm)?\s*(?:a|hasta)\s+(?:las\s+)?(\d{1,2})(?::(\d{2}))?\s*(a\.?\s?m\.?|p\.?\s?m\.?|am|pm)?/.exec(resto);
   if (rango) {
-    const desde = hora(rango[1], rango[2], rango[3]);
-    let hasta = hora(rango[4], rango[5], rango[6] ?? rango[3]);
+    const d = hora(rango[1], rango[2], rango[3]);
+    const h = hora(rango[4], rango[5], rango[6] ?? rango[3]);
+    const desde = d?.min ?? null;
+    let hasta = h?.min ?? null;
+    supuestaIni = !!d?.supuesta;
+    supuestaFin = !!h?.supuesta;
     // "de 5 a 7" o "de 6 a 8": la segunda hora también es de la tarde.
-    if (desde !== null && hasta !== null && hasta <= desde && !rango[6] && hasta < 12 * 60) hasta += 12 * 60;
+    if (desde !== null && hasta !== null && hasta <= desde && !rango[6] && hasta < 12 * 60) {
+      hasta += 12 * 60;
+      supuestaFin = true;
+    }
     if (desde === null || hasta === null || hasta <= desde || hasta > 24 * 60) return null; // horas que no cuadran: mejor preguntar
     horas = { desde, hasta };
   } else {
     // "a las 3": una hora.
     const una = /\ba las\s+(\d{1,2})(?::(\d{2}))?\s*(a\.?\s?m\.?|p\.?\s?m\.?|am|pm)?/.exec(resto);
     if (una) {
-      const desde = hora(una[1], una[2], una[3]);
-      if (desde === null) return null;
+      const h = hora(una[1], una[2], una[3]);
+      if (h === null) return null;
+      const desde = h.min;
+      // El fin sale del inicio (una hora después): si el inicio se supuso, el fin también.
+      supuestaIni = supuestaFin = h.supuesta;
       horas = { desde, hasta: Math.min(desde + 60, 24 * 60) };
     }
   }
@@ -155,6 +189,9 @@ export function entenderBloqueo(texto: string, ahora: Date, zona: string): Pedid
     else parte = "todo";
   }
   const rato = horas ?? PARTES[hastaDia ? "todo" : parte!];
+  // Solo se avisa si pasarla a la mañana tiene sentido ("de 11 a 2" no se puede leer como 11 a. m. a 2 a. m.).
+  const en: HoraSupuesta | null = !horas ? null : supuestaIni && supuestaFin ? "ambas" : supuestaIni ? "inicio" : supuestaFin ? "fin" : null;
+  const horaSupuesta = en && horasEnManana(horas!, en) ? en : undefined;
   return {
     inicio: aUtc(dia, rato.desde, zona),
     fin: aUtc(hastaDia ?? dia, rato.hasta, zona),
@@ -163,6 +200,7 @@ export function entenderBloqueo(texto: string, ahora: Date, zona: string): Pedid
     parte,
     horas,
     motivo: motivoCrudo ? motivoCrudo.trim().slice(0, 120) : null,
+    ...(horaSupuesta ? { horaSupuesta } : {}),
   };
 }
 

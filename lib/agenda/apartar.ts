@@ -18,11 +18,12 @@ export async function apartar(
     return { ok: true, texto: `Eso ya estaba apartado: ${describirBloqueo(pedido)} no se agendan visitas.` };
   }
   await repo.crearBloqueo(corredorId, pedido.inicio, pedido.fin, pedido.motivo);
+  const supuesta = pedido.horaSupuesta ? " (entendí de la tarde)" : "";
   const encima = citas.filter((c) => c.inicio < pedido.fin && c.fin > pedido.inicio).length;
   return {
     ok: true,
     texto:
-      `Listo, aparté ${describirBloqueo(pedido)}${pedido.motivo ? ` (${pedido.motivo})` : ""}: no voy a agendar visitas ahí.` +
+      `Listo, aparté ${describirBloqueo(pedido)}${supuesta}${pedido.motivo ? ` (${pedido.motivo})` : ""}: no voy a agendar visitas ahí.` +
       (encima ? ` Ojo: ya tenías ${encima} ${encima === 1 ? "visita" : "visitas"} en ese rato; siguen en pie, revísalas en la Agenda.` : ""),
   };
 }

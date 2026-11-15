@@ -7,14 +7,23 @@ import { slugValido } from "@/lib/panel/marca";
 import { errorSeguro } from "@/lib/monitoreo/errores";
 import { COOKIE_CORREDOR } from "@/lib/panel/sesion";
 import { esRutaInterna } from "@/lib/panel/sesion-vencida";
+import { COOKIE_VOLVER, opcionesBorrarVolver, opcionesCookieVolver, valorCookieVolver } from "@/lib/panel/volver-enlace";
 import { clienteConSesion } from "@/lib/supabase/servidor";
 
 export async function pedirEnlace(formulario: FormData) {
   const correo = String(formulario.get("correo") ?? "").trim().toLowerCase();
   // El corredor de la entrada (?c=) se conserva para que la pantalla siguiente tenga su marca.
   const c = String(formulario.get("c") ?? "");
-  const conMarca = (aviso: string) => `/entrar?aviso=${aviso}${slugValido(c) ? `&c=${c}` : ""}`;
+  // La pantalla a la que volver (solo /panel/...) se conserva en /entrar y queda en una cookie para cuando se abra el
+  // enlace: no va en el enlace porque Supabase solo acepta direcciones de vuelta de su lista de permitidas.
+  const volver = String(formulario.get("volver") ?? "");
+  const valorVolver = valorCookieVolver(volver);
+  const conMarca = (aviso: string) =>
+    `/entrar?aviso=${aviso}${slugValido(c) ? `&c=${c}` : ""}${valorVolver ? `&volver=${encodeURIComponent(volver)}` : ""}`;
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) redirect(conMarca("correo"));
+  const almacen = await cookies();
+  if (valorVolver) almacen.set(COOKIE_VOLVER, valorVolver, opcionesCookieVolver);
+  else almacen.delete({ name: COOKIE_VOLVER, ...opcionesBorrarVolver });
   // La dirección del enlace sale de la configuración; el encabezado Origin queda solo para local.
   const origen = process.env.NEXT_PUBLIC_URL_APP || (await headers()).get("origin") || "";
   const supabase = await clienteConSesion();
