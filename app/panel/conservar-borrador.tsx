@@ -88,7 +88,6 @@ export function ConservarBorrador({ nombre }: { nombre: string }) {
     const guardado = leerAlmacen(almacenSesion(), clave, (x) => validarBorrador(x));
     if (guardado && !mismosValores(guardado.v, base.current)) {
       ponerValores(form, guardado.v);
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- sessionStorage solo existe en el navegador: se lee ya montado para no desajustar la hidratación.
       setRepuesto(true);
     } else if (guardado) borrar(clave);
 
