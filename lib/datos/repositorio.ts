@@ -30,6 +30,7 @@ import type { PresupuestoIA,
   Conocimiento,
 } from "./tipos";
 import { ErrorDatos } from "../monitoreo/errores";
+import type { TipoActividad } from "../crm/actividades";
 
 // Acceso a datos del backend. Corre con service_role (sin RLS): cada consulta filtra por corredor_id.
 export interface Repositorio {
@@ -95,7 +96,7 @@ export interface Repositorio {
   /** Último mensaje que el contacto le escribió a la asistente (ventana de 24 horas). */
   ultimoMensajeDe(corredorId: string, contactoId: string): Promise<Date | null>;
   corredoresActivos(): Promise<Corredor[]>;
-  /** Citas de hoy y mañana, prospectos de las 24 horas previas a `ahora`, pendientes. */
+  /** Plan del día: citas de hoy, de ayer sin resultado y de mañana, prospectos de las 24 horas previas a `ahora`, pendientes, seguimientos, clientes que no contestan, dinero y dueños. */
   datosPlan(
     corredorId: string,
     ahora: Date,
@@ -167,6 +168,28 @@ export interface Repositorio {
    */
   registrarDuda(corredorId: string, tema: string, conversacionId: string | null): Promise<void>;
   conversacionConContacto(corredorId: string, conversacionId: string): Promise<ConversacionConContacto | null>;
+
+  // Seguimiento de visitas (lib/agenda/seguimiento-visitas.ts): "¿Cómo te fue en la visita…?" y su respuesta.
+  /** Visitas agendadas o confirmadas del corredor que terminaron entre `desde` y `hasta`, la más reciente primero. */
+  citasTerminadas(corredorId: string, desde: Date, hasta: Date): Promise<CitaTerminada[]>;
+  /** `reclamar_alerta`: true si la clave no existía o su ventana ya pasó (atómico en la base). */
+  reclamarAlerta(clave: string, minutos: number): Promise<boolean>;
+  /** Cuándo se reclamó cada clave; solo vienen las que existen. */
+  alertasReclamadas(claves: string[]): Promise<Map<string, Date>>;
+  /** Anota en la Historia del cliente (`actividades`); la base reinicia `ultima_actividad_at`. */
+  anotarActividad(corredorId: string, contactoId: string, tipo: TipoActividad, texto: string, autor: "corredor" | "asistente"): Promise<void>;
+  /** Le pone recordatorio al cliente solo si no tenía otro. true si lo puso. */
+  ponerSeguimiento(corredorId: string, contactoId: string, fecha: string, nota: string): Promise<boolean>;
+}
+
+/** Visita que ya terminó y sigue sin resultado (agendada o confirmada). */
+export interface CitaTerminada {
+  id: string;
+  contacto_id: string;
+  inicio: Date;
+  fin: Date;
+  cliente: string | null;
+  propiedad: string | null;
 }
 
 const UNICA_VIOLADA = "23505";
@@ -616,61 +639,190 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
     },
 
     async datosPlan(corredorId, ahora, hoy, manana) {
-      const [citas, prospectos, escaladas, borradores, citasManana] = await Promise.all([
-        db
-          .from("citas")
-          .select("inicio, estado, contactos(nombre, telefono), propiedades(titulo)")
-          .eq("corredor_id", corredorId)
-          .in("estado", CITA_ACTIVA)
-          .gte("inicio", hoy.desde.toISOString())
-          .lt("inicio", hoy.hasta.toISOString())
-          .order("inicio"),
-        db
-          .from("contactos")
-          .select("nombre, telefono")
-          .eq("corredor_id", corredorId)
-          .eq("es_corredor", false)
-          .gte("created_at", new Date(ahora.getTime() - 24 * 60 * 60_000).toISOString())
-          .lt("created_at", ahora.toISOString())
-          .order("created_at"),
-        db
+      const DIA_MS = 24 * 60 * 60_000;
+      // Ayer: el día local anterior a `hoy`. La fecha local de hoy ("2026-10-20") sale del mediodía local en UTC,
+      // que cae en el mismo día para cualquier zona entre UTC-12 y UTC+12 (no hace falta la zona aquí).
+      const ayer = { desde: new Date(hoy.desde.getTime() - DIA_MS), hasta: hoy.desde };
+      const fechaHoy = new Date(hoy.desde.getTime() + 12 * 60 * 60_000).toISOString().slice(0, 10);
+      const hace3 = new Date(ahora.getTime() - 3 * DIA_MS);
+      type Persona = { nombre: string | null; telefono: string };
+
+      // Clientes que no contestan (misma regla que Inicio): el último mensaje real de la conversación fue nuestro
+      // hace más de 3 días. Primero las conversaciones cuyo cliente no escribe hace 3 días; luego su último mensaje.
+      const sinRespuesta = async (): Promise<string[]> => {
+        const { data: convs, error } = await db
           .from("conversaciones")
-          .select("contactos!inner(nombre, telefono, es_corredor)")
+          .select("id, contactos!inner(nombre, telefono, es_corredor, etapa)")
           .eq("corredor_id", corredorId)
-          .eq("estado", "escalada")
-          .eq("contactos.es_corredor", false),
-        db
+          .neq("estado", "cerrada")
+          .eq("contactos.es_corredor", false)
+          .not("contactos.etapa", "in", "(cerrado,perdido)")
+          .or(`ultimo_mensaje_cliente_at.is.null,ultimo_mensaje_cliente_at.lt.${hace3.toISOString()}`)
+          .order("updated_at", { ascending: false })
+          .limit(60);
+        verificar(error, "datosPlan (sin respuesta)");
+        const lista = (convs ?? []) as { id: string; contactos: Embebido<Persona> }[];
+        if (!lista.length) return [];
+        const { data: msjs, error: e2 } = await db
           .from("mensajes")
-          .select("id", { count: "exact", head: true })
+          .select("conversacion_id, direccion, created_at")
           .eq("corredor_id", corredorId)
-          .eq("estado_borrador", "pendiente"),
-        db
-          .from("citas")
-          .select("id", { count: "exact", head: true })
-          .eq("corredor_id", corredorId)
-          .in("estado", CITA_ACTIVA)
-          .gte("inicio", manana.desde.toISOString())
-          .lt("inicio", manana.hasta.toISOString()),
-      ]);
+          .in("conversacion_id", lista.map((c) => c.id))
+          // Solo lo que de verdad se mandó o llegó (sin borradores). Ojo: neq() deja afuera los null.
+          .or("estado_borrador.is.null,estado_borrador.in.(aprobado,corregido)")
+          .order("created_at", { ascending: false })
+          .limit(400);
+        verificar(e2, "datosPlan (últimos mensajes)");
+        const ultimo = new Map<string, { direccion: string; created_at: string }>();
+        for (const m of (msjs ?? []) as { conversacion_id: string; direccion: string; created_at: string }[]) {
+          if (!ultimo.has(m.conversacion_id)) ultimo.set(m.conversacion_id, m);
+        }
+        return lista
+          .filter((c) => {
+            const m = ultimo.get(c.id);
+            return m?.direccion === "saliente" && Date.parse(m.created_at) < hace3.getTime();
+          })
+          .map((c) => nombre(uno(c.contactos)));
+      };
+
+      const [citas, prospectos, escaladas, borradores, citasManana, ayerSinResultado, seguimientos, noContestan, ofertas, cierres, duenos, dudas] =
+        await Promise.all([
+          db
+            .from("citas")
+            .select("inicio, estado, contactos(nombre, telefono), propiedades(titulo, zona, canton)")
+            .eq("corredor_id", corredorId)
+            .in("estado", CITA_ACTIVA)
+            .gte("inicio", hoy.desde.toISOString())
+            .lt("inicio", hoy.hasta.toISOString())
+            .order("inicio"),
+          db
+            .from("contactos")
+            .select("nombre, telefono")
+            .eq("corredor_id", corredorId)
+            .eq("es_corredor", false)
+            .gte("created_at", new Date(ahora.getTime() - DIA_MS).toISOString())
+            .lt("created_at", ahora.toISOString())
+            .order("created_at"),
+          db
+            .from("conversaciones")
+            .select("contactos!inner(nombre, telefono, es_corredor)")
+            .eq("corredor_id", corredorId)
+            .eq("estado", "escalada")
+            .eq("contactos.es_corredor", false),
+          db
+            .from("mensajes")
+            .select("id", { count: "exact", head: true })
+            .eq("corredor_id", corredorId)
+            .eq("estado_borrador", "pendiente"),
+          db
+            .from("citas")
+            .select("id", { count: "exact", head: true })
+            .eq("corredor_id", corredorId)
+            .in("estado", CITA_ACTIVA)
+            .gte("inicio", manana.desde.toISOString())
+            .lt("inicio", manana.hasta.toISOString()),
+          db
+            .from("citas")
+            .select("inicio, contactos(nombre, telefono), propiedades(titulo)")
+            .eq("corredor_id", corredorId)
+            .in("estado", CITA_ACTIVA)
+            .gte("inicio", ayer.desde.toISOString())
+            .lt("inicio", ayer.hasta.toISOString())
+            .lt("fin", ahora.toISOString())
+            .order("inicio")
+            .limit(10),
+          db
+            .from("contactos")
+            .select("nombre, telefono, seguimiento_nota", { count: "exact" })
+            .eq("corredor_id", corredorId)
+            .eq("es_corredor", false)
+            .lte("seguimiento_fecha", fechaHoy)
+            .order("seguimiento_fecha")
+            .limit(5),
+          sinRespuesta(),
+          db
+            .from("contactos")
+            .select("oferta_monto, oferta_moneda")
+            .eq("corredor_id", corredorId)
+            .eq("es_corredor", false)
+            .eq("etapa", "negociando")
+            .not("oferta_monto", "is", null)
+            .limit(500),
+          // Cierres de los últimos 40 días: el mes local lo decide el plan (lib/crm/ganado.ts) con la zona del corredor.
+          db
+            .from("contactos")
+            .select("cierre_at, etapa_at, cierre_comision, cierre_moneda")
+            .eq("corredor_id", corredorId)
+            .eq("es_corredor", false)
+            .eq("etapa", "cerrado")
+            .or(`cierre_at.gte.${new Date(ahora.getTime() - 40 * DIA_MS).toISOString()},etapa_at.gte.${new Date(ahora.getTime() - 40 * DIA_MS).toISOString()}`)
+            .limit(500),
+          db
+            .from("leads_duenos")
+            .select("id", { count: "exact", head: true })
+            .eq("corredor_id", corredorId)
+            .eq("es_dueno", true)
+            .eq("estado_contacto", "nuevo")
+            .gte("created_at", new Date(ahora.getTime() - 7 * DIA_MS).toISOString()),
+          db
+            .from("conocimiento")
+            .select("id", { count: "exact", head: true })
+            .eq("corredor_id", corredorId)
+            .eq("estado", "pendiente"),
+        ]);
       verificar(citas.error, "datosPlan (citas)");
       verificar(prospectos.error, "datosPlan (prospectos)");
       verificar(escaladas.error, "datosPlan (escaladas)");
       verificar(borradores.error, "datosPlan (borradores)");
       verificar(citasManana.error, "datosPlan (citas mañana)");
-      const nombre = (c: { nombre: string | null; telefono: string } | null) => c?.nombre ?? c?.telefono ?? "Cliente";
+      verificar(ayerSinResultado.error, "datosPlan (visitas de ayer)");
+      verificar(seguimientos.error, "datosPlan (seguimientos)");
+      verificar(ofertas.error, "datosPlan (ofertas)");
+      verificar(cierres.error, "datosPlan (cierres)");
+      verificar(duenos.error, "datosPlan (dueños)");
+      verificar(dudas.error, "datosPlan (dudas)");
+      function nombre(c: Persona | null) {
+        return c?.nombre ?? c?.telefono ?? "Cliente";
+      }
       return {
-        citasHoy: (citas.data ?? []).map((c) => ({
-          inicio: new Date(c.inicio as string),
-          estado: c.estado as EstadoCita,
-          cliente: nombre(uno(c.contactos as Embebido<{ nombre: string | null; telefono: string }>)),
-          propiedad: uno(c.propiedades as Embebido<{ titulo: string }>)?.titulo ?? null,
-        })),
-        prospectosNuevos: (prospectos.data ?? []).map((c) => nombre(c as { nombre: string | null; telefono: string })),
-        conversacionesEscaladas: (escaladas.data ?? []).map((c) =>
-          nombre(uno(c.contactos as Embebido<{ nombre: string | null; telefono: string }>)),
-        ),
+        citasHoy: (citas.data ?? []).map((c) => {
+          const casa = uno(c.propiedades as Embebido<{ titulo: string; zona: string | null; canton: string | null }>);
+          return {
+            inicio: new Date(c.inicio as string),
+            estado: c.estado as EstadoCita,
+            cliente: nombre(uno(c.contactos as Embebido<Persona>)),
+            propiedad: casa?.titulo ?? null,
+            zona: casa?.zona ?? casa?.canton ?? null,
+          };
+        }),
+        prospectosNuevos: (prospectos.data ?? []).map((c) => nombre(c as Persona)),
+        conversacionesEscaladas: (escaladas.data ?? []).map((c) => nombre(uno(c.contactos as Embebido<Persona>))),
         borradoresPendientes: borradores.count ?? 0,
         citasManana: citasManana.count ?? 0,
+        visitasSinResultado: (ayerSinResultado.data ?? []).map((c) => ({
+          inicio: new Date(c.inicio as string),
+          cliente: nombre(uno(c.contactos as Embebido<Persona>)),
+          propiedad: uno(c.propiedades as Embebido<{ titulo: string }>)?.titulo ?? null,
+        })),
+        seguimientos: ((seguimientos.data ?? []) as (Persona & { seguimiento_nota: string | null })[]).map((c) => ({
+          cliente: nombre(c),
+          nota: c.seguimiento_nota,
+        })),
+        seguimientosTotal: seguimientos.count ?? (seguimientos.data ?? []).length,
+        sinRespuesta: noContestan,
+        ofertas: ((ofertas.data ?? []) as { oferta_monto: number | string; oferta_moneda: string | null }[]).map((o) => ({
+          monto: Number(o.oferta_monto),
+          moneda: o.oferta_moneda === "CRC" ? ("CRC" as const) : ("USD" as const),
+        })),
+        cierres: ((cierres.data ?? []) as { cierre_at: string | null; etapa_at: string | null; cierre_comision: number | string | null; cierre_moneda: string | null }[]).map(
+          (c) => ({
+            cierre_at: c.cierre_at ?? c.etapa_at,
+            cierre_comision: c.cierre_comision === null ? null : Number(c.cierre_comision),
+            cierre_moneda: c.cierre_moneda,
+          }),
+        ),
+        duenosNuevos: duenos.count ?? 0,
+        dudasPendientes: dudas.count ?? 0,
       };
     },
 
@@ -1017,6 +1169,62 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
         estado: data.estado as ConversacionConContacto["estado"],
         ultimo_mensaje_cliente_at: (data.ultimo_mensaje_cliente_at as string | null) ?? null,
       };
+    },
+
+    // Seguimiento de visitas.
+    async citasTerminadas(corredorId, desde, hasta) {
+      const { data, error } = await db
+        .from("citas")
+        .select("id, contacto_id, inicio, fin, contactos(nombre), propiedades(titulo)")
+        .eq("corredor_id", corredorId)
+        .in("estado", CITA_ACTIVA)
+        .gte("fin", desde.toISOString())
+        .lte("fin", hasta.toISOString())
+        .order("fin", { ascending: false })
+        .limit(20);
+      verificar(error, "citasTerminadas");
+      return (data ?? []).map((c) => ({
+        id: c.id as string,
+        contacto_id: c.contacto_id as string,
+        inicio: new Date(c.inicio as string),
+        fin: new Date(c.fin as string),
+        cliente: uno(c.contactos as Embebido<{ nombre: string | null }>)?.nombre ?? null,
+        propiedad: uno(c.propiedades as Embebido<{ titulo: string }>)?.titulo ?? null,
+      }));
+    },
+
+    async reclamarAlerta(clave, minutos) {
+      const { data, error } = await db.rpc("reclamar_alerta", { p_clave: clave, p_minutos: minutos });
+      verificar(error, "reclamarAlerta");
+      return data === true;
+    },
+
+    async alertasReclamadas(claves) {
+      const mapa = new Map<string, Date>();
+      if (claves.length === 0) return mapa;
+      const { data, error } = await db.from("alertas").select("clave, enviada_at").in("clave", claves);
+      verificar(error, "alertasReclamadas");
+      for (const a of data ?? []) mapa.set(a.clave as string, new Date(a.enviada_at as string));
+      return mapa;
+    },
+
+    async anotarActividad(corredorId, contactoId, tipo, texto, autor) {
+      const limpio = texto.trim().slice(0, 500);
+      if (!limpio) return;
+      const { error } = await db.from("actividades").insert({ corredor_id: corredorId, contacto_id: contactoId, tipo, texto: limpio, autor });
+      verificar(error, "anotarActividad");
+    },
+
+    async ponerSeguimiento(corredorId, contactoId, fecha, nota) {
+      const { data, error } = await db
+        .from("contactos")
+        .update({ seguimiento_fecha: fecha, seguimiento_nota: nota.slice(0, 500) })
+        .eq("corredor_id", corredorId)
+        .eq("id", contactoId)
+        .is("seguimiento_fecha", null)
+        .select("id");
+      verificar(error, "ponerSeguimiento");
+      return (data ?? []).length > 0;
     },
   };
 }

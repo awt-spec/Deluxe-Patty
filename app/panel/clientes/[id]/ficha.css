@@ -696,16 +696,56 @@
   background: #e6f6f1;
   color: #00513e;
 }
-.marco.tema .fc-cierre {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.marco.tema .fc-cierre-casa {
+/* Cerró: estado de cuenta (la tabla es .cont-tabla, en globals.css) */
+.marco.tema .fc-cierre-moneda {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--fc-gris);
   color: #3b4a54;
+  font-size: 0.85rem;
+  font-weight: 650;
 }
-.marco.tema .fc-cierre-precio {
-  font-size: 1.6rem;
+.marco.tema .fc-cierre-casa .suave {
+  font-size: 0.88rem;
+}
+.marco.tema .fc-cierre-sin-casa {
+  margin: 0;
+}
+.marco.tema .fc-cierre-cuenta {
+  margin-top: 4px;
+}
+.marco.tema .fc-cierre-nota {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--gris-texto, #54656f);
+}
+.marco.tema .fc-cierre-datos {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.marco.tema .fc-cierre-datos > div {
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--fc-gris);
+}
+.marco.tema .fc-cierre-datos dt {
+  font-size: 0.8rem;
+  color: var(--gris-texto, #54656f);
+}
+.marco.tema .fc-cierre-datos dd {
+  margin: 2px 0 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.marco.tema .fc-cierre-datos .cont-dato-suma dd {
+  color: var(--verde-texto, #00664f);
+}
+.marco.tema .fc-cierre-datos .cont-dato-resta dd {
+  color: var(--peligro, #c0392b);
 }
 .marco.tema .fc-comision {
   align-self: flex-start;

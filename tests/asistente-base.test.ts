@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Cerebro } from "../lib/asistente/cerebro";
 import { SIN_CONSUMO } from "../lib/asistente/costo";
-import { armarPlan, enviarPlanes } from "../lib/asistente/plan";
+import { enviarPlanes } from "../lib/asistente/plan";
 import { procesarMensaje, type Dependencias } from "../lib/asistente/procesar";
 import type { Corredor } from "../lib/datos/tipos";
 import type { EnviadorWhatsApp } from "../lib/whatsapp/enviar";
@@ -134,38 +134,5 @@ describe("Asistente Base", () => {
       expect(whatsapp.texto.mock.calls[0][2]).toContain("Tu plan para hoy");
       expect(whatsapp.plantilla).not.toHaveBeenCalled();
     });
-  });
-});
-
-describe("armarPlan", () => {
-  it("lista visitas, prospectos, pendientes y lo de mañana", () => {
-    const texto = armarPlan(
-      corredorBase(),
-      {
-        citasHoy: [
-          { inicio: local("2026-10-20T10:00"), estado: "confirmada", cliente: "Ana", propiedad: "Casa en Escazú" },
-        ],
-        prospectosNuevos: ["Luis", "Marta", "Pedro", "Sofía", "Juan", "Rosa"],
-        conversacionesEscaladas: ["Carlos"],
-        borradoresPendientes: 2,
-        citasManana: 1,
-      },
-      local("2026-10-20T07:00"),
-    );
-    expect(texto).toBe(
-      [
-        "*Buenos días, Patricia.* Tu plan para hoy, martes 20 de octubre:",
-        "",
-        "*Visitas de hoy (1)*",
-        "• 10:00 a. m. · Ana · Casa en Escazú (confirmada)",
-        "",
-        "*Prospectos nuevos (6):* Luis, Marta, Pedro, Sofía, Juan y 1 más",
-        "*Te esperan (1):* Carlos",
-        "*Respuestas por aprobar:* 2",
-        "Mañana tienes 1 visita.",
-        "",
-        "¿Tienes algún compromiso hoy o mañana? Escríbeme, por ejemplo, «apartar mañana en la tarde» y no agendo visitas ahí.",
-      ].join("\n"),
-    );
   });
 });

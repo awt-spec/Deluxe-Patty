@@ -209,13 +209,29 @@ export interface CitaCalendario {
   updated_at: Date;
 }
 
-/** Lo que entra al plan del día de un corredor. */
+/** Lo que entra al plan del día de un corredor. Todo sale de la base; el texto lo arma el código (lib/asistente/plan.ts). */
 export interface DatosPlan {
-  citasHoy: { inicio: Date; estado: EstadoCita; cliente: string; propiedad: string | null }[];
+  /** Visitas de hoy con la zona de la casa (zona o cantón), para calcular la hora de salida. */
+  citasHoy: { inicio: Date; estado: EstadoCita; cliente: string; propiedad: string | null; zona?: string | null }[];
   prospectosNuevos: string[];
   conversacionesEscaladas: string[];
   borradoresPendientes: number;
   citasManana: number;
+  /** Visitas de ayer que ya terminaron y siguen agendadas o confirmadas: no dicen cómo salieron. */
+  visitasSinResultado: { inicio: Date; cliente: string; propiedad: string | null }[];
+  /** Seguimientos que vencen hoy o ya vencieron (los primeros) y cuántos son en total. */
+  seguimientos: { cliente: string; nota: string | null }[];
+  seguimientosTotal: number;
+  /** Clientes activos cuyo último mensaje real fue nuestro hace más de 3 días (misma regla que Inicio). */
+  sinRespuesta: string[];
+  /** Ofertas de clientes en negociación, cada una en su moneda (nunca se suman dólares con colones). */
+  ofertas: { monto: number; moneda: "USD" | "CRC" }[];
+  /** Cierres recientes (cierre_at o, si falta, cuando pasó a cerrado); el plan se queda con los del mes local. */
+  cierres: { cierre_at: string | null; cierre_comision: number | null; cierre_moneda: string | null }[];
+  /** Dueños directos encontrados en los últimos 7 días que todavía no se contactan. */
+  duenosNuevos: number;
+  /** Preguntas que la asistente no supo contestar (cerebro, pendientes). */
+  dudasPendientes: number;
 }
 
 export interface Foto {

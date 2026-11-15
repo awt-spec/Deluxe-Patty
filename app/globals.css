@@ -5206,6 +5206,95 @@ body:has(.marco.tema) {
   font-size: 0.88rem;
 }
 
+/* Cifras al estilo contable (app/panel/tabla-contable.tsx, lib/crm/contable.ts): ficha del cliente y Cómo va el negocio.
+   El monto va a la derecha con números de ancho fijo; el concepto se parte en líneas en vez de empujar la tabla
+   (390 px sin barra horizontal). */
+.tema .cont-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+.tema .cont-tabla th,
+.tema .cont-tabla td {
+  padding: 7px 0;
+  vertical-align: baseline;
+  text-align: left;
+  font-weight: 400;
+  border: 0;
+}
+.tema .cont-tabla th {
+  padding-right: 10px;
+  overflow-wrap: anywhere;
+}
+.tema .cont-tabla .cont-monto {
+  width: 1%;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.tema .cont-tabla .cont-concepto {
+  display: block;
+  color: var(--profundo, #111b21);
+}
+.tema .cont-tabla .cont-detalle {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--gris-texto, #54656f);
+}
+.tema .cont-tabla .cont-suma .cont-monto {
+  color: var(--verde-texto, #00664f);
+}
+.tema .cont-tabla .cont-resta .cont-monto {
+  color: var(--peligro, #c0392b);
+}
+.tema .cont-tabla .cont-total > * {
+  border-top: 2px solid var(--profundo, #111b21);
+  padding-top: 9px;
+}
+.tema .cont-tabla .cont-total .cont-concepto,
+.tema .cont-tabla .cont-total .cont-monto {
+  font-weight: 750;
+}
+.tema .cont-tabla .cont-info .cont-monto {
+  font-weight: 400;
+  color: var(--gris-texto, #54656f);
+}
+.tema .cont-tabla tbody + tbody tr:first-child > * {
+  border-top: 1px solid var(--borde, #e2e6e9);
+  padding-top: 12px;
+}
+.tema .cont-tabla tbody + tbody tr.cont-total:first-child > * {
+  border-top-width: 2px;
+}
+@media (max-width: 420px) {
+  .tema .cont-tabla .cont-monto {
+    font-size: 0.9rem;
+  }
+}
+
+.tema .cont-tabla thead th {
+  padding-bottom: 6px;
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: var(--gris-texto, #54656f);
+  border-bottom: 1px solid var(--borde, #e2e6e9);
+}
+.tema .negocio-cifras {
+  margin-top: 12px;
+}
+.tema .negocio-cifras > summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+  font-weight: 650;
+  color: var(--verde-texto, #00664f);
+}
+.tema .negocio-mes {
+  text-transform: capitalize;
+}
+
 /* Cómo va el negocio */
 .tema .negocio-columnas {
   display: grid;

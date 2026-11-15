@@ -158,6 +158,11 @@ un resumen, y el plan completo sale cuando el corredor responde. Otros comandos 
 traen contactos (`lib/anuncios/reporte.ts`); "fotos <código>" mejora hasta 12 fotos con OpenAI
 (`lib/fotos/mejorar.ts`) y se las manda para revisar; "ficha <código>" genera la ficha PDF con la
 marca del corredor (`corredores.marca`), la sube al bucket público `fichas` y se la manda como documento.
+**Seguimiento de visitas** (`lib/agenda/seguimiento-visitas.ts`, en el cron de recordatorios): de 30 min a 18 h después del fin
+de cada visita agendada o confirmada, solo de 7:00 a 21:00 en su zona, le pregunta al corredor "¿Cómo te fue…?" una sola vez
+(`reclamar_alerta('seguimiento_visita:<cita>')`; con la ventana cerrada, plantilla corta sin el nombre del cliente). Durante 18 h su
+respuesta (texto o nota de voz; no comandos, enlaces, preguntas, acuses ni adjuntos) va a la Historia, la visita pasa a hecha (con
+recordatorio para mañana), o a no llegó / cancelada si dice «no vino» / «se canceló» (lo detecta el código), y la confirmación la arma el código.
 
 ## Multimedia (notas de voz, fotos, PDF, Word, Excel y video)
 - **Por WhatsApp** (`lib/asistente/medios.ts`, `lib/whatsapp/media.ts`): el webhook trae el id del archivo

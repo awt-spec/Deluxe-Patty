@@ -85,7 +85,16 @@ export function FichaCliente(d: DatosFicha) {
         {/* Lo que se edita */}
         <aside className="fc-lateral">
           <Recordatorio id={id} fecha={c.seguimiento_fecha} nota={c.seguimiento_nota} hoy={f.hoy} manana={f.manana} />
-          <LoQueEstaEnJuego c={c} juego={juego} casaInteres={d.casaInteres} casaCierre={d.casaCierre} todas={d.todas} comisionPct={d.comisionPct} zona={zona} />
+          <LoQueEstaEnJuego
+            c={c}
+            juego={juego}
+            casaInteres={d.casaInteres}
+            casaCierre={d.casaCierre}
+            todas={d.todas}
+            comisionPct={d.comisionPct}
+            zona={zona}
+            visitasHechas={hechas}
+          />
           <QueBusca id={id} busca={busca} datos={datosBusca(busca)} asistente={asistente} />
           <CasasQueEncajan casas={casasDeFicha(d.casaInteres, d.casasEncajan)} sabeQueBusca={conoceBusca} />
           <Notas id={id} nombre={c.nombre} notas={c.notas} />
