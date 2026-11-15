@@ -9,7 +9,7 @@ import type { FichaParcial, Foto } from "@/lib/datos/tipos";
 import { fichaDePropiedad } from "@/lib/fichas/comando";
 import type { EstiloAmueblado } from "@/lib/fotos/editor";
 import { mejorarFotos } from "@/lib/fotos/mejorar";
-import { crearVariante, sinVariante } from "@/lib/fotos/variantes";
+import { crearVariante, puedeUsarImagenes, sinVariante } from "@/lib/fotos/variantes";
 import {
   MAX_FOTOS_PROPIEDAD,
   agregarFotos,
@@ -261,8 +261,10 @@ export async function mejorarFotosPanel(f: FormData) {
   // Mejorar fotos usa OpenAI y sube archivos: en la demo no.
   if (corredor.activo === false) ir(`/panel/propiedades/${id}`, EN_LA_DEMO);
   const deps = dependenciasPara(corredor);
-  // Fuera del try: redirect() lanza una excepción que el catch no debe tragarse.
-  if (!(await hayPresupuestoHoy(deps.repo, corredor))) ir(`/panel/propiedades/${id}`, SIN_PRESUPUESTO);
+  // Fuera del try: redirect() lanza una excepción que el catch no debe tragarse. Mismas reglas que el resto de
+  // las imágenes con IA: configuradas, `imagenes_activas` del superadmin y dentro del tope de gasto.
+  const bloqueo = await puedeUsarImagenes(deps, corredor);
+  if (bloqueo) ir(`/panel/propiedades/${id}`, bloqueo);
   let aviso: string;
   try {
     const r = await mejorarFotos(deps, corredor, propiedad.codigo, async () => {});

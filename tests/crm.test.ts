@@ -133,7 +133,8 @@ describe("dinero del CRM: monedas y comisión por operación", () => {
       { monto: 50_000, moneda: "USD" },
     ]);
     expect(m).toEqual({ USD: 1_150_000, CRC: 850_000 });
-    expect(plataMontos(m)).toBe("$1,1 millón + ₡850 mil");
+    // 1.150.000 redondea a 1,2 (antes toFixed daba 1,1 por el redondeo binario de 1,15).
+    expect(plataMontos(m)).toBe("$1,2 millón + ₡850 mil");
     expect(plataMontos({ USD: 0, CRC: 2_500_000 })).toBe("₡2,5 millones");
     const { montoExacto } = await import("../lib/crm/dinero");
     expect(montoExacto(450_000, "CRC")).toBe("₡450.000");

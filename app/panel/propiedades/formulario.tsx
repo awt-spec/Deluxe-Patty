@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { ESTADOS, ETIQUETA_ESTADO, ETIQUETA_TIPO, MONEDAS, OPERACIONES, TIPOS } from "@/lib/panel/formularios";
 import type { EstadoFormulario } from "./acciones";
 import { SeccionForm } from "./seccion-form";
+import { ConservarBorrador } from "../conservar-borrador";
 import "./formulario-movil.css";
 
 export type PropiedadFormulario = {
@@ -162,7 +163,7 @@ export function FormularioPropiedad({
         <textarea id="amenidades" name="amenidades" rows={4} defaultValue={v("amenidades", p.amenidades.join("\n"))} placeholder={"piscina\nseguridad 24/7\ndos parqueos techados"} />
       </Campo>
       <Campo id="descripcion" etiqueta="Descripción">
-        <textarea id="descripcion" name="descripcion" rows={6} defaultValue={v("descripcion", p.descripcion ?? "")} />
+        <textarea id="descripcion" name="descripcion" rows={6} maxLength={6000} defaultValue={v("descripcion", p.descripcion ?? "")} />
       </Campo>
       <p className="suave">
         La asistente solo dice lo que está en esta ficha. Lo que no esté (cuota, mascotas, año…) lo confirma contigo.
@@ -172,6 +173,7 @@ export function FormularioPropiedad({
       </Campo>
       </SeccionForm>
       <div className="form-casa-guardar">
+        <ConservarBorrador nombre={`casa-${p.id ?? "nueva"}`} />
         <button type="submit" className="primario" disabled={enviando}>
           {enviando ? "Guardando…" : boton}
         </button>

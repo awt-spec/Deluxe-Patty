@@ -65,7 +65,11 @@ export interface Repositorio {
   entrantesDesde(corredorId: string, conversacionId: string, desde: Date): Promise<number>;
   /** Marca el aviso de tope del mes. true solo para la llamada que lo marcó (evita avisos dobles). */
   marcarAvisoTope(corredorId: string, mes: string): Promise<boolean>;
-  actualizarEstadoEntrega(corredorId: string, waMessageId: string, estado: NonNullable<NuevoMensaje["estado_entrega"]>): Promise<void>;
+  /**
+   * Pone el estado de entrega que avisa Meta sin retroceder nunca (enviado < entregado < leído; "fallido" solo si no
+   * llegó). true si encontró el mensaje en un estado que lo admite (o ya en ese mismo estado).
+   */
+  actualizarEstadoEntrega(corredorId: string, waMessageId: string, estado: NonNullable<NuevoMensaje["estado_entrega"]>): Promise<boolean>;
 
   // Agenda
   datosAgenda(corredorId: string, desde: Date, hasta: Date): Promise<DatosAgenda>;
@@ -181,6 +185,25 @@ function verificar(error: { message: string; code?: string } | null, que: string
 
 export const COLUMNAS_CORREDOR =
   "id, nombre, nombre_contacto, whatsapp_numero, whatsapp_phone_number_id, whatsapp_corredor, zona_horaria, tono, reglas_escalamiento, tope_mensajes_mes, aviso_mensajes_mes, respuesta_automatica, duracion_visita_min, margen_visitas_min, anticipacion_min_horas, horizonte_agenda_dias, hora_plan_dia, marca, activo, zona_base, nombre_asistente, comision_pct, tope_ia_dia_usd, tope_ia_mes_usd, imagenes_activas";
+
+type EstadoEntrega = NonNullable<NuevoMensaje["estado_entrega"]>;
+
+/** Desde qué estados se puede pasar a cada uno (incluido el mismo, que no cambia nada). Nunca hacia atrás. */
+export const ESTADOS_PREVIOS: Record<EstadoEntrega, (EstadoEntrega | null)[]> = {
+  enviado: [null, "enviado"],
+  entregado: [null, "enviado", "entregado", "fallido"],
+  leido: [null, "enviado", "entregado", "leido", "fallido"],
+  fallido: [null, "enviado", "fallido"],
+};
+
+/** Filtro de PostgREST para `.or()`: "estado_entrega.is.null,estado_entrega.in.(enviado,entregado)". */
+export function filtroEstadoAnterior(estado: EstadoEntrega): string {
+  const previos = ESTADOS_PREVIOS[estado];
+  const conValor = previos.filter((e): e is EstadoEntrega => e !== null);
+  return [previos.includes(null) ? "estado_entrega.is.null" : null, conValor.length ? `estado_entrega.in.(${conValor.join(",")})` : null]
+    .filter(Boolean)
+    .join(",");
+}
 
 export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
   return {
@@ -348,12 +371,17 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
     },
 
     async actualizarEstadoEntrega(corredorId, waMessageId, estado) {
-      const { error } = await db
+      // La condición va en la propia consulta (un solo UPDATE): Meta manda los avisos fuera de orden y un "entregado"
+      // tardío no puede borrar el "leído".
+      const { data, error } = await db
         .from("mensajes")
         .update({ estado_entrega: estado })
         .eq("corredor_id", corredorId)
-        .eq("wa_message_id", waMessageId);
+        .eq("wa_message_id", waMessageId)
+        .or(filtroEstadoAnterior(estado))
+        .select("id");
       verificar(error, "actualizarEstadoEntrega");
+      return (data ?? []).length > 0;
     },
 
     async datosAgenda(corredorId, desde, hasta) {

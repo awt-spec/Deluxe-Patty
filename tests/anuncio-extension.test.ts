@@ -206,3 +206,26 @@ describe("Leer este anuncio: traer la casa a Mis casas", () => {
     expect(rafaga.db.rpcs).toEqual([]);
   });
 });
+
+// Sospecha S-1 (QA): el freno de "una lectura cada 10 s" leía y luego escribía; dos lecturas simultáneas de
+// anuncios distintos pasaban las dos y cada una llamaba a Sonnet. Ahora el turno se reserva atómicamente.
+describe("Leer este anuncio: freno atómico", () => {
+  it("dos lecturas simultáneas de anuncios distintos: solo una llama a la IA", async () => {
+    const { db, d, fichaConversada } = entorno();
+    // reclamar_alerta como en la base: la primera vez por clave gana; las demás, no (dentro de su ventana).
+    const reclamadas = new Set<string>();
+    db.rpc = async (nombre, args) => {
+      db.rpcs.push({ nombre, args });
+      const { p_clave, p_minutos } = args as { p_clave: string; p_minutos: number };
+      if (p_minutos === 0) return { data: true, error: null };
+      const nueva = !reclamadas.has(p_clave);
+      reclamadas.add(p_clave);
+      return { data: nueva, error: null };
+    };
+    const otra = pagina({ url: URL_ANUNCIO.replace("31234567", "39999999") });
+    const [a, b] = await Promise.all([leerAnuncio(d, corredor, pagina()), leerAnuncio(d, corredor, otra)]);
+    expect([a.ok, b.ok].filter(Boolean)).toHaveLength(1);
+    expect([a, b].find((r) => !r.ok)).toMatchObject({ motivo: "espera" });
+    expect(fichaConversada).toHaveBeenCalledTimes(1);
+  });
+});

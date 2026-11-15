@@ -28,13 +28,31 @@ export function opcionesDeFoto(fotos: Foto[]): OpcionFoto[] {
   ]);
 }
 
+/** Único sitio externo aceptado, y solo en la demo (fotos de ejemplo que no se pudieron copiar). */
+const SITIO_DEMO = "https://images.unsplash.com/";
+
 /**
  * Fotos que el servidor puede leer para armar la imagen: las del bucket propio del corredor. La demo
- * (corredor inactivo) usa fotos de ejemplo de Unsplash, y solo para ella se acepta ese sitio fijo.
+ * (corredor inactivo) copia sus fotos de ejemplo a su bucket propio (`copiarFotosDemo`); si alguna no se
+ * pudo copiar queda en Unsplash, y solo para la demo se acepta además ese sitio fijo. Nunca un host cualquiera.
  */
 export function fotosParaRedes(fotos: Foto[], corredor: { id: string; activo?: boolean }, propias: (f: Foto[], id: string) => Foto[]): Foto[] {
-  if (corredor.activo !== false) return propias(fotos, corredor.id);
-  return fotos.filter((f) => f.url.startsWith("https://images.unsplash.com/")).map((f) => ({ url: f.url, orden: f.orden }));
+  const delBucket = propias(fotos, corredor.id);
+  if (corredor.activo !== false) return delBucket;
+  const aceptadas = new Set(delBucket.map((f) => f.url));
+  return fotos.flatMap((f) => {
+    if (aceptadas.has(f.url)) return [delBucket.find((p) => p.url === f.url)!];
+    return esDeEjemplo(f.url) ? [{ url: f.url, orden: f.orden }] : [];
+  });
+}
+
+function esDeEjemplo(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return url.startsWith(SITIO_DEMO) && u.protocol === "https:" && u.host === "images.unsplash.com";
+  } catch {
+    return false;
+  }
 }
 
 /** Una foto por foto de la casa, la mejor versión real (mejorada si la hay): la que usa el video por defecto. */

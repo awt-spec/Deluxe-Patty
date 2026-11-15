@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { comisionEstimada, hayMonto, monedaDe, plataMontos, sumar, type Moneda } from "@/lib/crm/dinero";
 import { fechaIso, fechaLocal } from "@/lib/agenda/tiempo";
+import { delMes } from "@/lib/crm/ganado";
 import { AYUDA_ETAPA, ETAPAS, NOMBRE_ETAPA, resumenBusca, telefonoBonito, type Busca, type Etapa } from "@/lib/crm/perfil";
 import { fechaCorta } from "@/lib/formato";
 import { sesionConCorredor } from "@/lib/panel/sesion";
@@ -116,7 +117,13 @@ export default async function Clientes({
   const negociando = activos.filter((c) => c.etapa === "negociando");
   const enNegociacion = sumar(negociando.map(valorDe));
   const comisionPosible = sumar(negociando.map(comisionDe));
-  const cerradosMes = todos.filter((c) => c.etapa === "cerrado" && (c.cierre_at ?? c.etapa_at).slice(0, 7) === mes);
+  // El mes se cuenta en la zona del corredor (un cierre del 31 a las 18:30 en Costa Rica es de ese mes, no del siguiente).
+  const cerradosMes = delMes(
+    todos.filter((c) => c.etapa === "cerrado"),
+    mes,
+    corredor.zona_horaria,
+    (c) => c.cierre_at ?? c.etapa_at,
+  );
   const ganadoMes = sumar(cerradosMes.map((c) => ({ monto: Number(c.cierre_comision ?? 0), moneda: monedaDe(c.cierre_moneda) })));
   const atencion = todos.filter((c) => estancado(c) || vence(c));
   const perdidos = todos.filter((c) => c.etapa === "perdido");

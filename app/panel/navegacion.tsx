@@ -1,5 +1,6 @@
 "use client";
 
+import { inicialDe } from "@/lib/panel/inicial";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { IconoAgenda, IconoCasa, IconoInicio, IconoPersonas } from "./iconos";
@@ -25,7 +26,7 @@ export function esActiva(ruta: string, s: { ruta: string; tambien?: string[] }):
 export function Navegacion({ teNecesitan, asistente = "Patty" }: { teNecesitan: number; asistente?: string }) {
   const ruta = usePathname();
   const accion = accionAsistente(ruta);
-  const inicial = asistente.trim().charAt(0).toUpperCase() || "P";
+  const inicial = inicialDe(asistente, "P");
 
   const enlace = (s: (typeof SECCIONES)[number]) => {
     const numero = s.ruta === "/panel" ? teNecesitan : 0;

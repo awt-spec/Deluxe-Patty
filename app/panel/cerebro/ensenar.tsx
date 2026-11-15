@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { ensenar } from "./acciones";
+import { ConservarBorrador } from "../conservar-borrador";
 
 // "Enséñale algo": la pregunta y lo que debe contestar, con ideas tocables que llenan la pregunta. Comisiones no
 // llena nada: avisa que ese tema la asistente no lo contesta, te lo pasa a ti. Guarda con la acción de siempre.
@@ -62,6 +63,7 @@ export function EnsenaleAlgo({ nombre }: { nombre: string }) {
           placeholder={ejemplo?.respuesta || "Sí, perros pequeños, con un depósito extra de un mes."}
           required
         />
+        <ConservarBorrador nombre="ensenar" />
         <button type="submit" className="primario">
           Guardar
         </button>

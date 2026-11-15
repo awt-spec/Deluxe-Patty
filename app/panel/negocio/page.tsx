@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { hayMonto, monedaDe, plataMontos, sumar, type Montos } from "@/lib/crm/dinero";
+import { hayMonto, monedaDe, plataMontos, type Montos } from "@/lib/crm/dinero";
+import { comisiones, delAnio, delMes, ultimosMeses } from "@/lib/crm/ganado";
 import { fechaIso, fechaLocal } from "@/lib/agenda/tiempo";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { PreguntarPatty } from "../preguntar-patty";
@@ -43,6 +44,8 @@ export default async function Negocio() {
       .select("etapa, origen, created_at, cierre_at, cierre_comision, cierre_precio, cierre_moneda, motivo_perdida")
       .eq("corredor_id", corredor.id)
       .eq("es_corredor", false)
+      // Los más recientes primero: si algún día pasan de 2000, lo que se corta es lo más viejo, no algo al azar.
+      .order("created_at", { ascending: false })
       .limit(2000),
     supabase.from("leads_duenos").select("estado_contacto").eq("corredor_id", corredor.id).eq("es_dueno", true).limit(2000),
     supabase.from("uso_mensual").select("mes, mensajes_total").eq("corredor_id", corredor.id).order("mes", { ascending: false }).limit(1).maybeSingle(),
@@ -50,28 +53,25 @@ export default async function Negocio() {
   const clientes = (data ?? []) as Cliente[];
   const cerrados = clientes.filter((c) => c.etapa === "cerrado");
   // Dólares y colones van por separado; las barras se miden en la moneda en que más cierra.
-  const comisiones = (lista: Cliente[]): Montos =>
-    sumar(lista.map((c) => ({ monto: Number(c.cierre_comision ?? 0), moneda: monedaDe(c.cierre_moneda) })));
+  // Los meses y el año se cuentan en la zona del corredor (lib/crm/ganado.ts), no en UTC.
   const plata = (m: Montos) => (hayMonto(m) ? plataMontos(m) : "$0");
 
   // Últimos 6 meses: comisiones y cierres.
-  const meses = Array.from({ length: 6 }, (_, i) => {
-    const d = new Date(Date.UTC(hoy.anio, hoy.mes - 1 - (5 - i), 1));
-    const clave = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-    const delMes = cerrados.filter((c) => (c.cierre_at ?? "").slice(0, 7) === clave);
+  const meses = ultimosMeses(new Date(), zona).map((clave) => {
+    const cierres = delMes(cerrados, clave, zona, (c) => c.cierre_at);
     return {
       clave,
-      nombre: MESES[d.getUTCMonth()],
-      cierres: delMes.length,
-      ganado: comisiones(delMes),
-      nuevos: clientes.filter((c) => c.created_at.slice(0, 7) === clave).length,
+      nombre: MESES[Number(clave.slice(5, 7)) - 1],
+      cierres: cierres.length,
+      ganado: comisiones(cierres),
+      nuevos: delMes(clientes, clave, zona, (c) => c.created_at).length,
     };
   });
   const principal = cerrados.filter((c) => monedaDe(c.cierre_moneda) === "CRC").length > cerrados.length / 2 ? "CRC" : "USD";
   const maxGanado = Math.max(1, ...meses.map((m) => m.ganado[principal]));
   const esteMes = meses[5];
   const mesPasado = meses[4];
-  const ganadoAnio = comisiones(cerrados.filter((c) => (c.cierre_at ?? "").slice(0, 4) === String(hoy.anio)));
+  const ganadoAnio = comisiones(delAnio(cerrados, hoy.anio, zona, (c) => c.cierre_at));
 
   // Hasta dónde llegan: de cada 10 clientes que escriben.
   const llego = (k: number) => clientes.filter((c) => ORDEN[c.etapa] >= k).length;

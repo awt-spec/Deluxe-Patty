@@ -9,11 +9,21 @@ const ARCHIVOS_ASISTENTE = [
 
 // Nadie puede mostrar la app dentro de otra página (para que un toque en "Enviar así" no se pueda
 // engañar desde un iframe), y el navegador no adivina tipos de archivo.
+// Permisos del navegador: micrófono y cámara solo para esta misma app (notas de voz y fotos en el chat de Patty y en
+// Apartar tiempo); compartir (navigator.share) también; lo demás apagado.
+// Sin CSP de scripts a propósito: Next mete scripts en línea al hidratar y mermaid / html-to-image arman estilos e
+// imágenes en el navegador; una política de scripts sin probarla en vivo puede dejar el panel en blanco. Si se agrega,
+// primero como Content-Security-Policy-Report-Only y con nonce (proxy.ts) tras revisar sus reportes. Tampoco
+// form-action 'self': hay acciones que terminan en wa.me y Google, y sin JavaScript el navegador las frenaría.
 const CABECERAS_SEGURIDAD = [
-  { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+  { key: "Content-Security-Policy", value: "frame-ancestors 'none'; base-uri 'self'; object-src 'none'" },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "same-origin" },
+  {
+    key: "Permissions-Policy",
+    value: "camera=(self), microphone=(self), web-share=(self), geolocation=(), payment=(), usb=(), serial=(), bluetooth=(), hid=(), display-capture=(), browsing-topics=()",
+  },
 ];
 
 const nextConfig: NextConfig = {

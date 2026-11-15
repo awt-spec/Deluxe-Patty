@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { transcribirNota } from "../../patty-acciones";
+import { sinConexion, useBorradorTexto } from "../../conservar-borrador";
+import { clasificarFalla, mensajeDeFalla } from "@/lib/panel/fallas";
 import { deshacerApartadosPanel, entenderApartadoPanel, guardarApartadosPanel, type Propuesta } from "./acciones";
 import "./apartar-ia.css";
 
@@ -30,6 +32,8 @@ export function Dimelo({ asistente, propuestaInicial, enfocar }: { asistente: st
   const caja = useRef<HTMLTextAreaElement>(null);
   const grabadora = useRef<{ rec: MediaRecorder; trozos: Blob[]; flujo: MediaStream; reloj: ReturnType<typeof setTimeout>; cancelado: boolean } | null>(null);
   const leido = useRef(false);
+  // Lo escrito sobrevive a una caída de red, a la sesión cerrada o a una recarga (se borra al quedar vacío: al guardar).
+  useBorradorTexto("apartar-dimelo", texto, setTexto);
 
   useEffect(() => {
     if (enfocar) caja.current?.focus();
@@ -51,6 +55,7 @@ export function Dimelo({ asistente, propuestaInicial, enfocar }: { asistente: st
   function entender(t: string) {
     const limpio = t.trim().slice(0, MAX);
     if (!limpio || pendiente) return;
+    if (sinConexion()) return setError("Sin conexión. No se mandó todavía: lo que escribiste sigue aquí.");
     setError(null);
     setGuardado(null);
     setFuera([]);
@@ -59,8 +64,8 @@ export function Dimelo({ asistente, propuestaInicial, enfocar }: { asistente: st
         const r = await entenderApartadoPanel(limpio);
         if (r.ok) setPropuesta(r.propuesta);
         else setError(r.motivo);
-      } catch {
-        setError("No se pudo mandar. Revisa tu conexión e inténtalo de nuevo.");
+      } catch (e) {
+        setError(mensajeDeFalla(clasificarFalla(e, { enLinea: navigator.onLine })));
       }
     });
   }
@@ -74,10 +79,15 @@ export function Dimelo({ asistente, propuestaInicial, enfocar }: { asistente: st
   const apartados = propuesta?.apartados.filter((a) => !fuera.includes(a.clave)) ?? [];
   const quitar = propuesta?.quitar.filter((q) => !fuera.includes(q.id)) ?? [];
   const conDudas = (propuesta?.dudas.length ?? 0) > 0;
-  const puedeGuardar = !!propuesta && !conDudas && apartados.length + quitar.length > 0;
+  const hayAlgo = apartados.length + quitar.length > 0;
+  const puedeGuardar = !!propuesta && !conDudas && hayAlgo;
+  // El botón dice lo que va a hacer: apartar, quitar o las dos cosas. Sin nada entendido no hay botón principal
+  // (antes salía «Sí, quitarlo», apagado, aunque no hubiera nada que quitar).
+  const textoConfirmar = apartados.length && quitar.length ? "Sí, guardarlo" : apartados.length ? "Sí, apartarlo" : "Sí, quitarlo";
 
   function confirmar() {
     if (!puedeGuardar || pendiente) return;
+    if (sinConexion()) return setError("Sin conexión. No se guardó todavía.");
     empezar(async () => {
       try {
         const r = await guardarApartadosPanel(apartados, quitar.map((q) => q.id));
@@ -86,8 +96,8 @@ export function Dimelo({ asistente, propuestaInicial, enfocar }: { asistente: st
         setPropuesta(null);
         setTexto("");
         router.refresh();
-      } catch {
-        setError("No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.");
+      } catch (e) {
+        setError(mensajeDeFalla(clasificarFalla(e, { enLinea: navigator.onLine }), "guardar"));
       }
     });
   }
@@ -287,15 +297,23 @@ export function Dimelo({ asistente, propuestaInicial, enfocar }: { asistente: st
               {n}
             </p>
           ))}
-          {!apartados.length && !quitar.length && !conDudas && <p className="suave">No quedó nada para apartar. Toca «Cambiar algo» y dímelo de otra forma.</p>}
+          {!hayAlgo && (
+            <p className="apartar-ia-no-entendi" role="status">
+              {conDudas
+                ? "Todavía no sé qué apartar ni qué quitar. Contéstame la duda o toca «Cambiar algo»."
+                : "No entendí qué día u hora apartar ni qué quitar. Toca «Cambiar algo» y dímelo de otra forma, por ejemplo «el martes de 2 a 4»."}
+            </p>
+          )}
 
           <div className="apartar-ia-botones">
-            <button type="button" className="primario grande" onClick={confirmar} disabled={!puedeGuardar || pendiente} data-patty="apartar-ia-confirmar">
-              {pendiente ? "Guardando…" : apartados.length ? "Sí, apartarlo" : "Sí, quitarlo"}
-            </button>
+            {hayAlgo && (
+              <button type="button" className="primario grande" onClick={confirmar} disabled={!puedeGuardar || pendiente} data-patty="apartar-ia-confirmar">
+                {pendiente ? "Guardando…" : textoConfirmar}
+              </button>
+            )}
             <button
               type="button"
-              className="grande"
+              className={hayAlgo ? "grande" : "primario grande"}
               onClick={() => {
                 setTexto(propuesta.texto);
                 cambiar();
@@ -306,7 +324,7 @@ export function Dimelo({ asistente, propuestaInicial, enfocar }: { asistente: st
               Cambiar algo
             </button>
           </div>
-          {conDudas && <p className="suave apartar-ia-nota">Contéstame la duda (o toca «Cambiar algo») antes de apartarlo.</p>}
+          {conDudas && hayAlgo && <p className="suave apartar-ia-nota">Contéstame la duda (o toca «Cambiar algo») antes de apartarlo.</p>}
         </div>
       )}
       {error && (

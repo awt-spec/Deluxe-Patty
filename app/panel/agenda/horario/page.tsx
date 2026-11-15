@@ -239,6 +239,7 @@ export default async function Horario({
             id="motivo"
             name="motivo"
             type="text"
+            maxLength={120}
             placeholder="Vacaciones"
           />
           <button type="submit" className="primario">

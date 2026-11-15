@@ -5,6 +5,7 @@ import { sesionConCorredor } from "@/lib/panel/sesion";
 import { desconectarGoogle, guardarAjustes, probarWhatsApp, salir } from "../acciones";
 import { Aviso } from "../aviso";
 import { BotonEnviar } from "../boton-enviar";
+import { ConservarBorrador } from "../conservar-borrador";
 
 type Corredor = {
   zonas_e24: string[];
@@ -134,6 +135,7 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
               id="tono"
               name="tono"
               data-patty="ajustes-tono"
+              maxLength={1500}
               defaultValue={corredor.tono}
               placeholder="Ejemplo: cordial y profesional, trato de usted, mensajes cortos, sin emojis."
             />
@@ -172,6 +174,7 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
           </section>
 
           <div className="ajustes-guardar">
+            <ConservarBorrador nombre="ajustes" />
             <BotonEnviar texto="Guardar cambios" pendiente="Guardando…" className="primario grande" />
           </div>
         </form>

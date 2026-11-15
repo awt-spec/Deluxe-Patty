@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { respuestaSinSesion } from "@/lib/panel/proxy-sesion";
 
 // Renueva la sesión de Supabase y manda a /entrar a quien abre el panel sin sesión.
 // Es solo una revisión optimista: cada página y acción vuelve a verificar con RLS.
@@ -16,12 +17,7 @@ export async function proxy(request: NextRequest) {
     },
   });
   const { data } = await supabase.auth.getUser();
-  if (!data.user) {
-    const entrar = request.nextUrl.clone();
-    entrar.pathname = "/entrar";
-    entrar.search = "";
-    return NextResponse.redirect(entrar);
-  }
+  if (!data.user) return respuestaSinSesion(request);
   return respuesta;
 }
 

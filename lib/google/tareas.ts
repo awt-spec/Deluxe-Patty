@@ -1,8 +1,7 @@
 import { reportarFalla } from "../monitoreo/fallas";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Dependencias } from "../asistente/procesar";
-import { armarPlan, datosDelPlan, fechaDelPlan } from "../asistente/plan";
-import { minutosDe, minutosLocales } from "../agenda/tiempo";
+import { armarPlan, datosDelPlan, fechaDelPlan, yaTocaPlan } from "../asistente/plan";
 import { COLUMNAS_CORREDOR } from "../datos/repositorio";
 import type { Corredor } from "../datos/tipos";
 import { errorSeguro } from "../monitoreo/errores";
@@ -70,7 +69,8 @@ export async function mandarResumen(
   conexion: ConexionGoogle,
   ahora: Date,
 ): Promise<boolean> {
-  if (minutosLocales(ahora, corredor.zona_horaria) < minutosDe(corredor.hora_plan_dia)) return false;
+  // Misma regla que el plan por WhatsApp, con el cron de Google (cada 15 min): 23:46 sale a las 23:45.
+  if (!yaTocaPlan(corredor, ahora, 15)) return false;
   const fecha = fechaDelPlan(corredor, ahora);
   const { data } = await db.from("google_conexiones").select("resumen_enviado_fecha").eq("corredor_id", corredor.id).maybeSingle();
   if (!data || data.resumen_enviado_fecha === fecha) return false;

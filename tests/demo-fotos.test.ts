@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { copiarFotosDemo, HOST_FOTOS_DEMO } from "../lib/panel/demo-datos";
 import { huellaFoto } from "../lib/fotos/copiar";
+import { fotosPropias } from "../lib/fotos/origen";
+import { fotosParaRedes, opcionesDeFoto } from "../lib/redes/fotos";
 
 const C = "00000000-0000-4000-8000-0000000000de";
 const buena = `https://${HOST_FOTOS_DEMO}/photo-1?w=1200`;
@@ -61,5 +63,34 @@ describe("copiarFotosDemo", () => {
     expect(fetchMock).not.toHaveBeenCalled();
     expect(subidas).toHaveLength(0);
     expect(r[0].fotos[0].url).toContain(`demo-${huellaFoto(buena)}.jpg`);
+  });
+});
+
+// H-02 (QA): el estudio «Para redes» no abría en la demo porque sus fotos ya se copian al bucket propio y el filtro
+// de la demo solo aceptaba Unsplash. Ahora acepta el bucket propio (y Unsplash), nunca un host cualquiera.
+describe("fotosParaRedes en la demo", () => {
+  afterEach(() => vi.unstubAllEnvs());
+  const BUCKET = "https://proyecto.supabase.co/storage/v1/object/public/fotos";
+
+  it("las fotos de la demo copiadas al bucket propio se pueden usar en el estudio", () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://proyecto.supabase.co");
+    const fotos = [1, 2, 3].map((i) => ({ url: `${BUCKET}/${C}/demo-ejemplos/demo-${i}.jpg`, orden: i }));
+    const usadas = fotosParaRedes(fotos, { id: C, activo: false }, fotosPropias);
+    expect(usadas.map((f) => f.url)).toEqual(fotos.map((f) => f.url));
+    expect(opcionesDeFoto(usadas)).toHaveLength(3);
+  });
+
+  it("la demo no acepta el bucket de otro corredor ni otros sitios; Unsplash solo por https", () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://proyecto.supabase.co");
+    const fotos = [
+      { url: `${BUCKET}/otro-corredor/demo-ejemplos/x.jpg`, orden: 1 },
+      { url: "http://169.254.169.254/latest/meta-data", orden: 2 },
+      { url: "https://images.unsplash.com.evil.example/x.jpg", orden: 3 },
+      { url: "http://images.unsplash.com/x.jpg", orden: 4 },
+      { url: buena, orden: 5 },
+    ];
+    expect(fotosParaRedes(fotos, { id: C, activo: false }, fotosPropias).map((f) => f.url)).toEqual([buena]);
+    // Un corredor activo, solo su bucket.
+    expect(fotosParaRedes(fotos, { id: C, activo: true }, fotosPropias)).toEqual([]);
   });
 });

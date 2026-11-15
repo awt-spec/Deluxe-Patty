@@ -21,9 +21,11 @@ const ESTADO: Record<string, string> = {
   no_asistio: "No llegó",
 };
 
-export default async function Visita({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ aviso?: string }> }) {
+export default async function Visita({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ aviso?: string; fecha?: string; hora?: string; avisar?: string; confirmar?: string }> }) {
   const { id } = await params;
-  const { aviso } = await searchParams;
+  const { aviso, fecha: fechaPedida, hora: horaPedida, avisar, confirmar } = await searchParams;
+  // Moverla fuera del horario o a un rato apartado: el servidor pregunta y la confirmación vale para ese día y hora.
+  const porConfirmar = typeof confirmar === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(confirmar) ? confirmar : null;
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const { supabase, corredor } = await sesionConCorredor();
   const zona = corredor.zona_horaria;
@@ -107,18 +109,19 @@ export default async function Visita({ params, searchParams }: { params: Promise
             <div className="fila campos">
               <div className="pila" style={{ flex: 1 }}>
                 <label htmlFor="fecha">Día</label>
-                <input id="fecha" name="fecha" type="date" required defaultValue={dia} />
+                <input id="fecha" name="fecha" type="date" required defaultValue={porConfirmar ? (fechaPedida ?? dia) : dia} />
               </div>
               <div className="pila" style={{ flex: 1 }}>
                 <label htmlFor="hora">Hora</label>
-                <input id="hora" name="hora" type="time" required step={900} defaultValue={hora} />
+                <input id="hora" name="hora" type="time" required step={900} defaultValue={porConfirmar ? (horaPedida ?? hora) : hora} />
               </div>
             </div>
             <label className="casilla">
-              <input type="checkbox" name="avisar" defaultChecked /> Avisarle al cliente por WhatsApp
+              <input type="checkbox" name="avisar" defaultChecked={avisar !== "0"} /> Avisarle al cliente por WhatsApp
             </label>
+            {porConfirmar && <input type="hidden" name="confirmar" value={porConfirmar} />}
             <button type="submit" className="primario">
-              Mover la visita
+              {porConfirmar ? "Sí, moverla igual" : "Mover la visita"}
             </button>
           </form>
         </>

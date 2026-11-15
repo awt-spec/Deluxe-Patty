@@ -12,9 +12,11 @@ import { agendarVisita } from "../acciones";
 export default async function NuevaVisita({
   searchParams,
 }: {
-  searchParams: Promise<{ fecha?: string; hora?: string; cliente?: string; aviso?: string }>;
+  searchParams: Promise<{ fecha?: string; hora?: string; cliente?: string; casa?: string; minutos?: string; avisar?: string; confirmar?: string; aviso?: string }>;
 }) {
-  const { fecha, hora, cliente, aviso } = await searchParams;
+  const { fecha, hora, cliente, casa, minutos, avisar, confirmar, aviso } = await searchParams;
+  // Fuera del horario o en un rato apartado, el servidor pregunta antes de agendar: la confirmación vale para ese día y hora.
+  const porConfirmar = typeof confirmar === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(confirmar) ? confirmar : null;
   const { supabase, corredor } = await sesionConCorredor();
   const [{ data: clientes }, { data: casas }] = await Promise.all([
     supabase
@@ -48,7 +50,7 @@ export default async function NuevaVisita({
           ))}
         </select>
         <label htmlFor="casa">Casa que va a ver</label>
-        <select id="casa" name="casa" defaultValue="">
+        <select id="casa" name="casa" defaultValue={casa ?? ""}>
           <option value="">Todavía no sé</option>
           {(casas ?? []).map((p) => (
             <option key={p.id as string} value={p.id as string}>
@@ -68,12 +70,13 @@ export default async function NuevaVisita({
           </div>
         </div>
         <label htmlFor="minutos">Cuánto dura (minutos)</label>
-        <input id="minutos" name="minutos" type="number" min={15} max={240} step={15} defaultValue={corredor.duracion_visita_min} />
+        <input id="minutos" name="minutos" type="number" min={15} max={240} step={15} defaultValue={Number(minutos) || corredor.duracion_visita_min} />
         <label className="casilla">
-          <input type="checkbox" name="avisar" defaultChecked /> Avisarle al cliente por WhatsApp
+          <input type="checkbox" name="avisar" defaultChecked={avisar !== "0"} /> Avisarle al cliente por WhatsApp
         </label>
+        {porConfirmar && <input type="hidden" name="confirmar" value={porConfirmar} />}
         <button type="submit" className="primario">
-          Agendar
+          {porConfirmar ? "Sí, agendar igual" : "Agendar"}
         </button>
       </form>
     </>

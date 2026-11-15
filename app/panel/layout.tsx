@@ -66,6 +66,14 @@ export default async function LayoutPanel({ children }: { children: React.ReactN
   // menú de la izquierda. La marca del corredor queda en la entrada, las fichas y su logo (arriba en el menú).
   return (
     <div className="marco tema">
+      {/* Sin JavaScript la pantalla se queda en el esqueleto de carga (el contenido llega por streaming y lo pone un
+          script): se dice qué pasa en vez de "Cargando…" para siempre. */}
+      <noscript>
+        <p className="aviso noscript-aviso" role="alert">
+          Para usar tu asistente hace falta JavaScript. Actívalo en el navegador (o abre el panel en Chrome o Safari) y vuelve a
+          cargar la página.
+        </p>
+      </noscript>
       {corredor.activo === false && (
         <p className="banda-demo" role="note">
           Estás en la demo: casas y clientes de prueba. Nada se manda por WhatsApp.

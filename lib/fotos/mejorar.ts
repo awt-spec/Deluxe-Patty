@@ -5,6 +5,11 @@ import { esFotoPropia } from "./origen";
 export const MAX_FOTOS = 12;
 const EN_PARALELO = 3;
 const TIPOS = /^image\/(jpeg|png|webp)$/;
+/** Costo que se reserva por imagen en curso mientras no se sabe el real (el mismo valor por defecto que `editor.ts`). */
+function costoEstimado(): number {
+  const v = Number(process.env.OPENAI_COSTO_IMAGEN_USD);
+  return Number.isFinite(v) && v > 0 ? v : 0.25;
+}
 
 export interface FotoMejorada {
   numero: number;
@@ -66,16 +71,40 @@ export async function mejorarFotos(
   );
 
   const log = deps.registrar ?? ((evento, datos) => console.info(JSON.stringify({ evento, ...datos })));
-  let costoTotal = 0;
+  // Tope de gasto con el lote en paralelo: se lee el presupuesto una vez y, antes de cada imagen, se suma lo ya
+  // gastado en este lote y una reserva (costo estimado) por cada imagen en curso y por la nueva. Así el lote no se
+  // pasa del tope aunque vayan 3 a la vez (como mucho, lo que una imagen cueste de más sobre la estimación). Cada costo se registra apenas se paga, para
+  // que otros pedidos simultáneos lo vean.
+  const presupuesto = await deps.repo.presupuestoIA(corredor.id);
+  let gastado = 0;
+  let enCurso = 0;
+  let estimado = costoEstimado();
+  let frenadas = 0;
+  // Cabe una imagen más si, contando lo gastado, las que van en curso y esta, no se pasa del tope.
+  const cabe = () => {
+    const extra = gastado + (enCurso + 1) * estimado;
+    return presupuesto.gastoDia + extra <= presupuesto.topeDia && presupuesto.gastoMes + extra <= presupuesto.topeMes;
+  };
   const resultados = await enParalelo(aMejorar, EN_PARALELO, async (foto) => {
     // Número de la foto en el orden de la propiedad, para que coincida con lo que ve el corredor.
     const numero = fotos.indexOf(foto) + 1;
+    if (!cabe()) {
+      frenadas++;
+      return null;
+    }
+    enCurso++;
+    let pagada = false;
     try {
       const original = await fetch(foto.url);
       const tipo = (original.headers.get("content-type") ?? "").split(";")[0];
       if (!original.ok || !TIPOS.test(tipo)) throw new Error(`descarga ${original.status} ${tipo}`);
       const { imagen: mejorada, costoUsd } = await editor.mejorar(Buffer.from(await original.arrayBuffer()), tipo);
-      costoTotal += costoUsd;
+      enCurso--;
+      pagada = true;
+      gastado += costoUsd;
+      estimado = Math.max(estimado, costoUsd);
+      // Lo pagado a OpenAI suma al gasto de IA del corredor apenas se paga (también si lo de después falla).
+      if (costoUsd > 0) await deps.repo.registrarImagenes(corredor.id, 0, costoUsd);
       const url = await deps.repo.subirArchivo(
         corredor.id,
         "fotos",
@@ -86,6 +115,7 @@ export async function mejorarFotos(
       foto.mejorada_url = url;
       return { numero, url };
     } catch (error) {
+      if (!pagada) enCurso--;
       log("error_foto", {
         corredorId: corredor.id,
         propiedadId: propiedad.id,
@@ -105,16 +135,19 @@ export async function mejorarFotos(
     );
     await deps.repo.registrarFotosMejoradas(corredor.id, mejoradas.length);
   }
-  // Lo que se pagó a OpenAI suma al gasto de IA del corredor (también lo que salió mal después de pagar).
-  if (costoTotal > 0) await deps.repo.registrarImagenes(corredor.id, mejoradas.length, costoTotal);
-  const fallidas = aMejorar.length - mejoradas.length;
+  // El costo ya se registró foto por foto; aquí solo se cuentan las imágenes que quedaron.
+  if (mejoradas.length) await deps.repo.registrarImagenes(corredor.id, mejoradas.length, 0);
+  const fallidas = aMejorar.length - mejoradas.length - frenadas;
 
   const cierre = mejoradas.length
     ? [
         `Listo: ${mejoradas.length} ${mejoradas.length === 1 ? "foto mejorada" : "fotos mejoradas"} de ${propiedad.titulo}` +
-          (fallidas ? ` (${fallidas} no se pudieron).` : "."),
+          (fallidas ? ` (${fallidas} no se pudieron).` : ".") +
+          (frenadas ? ` Llegué al tope de gasto de IA: ${frenadas === 1 ? "queda 1 foto" : `quedan ${frenadas} fotos`} para cuando se renueve.` : ""),
         "Revísalas antes de publicarlas: la IA a veces cambia detalles. Si alguna no se ve igual a la propiedad, usa la original.",
       ].join(" ")
-    : "No pude mejorar las fotos ahora. Inténtalo de nuevo en un rato.";
-  return { mensajes: [cierre], mejoradas, fallidas };
+    : frenadas === aMejorar.length
+      ? "Se llegó al límite de gasto de inteligencia artificial: no mejoré ninguna foto. Vuelve a funcionar mañana o escríbele a soporte."
+      : "No pude mejorar las fotos ahora. Inténtalo de nuevo en un rato.";
+  return { mensajes: [cierre], mejoradas, fallidas: fallidas + frenadas };
 }

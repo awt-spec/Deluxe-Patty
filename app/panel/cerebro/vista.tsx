@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { fechaCorta } from "@/lib/formato";
 import { Aviso } from "../aviso";
+import { ConservarBorrador } from "../conservar-borrador";
 import {
   IconoAgenda,
   IconoAsistente,
@@ -364,6 +365,7 @@ function FormDuda({ d, destacada }: { d: Duda; destacada?: boolean }) {
         placeholder="Escribe la respuesta: la usará desde ahora."
         data-patty={destacada ? "cerebro-responder" : undefined}
       />
+      <ConservarBorrador nombre={`duda-${d.id}`} />
       <div className="botones">
         <button type="submit" className="primario">
           Enseñárselo

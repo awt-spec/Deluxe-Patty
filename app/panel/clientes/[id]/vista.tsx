@@ -10,6 +10,7 @@ import { ordenarFotos } from "@/lib/panel/formularios";
 import { resumenBusca, resumenCampos } from "@/lib/panel/movil";
 import { Aviso } from "../../aviso";
 import { Avatar } from "../../avatar";
+import { ConservarBorrador } from "../../conservar-borrador";
 import { IconoAgenda, IconoCampana, IconoCasa, IconoChats, IconoCheck, IconoEstrella, IconoLapiz, IconoReloj, IconoTelefono } from "../../iconos";
 import { Cifra, Vacio } from "../../piezas";
 import { PreguntarPatty } from "../../preguntar-patty";
@@ -638,7 +639,8 @@ export function FichaCliente(d: DatosFicha) {
                 <label htmlFor="nombre">Nombre</label>
                 <input id="nombre" name="nombre" type="text" defaultValue={c.nombre ?? ""} />
                 <label htmlFor="notas">Lo que quieras recordar</label>
-                <textarea id="notas" name="notas" defaultValue={c.notas ?? ""} placeholder="Tiene dos hijos, busca colegio cerca, viene de Estados Unidos…" />
+                <textarea id="notas" name="notas" maxLength={4000} defaultValue={c.notas ?? ""} placeholder="Tiene dos hijos, busca colegio cerca, viene de Estados Unidos…" />
+                <ConservarBorrador nombre={`notas-${id}`} />
                 <button type="submit" className="primario">
                   Guardar
                 </button>

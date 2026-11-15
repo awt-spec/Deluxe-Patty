@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { dependenciasPara } from "@/lib/asistente/dependencias";
 import { errorSeguro } from "@/lib/monitoreo/errores";
-import { CORS, corredorPorSlug, huella, leerPedido, pedirVisita } from "@/lib/sitio/publico";
+import { CORS, corredorPorSlug, huella, leerPedido, pedirVisita, revisarPedido } from "@/lib/sitio/publico";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -23,7 +23,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   // A un robot se le contesta como si todo hubiera salido bien, sin hacer nada.
   if (!leido.ok) return Response.json(leido.robot ? { ok: true } : { ok: false, motivo: leido.motivo }, { status: leido.robot ? 200 : 400, headers: CORS });
 
-  // Un pedido por minuto desde la misma conexión y por teléfono (sin guardar la IP ni el número).
+  const deps = dependenciasPara(corredor);
+  // Primero se revisa (solo lectura, como GET horarios) que la casa exista y la hora siga libre: una hora tomada
+  // contesta 409 sin gastar el límite, y el visitante puede elegir otra enseguida.
+  try {
+    const revisado = await revisarPedido(deps, db, corredor, leido.pedido);
+    if (!revisado.ok) return Response.json({ ok: false, motivo: revisado.motivo }, { status: revisado.estado, headers: CORS });
+  } catch (e) {
+    console.error(JSON.stringify({ evento: "error_visita_sitio", corredorId: corredor.id, error: errorSeguro(e) }));
+    return Response.json({ ok: false, motivo: "No se pudo agendar ahora. Escríbenos por WhatsApp." }, { status: 500, headers: CORS });
+  }
+
+  // Lo que escribe va después del límite: un pedido por minuto desde la misma conexión y por teléfono (sin guardar
+  // la IP ni el número).
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "sin-ip";
   for (const clave of [`sitio_visita_ip:${huella(`${corredor.id}:${ip}`)}`, `sitio_visita_tel:${huella(`${corredor.id}:${leido.pedido.telefono}`)}`]) {
     const { data: puede } = await db.rpc("reclamar_alerta", { p_clave: clave, p_minutos: 1 });
@@ -31,7 +43,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   }
 
   try {
-    const r = await pedirVisita(dependenciasPara(corredor), db, corredor, leido.pedido);
+    const r = await pedirVisita(deps, db, corredor, leido.pedido);
     return r.ok
       ? Response.json({ ok: true, cuando: r.cuando, casa: r.casa, corredor: corredor.nombre_contacto }, { headers: CORS })
       : Response.json({ ok: false, motivo: r.motivo }, { status: r.estado, headers: CORS });

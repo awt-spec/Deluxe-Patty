@@ -118,7 +118,9 @@ export function MenuLateral({
     try {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage solo existe en el navegador: se lee al montar para no romper la hidratación.
       setPlegado(localStorage.getItem(CLAVE_PLEGADO) === "1");
-    } catch {}
+    } catch {
+      // Sin almacén: el menú abre desplegado (solo no se recuerda la preferencia).
+    }
   }, []);
   useEffect(() => {
     document.querySelector(".marco")?.classList.toggle("plegado", plegado);
@@ -129,7 +131,9 @@ export function MenuLateral({
     setTip(null);
     try {
       localStorage.setItem(CLAVE_PLEGADO, nuevo ? "1" : "0");
-    } catch {}
+    } catch {
+      // Sin almacén: se pliega ahora, pero no se recuerda para la próxima vez.
+    }
   };
 
   // Al cambiar de pantalla se cierra el menú de la cuenta.
