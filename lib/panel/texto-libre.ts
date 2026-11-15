@@ -6,7 +6,6 @@
  * de dirección (U+202A–U+202E, U+2066–U+2069, U+061C), los de ancho cero U+200B, U+200C, U+200E y U+200F, la marca
  * U+FEFF y los separadores U+2028/U+2029. Se conserva U+200D (une los emojis compuestos, como las familias o banderas).
  */
-// eslint-disable-next-line no-control-regex -- justamente se buscan los caracteres de control para quitarlos.
 const INVISIBLES = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F\u061C\u200B\u200C\u200E\u200F\u2028\u2029\u202A-\u202E\u2066-\u2069\uFEFF]/g;
 
 /** Quita los caracteres invisibles o de dirección y unifica los saltos de línea. No recorta espacios. */
