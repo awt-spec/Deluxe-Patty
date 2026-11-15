@@ -2,7 +2,7 @@ import { APP } from "./config.js";
 import { esPaginaDeAnuncio, esVerificacion } from "./comun.js";
 import { activa, textoFase, transicion } from "./maquina.js";
 import { agregarPaso, contarEnPagina, leerBitacora, pasoDeEvento, textoPaso } from "./bitacora.js";
-import { deQuien, estadoPublico, leerPedido } from "./mensajes.js";
+import { deQuien, esUrlDeE24, estadoPublico, leerPedido } from "./mensajes.js";
 import {
   anotarPaginaDelDia,
   azar,
@@ -46,6 +46,10 @@ const PAUSA_MAX_MS = 30 * 60_000;
 const LATIDO_MS = 4_000;
 const ALARMA = "busqueda-semanal";
 const CADA_MIN = 6 * 60;
+
+// El permiso vive en chrome.storage.local: solo las páginas de la extensión y el trabajador de fondo lo leen, nunca los
+// content scripts (panel.js en el panel, control.js sobre Encuentra24). Se fija en cada arranque.
+chrome.storage.local.setAccessLevel?.({ accessLevel: "TRUSTED_CONTEXTS" })?.catch?.(() => {});
 
 const ORIGEN_APP = (() => {
   try {
@@ -244,6 +248,8 @@ async function ponerBarra() {
 
 async function abrirPagina(url) {
   if (S.detener) throw new Detenida();
+  // Solo Encuentra24: si el servidor pidiera otra dirección, la búsqueda se corta con error.
+  if (!esUrlDeE24(url)) throw Object.assign(new Error("url"), { mensaje: "El panel pidió abrir una página que no es de Encuentra24. Detuve la búsqueda." });
   S.barra = false;
   const cargada = cuandoCargue(S.tabId);
   await chrome.tabs.update(S.tabId, { url });
@@ -645,14 +651,20 @@ function extraerAnuncio() {
     .filter((h) => /wa\.me|whatsapp/i.test(h))
     .slice(0, 50);
 
-  const fuente = (img) => img.currentSrc || img.src || img.dataset?.src || img.dataset?.lazy || "";
+  // Primera dirección de un srcset ("url 800w, url2 1600w").
+  const deSrcset = (v) => (typeof v === "string" ? v.trim().split(/\s+/)[0] ?? "" : "");
+  const diferidaUrl = (img) => img.dataset?.src || img.dataset?.lazy || deSrcset(img.dataset?.srcset) || deSrcset(img.getAttribute("srcset"));
+  const fuente = (img) => img.currentSrc || img.src || diferidaUrl(img) || "";
+  // Foto que todavía no carga (sin src, con data-src o srcset): cuenta por su dirección, no por su tamaño en pantalla
+  // (con alt, Chrome pinta el texto y el ancho deja de ser 0).
+  const diferida = (img) => !img.currentSrc && !img.getAttribute("src") && !!diferidaUrl(img);
   const ancho = (img) => img.naturalWidth || img.width || 0;
   const alto = (img) => img.naturalHeight || img.height || 0;
   const grande = (img, min) => ancho(img) >= min && alto(img) >= min * 0.6;
   const GALERIA = '[class*="gallery" i], [class*="galeria" i], [class*="carousel" i], [class*="slider" i], [class*="swiper" i], [class*="photo" i], [id*="gallery" i]';
   const imagenes = [...document.images];
-  // En la galería, una foto que todavía no carga (ancho 0) también cuenta; las miniaturas diminutas no.
-  const deGaleria = imagenes.filter((img) => img.closest(GALERIA) && (ancho(img) === 0 || grande(img, 300)));
+  // En la galería, una foto que todavía no carga también cuenta; las miniaturas diminutas no.
+  const deGaleria = imagenes.filter((img) => img.closest(GALERIA) && (diferida(img) || ancho(img) === 0 || grande(img, 300)));
   const elegidas = deGaleria.length >= 2 ? deGaleria : imagenes.filter((img) => grande(img, 400));
   const fotos = elegidas.map(fuente);
   for (const t of jsonld) {

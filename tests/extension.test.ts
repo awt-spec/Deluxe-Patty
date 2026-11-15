@@ -10,6 +10,10 @@ import {
   detenerBusqueda,
   huella,
   iniciarBusqueda,
+  MAX_PAGINAS_BUSQUEDA,
+  MAX_PAGINAS_DIA,
+  permisoVigente,
+  puedeIntentarConectar,
   nuevoCodigo,
   programaBusqueda,
   recibirPagina,
@@ -31,6 +35,9 @@ function almacenEnMemoria(
   extra: { vistos?: string[]; bloqueados?: Bloqueado[]; ultima?: Date | null; reservada?: boolean } = {},
 ) {
   const marcas = { hechas: 0, reservas: 0, ultima: extra.ultima ?? null, reservada: extra.reservada ?? false };
+  /** Páginas por "corredor:día" y claves reclamadas (reclamar_alerta en memoria, con la hora de cada una). */
+  const paginasDia = new Map<string, number>();
+  const reclamadas = new Map<string, number>();
   const conexiones: { corredorId: string; codigo: string | null; vence: Date | null; token: string | null; revocada: boolean }[] = [];
   const busquedas = new Map<string, { corredorId: string; estado: EstadoBusqueda; terminada: boolean; anuncios: Map<string, AnuncioE24> }>();
   const leads: { semana: string; lead: LeadDueno }[] = [];
@@ -122,8 +129,20 @@ function almacenEnMemoria(
       marcas.reservada = true;
       return true;
     },
+    async reservarPaginaDelDia(corredorId, dia, max) {
+      const k = `${corredorId}:${dia}`;
+      const n = paginasDia.get(k) ?? 0;
+      if (n >= max) return false;
+      paginasDia.set(k, n + 1);
+      return true;
+    },
+    async reclamar(clave) {
+      if (reclamadas.has(clave)) return false;
+      reclamadas.set(clave, Date.now());
+      return true;
+    },
   };
-  return { almacen, leads, busquedas, conexiones, marcas };
+  return { almacen, leads, busquedas, conexiones, marcas, paginasDia, reclamadas };
 }
 
 function corredor(extra: Partial<CorredorBusqueda> = {}): CorredorBusqueda {
@@ -438,5 +457,65 @@ describe("detener la búsqueda (/api/extension/detener)", () => {
     expect(await iniciarBusqueda(dependencias(almacen), ID)).toMatchObject({ ok: true, asistente: "Vale" });
     const sinNombre = almacenEnMemoria(corredor({ nombre_asistente: undefined }));
     expect(await iniciarBusqueda(dependencias(sinNombre.almacen), ID)).toMatchObject({ ok: true, asistente: "Patty" });
+  });
+});
+
+describe("topes del servidor (seguridad B8, B1, M1)", () => {
+  // Cada página trae un anuncio distinto: sin el tope, el recorrido seguiría (3 zonas × 8 páginas).
+  let n = 1000;
+  const siempreNuevos = () => paginaE24([anuncioE24(++n, "Propietario", `Dueño ${n}`)]);
+  const HOY = new Date("2026-11-15T15:00:00Z");
+
+  it("una búsqueda no pasa de 12 páginas aunque la extensión siga pidiendo, y cuenta como hecha", async () => {
+    const { almacen, marcas } = almacenEnMemoria(corredor({ zonas_e24: ["escazu", "santa-ana", "belen"] }));
+    const d = dependencias(almacen);
+    const { busqueda, pedidas } = await recorrer(d, siempreNuevos);
+    expect(pedidas).toHaveLength(MAX_PAGINAS_BUSQUEDA);
+    await terminarBusqueda(d, ID, busqueda);
+    expect(marcas.hechas).toBe(1);
+    expect(await consultarBusqueda(d, ID, busqueda)).toMatchObject({ ok: true, listo: true, resumen: { paginas: 12 } });
+  });
+
+  it("pasadas 24 páginas en el día, la página no se lee y la búsqueda se corta como tope; otro corredor no cuenta", async () => {
+    const { almacen, paginasDia, busquedas } = almacenEnMemoria(corredor());
+    const d = dependencias(almacen);
+    // El otro corredor ya llegó a su tope: a este no le cambia nada.
+    paginasDia.set(`otro:2026-11-15`, MAX_PAGINAS_DIA);
+    const inicio = await iniciarBusqueda(d, ID);
+    if (!inicio.ok) throw new Error();
+    const r1 = await recibirPagina(d, ID, { busqueda: inicio.busqueda, url: inicio.siguiente, html: pagina(inicio.siguiente), ahora: HOY });
+    expect(r1).toMatchObject({ ok: true, paginas: 1 });
+    expect(paginasDia.get(`${ID}:2026-11-15`)).toBe(1);
+
+    paginasDia.set(`${ID}:2026-11-15`, MAX_PAGINAS_DIA);
+    if (!r1.ok || !r1.siguiente) throw new Error();
+    const r2 = await recibirPagina(d, ID, { busqueda: inicio.busqueda, url: r1.siguiente, html: pagina(r1.siguiente), ahora: HOY });
+    expect(r2).toEqual({ ok: true, desafio: false, siguiente: null, paginas: 1, tope: true });
+    const b = busquedas.get(inicio.busqueda)!;
+    expect(b.estado).toMatchObject({ esperada: null, cortada: "tope" });
+    // Lo de la página que llegó tarde no se guardó.
+    expect(b.anuncios.size).toBe(3);
+    // Al día siguiente (hora local) vuelve a poder.
+    expect(await almacen.reservarPaginaDelDia(ID, "2026-11-16", MAX_PAGINAS_DIA)).toBe(true);
+  });
+
+  it("canjear el código: un intento cada 6 s por conexión, sin guardar la IP", async () => {
+    const { almacen, reclamadas } = almacenEnMemoria(corredor());
+    const t = new Date("2026-11-15T15:00:00.500Z");
+    expect(await puedeIntentarConectar(almacen, "203.0.113.7", t)).toBe(true);
+    expect(await puedeIntentarConectar(almacen, "203.0.113.7", new Date(t.getTime() + 1000))).toBe(false);
+    expect(await puedeIntentarConectar(almacen, "198.51.100.2", t)).toBe(true);
+    expect(await puedeIntentarConectar(almacen, "203.0.113.7", new Date(t.getTime() + 6000))).toBe(true);
+    expect([...reclamadas.keys()].join(" ")).not.toContain("203.0.113");
+  });
+
+  it("el permiso vence a los 60 días sin uso (o desde la conexión si nunca se usó)", () => {
+    const ahora = new Date("2026-11-15T12:00:00Z");
+    const hace = (dias: number) => new Date(ahora.getTime() - dias * 86_400_000).toISOString();
+    expect(permisoVigente({ ultimo_uso_at: hace(59), conectada_at: hace(400) }, ahora)).toBe(true);
+    expect(permisoVigente({ ultimo_uso_at: hace(61), conectada_at: hace(61) }, ahora)).toBe(false);
+    expect(permisoVigente({ ultimo_uso_at: null, conectada_at: hace(10) }, ahora)).toBe(true);
+    expect(permisoVigente({ ultimo_uso_at: null, conectada_at: hace(61) }, ahora)).toBe(false);
+    expect(permisoVigente({ ultimo_uso_at: null, conectada_at: null }, ahora)).toBe(false);
   });
 });

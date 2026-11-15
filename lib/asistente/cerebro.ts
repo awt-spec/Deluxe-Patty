@@ -10,6 +10,7 @@ import { MODOS_TEXTO, type ModoTexto } from "../redes/texto-ia";
 import { crearClienteClaude } from "./cliente-claude";
 import { consumo, sumar as sumarConsumo, type Consumo } from "./costo";
 import { instruccion } from "./instrucciones";
+import { quitarEtiquetas } from "./etiquetas";
 
 export const MODELO_CLASIFICAR = "claude-haiku-5-5";
 export const MODELO_REDACTAR = "claude-sonnet-5-5";
@@ -557,7 +558,8 @@ export function crearCerebroClaude(client: Anthropic = crearClienteClaude()): Ce
         max_tokens: 2000,
         output_config: { effort: "low", format: betaZodOutputFormat(EsquemaDueno) },
         system: instruccion("dueno_o_corredor"),
-        messages: [{ role: "user", content: `<anuncio>\n${datos}\n</anuncio>` }],
+        // El anuncio lo escribe un tercero: sin etiquetas <anuncio> propias, no puede cerrar la nuestra.
+        messages: [{ role: "user", content: `<anuncio>\n${quitarEtiquetas(datos, ["anuncio"])}\n</anuncio>` }],
       });
       const c = consumo(MODELO_CLASIFICAR, res.usage);
       if (res.stop_reason === "refusal") throw new RechazoModelo(c);

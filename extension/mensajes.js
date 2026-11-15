@@ -1,7 +1,7 @@
 // Quién le habla al trabajador de fondo y qué puede pedir. Reglas puras (sin chrome.*): las prueba
 // tests/maquina-extension.test.ts y las usa background.js en cada chrome.runtime.onMessage.
 //
-//  - "popup": las páginas de la propia extensión (popup.html).
+//  - "popup": las páginas de la propia extensión (el panel lateral, sidepanel.html; antes de la 1.4.0, el popup).
 //  - "panel": el content script de /panel/duenos* del panel, en la ventana principal.
 //  - "control": el content script de la barra (control.js), solo en la pestaña de la búsqueda en curso y en
 //    Encuentra24.
@@ -19,6 +19,15 @@ const origenDe = (url) => {
     return null;
   }
 };
+
+/**
+ * ¿Es una página de Encuentra24 que la búsqueda puede abrir? Solo https://www.encuentra24.com, sin usuario ni
+ * contraseña en la dirección. La extensión no navega a ninguna otra parte aunque el servidor se lo pida.
+ */
+export function esUrlDeE24(url) {
+  const u = typeof url === "string" ? origenDe(url) : null;
+  return !!u && u.origin === ORIGEN_E24 && !u.username && !u.password;
+}
 
 /**
  * De quién es el mensaje. `ctx`: { id: el de la extensión, origenApp: origen del panel, tabBusqueda: la pestaña de la

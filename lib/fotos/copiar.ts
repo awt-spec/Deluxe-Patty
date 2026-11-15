@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { leerConTope } from "../http/cuerpo";
 
 // Copia una foto de afuera (el sitio web del corredor, un anuncio de Encuentra24) al bucket `fotos` del corredor:
 // `<corredor>/<propiedad>/originales/<prefijo>-<huella>.<ext>`. Solo pide direcciones que `permitida` acepta (nada
@@ -30,8 +31,10 @@ export async function copiarFotoExterna(db: SupabaseClient, c: CopiaFoto): Promi
   const tipo = (r.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase();
   if (!r.ok || !/^image\/(jpeg|png|webp)$/.test(tipo)) return null;
   if (Number(r.headers.get("content-length") ?? 0) > MAX_FOTO_COPIADA) return null;
-  const datos = Buffer.from(await r.arrayBuffer());
-  if (datos.length === 0 || datos.length > MAX_FOTO_COPIADA) return null;
+  // Se cuenta mientras baja (el content-length puede faltar o mentir): al pasar el tope se corta la descarga.
+  const bytes = await leerConTope(r.body, MAX_FOTO_COPIADA);
+  if (!bytes || bytes.length === 0) return null;
+  const datos = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const ext = tipo === "image/png" ? "png" : tipo === "image/webp" ? "webp" : "jpg";
   const camino = `${c.corredorId}/${c.propiedadId}/originales/${c.prefijo}-${huellaFoto(c.url)}.${ext}`;
   const { error } = await db.storage.from("fotos").upload(camino, datos, { contentType: tipo, upsert: true });

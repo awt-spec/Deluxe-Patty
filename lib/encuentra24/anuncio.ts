@@ -5,6 +5,7 @@ import type { Cerebro } from "../asistente/cerebro";
 import { SIN_PRESUPUESTO, hayPresupuestoHoy } from "../asistente/limites";
 import type { Repositorio } from "../datos/repositorio";
 import type { Corredor, Foto } from "../datos/tipos";
+import { quitarEtiquetas } from "../asistente/etiquetas";
 import { copiarFotoExterna } from "../fotos/copiar";
 import { ErrorDatos } from "../monitoreo/errores";
 import { siguienteCodigo } from "../panel/formularios";
@@ -103,19 +104,32 @@ export function leerPaginaAnuncio(c: Record<string, unknown>): PaginaAnuncio | n
   };
 }
 
-function decodificar(t: string): string {
+/** Enlaces de WhatsApp (wa.me, api.whatsapp.com) que aparecen en un texto o como dirección de un enlace. */
+const ENLACE_WA = /https?:\/\/(?:wa\.me|(?:api\.|www\.)?whatsapp\.com)\/[^\s"'<>\\]*/gi;
+
+/** El mensaje que trae un enlace de WhatsApp (`?text=`), ya decodificado; "" si no es de WhatsApp o no trae. */
+function textoDeEnlaceWa(enlace: string): string {
   try {
-    return decodeURIComponent(t.replace(/\+/g, " "));
+    const u = new URL(enlace);
+    const host = u.hostname.toLowerCase();
+    if (host !== "wa.me" && host !== "whatsapp.com" && !host.endsWith(".whatsapp.com")) return "";
+    return u.searchParams.get("text") ?? "";
   } catch {
-    return t;
+    return "";
   }
 }
 
-/** Referencias de anuncio en la página ("ref. A1B2C3"), también dentro de enlaces wa.me codificados. */
+/**
+ * Referencias de anuncio ("ref. A1B2C3") que vienen dentro de un enlace de WhatsApp de la página: el que pone el
+ * código en la descripción del anuncio. Solo se mira el mensaje del enlace (`?text=`), no el resto de la página
+ * (menús, "anuncios similares", el texto de otro anunciante), para que otra página que solo nombra la referencia no
+ * pase por este anuncio. El enlace puede venir como dirección (`enlaces`) o escrito en el texto o el JSON-LD.
+ */
 export function referenciasEn(p: Pick<PaginaAnuncio, "texto" | "enlaces" | "jsonld">): string[] {
-  const todo = [p.texto, ...p.jsonld, ...p.enlaces].map(decodificar).join("\n");
+  const enTexto = [p.texto, ...p.jsonld].flatMap((t) => [...t.matchAll(ENLACE_WA)].map((m) => m[0]));
+  const mensajes = [...p.enlaces, ...enTexto].slice(0, 100).map(textoDeEnlaceWa).filter(Boolean);
   const refs = new Set<string>();
-  for (const m of todo.matchAll(/\bref(?:\.|:|#|\s)\s*[:#]?\s*([A-Z0-9]{4,10})\b/gi)) refs.add(m[1].toUpperCase());
+  for (const m of mensajes.join("\n").matchAll(/\bref(?:\.|:|#|\s)\s*[:#]?\s*([A-Z0-9]{4,10})\b/gi)) refs.add(m[1].toUpperCase());
   return [...refs].slice(0, 20);
 }
 
@@ -237,7 +251,8 @@ function lista(partes: string[]): string {
 
 /** Lo que "cuenta" el corredor en la ficha conversada: el texto del anuncio, marcado como dato. */
 export function textoParaFicha(p: PaginaAnuncio): string {
-  const limpiar = (t: string) => t.replace(/<\/?anuncio_encuentra24>/gi, "");
+  // Sin etiquetas propias (<anuncio_encuentra24 >, </ANUNCIO>, <conversacion>…): el texto no puede cerrar la suya.
+  const limpiar = (t: string) => quitarEtiquetas(t, ["anuncio", "conversacion", "ficha_actual"]);
   const jsonld = p.jsonld.join("\n").slice(0, MAX_JSONLD_MODELO);
   return [
     "Te paso el texto de un anuncio publicado en Encuentra24, copiado tal cual de la página. Llena la ficha solo con",

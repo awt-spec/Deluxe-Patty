@@ -3,7 +3,7 @@
 // Buscar dueños ahora, la búsqueda semanal y el último resultado.
 //
 // Solo lee chrome.storage (lo escribe background.js) y le pide cosas al trabajador de fondo con los mismos mensajes
-// que validan mensajes.js y maquina.js. Dibuja con textContent y createElement: nada de innerHTML.
+// que validan mensajes.js y maquina.js. Dibuja con textContent y createElement, sin armar HTML con texto.
 import { APP } from "./config.js";
 import { esPaginaDeAnuncio } from "./comun.js";
 import { vistaPanel } from "./vista-panel.js";

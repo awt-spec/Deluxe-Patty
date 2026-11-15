@@ -5,7 +5,7 @@ import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import type { Cerebro } from "../lib/asistente/cerebro";
 import { SIN_CONSUMO } from "../lib/asistente/costo";
 import { leerAnuncio, leerPaginaAnuncio, type DependenciasAnuncio } from "../lib/encuentra24/anuncio";
-import { FICHA_VACIA, type FichaConversada } from "../lib/propiedades/conversar";
+import { FICHA_VACIA } from "../lib/propiedades/conversar";
 import { ID, supabaseFalso } from "./acciones/entorno";
 import { corredorBase } from "./dobles";
 import {
@@ -93,7 +93,7 @@ function cuerpoParaServidor(e: Extraida): Record<string, unknown> {
 function cerebroQueLee() {
   return vi.fn(async (_c: unknown, conversacion: { texto: string }[]) => {
     const t = conversacion.map((m) => m.texto).join("\n");
-    const ficha: FichaConversada = {
+    const ficha: typeof FICHA_VACIA = {
       ...FICHA_VACIA,
       titulo: /Casa en condominio en San Rafael de Escazú/.test(t) ? "Casa en condominio en San Rafael de Escazú" : "",
       tipo: /\bcasa\b/i.test(t) ? "casa" : null,

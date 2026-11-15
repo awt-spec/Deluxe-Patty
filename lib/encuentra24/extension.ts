@@ -1,6 +1,7 @@
 import { createHash, randomBytes, randomInt } from "node:crypto";
 import type { Cerebro } from "../asistente/cerebro";
 import { hayPresupuestoHoy } from "../asistente/limites";
+import { fechaIso, fechaLocal } from "../agenda/tiempo";
 import type { Repositorio } from "../datos/repositorio";
 import {
   anotarPagina,
@@ -24,6 +25,13 @@ import { anunciosDePagina, esDesafio, urlListado, type AnuncioE24 } from "./pars
 
 export const MAX_LEADS = 30;
 const VIGENCIA_CODIGO_MS = 10 * 60_000;
+/** Un permiso que no se usa en 60 días deja de servir (computadora prestada, persona que ya no trabaja ahí…). */
+export const DIAS_PERMISO_SIN_USO = 60;
+/** Los mismos topes de extension/ritmo.js, contados también aquí: un cliente modificado no se los salta. */
+export const MAX_PAGINAS_BUSQUEDA = 12;
+export const MAX_PAGINAS_DIA = 24;
+/** Canjear un código: un intento cada 6 segundos por conexión (10 por minuto). */
+const VENTANA_CONECTAR_MS = 6_000;
 // Sin letras ni números que se confundan al copiarlos (0/O, 1/I/L).
 const ALFABETO = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 
@@ -49,6 +57,7 @@ export interface AlmacenExtension {
   guardarCodigo(corredorId: string, codigoHash: string, vence: Date): Promise<void>;
   /** Canjea un código vigente por un permiso (en un solo paso, para que no sirva dos veces). */
   canjearCodigo(codigoHash: string, tokenHash: string, ahora: Date): Promise<string | null>;
+  /** Corredor del permiso, si no está revocado ni lleva más de DIAS_PERMISO_SIN_USO sin usarse (ver permisoVigente). */
   corredorDeToken(tokenHash: string, ahora: Date): Promise<string | null>;
   revocarToken(tokenHash: string, ahora: Date): Promise<void>;
   revocarTodas(corredorId: string, ahora: Date): Promise<void>;
@@ -74,6 +83,10 @@ export interface AlmacenExtension {
   ultimaBusqueda(corredorId: string): Promise<Date | null>;
   /** Reserva la búsqueda automática por unas horas (atómico): false si otra ya la tomó. */
   reservarBusquedaAuto(corredorId: string, horas: number): Promise<boolean>;
+  /** Cuenta una página leída por el corredor en `dia` (fecha local): false si ya leyó `max` ese día. */
+  reservarPaginaDelDia(corredorId: string, dia: string, max: number): Promise<boolean>;
+  /** reclamar_alerta: true si la clave no se usó en los últimos `minutos` (atómico). */
+  reclamar(clave: string, minutos: number): Promise<boolean>;
 }
 
 export interface DependenciasExtension {
@@ -89,6 +102,25 @@ export async function nuevoCodigo(almacen: AlmacenExtension, corredorId: string,
   const letras = Array.from({ length: 8 }, () => ALFABETO[randomInt(ALFABETO.length)]).join("");
   await almacen.guardarCodigo(corredorId, huella(letras), new Date(ahora.getTime() + VIGENCIA_CODIGO_MS));
   return `${letras.slice(0, 4)}-${letras.slice(4)}`;
+}
+
+/**
+ * ¿Sigue sirviendo el permiso? Cuenta desde el último uso y, si nunca se usó, desde que se conectó. Sin ninguna de
+ * las dos fechas no sirve. Al vencer, la extensión recibe la misma respuesta que con un permiso inválido
+ * ("conéctala de nuevo").
+ */
+export function permisoVigente(c: { ultimo_uso_at: string | null; conectada_at: string | null }, ahora: Date): boolean {
+  const desde = new Date(c.ultimo_uso_at ?? c.conectada_at ?? NaN).getTime();
+  return Number.isFinite(desde) && ahora.getTime() - desde <= DIAS_PERMISO_SIN_USO * 86_400_000;
+}
+
+/**
+ * Freno de intentos de canje por conexión, sin guardar la IP (solo su huella en la clave de `alertas`): un intento
+ * por ventana de 6 s, atómico en la base. false = esperar (la ruta contesta 429).
+ */
+export async function puedeIntentarConectar(almacen: Pick<AlmacenExtension, "reclamar">, ip: string, ahora = new Date()): Promise<boolean> {
+  const ventana = Math.floor(ahora.getTime() / VENTANA_CONECTAR_MS);
+  return almacen.reclamar(`extension_conectar:${huella(`ip:${ip}`).slice(0, 32)}:t${ventana}`, 1);
 }
 
 /** La extensión canjea el código por su permiso. null si el código no existe, venció o ya se usó. */
@@ -146,7 +178,7 @@ export interface Resumen {
 }
 
 export type Avance =
-  | { ok: true; desafio: boolean; siguiente: string | null; paginas: number }
+  | { ok: true; desafio: boolean; siguiente: string | null; paginas: number; tope?: true }
   | { ok: false; motivo: "no_encontrada" | "fuera_de_orden" | "sin_corredor" };
 
 /**
@@ -157,13 +189,26 @@ export type Avance =
 export async function recibirPagina(
   d: DependenciasExtension,
   corredorId: string,
-  entrada: { busqueda: string; url: string; html: string },
+  entrada: { busqueda: string; url: string; html: string; ahora?: Date },
 ): Promise<Avance> {
   const estado = await d.almacen.busqueda(corredorId, entrada.busqueda);
   if (!estado || !estado.esperada) return { ok: false, motivo: "no_encontrada" };
   if (entrada.url !== estado.esperada) return { ok: false, motivo: "fuera_de_orden" };
   const corredor = await d.almacen.corredor(corredorId);
   if (!corredor) return { ok: false, motivo: "sin_corredor" };
+
+  // Topes de páginas (los mismos de la extensión): pasado el de la búsqueda o el del día, la página no se lee y la
+  // búsqueda se corta como "tope": lo leído hasta ahí se revisa igual (la ruta corre terminarBusqueda).
+  const dia = fechaIso(fechaLocal(entrada.ahora ?? new Date(), corredor.zona_horaria));
+  if (
+    estado.recorrido.paginas >= MAX_PAGINAS_BUSQUEDA ||
+    !(await d.almacen.reservarPaginaDelDia(corredorId, dia, MAX_PAGINAS_DIA))
+  ) {
+    estado.esperada = null;
+    estado.cortada = "tope";
+    await d.almacen.guardarEstado(corredorId, entrada.busqueda, estado);
+    return { ok: true, desafio: false, siguiente: null, paginas: estado.recorrido.paginas, tope: true };
+  }
 
   const t = siguienteDelRecorrido(estado.recorrido, false)!;
   const desafio = esDesafio(entrada.html);
@@ -177,7 +222,9 @@ export async function recibirPagina(
     anotarPagina(estado.recorrido, t.zona, { nuevos: nuevos.size });
   }
 
-  const sig = siguienteDelRecorrido(estado.recorrido, estado.candidatos >= MAX_LEADS * 2);
+  // En la página 12 la búsqueda termina como si no hubiera más páginas: se revisa lo leído y cuenta como hecha.
+  const sig =
+    estado.recorrido.paginas >= MAX_PAGINAS_BUSQUEDA ? null : siguienteDelRecorrido(estado.recorrido, estado.candidatos >= MAX_LEADS * 2);
   estado.esperada = sig ? urlListado(corredor.categoria_busqueda_e24, sig.zona, sig.pagina) : null;
   await d.almacen.guardarEstado(corredorId, entrada.busqueda, estado);
   return { ok: true, desafio, siguiente: estado.esperada, paginas: estado.recorrido.paginas };

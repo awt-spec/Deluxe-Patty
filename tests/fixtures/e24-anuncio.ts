@@ -69,7 +69,8 @@ export function paginaAnuncioE24(o: OpcionesAnuncio = {}): string {
   };
 
   const galeria = Array.from({ length: nFotos }, (_, i) =>
-    // La última foto es diferida (todavía sin src, con data-src), como en los carruseles reales.
+    // La última foto es diferida (todavía sin src, con data-src), como en los carruseles reales, y con alt: Chrome pinta
+    // el texto y img.width deja de ser 0, pero extraerAnuncio (extension/background.js) la cuenta por su dirección.
     i === nFotos - 1 && nFotos > 2
       ? `<div class="swiper-slide"><img data-src="${FOTO_E24(i + 1)}" alt="Foto ${i + 1}"></div>`
       : `<div class="swiper-slide"><img src="${FOTO_E24(i + 1)}" alt="Foto ${i + 1}"></div>`,
@@ -83,6 +84,7 @@ export function paginaAnuncioE24(o: OpcionesAnuncio = {}): string {
 </head><body>
 <header><img src="${LOGO_E24}" width="120" height="40" alt="Encuentra24"><nav>Bienes raíces · Autos · Empleos</nav></header>
 <main>
+  <ol class="breadcrumb"><li>Bienes raíces</li><li>Venta de casas</li><li>San José</li><li>Escazú</li></ol>
   <h1>${escapar(titulo)}</h1>
   <div class="ad-price">${precio ? "$450,000" : "Precio a convenir"}</div>
   <div class="ad-gallery swiper">${galeria}
