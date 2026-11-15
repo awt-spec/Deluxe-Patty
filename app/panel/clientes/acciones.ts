@@ -258,7 +258,8 @@ type CorredorSesion = Awaited<ReturnType<typeof clientePropio>>;
 
 /**
  * Guarda el cierre: casa, precio, moneda y comisión (la escrita o la estimada según venta o alquiler).
- * Lo usan la ficha del cliente y el tablero (al soltar en "Cerró"). Devuelve si se guardó.
+ * Lo usan la ficha del cliente y el tablero (al soltar en "Cerró"). Devuelve false si no se guardó, o si fue un cierre
+ * nuevo o la corrección de uno ya anotado.
  */
 async function registrarCierre(
   corredor: CorredorSesion,
@@ -267,25 +268,32 @@ async function registrarCierre(
   precio: number,
   moneda: "USD" | "CRC",
   comisionEscrita: number | null,
-): Promise<boolean> {
+): Promise<false | "nuevo" | "corregido"> {
   const db = createAdminClient();
   const casa = casaId ? await casaPropia(corredor.id, casaId) : null;
   // Venta o alquiler: lo dice la casa; si no hay casa, lo que el cliente buscaba.
-  const { data: cliente } = await db.from("contactos").select("busca").eq("corredor_id", corredor.id).eq("id", id).single();
+  const { data: cliente } = await db
+    .from("contactos")
+    .select("busca, etapa, etapa_at, cierre_precio, cierre_at")
+    .eq("corredor_id", corredor.id)
+    .eq("id", id)
+    .single();
   const operacion = casa?.operacion ?? (cliente?.busca as { operacion?: string } | null)?.operacion ?? null;
   const comision = comisionEscrita ?? comisionEstimada(precio, corredor.comision_pct, operacion);
   const ahora = new Date().toISOString();
+  // Corregir un cierre ya anotado ("Cambiar el cierre") no lo vuelve a fechar: se quedan el día del cierre y el de la etapa.
+  const correccion = cliente?.etapa === "cerrado" && cliente.cierre_precio !== null && cliente.cierre_precio !== undefined;
   const { error } = await db
     .from("contactos")
     .update({
       etapa: "cerrado",
-      etapa_at: ahora,
+      etapa_at: correccion ? ((cliente.etapa_at as string | null) ?? ahora) : ahora,
       motivo_perdida: null,
       cierre_propiedad_id: casa?.id ?? null,
       cierre_precio: precio,
       cierre_comision: comision,
       cierre_moneda: moneda,
-      cierre_at: ahora,
+      cierre_at: correccion ? ((cliente.cierre_at as string | null) ?? ahora) : ahora,
     })
     .eq("corredor_id", corredor.id)
     .eq("id", id);
@@ -295,20 +303,20 @@ async function registrarCierre(
     corredor.id,
     id,
     "cierre",
-    `${operacion === "alquiler" ? "Alquiló" : "Cerró"}${casa ? ` ${casa.titulo}` : ""} en ${montoExacto(precio, moneda)}${operacion === "alquiler" ? " al mes" : ""} · comisión ${montoExacto(comision, moneda)}`,
+    `${correccion ? "Cierre corregido: " : ""}${operacion === "alquiler" ? "Alquiló" : "Cerró"}${casa ? ` ${casa.titulo}` : ""} en ${montoExacto(precio, moneda)}${operacion === "alquiler" ? " al mes" : ""} · comisión ${montoExacto(comision, moneda)}`,
   );
-  return true;
+  return correccion ? "corregido" : "nuevo";
 }
 
-/** "Cerró" desde la ficha: qué casa, a qué precio y cuánto se ganó. */
+/** "Cerró" desde la ficha: qué casa, a qué precio y cuánto se ganó. También corrige un cierre ya anotado. */
 export async function guardarCierre(f: FormData) {
   const id = texto(f, "id");
   const corredor = await clientePropio(id);
   const moneda = monedaDe(texto(f, "moneda"));
   const cierre = validarCierre(texto(f, "precio"), texto(f, "comision"), moneda);
   if (!cierre.ok) volverA(id, cierre.motivo);
-  const ok = await registrarCierre(corredor, id, texto(f, "casa") || null, cierre.precio, moneda, cierre.comision);
-  volverA(id, ok ? "¡Felicidades! Cierre guardado." : "No se pudo guardar. Vuelve a intentarlo.");
+  const r = await registrarCierre(corredor, id, texto(f, "casa") || null, cierre.precio, moneda, cierre.comision);
+  volverA(id, !r ? "No se pudo guardar. Vuelve a intentarlo." : r === "corregido" ? "Listo, cierre corregido." : "¡Felicidades! Cierre guardado.");
 }
 
 /**

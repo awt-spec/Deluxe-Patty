@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { hayMonto, monedaDe, plataMontos, type Montos } from "@/lib/crm/dinero";
+import { montoContable } from "@/lib/crm/contable";
+import { hayMonto, monedaDe, plataMontos, type Moneda, type Montos } from "@/lib/crm/dinero";
 import { comisiones, delAnio, delMes, ultimosMeses } from "@/lib/crm/ganado";
 import { fechaIso, fechaLocal } from "@/lib/agenda/tiempo";
 import { sesionConCorredor } from "@/lib/panel/sesion";
@@ -9,7 +10,8 @@ import { Cifra, EncabezadoPagina, Vacio } from "../piezas";
 
 // Cómo va el negocio: ingresos y cierres por mes, de dónde vienen los clientes que cierran, cuántos
 // avanzan en cada etapa, cuánto tardan en cerrar, por qué se pierden y cómo va la captación de casas.
-// Todo con la sesión del corredor (RLS) y en palabras de todos los días.
+// Todo con la sesión del corredor (RLS) y en palabras de todos los días. Las cifras grandes van redondeadas
+// ("$1,2 millones", plata()); la tabla "en cifras exactas" va al estilo contable (lib/crm/contable.ts).
 
 type Cliente = {
   etapa: string;
@@ -72,6 +74,10 @@ export default async function Negocio() {
   const esteMes = meses[5];
   const mesPasado = meses[4];
   const ganadoAnio = comisiones(delAnio(cerrados, hoy.anio, zona, (c) => c.cierre_at));
+  // La tabla en cifras exactas: una columna por moneda que tenga algo en estos meses (nunca se suman entre sí).
+  const hayMeses = meses.some((m) => hayMonto(m.ganado) || m.cierres > 0);
+  const monedasMeses = (["USD", "CRC"] as const).filter((k) => meses.some((m) => m.ganado[k] > 0));
+  const totalMeses = (k: Moneda) => meses.reduce((s, m) => s + m.ganado[k], 0);
 
   // Hasta dónde llegan: de cada 10 clientes que escriben.
   const llego = (k: number) => clientes.filter((c) => ORDEN[c.etapa] >= k).length;
@@ -127,7 +133,7 @@ export default async function Negocio() {
 
       <section className="tarjeta pila negocio-seccion">
         <h2>Lo ganado mes a mes</h2>
-        {meses.some((m) => hayMonto(m.ganado) || m.cierres > 0) ? (
+        {hayMeses && (
           <div className="barras-mes" role="img" aria-label="Comisiones de los últimos seis meses">
             {meses.map((m) => (
               <div key={m.clave} className="barra-mes">
@@ -138,7 +144,51 @@ export default async function Negocio() {
               </div>
             ))}
           </div>
-        ) : (
+        )}
+        {hayMeses && monedasMeses.length > 0 && (
+          <details className="negocio-cifras">
+            <summary>Ver en cifras exactas</summary>
+            <table className="cont-tabla">
+              <caption className="oculto">Comisiones de los últimos seis meses, por moneda</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Mes</th>
+                  {monedasMeses.map((k) => (
+                    <th key={k} scope="col" className="cont-monto">
+                      {k === "USD" ? "Dólares" : "Colones"}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {meses.map((m) => (
+                  <tr key={m.clave} className={hayMonto(m.ganado) ? "cont-suma" : "cont-info"}>
+                    <th scope="row">
+                      <span className="cont-concepto negocio-mes">{m.nombre}</span>
+                      <span className="cont-detalle">{m.cierres ? `${m.cierres} ${m.cierres === 1 ? "cierre" : "cierres"}` : "sin cierres"}</span>
+                    </th>
+                    {monedasMeses.map((k) => (
+                      <td key={k} className="cont-monto">
+                        {montoContable(m.ganado[k], k, { signo: true })}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+                <tr className="cont-total">
+                  <th scope="row">
+                    <span className="cont-concepto">Total de los 6 meses</span>
+                  </th>
+                  {monedasMeses.map((k) => (
+                    <td key={k} className="cont-monto">
+                      {montoContable(totalMeses(k), k)}
+                    </td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
+          </details>
+        )}
+        {!hayMeses && (
           <Vacio
             Icono={IconoResumen}
             compacto

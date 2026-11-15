@@ -43,7 +43,14 @@ export function repoEnMemoria(corredor: Corredor) {
   const mensajes: (NuevoMensaje & { id: string; creado?: Date })[] = [];
   const costoDia: { usd: number; segundosAudio?: number } = { usd: 0 };
   const conversaciones: (Conversacion & { ultimo_mensaje_cliente_at?: string })[] = [];
-  const contactos: (Contacto & { es_corredor?: boolean; creado?: Date; anuncio_id?: string | null; origen?: string })[] = [];
+  const contactos: (Contacto & {
+    es_corredor?: boolean;
+    creado?: Date;
+    anuncio_id?: string | null;
+    origen?: string;
+    seguimiento_fecha?: string | null;
+    seguimiento_nota?: string | null;
+  })[] = [];
   type AnuncioFila = Omit<AnuncioResumen, "contactos_periodo" | "contactos_total"> & {
     propiedad_id: string | null;
     aviso: boolean;
@@ -58,6 +65,10 @@ export function repoEnMemoria(corredor: Corredor) {
   let fotosMejoradas = 0;
   const planes = new Map<string, { contenido: string; enviado: boolean }>();
   const citas: (NuevaCita & { id: string; estado: EstadoCita; recordatorio: boolean; creada: Date })[] = [];
+  // Seguimiento de visitas: claves de `alertas`, Historia del cliente y el reloj con que se reclaman las claves.
+  const alertas = new Map<string, Date>();
+  const actividades: { corredor_id: string; contacto_id: string; tipo: string; texto: string; autor: string }[] = [];
+  const reloj: { ahora?: Date } = {};
   const horarios = [1, 2, 3, 4, 5].map((d) => ({ dia_semana: d, hora_inicio: "08:00:00", hora_fin: "17:00:00" }));
   const bloqueos: { inicio: Date; fin: Date; id?: string; motivo?: string | null }[] = [];
   const activa = (c: { estado: EstadoCita }) => c.estado === "agendada" || c.estado === "confirmada";
@@ -187,7 +198,7 @@ export function repoEnMemoria(corredor: Corredor) {
       return fechas.length ? new Date(Math.max(...fechas)) : null;
     },
     corredoresActivos: async () => [corredor],
-    datosPlan: async (_c, _ahora, hoy, manana) => ({
+    datosPlan: async (_c, ahora, hoy, manana) => ({
       citasHoy: citas
         .filter((c) => activa(c) && c.inicio >= hoy.desde && c.inicio < hoy.hasta)
         .map((c) => ({ inicio: c.inicio, estado: c.estado, cliente: "Ana", propiedad: null })),
@@ -197,6 +208,17 @@ export function repoEnMemoria(corredor: Corredor) {
         .map((c) => contactos.find((x) => x.id === c.contacto_id)?.nombre ?? "Cliente"),
       borradoresPendientes: mensajes.filter((m) => m.estado_borrador === "pendiente").length,
       citasManana: citas.filter((c) => activa(c) && c.inicio >= manana.desde && c.inicio < manana.hasta).length,
+      // Visitas de ayer que ya terminaron sin resultado; lo demás del plan (CRM, dinero, dueños) no vive en este doble.
+      visitasSinResultado: citas
+        .filter((c) => activa(c) && c.inicio.getTime() >= hoy.desde.getTime() - 86_400_000 && c.inicio < hoy.desde && c.fin <= ahora)
+        .map((c) => ({ inicio: c.inicio, cliente: "Ana", propiedad: null })),
+      seguimientos: [],
+      seguimientosTotal: 0,
+      sinRespuesta: [],
+      ofertas: [],
+      cierres: [],
+      duenosNuevos: 0,
+      dudasPendientes: conocimiento.filter((k) => !k.respuesta).length,
     }),
     guardarPlan: async (_c, fecha, contenido) => {
       if (planes.has(fecha)) return false;
@@ -331,9 +353,44 @@ export function repoEnMemoria(corredor: Corredor) {
         ultimo_mensaje_cliente_at: conv.ultimo_mensaje_cliente_at ?? null,
       };
     },
+
+    // Seguimiento de visitas.
+    citasTerminadas: async (corredorId, desde, hasta) =>
+      citas
+        .filter((c) => c.corredor_id === corredorId && activa(c) && c.fin >= desde && c.fin <= hasta)
+        .sort((a, b) => b.fin.getTime() - a.fin.getTime())
+        .map((c) => ({
+          id: c.id,
+          contacto_id: c.contacto_id,
+          inicio: c.inicio,
+          fin: c.fin,
+          cliente: contactos.find((x) => x.id === c.contacto_id && x.corredor_id === corredorId)?.nombre ?? null,
+          propiedad: propiedades.find((p) => p.id === c.propiedad_id)?.titulo ?? null,
+        })),
+    reclamarAlerta: async (clave, minutos) => {
+      const ahora = reloj.ahora ?? new Date();
+      const previa = alertas.get(clave);
+      if (previa && previa.getTime() >= ahora.getTime() - minutos * 60_000) return false;
+      alertas.set(clave, ahora);
+      return true;
+    },
+    alertasReclamadas: async (claves) => new Map([...alertas].filter(([clave]) => claves.includes(clave))),
+    anotarActividad: async (corredorId, contactoId, tipo, texto, autor) => {
+      actividades.push({ corredor_id: corredorId, contacto_id: contactoId, tipo, texto: texto.trim().slice(0, 500), autor });
+    },
+    ponerSeguimiento: async (corredorId, contactoId, fecha, nota) => {
+      const c = contactos.find((x) => x.id === contactoId && x.corredor_id === corredorId);
+      if (!c || c.seguimiento_fecha) return false;
+      c.seguimiento_fecha = fecha;
+      c.seguimiento_nota = nota;
+      return true;
+    },
   };
   return {
     repo,
+    alertas,
+    actividades,
+    reloj,
     bloqueos,
     costoDia,
     mensajes,

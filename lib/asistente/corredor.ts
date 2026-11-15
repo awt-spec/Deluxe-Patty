@@ -2,6 +2,7 @@ import { apartar } from "../agenda/apartar";
 import { codigoLoEntiende, pideApartarLibre } from "../agenda/apartar-ia";
 import { pideBloqueo } from "../agenda/bloquear";
 import { apartarPorWhatsApp } from "../agenda/whatsapp-apartar";
+import { anotarSeguimiento } from "../agenda/seguimiento-visitas";
 import { prepararAnuncio } from "../anuncios/preparar";
 import { DIAS_REPORTE, armarReporte } from "../anuncios/reporte";
 import type { Conversacion, Corredor } from "../datos/tipos";
@@ -22,7 +23,7 @@ export type ResultadoCorredor =
   | { tipo: "duplicado" }
   | {
       tipo: "corredor";
-      accion: "plan" | "plan_pendiente" | "analisis" | "anuncio" | "fotos" | "ficha" | "reporte" | "bloqueo" | "ayuda" | "error";
+      accion: "plan" | "plan_pendiente" | "analisis" | "anuncio" | "fotos" | "ficha" | "reporte" | "bloqueo" | "seguimiento" | "ayuda" | "error";
     };
 
 export async function conversacionDelCorredor(deps: Pick<Dependencias, "repo">, corredor: Corredor) {
@@ -202,6 +203,18 @@ export async function procesarMensajeCorredor(
   const envios = await repo.enviosPendientes(corredor.id);
   for (const envio of envios) {
     if (await repo.marcarEnvioEntregado(corredor.id, envio.id)) await responder(envio.contenido);
+  }
+  // Respuesta a "¿Cómo te fue en la visita…?" (texto o nota de voz): queda en la historia del cliente y la visita
+  // pasa a hecha, "no llegó" o cancelada. Los comandos, enlaces, preguntas y acuses siguen su camino.
+  if (!fallo) {
+    const anotado = await anotarSeguimiento(deps, corredor, texto, adjuntos.length > 0, ahora).catch((error) => {
+      log("error_seguimiento_visita", { corredorId: corredor.id, error: errorSeguro(error) });
+      return null;
+    });
+    if (anotado) {
+      await responder(anotado);
+      return { tipo: "corredor", accion: "seguimiento" };
+    }
   }
   // Una respuesta corta al aviso ("ok", "dale") no es un pedido de análisis.
   if ((pendiente !== null || envios.length > 0) && !/https?:\/\/|\d/.test(texto)) {

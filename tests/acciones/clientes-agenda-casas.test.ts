@@ -252,6 +252,37 @@ describe("Clientes: el cierre valida precio y comisión", () => {
     expect(estado.admin.tablas.contactos[0].cierre_comision).toBe(15_000);
   });
 
+  it("guardar o corregir el cierre de un cliente de otro corredor no escribe nada", async () => {
+    estado.admin.tablas.contactos[1] = { ...estado.admin.tablas.contactos[1], etapa: "cerrado", cierre_precio: 400_000, cierre_at: "2026-10-01T15:00:00Z" };
+    await redirigeA(clientes.guardarCierre(formulario({ id: ID.clienteAjeno, precio: "1", comision: "", moneda: "USD" })));
+    expect(escrituras()).toEqual([]);
+    expect(estado.admin.tablas.contactos[1]).toMatchObject({ cierre_precio: 400_000 });
+  });
+
+  it("corregir un cierre ya anotado cambia las cifras pero no la fecha del cierre ni la de la etapa", async () => {
+    Object.assign(estado.admin.tablas.contactos[0], {
+      etapa: "cerrado",
+      etapa_at: "2026-10-01T15:00:00Z",
+      cierre_at: "2026-10-01T15:00:00Z",
+      cierre_precio: 300_000,
+      cierre_comision: 15_000,
+      cierre_moneda: "USD",
+      busca: { operacion: "venta" },
+    });
+    const url = decodeURIComponent(await redirigeA(clientes.guardarCierre(formulario({ id: ID.cliente, precio: "290.000", comision: "14500", moneda: "USD" }))));
+    expect(url).toMatch(/cierre corregido/);
+    expect(estado.admin.tablas.contactos[0]).toMatchObject({
+      etapa: "cerrado",
+      etapa_at: "2026-10-01T15:00:00Z",
+      cierre_at: "2026-10-01T15:00:00Z",
+      cierre_precio: 290_000,
+      cierre_comision: 14_500,
+    });
+    const cambio = estado.admin.escrituras.find((e) => e.tabla === "contactos" && e.op === "update");
+    expect(cambio?.filtros).toEqual([["corredor_id", ID.deluxe], ["id", ID.cliente]]);
+    expect(estado.admin.tablas.actividades?.at(-1)).toMatchObject({ tipo: "cierre", texto: expect.stringMatching(/^Cierre corregido/) });
+  });
+
   it("guardar las notas con caracteres de dirección los quita; notas muy largas avisan sin guardar", async () => {
     await redirigeA(clientes.guardarNotas(formulario({ id: ID.cliente, notas: `abc${String.fromCodePoint(0x202e)}def`, nombre: "Ana" })));
     expect(estado.sesion!.supabase.tablas.contactos[0].notas).toBe("abcdef");
