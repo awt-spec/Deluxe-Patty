@@ -123,7 +123,7 @@ export function repoEnMemoria(corredor: Corredor) {
       uso.aviso_tope_enviado_at = "ahora";
       return true;
     },
-    actualizarEstadoEntrega: async () => {},
+    actualizarEstadoEntrega: async () => true,
     datosAgenda: async () => ({ horarios, bloqueos: [...bloqueos], citas: citas.filter(activa) }),
     crearBloqueo: async (_c, inicio, fin, motivo) => {
       bloqueos.push({ inicio, fin, id: `bl${++n}`, motivo });

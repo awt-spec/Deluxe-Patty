@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import Link from "next/link";
 import { diaLargo, etiquetaHorario, horaCorta, rangoBloqueo } from "@/lib/agenda/formato";
-import { aUtc, fechaIso, fechaLocal, minutosDe, minutosLocales, sumarDias, type FechaLocal } from "@/lib/agenda/tiempo";
+import { aUtc, fechaDeIso, fechaIso, fechaLocal, minutosDe, minutosLocales, sumarDias, type FechaLocal } from "@/lib/agenda/tiempo";
 import { ratosLibres } from "@/lib/agenda/libres";
 import { minutosEntre } from "@/lib/agenda/zonas";
 import { telefonoBonito } from "@/lib/crm/perfil";
@@ -60,7 +60,10 @@ export default async function Agenda({
   const { supabase, corredor } = await sesionConCorredor();
   const zona = corredor.zona_horaria;
   const hoy = fechaLocal(new Date(), zona);
-  const base = /^\d{4}-\d{2}-\d{2}$/.test(fechaPedida ?? "") ? deIso(fechaPedida!) : hoy;
+  // Una fecha que no existe (2026-02-31, 9999-99-99) ya no se corre a otro mes sin avisar: se muestra hoy y se dice.
+  const pedidaValida = fechaPedida ? fechaDeIso(fechaPedida) : null;
+  const base = pedidaValida ?? hoy;
+  const avisoFecha = fechaPedida && !pedidaValida ? "Esa fecha no existe: te muestro hoy." : undefined;
 
   // Rango que se ve: el día, la semana (lunes a domingo), el mes completo o los próximos 60 días.
   let primerDia: FechaLocal;
@@ -332,7 +335,7 @@ export default async function Agenda({
           </Link>
         </div>
       </header>
-      <Aviso texto={aviso} />
+      <Aviso texto={aviso ?? avisoFecha} />
       {!pedida && <VistaDelTelefono actual={vista} fecha={fechaPedida} />}
 
       <div className="agenda-controles">
@@ -670,11 +673,6 @@ export default async function Agenda({
       )}
     </>
   );
-}
-
-function deIso(iso: string): FechaLocal {
-  const [anio, mes, dia] = iso.split("-").map(Number);
-  return { anio, mes, dia, diaSemana: new Date(Date.UTC(anio, mes - 1, dia)).getUTCDay() };
 }
 
 function capitalizar(s: string): string {

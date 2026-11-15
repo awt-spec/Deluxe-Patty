@@ -7,6 +7,7 @@ import { Vacio } from "../../piezas";
 import { IconoAgenda, IconoChats, IconoCheck, IconoCorreo, IconoEnviar, IconoEstrella, IconoFlecha, IconoLapiz, IconoMas, IconoReloj, IconoTelefono } from "../../iconos";
 import { anotarActividad } from "../acciones";
 import { BotonesAnotar } from "./botones-anotar";
+import { ConservarBorrador } from "../../conservar-borrador";
 import { agruparPorDia } from "./que-sigue";
 
 // Historia del cliente: lo que anotó el corredor, cambios de etapa, ofertas, visitas, correos y los días
@@ -167,6 +168,7 @@ export function Historia({
       <form action={anotarActividad} className="fc-anotar" id="anotar">
         <input type="hidden" name="id" value={contactoId} />
         <input name="texto" type="text" maxLength={500} placeholder="¿Qué pasó? Ej.: le gustó la casa pero quiere bajar el precio" aria-label="Qué pasó" />
+        <ConservarBorrador nombre={`anotar-${contactoId}`} />
         <BotonesAnotar botones={ANOTAR.map((a) => ({ tipo: a.tipo, nombre: a.nombre }))} />
       </form>
       {eventos.length === 0 ? (

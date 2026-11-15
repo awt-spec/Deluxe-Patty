@@ -10,6 +10,7 @@ import { COLUMNAS_CORREDOR } from "../datos/repositorio";
 import type { Corredor, Foto, Propiedad } from "../datos/tipos";
 import { crearVisita } from "../panel/visitas";
 import { ordenarFotos } from "../panel/formularios";
+import { limpiarTexto } from "../panel/texto-libre";
 import { errorSeguro } from "../monitoreo/errores";
 import { CODIGO_SITIO } from "./importar";
 
@@ -169,7 +170,8 @@ export type PedidoVisita = { casa: string | null; inicio: Date; nombre: string; 
 /** Valida lo que manda el formulario del sitio. El campo `empresa` es una trampa para robots: debe venir vacío. */
 export function leerPedido(cuerpo: unknown): { ok: true; pedido: PedidoVisita } | { ok: false; motivo: string; robot?: boolean } {
   const c = (cuerpo && typeof cuerpo === "object" ? cuerpo : {}) as Record<string, unknown>;
-  const texto = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
+  // Sin caracteres invisibles ni de dirección (U+202E invierte el texto en la Historia y la agenda).
+  const texto = (v: unknown, max: number) => (typeof v === "string" ? limpiarTexto(v).trim().slice(0, max) : "");
   if (texto(c.empresa, 200)) return { ok: false, motivo: "No se pudo enviar.", robot: true };
   if (c.acepta !== true) return { ok: false, motivo: "Acepta el aviso de privacidad para continuar." };
   const nombre = texto(c.nombre, 80);
@@ -188,19 +190,36 @@ export function leerPedido(cuerpo: unknown): { ok: true; pedido: PedidoVisita } 
 /** Huella de quien pide (para frenar ráfagas sin guardar la dirección IP). */
 export const huella = (texto: string) => createHash("sha256").update(texto).digest("hex").slice(0, 32);
 
+/**
+ * La casa existe y la hora sigue libre en la agenda real (otro cliente pudo tomarla). Solo lee, lo mismo que
+ * `GET horarios` (que es público y sin límite), así que la ruta lo hace ANTES de gastar el límite de un pedido por
+ * minuto: quien elige una hora ya tomada puede elegir otra enseguida. Lo que escribe (cliente, visita y aviso por
+ * plantilla) va después del límite, en pedirVisita, que lo vuelve a comprobar.
+ */
+export async function revisarPedido(
+  deps: Dependencias,
+  db: SupabaseClient,
+  corredor: Corredor,
+  pedido: PedidoVisita,
+): Promise<{ ok: true; casa: Awaited<ReturnType<typeof zonaDeCasa>> } | { ok: false; motivo: string; estado: number }> {
+  const casa = await zonaDeCasa(db, corredor, pedido.casa);
+  if (pedido.casa && !casa) return { ok: false, motivo: "Esa propiedad ya no está disponible.", estado: 404 };
+  const libres = await libresDe(deps, corredor, casa?.zona ?? null);
+  if (!libres.some((l) => l.inicio.getTime() === pedido.inicio.getTime())) {
+    return { ok: false, motivo: "Esa hora ya no está libre. Elige otra.", estado: 409 };
+  }
+  return { ok: true, casa };
+}
+
 export async function pedirVisita(
   deps: Dependencias,
   db: SupabaseClient,
   corredor: Corredor,
   pedido: PedidoVisita,
 ): Promise<{ ok: true; cuando: string; casa: string | null } | { ok: false; motivo: string; estado: number }> {
-  const casa = await zonaDeCasa(db, corredor, pedido.casa);
-  if (pedido.casa && !casa) return { ok: false, motivo: "Esa propiedad ya no está disponible.", estado: 404 };
-  // La hora tiene que seguir libre en la agenda real (otro cliente pudo tomarla).
-  const libres = await libresDe(deps, corredor, casa?.zona ?? null);
-  if (!libres.some((l) => l.inicio.getTime() === pedido.inicio.getTime())) {
-    return { ok: false, motivo: "Esa hora ya no está libre. Elige otra.", estado: 409 };
-  }
+  const revisado = await revisarPedido(deps, db, corredor, pedido);
+  if (!revisado.ok) return revisado;
+  const casa = revisado.casa;
   const contacto = await deps.repo.contacto(corredor.id, pedido.telefono, pedido.nombre);
   // Datos que el cliente dio en el sitio: el correo, solo si no había uno.
   if (pedido.correo) await db.from("contactos").update({ email: pedido.correo }).eq("corredor_id", corredor.id).eq("id", contacto.id).is("email", null);

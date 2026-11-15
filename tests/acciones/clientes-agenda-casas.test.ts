@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ID, estado, formulario, redirigeA, supabaseFalso } from "./entorno";
 
 vi.mock("next/navigation", () => import("./mocks/navegacion"));
@@ -193,5 +193,172 @@ describe("Mis casas: solo las propias, y fotos solo en su carpeta", () => {
   it("la cuenta de demostración no sube archivos", async () => {
     estado.sesion!.corredor = { ...corredor, activo: false };
     expect(await casas.pedirSubidas(ID.casa, ["a.jpg"])).toMatchObject({ error: expect.any(String) });
+  });
+});
+
+// --- Correcciones de QA: dinero, agenda y horario ------------------------------------------------------
+
+const horario = await import("@/app/panel/agenda/horario/acciones");
+
+describe("Clientes: una oferta que no se entiende no borra la que había", () => {
+  const conOferta = () => {
+    for (const db of [estado.sesion!.supabase, estado.admin]) Object.assign(db.tablas.contactos[0], { oferta_monto: 450_000, oferta_moneda: "USD" });
+  };
+  const oferta = () => estado.admin.tablas.contactos[0].oferta_monto;
+
+  it("'-5', 'abc', '12 millones' y '0' avisan y no escriben nada", async () => {
+    conOferta();
+    for (const malo of ["-5", "abc", "12 millones", "0"]) {
+      const url = decodeURIComponent(await redirigeA(clientes.guardarOportunidad(formulario({ id: ID.cliente, oferta: malo, oferta_moneda: "USD" }))));
+      expect(url, malo).toMatch(/Revisa la oferta|mayor que cero/);
+      expect(url, malo).not.toMatch(/Guardado/);
+    }
+    expect(escrituras()).toEqual([]);
+    expect(oferta()).toBe(450_000);
+  });
+
+  it("'1.250.000,50' se entiende y se guarda", async () => {
+    conOferta();
+    await redirigeA(clientes.guardarOportunidad(formulario({ id: ID.cliente, oferta: "1.250.000,50", oferta_moneda: "USD" })));
+    expect(oferta()).toBe(1_250_000.5);
+  });
+
+  it("vacía, a propósito, quita la oferta", async () => {
+    conOferta();
+    await redirigeA(clientes.guardarOportunidad(formulario({ id: ID.cliente, oferta: "", oferta_moneda: "USD" })));
+    expect(oferta()).toBeNull();
+  });
+
+  it("con un cliente de otro corredor no hace nada", async () => {
+    await redirigeA(clientes.guardarOportunidad(formulario({ id: ID.clienteAjeno, oferta: "500000", oferta_moneda: "USD" })));
+    expect(escrituras()).toEqual([]);
+  });
+});
+
+describe("Clientes: el cierre valida precio y comisión", () => {
+  it("una comisión mayor que el precio no se guarda (ficha y tablero)", async () => {
+    const url = decodeURIComponent(await redirigeA(clientes.guardarCierre(formulario({ id: ID.cliente, precio: "300000", comision: "150000000", moneda: "USD" }))));
+    expect(url).toMatch(/no puede ser mayor que el precio/);
+    expect(await clientes.cerrarDesdeTablero(ID.cliente, { precio: "300000", moneda: "USD", comision: "150000000" })).toMatchObject({ ok: false, motivo: expect.stringMatching(/mayor que el precio/) });
+    expect(await clientes.cerrarDesdeTablero(ID.cliente, { precio: "-3", moneda: "USD", comision: "" })).toMatchObject({ ok: false });
+    expect(escrituras()).toEqual([]);
+  });
+
+  it("comisión 0 se guarda como 0; vacía se estima con el 5 %", async () => {
+    estado.admin.tablas.contactos[0].busca = { operacion: "venta" };
+    await redirigeA(clientes.guardarCierre(formulario({ id: ID.cliente, precio: "300.000", comision: "0", moneda: "USD" })));
+    expect(estado.admin.tablas.contactos[0]).toMatchObject({ etapa: "cerrado", cierre_precio: 300_000, cierre_comision: 0 });
+    expect(await clientes.cerrarDesdeTablero(ID.cliente, { precio: "300000", moneda: "USD", comision: "" })).toEqual({ ok: true });
+    expect(estado.admin.tablas.contactos[0].cierre_comision).toBe(15_000);
+  });
+
+  it("guardar las notas con caracteres de dirección los quita; notas muy largas avisan sin guardar", async () => {
+    await redirigeA(clientes.guardarNotas(formulario({ id: ID.cliente, notas: `abc${String.fromCodePoint(0x202e)}def`, nombre: "Ana" })));
+    expect(estado.sesion!.supabase.tablas.contactos[0].notas).toBe("abcdef");
+    const antes = escrituras().length;
+    const url = decodeURIComponent(await redirigeA(clientes.guardarNotas(formulario({ id: ID.cliente, notas: "x".repeat(4001), nombre: "Ana" }))));
+    expect(url).toMatch(/muy largo/);
+    expect(escrituras()).toHaveLength(antes);
+  });
+});
+
+describe("Agenda: visitas a mano revisadas en el servidor", () => {
+  const lunes = [1, 2, 3, 4, 5].map((d, i) => ({ id: `h${i}`, corredor_id: ID.deluxe, dia_semana: d, hora_inicio: "08:00:00", hora_fin: "12:00:00" }));
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-16T15:00:00Z")); // lunes 9:00 en Costa Rica
+    estado.sesion!.supabase.tablas.horarios_visitas = structuredClone(lunes);
+    estado.sesion!.supabase.tablas.citas[0] = { id: ID.cita, corredor_id: ID.deluxe, inicio: "2026-11-17T16:00:00Z", fin: "2026-11-17T17:00:00Z" };
+  });
+  afterEach(() => vi.useRealTimers());
+
+  const agendar = (extra: Record<string, string>) => redirigeA(agenda.agendarVisita(formulario({ cliente: ID.cliente, minutos: "60", ...extra })));
+
+  it("una hora en el pasado o una fecha que no existe no crea la visita", async () => {
+    expect(decodeURIComponent(await agendar({ fecha: "2026-11-10", hora: "10:00" }))).toMatch(/ya pasó/);
+    expect(decodeURIComponent(await agendar({ fecha: "2026-02-31", hora: "10:00" }))).toMatch(/Revisa el día y la hora/);
+    expect(decodeURIComponent(await agendar({ fecha: "2026-11-17", hora: "25:00" }))).toMatch(/Revisa el día y la hora/);
+    expect(visitas.crearVisita).not.toHaveBeenCalled();
+  });
+
+  it("fuera del horario pregunta antes; con la confirmación de esa misma hora la agenda", async () => {
+    const url = decodeURIComponent(await agendar({ fecha: "2026-11-21", hora: "10:00" }));
+    expect(url).toMatch(/fuera de tu horario de visitas\. ¿Agendar igual\?/);
+    expect(url).toContain("confirmar=2026-11-21T10:00");
+    expect(url).toContain(`cliente=${ID.cliente}`);
+    expect(visitas.crearVisita).not.toHaveBeenCalled();
+    // Confirmó otra hora (cambió el formulario después de la pregunta): se revisa otra vez.
+    await agendar({ fecha: "2026-11-21", hora: "11:00", confirmar: "2026-11-21T10:00" });
+    expect(visitas.crearVisita).not.toHaveBeenCalled();
+    await agendar({ fecha: "2026-11-21", hora: "10:00", confirmar: "2026-11-21T10:00" });
+    expect(visitas.crearVisita).toHaveBeenCalledTimes(1);
+  });
+
+  it("dentro del horario agenda sin preguntar", async () => {
+    await agendar({ fecha: "2026-11-17", hora: "09:00" });
+    expect(visitas.crearVisita).toHaveBeenCalledTimes(1);
+  });
+
+  it("mover una visita sobre un rato apartado pregunta '¿Moverla igual?'", async () => {
+    estado.sesion!.supabase.tablas.bloqueos_agenda.push({ id: "b-nuevo", corredor_id: ID.deluxe, inicio: "2026-11-18T15:00:00Z", fin: "2026-11-18T17:00:00Z" });
+    const url = decodeURIComponent(await redirigeA(agenda.moverLaVisita(formulario({ id: ID.cita, fecha: "2026-11-18", hora: "10:00", avisar: "on" }))));
+    expect(url).toMatch(/en un rato que apartaste\. ¿Moverla igual\?/);
+    expect(url).toContain("confirmar=2026-11-18T10:00");
+    expect(visitas.moverVisita).not.toHaveBeenCalled();
+    await redirigeA(agenda.moverLaVisita(formulario({ id: ID.cita, fecha: "2026-11-18", hora: "10:00", avisar: "on", confirmar: "2026-11-18T10:00" })));
+    expect(visitas.moverVisita).toHaveBeenCalledTimes(1);
+  });
+
+  it("los ratos apartados de otro corredor no cuentan", async () => {
+    estado.sesion!.supabase.tablas.bloqueos_agenda.push({ id: "b-ajeno", corredor_id: ID.otro, inicio: "2026-11-18T15:00:00Z", fin: "2026-11-18T17:00:00Z" });
+    await redirigeA(agenda.moverLaVisita(formulario({ id: ID.cita, fecha: "2026-11-18", hora: "10:00" })));
+    expect(visitas.moverVisita).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("Agenda: apartar tiempo con fechas vacías o imposibles", () => {
+  it("'Horas exactas' con la fecha vacía avisa en vez de dar error 500", async () => {
+    for (const fecha of ["", "2026-02-31", "9999-99-99"]) {
+      const url = decodeURIComponent(await redirigeA(agenda.bloquearDesdeAgenda(formulario({ rato: "horas", fecha, hora_desde: "10:00", hora_hasta: "11:00" }))));
+      expect(url, fecha).toMatch(/Revisa las fechas/);
+    }
+    expect(escrituras()).toEqual([]);
+  });
+
+  it("la hora de fin antes del inicio avisa y no guarda", async () => {
+    const url = decodeURIComponent(await redirigeA(agenda.bloquearDesdeAgenda(formulario({ rato: "horas", fecha: "2030-01-10", hora_desde: "11:00", hora_hasta: "10:00" }))));
+    expect(url).toMatch(/después del inicio/);
+    expect(escrituras()).toEqual([]);
+  });
+});
+
+describe("Horario: guardar los turnos nunca deja la agenda vacía por una falla a medias", () => {
+  const viejas = () => [
+    { id: "v1", corredor_id: ID.deluxe, dia_semana: 1, hora_inicio: "08:00", hora_fin: "12:00" },
+    { id: "v2", corredor_id: ID.deluxe, dia_semana: 2, hora_inicio: "08:00", hora_fin: "12:00" },
+    { id: "ajena", corredor_id: ID.otro, dia_semana: 1, hora_inicio: "08:00", hora_fin: "17:00" },
+  ];
+
+  it("si la inserción falla, el horario de antes queda intacto", async () => {
+    const db = estado.sesion!.supabase;
+    db.tablas.horarios_visitas = viejas();
+    db.errorEn.horarios_visitas = { code: "XX000", message: "falla" };
+    const url = decodeURIComponent(await redirigeA(horario.guardarTurnos(formulario({ m3: "on", t3: "on" }))));
+    expect(url).toMatch(/quedó el de antes/);
+    expect(db.tablas.horarios_visitas.map((h) => h.id)).toEqual(["v1", "v2", "ajena"]);
+  });
+
+  it("si sale bien: inserta lo nuevo, borra solo lo viejo del corredor (por id) y no toca lo de otro", async () => {
+    const db = estado.sesion!.supabase;
+    db.tablas.horarios_visitas = viejas();
+    await redirigeA(horario.guardarTurnos(formulario({ m3: "on" })));
+    const ops = db.escrituras.map((e) => e.op);
+    expect(ops).toEqual(["insert", "delete"]);
+    expect(db.escrituras[1].filtros).toContainEqual(["corredor_id", ID.deluxe]);
+    expect(db.tablas.horarios_visitas.map((h) => [h.corredor_id, h.dia_semana])).toEqual([
+      [ID.otro, 1],
+      [ID.deluxe, 3],
+    ]);
   });
 });

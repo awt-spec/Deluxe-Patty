@@ -1,4 +1,6 @@
 import { aUtc, minutosDe, type FechaLocal } from "../agenda/tiempo";
+import { leerCifra, leerPorcentaje } from "../crm/dinero";
+import { LIMITES, limpiarTexto, textoLibre } from "./texto-libre";
 import { zonaParaGuardar } from "../sitio/ubicacion";
 import type { Foto } from "../datos/tipos";
 
@@ -55,19 +57,14 @@ export interface DatosPropiedad {
 
 type Campos = { get(nombre: string): unknown };
 
-const texto = (f: Campos, k: string) => String(f.get(k) ?? "").trim();
+export { LIMITES, limpiarTexto, textoLibre };
+
+// Todo lo que se lee de un formulario pasa por limpiarTexto (sin caracteres invisibles ni de dirección).
+const texto = (f: Campos, k: string) => limpiarTexto(f.get(k)).trim();
 const opcional = (f: Campos, k: string) => texto(f, k) || null;
 
-/** "450.000", "450,000", "$ 450000" o "3,5" → número. Vacío → null. */
-export function leerNumero(valor: string): number | null | "invalido" {
-  const limpio = valor.replace(/[$\s₡]|USD|CRC/gi, "");
-  if (!limpio) return null;
-  let cifra = limpio;
-  if (/^\d{1,3}(?:[.,]\d{3})+$/.test(cifra)) cifra = cifra.replace(/[.,]/g, "");
-  else cifra = cifra.replace(",", ".");
-  const n = Number(cifra);
-  return Number.isFinite(n) && n >= 0 ? n : "invalido";
-}
+/** "450.000", "450,000", "$ 450000" o "3,5" → número. Vacío → null. Las reglas están en `leerCifra`. */
+export const leerNumero = leerCifra;
 
 function uno<T extends string>(valor: string, permitidos: readonly T[]): T | null {
   return (permitidos as readonly string[]).includes(valor) ? (valor as T) : null;
@@ -80,6 +77,9 @@ export function leerPropiedad(f: Campos): Validado<DatosPropiedad> {
     return { ok: false, motivo: "El código lleva de 2 a 20 letras, números o guiones, sin espacios (por ejemplo DLX-014)." };
   }
   if (!titulo) return { ok: false, motivo: "Falta el título." };
+  if (titulo.length > LIMITES.titulo) return { ok: false, motivo: `El título es muy largo: hasta ${LIMITES.titulo} letras.` };
+  const descripcion = textoLibre(texto(f, "descripcion"), LIMITES.descripcion, "La descripción");
+  if (!descripcion.ok) return descripcion;
 
   const tipo = uno(texto(f, "tipo"), TIPOS);
   const operacion = uno(texto(f, "operacion"), OPERACIONES);
@@ -132,11 +132,12 @@ export function leerPropiedad(f: Campos): Validado<DatosPropiedad> {
       banos: numeros.banos,
       m2_construccion: numeros.m2_construccion,
       m2_terreno: numeros.m2_terreno,
-      descripcion: opcional(f, "descripcion"),
+      descripcion: descripcion.valor,
       amenidades: texto(f, "amenidades")
         .split(/[\n,]/)
-        .map((a) => a.trim())
-        .filter(Boolean),
+        .map((a) => a.trim().slice(0, 80))
+        .filter(Boolean)
+        .slice(0, 40),
       url_e24: url,
       estado,
     },
@@ -253,7 +254,9 @@ export function leerBloqueo(
   const fin = aUtc(hasta, horaHasta ? minutosDe(horaHasta) : 24 * 60, zona);
   if (fin <= inicio) return { ok: false, motivo: "El final tiene que ser después del inicio." };
   if (fin <= ahora) return { ok: false, motivo: "Ese bloqueo ya pasó." };
-  return { ok: true, valor: { inicio, fin, motivo: opcional(f, "motivo") } };
+  const motivo = textoLibre(texto(f, "motivo"), LIMITES.motivo, "El motivo");
+  if (!motivo.ok) return motivo;
+  return { ok: true, valor: { inicio, fin, motivo: motivo.valor } };
 }
 
 // --- Corredores conocidos ----------------------------------------------------------------------------
@@ -338,4 +341,67 @@ export function esHorarioSencillo(franjas: Franja[]): boolean {
   return franjas.every((f) =>
     Object.values(TURNOS).some((t) => corta(f.hora_inicio) === t.hora_inicio && corta(f.hora_fin) === t.hora_fin),
   );
+}
+
+// --- Ajustes del corredor ------------------------------------------------------------------------
+
+export interface DatosAjustes {
+  tono: string;
+  reglas_escalamiento: string[];
+  hora_plan_dia: string;
+  respuesta_automatica: boolean;
+  zonas_e24: string[];
+  precio_busqueda_min: number | null;
+  precio_busqueda_max: number | null;
+  nombre_asistente: string;
+  comision_pct: number;
+}
+
+/**
+ * Ajustes del panel, con los errores por columna (una guía que guarda un solo campo solo mira el suyo).
+ * Vacío no es lo mismo que cero: comisión vacía → 5, "0" → 0; precio vacío → sin tope.
+ */
+export function leerAjustes(f: Campos): { valores: DatosAjustes; errores: Partial<Record<keyof DatosAjustes, string>> } {
+  const errores: Partial<Record<keyof DatosAjustes, string>> = {};
+  const lineas = (k: string) =>
+    texto(f, k)
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+  const tono = textoLibre(texto(f, "tono"), LIMITES.tono, "El tono");
+  if (!tono.ok) errores.tono = tono.motivo;
+  const reglas = lineas("reglas");
+  if (reglas.length > LIMITES.reglas) errores.reglas_escalamiento = `Son muchos temas: hasta ${LIMITES.reglas}, uno por línea.`;
+  else if (reglas.some((r) => r.length > LIMITES.regla)) errores.reglas_escalamiento = `Cada tema va en una línea de hasta ${LIMITES.regla} letras.`;
+  const hora = texto(f, "hora_plan") || "07:00";
+  if (!HORA.test(hora.slice(0, 5))) errores.hora_plan_dia = "Revisa la hora del plan del día (por ejemplo 07:00).";
+  const zonas = lineas("zonas_e24");
+  if (zonas.length > 40 || zonas.some((z) => z.length > 120)) errores.zonas_e24 = "Revisa las zonas de Encuentra24: una por línea.";
+  const precio = (k: string) => {
+    const n = leerCifra(texto(f, k));
+    if (n === "invalido") {
+      errores.precio_busqueda_min = "Revisa los precios de la búsqueda de dueños: escribe solo el número, por ejemplo 250000.";
+      return null;
+    }
+    return n;
+  };
+  const min = precio("precio_min");
+  const max = precio("precio_max");
+  if (min !== null && max !== null && min > max) errores.precio_busqueda_min = "El precio mínimo de la búsqueda no puede ser mayor que el máximo.";
+  const comision = leerPorcentaje(texto(f, "comision_pct"));
+  if (!comision.ok) errores.comision_pct = comision.motivo;
+  return {
+    valores: {
+      tono: tono.ok ? (tono.valor ?? "") : "",
+      reglas_escalamiento: reglas,
+      hora_plan_dia: hora.slice(0, 5),
+      respuesta_automatica: f.get("respuesta_automatica") === "on",
+      zonas_e24: zonas,
+      precio_busqueda_min: min,
+      precio_busqueda_max: max,
+      nombre_asistente: texto(f, "nombre_asistente").slice(0, 40) || "Patty",
+      comision_pct: comision.ok ? comision.valor : 5,
+    },
+    errores,
+  };
 }

@@ -11,12 +11,13 @@ import { diaLargo } from "@/lib/agenda/formato";
 import { hablarConPatty, type TurnoPatty } from "@/lib/panel/patty";
 import { generarPdfPatty } from "@/lib/panel/pdf-patty";
 import { sesionConCorredor } from "@/lib/panel/sesion";
+import { TEXTO_MAX_PATTY } from "@/lib/panel/adjuntos-limites";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /** El corredor le escribe a Patty. La sesión dice qué corredor es; los datos se leen solo de él. */
 const TIPOS_ADJUNTO = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf", "text/plain"]);
-// Hasta 12 archivos (10 fotos y los fotogramas de un video caben) y 4 MB en total (en base64 o en texto), lo que
-// deja pasar Vercel en un pedido.
+// Hasta 12 archivos (10 fotos y los fotogramas de un video caben) y 4 MiB en total en base64 o en texto: margen sobre
+// lo que manda el chat (2,8 MB de archivos, lib/panel/adjuntos-limites.ts) y debajo de lo que deja pasar Vercel.
 const MAX_ADJUNTOS = 12;
 const MAX_BASE64 = 4 * 1024 * 1024;
 const MAX_TEXTO_ARCHIVO = 60_000;
@@ -84,7 +85,7 @@ export async function preguntarAPatty(historial: TurnoPatty[], mensaje: string, 
     .slice(-12)
     .map((t) => ({ autor: t.autor, texto: t.texto.slice(0, 4000) }));
   const archivos = adjuntosValidos(adjuntos);
-  if (archivos === null) return { ok: false as const, motivo: "Los archivos pesan demasiado. Manda menos o más livianos (hasta 4 MB en total)." };
+  if (archivos === null) return { ok: false as const, motivo: `Los archivos pesan demasiado. Manda menos o más livianos (hasta ${TEXTO_MAX_PATTY} entre todos).` };
   return hablarConPatty(
     dependenciasPara(corredor),
     createAdminClient(),

@@ -7,9 +7,11 @@ import { DIAS_REPORTE, armarReporte } from "../anuncios/reporte";
 import type { Conversacion, Corredor } from "../datos/tipos";
 import { fichaDePropiedad } from "../fichas/comando";
 import { mejorarFotos } from "../fotos/mejorar";
+import { puedeUsarImagenes } from "../fotos/variantes";
 import type { MensajeEntrante } from "../whatsapp/parsear";
 import { RechazoModelo, type Adjunto } from "./cerebro";
 import { Contexto, type Dependencias } from "./contexto";
+import { hayPresupuestoHoy } from "./limites";
 import { mensajeMedioCorredor, leerMedio } from "./medios";
 import { armarPlan, datosDelPlan, fechaDelPlan } from "./plan";
 import { errorSeguro } from "../monitoreo/errores";
@@ -121,6 +123,12 @@ async function enviarDocumentoAlCorredor(
   await deps.repo.registrarUso(corredor.id, { mensajesSalientes: 1 });
 }
 
+/** Respuestas al corredor cuando un tope frena la IA (los topes frenan, no solo avisan). */
+export const CORREDOR_SIN_PRESUPUESTO =
+  "Ya llegaste al tope de uso de IA (del día o del mes), así que esto no lo puedo hacer ahora. Mañana seguimos; si lo necesitas antes, escríbele a soporte.";
+export const CORREDOR_TOPE_MENSAJES =
+  "Este mes ya se llegó al tope de mensajes de tu plan, así que no puedo usar la IA para esto. Escríbele a soporte si lo necesitas antes.";
+
 const AYUDA =
   "Puedo analizarte una propiedad o una oferta: mándame el enlace de Encuentra24 o los datos (precio, metros, zona). " +
   'Escribe "plan" para tu plan del día, "anuncio" y el código de una propiedad para prepararte el anuncio, ' +
@@ -154,8 +162,16 @@ export async function procesarMensajeCorredor(
 
   // Contexto para contar uso y disparar el aviso de tope; nunca para responder como a un cliente.
   const ctx = new Contexto(deps, corredor, conversacion, corredor.whatsapp_corredor!, log);
-  await ctx.uso({ mensajesEntrantes: 1 });
+  const uso = await ctx.uso({ mensajesEntrantes: 1 });
   const responder = (texto: string) => enviarAlCorredor(deps, corredor, conversacion, texto, { ahora });
+
+  // Las ramas que llaman a Claude u OpenAI respetan los mismos topes que el flujo de clientes y el panel:
+  // tope de mensajes del mes y tope de gasto de IA del día o del mes (`presupuesto_ia()`).
+  const frenoIA = async (): Promise<string | null> => {
+    if (uso.mensajes_total >= corredor.tope_mensajes_mes) return CORREDOR_TOPE_MENSAJES;
+    if (!(await hayPresupuestoHoy(repo, corredor))) return CORREDOR_SIN_PRESUPUESTO;
+    return null;
+  };
 
   // Al escribir, el corredor abre la ventana: si su plan de hoy estaba esperando, sale primero,
   // armado de nuevo porque pudo generarse horas antes.
@@ -219,6 +235,11 @@ export async function procesarMensajeCorredor(
 
   const pedidoAnuncio = /^anuncio\s+(?:de\s+)?(\S+)/i.exec(texto);
   if (pedidoAnuncio) {
+    const freno = await frenoIA();
+    if (freno) {
+      await responder(freno);
+      return { tipo: "corredor", accion: "error" };
+    }
     try {
       const listo = await prepararAnuncio(deps, corredor, pedidoAnuncio[1]);
       if (listo.consumo) await ctx.usoClaude(1, listo.consumo);
@@ -234,6 +255,13 @@ export async function procesarMensajeCorredor(
 
   const pedidoFotos = /^fotos\s+(?:de\s+)?(\S+)/i.exec(texto);
   if (pedidoFotos) {
+    // Imágenes: además del tope, el superadmin puede apagarlas para la cuenta (`imagenes_activas`). Sin editor
+    // configurado lo dice `mejorarFotos`.
+    const freno = (await frenoIA()) ?? (deps.fotos ? await puedeUsarImagenes(deps, corredor) : null);
+    if (freno) {
+      await responder(freno);
+      return { tipo: "corredor", accion: "error" };
+    }
     const r = await mejorarFotos(deps, corredor, pedidoFotos[1], responder);
     for (const foto of r.mejoradas) {
       await enviarImagenAlCorredor(deps, corredor, conversacion, foto.url, `Foto ${foto.numero} mejorada`);
@@ -262,6 +290,11 @@ export async function procesarMensajeCorredor(
   }
 
   const historial = (await repo.historial(corredor.id, conversacion.id, 11)).filter((m) => m.id !== mensajeId);
+  const freno = await frenoIA();
+  if (freno) {
+    await responder(freno);
+    return { tipo: "corredor", accion: "error" };
+  }
   try {
     const propiedades = await repo.propiedadesActivas(corredor.id);
     const analisis = await deps.cerebro.analizar(corredor, propiedades, historial, texto, adjuntos);

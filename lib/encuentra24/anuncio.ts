@@ -147,6 +147,15 @@ async function puedeLeer(d: DependenciasAnuncio, corredorId: string, p: PaginaAn
   if (ahora.getTime() - previa < PAUSA_LECTURAS_MS) {
     return { ok: false, motivo: "espera", mensaje: "Espera unos segundos entre un anuncio y otro y vuelve a tocar el botón." };
   }
+  // La lectura de arriba es rápida pero no atómica: dos pedidos a la vez la pasan los dos. El turno se reserva en la
+  // base con reclamar_alerta (atómico) sobre la ventana de 10 s en curso: de dos pedidos simultáneos, solo uno gana.
+  // (reclamar_alerta cuenta en minutos, por eso la ventana va en la clave; queda una fila por lectura en `alertas`.)
+  const ventana = Math.floor(ahora.getTime() / PAUSA_LECTURAS_MS);
+  const turno = await d.db.rpc("reclamar_alerta", { p_clave: `${clave}:t${ventana}`, p_minutos: 1 });
+  verificar(turno.error, "puedeLeer (turno)");
+  if (turno.data !== true) {
+    return { ok: false, motivo: "espera", mensaje: "Espera unos segundos entre un anuncio y otro y vuelve a tocar el botón." };
+  }
   const marca = await d.db.rpc("reclamar_alerta", { p_clave: clave, p_minutos: 0 });
   verificar(marca.error, "puedeLeer (marca)");
   const mismo = await d.db.rpc("reclamar_alerta", { p_clave: `${clave}:${huella(p.url)}`, p_minutos: 1 });

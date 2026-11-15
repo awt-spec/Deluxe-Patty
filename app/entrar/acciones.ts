@@ -6,6 +6,7 @@ import { abrirSesionDemo } from "@/lib/panel/demo";
 import { slugValido } from "@/lib/panel/marca";
 import { errorSeguro } from "@/lib/monitoreo/errores";
 import { COOKIE_CORREDOR } from "@/lib/panel/sesion";
+import { esRutaInterna } from "@/lib/panel/sesion-vencida";
 import { clienteConSesion } from "@/lib/supabase/servidor";
 
 export async function pedirEnlace(formulario: FormData) {
@@ -37,7 +38,11 @@ export async function iniciarSesion(formulario: FormData) {
   const correo = String(formulario.get("correo") ?? "").trim().toLowerCase();
   const contrasena = String(formulario.get("contrasena") ?? "");
   const c = String(formulario.get("c") ?? "");
-  const conMarca = (aviso: string) => `/entrar?aviso=${aviso}${slugValido(c) ? `&c=${c}` : ""}`;
+  // Si la sesión se cerró en medio de algo, vuelve a esa pantalla (solo /panel/...; si no, al Inicio).
+  const volver = String(formulario.get("volver") ?? "");
+  const destino = esRutaInterna(volver) ? volver : "/panel";
+  const conMarca = (aviso: string) =>
+    `/entrar?aviso=${aviso}${slugValido(c) ? `&c=${c}` : ""}${destino !== "/panel" ? `&volver=${encodeURIComponent(destino)}` : ""}`;
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) redirect(conMarca("correo"));
   if (!contrasena || contrasena.length > 200) redirect(conMarca("credenciales"));
   const { error } = await (await clienteConSesion()).auth.signInWithPassword({ email: correo, password: contrasena });
@@ -46,7 +51,7 @@ export async function iniciarSesion(formulario: FormData) {
     redirect(conMarca("credenciales"));
   }
   (await cookies()).delete(COOKIE_CORREDOR);
-  redirect("/panel");
+  redirect(destino);
 }
 
 /** "Ver la demo": entra sin correo a la cuenta de demo, con datos ficticios. */

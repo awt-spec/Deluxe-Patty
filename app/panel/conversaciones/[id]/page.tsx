@@ -3,6 +3,7 @@ import { Escribir } from "./escribir";
 import { IconoCamara, IconoCheck, IconoDocumento, IconoDobleCheck } from "../../iconos";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { inicialDe } from "@/lib/panel/inicial";
 import { conPunto, diaLargo, etiquetaHorario, horaCorta } from "@/lib/agenda/formato";
 import { fechaIso, fechaLocal, sumarDias } from "@/lib/agenda/tiempo";
 import type { AccionPendiente } from "@/lib/datos/tipos";
@@ -119,7 +120,7 @@ export default async function Conversacion({
           title={`Pregúntale a ${corredor.nombre_asistente ?? "Patty"}`}
           data-patty="chat-preguntar"
         >
-          {(corredor.nombre_asistente ?? "Patty").trim().charAt(0).toUpperCase() || "P"}
+          {inicialDe(corredor.nombre_asistente ?? "Patty", "P")}
         </Link>
         <a href={`tel:${contacto.telefono}`} className="llamar" aria-label="Llamar">
           <IconoTelefono tamano={26} />

@@ -33,7 +33,7 @@ export default async function NuevoCliente({ searchParams }: { searchParams: Pro
           </label>
         </fieldset>
         <label htmlFor="notas">Lo que quieras recordar (opcional)</label>
-        <textarea id="notas" name="notas" placeholder="Busca casa en Escazú para su familia" />
+        <textarea id="notas" name="notas" maxLength={4000} placeholder="Busca casa en Escazú para su familia" />
         <button type="submit" className="primario">
           Guardar cliente
         </button>

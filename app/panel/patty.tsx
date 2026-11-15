@@ -8,6 +8,10 @@ import { createPortal } from "react-dom";
 import { separarPasos, useGuia, type Paso } from "./guia";
 import type { FichaParcial } from "@/lib/datos/tipos";
 import { pideCargarCasa } from "@/lib/panel/casa-patty";
+import { almacenLocal, casaGuardada, leerAlmacen, turnosGuardados } from "@/lib/panel/almacen";
+import { MAX_ARCHIVOS_PATTY, MAX_BASE64_PATTY, MAX_BYTES_PATTY, TEXTO_MAX_PATTY } from "@/lib/panel/adjuntos-limites";
+import { clasificarFalla, mensajeDeFalla } from "@/lib/panel/fallas";
+import { inicialDe } from "@/lib/panel/inicial";
 import { anotarFotos, fotosAnotadas, olvidarFotos, subirFotosAnotadas } from "./patty-casa";
 import { conversarCasa, guardarCasaConversada } from "./propiedades/acciones";
 import { IconoCamara, IconoClip, IconoDobleCheck, IconoDocumento, IconoEnviar, IconoMicrofono } from "./iconos";
@@ -61,7 +65,9 @@ function guardarTurnos(clave: string, turnos: Turno[]) {
   } catch {
     try {
       localStorage.setItem(clave, JSON.stringify(ultimos.map((t) => ({ ...t, adjuntos: t.adjuntos?.map(({ miniatura: _, ...a }) => a) }))));
-    } catch {}
+    } catch {
+      // Ni sin miniaturas cabe (o no hay almacén): la conversación sigue en pantalla, solo no se recuerda.
+    }
   }
 }
 
@@ -69,12 +75,14 @@ function guardarCasa(clave: string, casa: CasaEnCurso | null) {
   try {
     if (casa) localStorage.setItem(`${clave}:casa`, JSON.stringify(casa));
     else localStorage.removeItem(`${clave}:casa`);
-  } catch {}
+  } catch {
+    // Sin almacén: la casa en curso sigue en memoria mientras el chat esté abierto.
+  }
 }
 
 const SIN_FOTOS_CASA = "Súbele las fotos ahí: hasta 12 por vez y 30 por casa. La primera que subas será la principal.";
-const MAX_ARCHIVOS = 10;
-const MAX_TOTAL = 3_900_000; // en base64 o texto, para no pasar los 4,5 MB de Vercel
+const MAX_ARCHIVOS = MAX_ARCHIVOS_PATTY;
+const MAX_TOTAL = MAX_BASE64_PATTY; // en base64 o texto (lib/panel/adjuntos-limites.ts)
 const FOTOGRAMAS = 6; // de un video
 const MAX_VIDEO_SEG = 300;
 const MAX_GRABACION_SEG = 180;
@@ -261,18 +269,20 @@ export function ChatPatty({
   const [, aviso, sugerencias] = SUGERENCIAS.find(([r]) => r.test(ruta))!;
 
   useEffect(() => {
-    try {
-      const g = JSON.parse(localStorage.getItem(clave) ?? "[]");
-      if (Array.isArray(g)) {
-        vivos.current = g.slice(-MAX_TURNOS);
-        setTurnos(vivos.current);
-      }
-      const c = JSON.parse(localStorage.getItem(`${clave}:casa`) ?? "null");
-      if (c && typeof c === "object" && Array.isArray(c.mensajes)) {
-        casaViva.current = c as CasaEnCurso;
-        setCasaEstado(casaViva.current);
-      }
-    } catch {}
+    // Lo guardado se valida turno por turno: uno con otra forma (versión vieja, edición a mano) se descarta en vez de
+    // romper el chat para siempre; si no sirve nada, la clave se borra (leerAlmacen).
+    const almacen = almacenLocal();
+    const g = leerAlmacen(almacen, clave, (v) => turnosGuardados(v, MAX_TURNOS));
+    if (g) {
+      vivos.current = g.turnos;
+      setTurnos(vivos.current);
+      if (g.limpiar) guardarTurnos(clave, g.turnos);
+    }
+    const c = leerAlmacen(almacen, `${clave}:casa`, (v) => casaGuardada<FichaParcial>(v));
+    if (c) {
+      casaViva.current = c;
+      setCasaEstado(casaViva.current);
+    }
     cargado.current = true;
   }, [clave]);
   useEffect(() => {
@@ -347,8 +357,8 @@ export function ChatPatty({
                 : `No pude abrir el video "${f.name}". Prueba con otro, o mándame algunas fotos de la casa.`;
           }
         } else if (f.type === "application/pdf" || /\.pdf$/i.test(f.name)) {
-          if (f.size > 2_800_000) {
-            aviso = `"${f.name}" pesa más de 2,8 MB. Manda uno más liviano o solo las páginas que importan.`;
+          if (f.size > MAX_BYTES_PATTY) {
+            aviso = `"${f.name}" pesa más de ${TEXTO_MAX_PATTY}. Manda uno más liviano o solo las páginas que importan.`;
             continue;
           }
           const datos = await aBase64(f);
@@ -369,7 +379,7 @@ export function ChatPatty({
     }
     const todos = [...archivos, ...nuevos];
     if (todos.reduce((s, a) => s + a.tamano, 0) > MAX_TOTAL) {
-      setError("Entre todos pesan demasiado. Manda menos archivos o más livianos.");
+      setError(`Entre todos pesan más de ${TEXTO_MAX_PATTY}. Manda menos archivos o más livianos.`);
     } else {
       setArchivos(todos);
       if (aviso) setError(aviso);
@@ -429,8 +439,8 @@ export function ChatPatty({
       if (r.ok) {
         setTexto((t) => (t.trim() ? `${t.trim()} ${r.texto}` : r.texto));
       } else setError(r.motivo);
-    } catch {
-      setError("No se pudo mandar el audio. Inténtalo de nuevo.");
+    } catch (e) {
+      setError(mensajeDeFalla(clasificarFalla(e, { enLinea: navigator.onLine }), "mandar el audio"));
     }
     setTranscribiendo(false);
   }
@@ -451,6 +461,12 @@ export function ChatPatty({
   function enviar(mensaje: string) {
     const limpio = mensaje.trim();
     if ((!limpio && archivos.length === 0) || pensando) return;
+    // Sin red no se manda: el mensaje y los archivos quedan en la caja para mandarlos cuando vuelva.
+    if (navigator.onLine === false) {
+      setError("Sin conexión. No se mandó todavía: tu mensaje sigue en la caja.");
+      if (limpio && !texto.trim()) setTexto(limpio);
+      return;
+    }
     terminar();
     const previos = vivos.current;
     const adjuntos = archivos;
@@ -486,8 +502,10 @@ export function ChatPatty({
           if (pasos.length) void guiar(pasos, leible);
           if ("cambio" in r && r.cambio) router.refresh();
         } else setError(r.motivo);
-      } catch {
-        setError("No se pudo mandar. Si adjuntaste archivos, prueba con menos o más livianos.");
+      } catch (e) {
+        // Cada causa con su mensaje: sesión cerrada, sin conexión, archivos muy pesados u otra cosa (antes todas
+        // decían "prueba con archivos más livianos", también sin adjuntos).
+        setError(mensajeDeFalla(clasificarFalla(e, { enLinea: navigator.onLine, conArchivos: adjuntos.length > 0 })));
       }
     });
   }
@@ -530,8 +548,8 @@ export function ChatPatty({
             ? { autor: "asistente", texto: r.mensaje, hora: new Date().toISOString(), casa: r.resumen, id }
             : { autor: "asistente", texto: r.mensaje, hora: new Date().toISOString() },
         );
-      } catch {
-        setError("No se pudo conectar. Inténtalo de nuevo.");
+      } catch (e) {
+        setError(mensajeDeFalla(clasificarFalla(e, { enLinea: navigator.onLine }), "conectar"));
       }
     });
   }
@@ -562,8 +580,8 @@ export function ChatPatty({
           hora: new Date().toISOString(),
         });
         router.refresh();
-      } catch {
-        setError("No se pudo guardar. Inténtalo de nuevo.");
+      } catch (e) {
+        setError(mensajeDeFalla(clasificarFalla(e, { enLinea: navigator.onLine }), "guardar"));
       } finally {
         guardandoCasa.current = false;
       }
@@ -678,7 +696,7 @@ export function ChatPatty({
           </Link>
         )}
         <span className="patty-avatar" aria-hidden>
-          {nombre.charAt(0).toUpperCase()}
+          {inicialDe(nombre, "P")}
         </span>
         <span className="patty-titulo">
           <strong>{nombre} · IA</strong>
@@ -825,7 +843,17 @@ export function ChatPatty({
             </span>
           </div>
         )}
-        {error && <p className="aviso">{error}</p>}
+        {error && (
+          <p className="aviso" role="alert">
+            {error}
+            {error === mensajeDeFalla("sesion") && (
+              <>
+                {" "}
+                <a href={`/entrar?aviso=sesion&volver=${encodeURIComponent(`${ruta}${busqueda.toString() ? `?${busqueda}` : ""}`)}`}>Entrar de nuevo</a>
+              </>
+            )}
+          </p>
+        )}
         <div ref={fin} />
       </div>
 

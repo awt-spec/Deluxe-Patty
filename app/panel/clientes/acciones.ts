@@ -5,16 +5,17 @@ import { redirect } from "next/navigation";
 import { fechaIso, fechaLocal, sumarDias } from "@/lib/agenda/tiempo";
 import { normalizarZona } from "@/lib/agenda/zonas";
 import { anotar, type TipoActividad } from "@/lib/crm/actividades";
-import { comisionEstimada, monedaDe, montoExacto } from "@/lib/crm/dinero";
+import { comisionEstimada, monedaDe, montoExacto, validarCierre, validarOferta } from "@/lib/crm/dinero";
 import { ETAPAS, MOTIVOS_PERDIDA, NOMBRE_ETAPA, type Busca, type Etapa } from "@/lib/crm/perfil";
-import { leerNumero, normalizarTelefono } from "@/lib/panel/formularios";
+import { LIMITES, leerNumero, limpiarTexto, normalizarTelefono, textoLibre } from "@/lib/panel/formularios";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 
 // El corredor edita el CRM de sus clientes con su sesión: la política de contactos (RLS) solo le deja
 // tocar los suyos y el permiso por columna, solo estos campos (nunca el teléfono).
 
-const texto = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
+// Texto del formulario sin caracteres invisibles ni de dirección (U+202E y parecidos).
+const texto = (f: FormData, k: string) => limpiarTexto(f.get(k)).trim();
 const numeroDe = (v: string) => {
   const n = leerNumero(v);
   return typeof n === "number" ? n : null;
@@ -99,13 +100,20 @@ export async function guardarSeguimiento(f: FormData) {
     texto(f, "id"),
     quitar || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)
       ? { seguimiento_fecha: null, seguimiento_nota: null }
-      : { seguimiento_fecha: fecha, seguimiento_nota: texto(f, "nota").slice(0, 500) || null },
+      : { seguimiento_fecha: fecha, seguimiento_nota: texto(f, "nota").slice(0, LIMITES.nota) || null },
     quitar ? "Listo, ya está hecho." : "Listo, te lo recuerdo ese día.",
   );
 }
 
 export async function guardarNotas(f: FormData) {
-  await guardar(texto(f, "id"), { notas: texto(f, "notas").slice(0, 4000) || null, nombre: texto(f, "nombre").slice(0, 80) || null }, "Guardado.");
+  const id = texto(f, "id");
+  const notas = textoLibre(texto(f, "notas"), LIMITES.notas, "Las notas");
+  const nombre = textoLibre(texto(f, "nombre"), LIMITES.nombre, "El nombre");
+  if (!notas.ok || !nombre.ok) {
+    if (!idValido(id)) redirect("/panel/clientes");
+    volverA(id, !notas.ok ? notas.motivo : (nombre as { motivo: string }).motivo);
+  }
+  await guardar(id, { notas: notas.valor, nombre: nombre.valor }, "Guardado.");
 }
 
 /**
@@ -115,7 +123,7 @@ export async function guardarNotas(f: FormData) {
 export async function agregarCliente(f: FormData) {
   const { corredor } = await sesionConCorredor();
   const telefono = normalizarTelefono(texto(f, "telefono"));
-  const nombre = texto(f, "nombre").slice(0, 80) || null;
+  const nombre = texto(f, "nombre").slice(0, LIMITES.nombre) || null;
   if (!telefono) redirect(`/panel/clientes/nuevo?aviso=${encodeURIComponent("Revisa el teléfono: 8 números, o con +506.")}`);
   const origen = texto(f, "origen") === "referido" ? "referido" : "otro";
   const admin = createAdminClient();
@@ -128,7 +136,7 @@ export async function agregarCliente(f: FormData) {
   if (ya) redirect(`/panel/clientes/${ya.id}?aviso=${encodeURIComponent("Ese cliente ya estaba: aquí está.")}`);
   const { data, error } = await admin
     .from("contactos")
-    .insert({ corredor_id: corredor.id, telefono, nombre, origen, notas: texto(f, "notas").slice(0, 4000) || null })
+    .insert({ corredor_id: corredor.id, telefono, nombre, origen, notas: texto(f, "notas").slice(0, LIMITES.notas) || null })
     .select("id")
     .single();
   if (error || !data) redirect(`/panel/clientes/nuevo?aviso=${encodeURIComponent("No se pudo guardar. Vuelve a intentarlo.")}`);
@@ -185,7 +193,7 @@ export async function anotarActividad(f: FormData) {
   if (!["llamada", "mensaje", "visita", "nota"].includes(tipo)) volverA(id, "Elige qué pasó.");
   const nota = texto(f, "texto");
   const admin = createAdminClient();
-  const cuerpo = (nota || POR_DEFECTO[tipo] || "").trim().slice(0, 500);
+  const cuerpo = (nota || POR_DEFECTO[tipo] || "").trim().slice(0, LIMITES.nota);
   // Un doble toque no crea dos anotaciones: la misma (cliente, tipo y texto) de hace menos de 10 s se ignora.
   if (cuerpo) {
     const { data: repetida } = await admin
@@ -204,11 +212,6 @@ export async function anotarActividad(f: FormData) {
   volverA(id, ok ? "Anotado." : "Escribe qué pasó.");
 }
 
-const montoDe = (v: string) => {
-  const n = leerNumero(v);
-  return typeof n === "number" && n > 0 ? Math.round(n * 100) / 100 : null;
-};
-
 async function casaPropia(corredorId: string, casa: string) {
   if (!idValido(casa)) return null;
   const { data } = await createAdminClient()
@@ -224,8 +227,11 @@ async function casaPropia(corredorId: string, casa: string) {
 export async function guardarOportunidad(f: FormData) {
   const id = texto(f, "id");
   const corredor = await clientePropio(id);
+  // Una oferta que no se entiende no guarda nada (antes la borraba); vacía, se quita.
+  const leida = validarOferta(texto(f, "oferta"));
+  if (!leida.ok) volverA(id, leida.motivo);
+  const oferta = leida.valor;
   const casa = texto(f, "casa") ? await casaPropia(corredor.id, texto(f, "casa")) : null;
-  const oferta = montoDe(texto(f, "oferta"));
   const moneda = monedaDe(texto(f, "oferta_moneda"));
   const db = createAdminClient();
   const { data: antes } = await db.from("contactos").select("etapa, oferta_monto, oferta_moneda").eq("corredor_id", corredor.id).eq("id", id).single();
@@ -298,9 +304,10 @@ async function registrarCierre(
 export async function guardarCierre(f: FormData) {
   const id = texto(f, "id");
   const corredor = await clientePropio(id);
-  const precio = montoDe(texto(f, "precio"));
-  if (!precio) volverA(id, "Escribe el precio final.");
-  const ok = await registrarCierre(corredor, id, texto(f, "casa") || null, precio, monedaDe(texto(f, "moneda")), montoDe(texto(f, "comision")));
+  const moneda = monedaDe(texto(f, "moneda"));
+  const cierre = validarCierre(texto(f, "precio"), texto(f, "comision"), moneda);
+  if (!cierre.ok) volverA(id, cierre.motivo);
+  const ok = await registrarCierre(corredor, id, texto(f, "casa") || null, cierre.precio, moneda, cierre.comision);
   volverA(id, ok ? "¡Felicidades! Cierre guardado." : "No se pudo guardar. Vuelve a intentarlo.");
 }
 
@@ -316,15 +323,16 @@ export async function cerrarDesdeTablero(
   const { supabase, corredor } = await sesionConCorredor();
   const { data: propio } = await supabase.from("contactos").select("id, propiedad_interes_id").eq("corredor_id", corredor.id).eq("id", id).maybeSingle();
   if (!propio) return { ok: false, motivo: "No se encontró el cliente." };
-  const precio = montoDe(String(datos?.precio ?? ""));
-  if (!precio) return { ok: false, motivo: "Escribe el precio final." };
+  const moneda = monedaDe(datos?.moneda);
+  const cierre = validarCierre(String(datos?.precio ?? ""), String(datos?.comision ?? ""), moneda);
+  if (!cierre.ok) return { ok: false, motivo: cierre.motivo };
   const ok = await registrarCierre(
     corredor,
     id,
     (propio.propiedad_interes_id as string | null) ?? (datos?.casa ? String(datos.casa) : null),
-    precio,
-    monedaDe(datos?.moneda),
-    montoDe(String(datos?.comision ?? "")),
+    cierre.precio,
+    moneda,
+    cierre.comision,
   );
   revalidatePath("/panel/clientes");
   revalidatePath(`/panel/clientes/${id}`);

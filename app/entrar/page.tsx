@@ -2,6 +2,7 @@ import { BotonEnviar } from "@/app/panel/boton-enviar";
 import { IconoCorreo } from "@/app/panel/iconos";
 import { demoDisponible } from "@/lib/panel/demo";
 import { marcaDeEntrada, slugValido } from "@/lib/panel/marca";
+import { esRutaInterna } from "@/lib/panel/sesion-vencida";
 import { CampoContrasena } from "./campo-contrasena";
 import { entrarDemo, iniciarSesion, pedirEnlace } from "./acciones";
 import { OtroEnlace } from "./otro-enlace";
@@ -15,8 +16,10 @@ const ERRORES: Record<string, string> = {
   limite: "Se pidieron demasiados enlaces o intentos seguidos. Espera unos minutos y vuelve a intentar.",
 };
 
-export default async function Entrar({ searchParams }: { searchParams: Promise<{ aviso?: string; c?: string }> }) {
-  const { aviso, c } = await searchParams;
+export default async function Entrar({ searchParams }: { searchParams: Promise<{ aviso?: string; c?: string; volver?: string }> }) {
+  const { aviso, c, volver: volverPedido } = await searchParams;
+  // La pantalla del panel a la que vuelve después de entrar (solo rutas /panel/... propias: nada de redirección abierta).
+  const volverA = esRutaInterna(volverPedido) ? volverPedido : null;
   const corredor = slugValido(c) ? c : null;
   const marca = await marcaDeEntrada(corredor);
   const volver = corredor ? `/entrar?c=${corredor}` : "/entrar";
@@ -39,6 +42,11 @@ export default async function Entrar({ searchParams }: { searchParams: Promise<{
     <PantallaEntrada marca={marca}>
       <h1>Entra a tu asistente</h1>
       <p className="suave">Escribe tu correo y tu contraseña.</p>
+      {aviso === "sesion" && (
+        <p className="aviso" role="status">
+          Tu sesión se cerró. Entra de nuevo y sigues donde estabas.
+        </p>
+      )}
       {aviso && ERRORES[aviso] && (
         <p className="aviso error" role="alert">
           {ERRORES[aviso]}
@@ -46,6 +54,7 @@ export default async function Entrar({ searchParams }: { searchParams: Promise<{
       )}
       <form action={iniciarSesion} className="pila">
         {corredor && <input type="hidden" name="c" value={corredor} />}
+        {volverA && <input type="hidden" name="volver" value={volverA} />}
         <label htmlFor="correo">Tu correo</label>
         <input
           id="correo"

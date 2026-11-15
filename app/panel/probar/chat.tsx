@@ -64,7 +64,9 @@ export function Chat({ nombreCorredor, corredorId }: { nombreCorredor: string; c
         setNotaPrueba(p.nota);
         /* eslint-enable react-hooks/set-state-in-effect */
       } else localStorage.removeItem(clave);
-    } catch {}
+    } catch {
+      // Sin almacén (modo privado, sitio bloqueado): la prueba empieza de cero, no se recuerda.
+    }
     setCargado(true);
   }, [clave]);
 
@@ -73,7 +75,9 @@ export function Chat({ nombreCorredor, corredorId }: { nombreCorredor: string; c
     try {
       if (lineas.length === 0) localStorage.removeItem(clave);
       else localStorage.setItem(clave, serializarPrueba({ estado, lineas, calificaciones, nota: notaPrueba }, Date.now()));
-    } catch {}
+    } catch {
+      // Almacén lleno o bloqueado: la prueba sigue en pantalla, solo no se recuerda 24 h.
+    }
   }, [cargado, clave, estado, lineas, calificaciones, notaPrueba]);
 
   // Con llaves: en los Chrome nuevos scrollIntoView devuelve una promesa, y si el efecto la devuelve React
@@ -211,7 +215,9 @@ export function Chat({ nombreCorredor, corredorId }: { nombreCorredor: string; c
               setNotaPrueba(null);
               try {
                 localStorage.removeItem(clave);
-              } catch {}
+              } catch {
+                // Sin almacén no había nada guardado que borrar.
+              }
             }}
           >
             Empezar otra prueba

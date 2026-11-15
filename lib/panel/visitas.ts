@@ -90,6 +90,19 @@ async function citaPropia(db: SupabaseClient, corredor: Corredor, citaId: string
   };
 }
 
+/**
+ * Por qué una visita ya no se puede tocar: si existe pero ya terminó (cancelada, hecha, no llegó), se dice eso, no
+ * "No encontré la visita" (pasa al cancelarla en dos pestañas). `pedido` es lo que se quería hacer.
+ */
+async function motivoSinVisita(db: SupabaseClient, corredor: Corredor, citaId: string, pedido: string): Promise<string> {
+  const { data } = await db.from("citas").select("estado").eq("corredor_id", corredor.id).eq("id", citaId).maybeSingle();
+  const estado = data?.estado as string | undefined;
+  if (estado === "cancelada") return pedido === "cancelada" ? "Esa visita ya estaba cancelada." : "Esa visita está cancelada: agenda una nueva.";
+  if (estado === "realizada") return "Esa visita ya quedó como hecha.";
+  if (estado === "no_asistio") return "Esa visita ya quedó como que no llegó.";
+  return "No encontré la visita.";
+}
+
 export async function moverVisita(
   deps: Dependencias,
   db: SupabaseClient,
@@ -99,7 +112,7 @@ export async function moverVisita(
   avisarCliente: boolean,
 ): Promise<ResultadoVisita> {
   const cita = await citaPropia(db, corredor, citaId);
-  if (!cita) return { ok: false, motivo: "No encontré la visita." };
+  if (!cita) return { ok: false, motivo: await motivoSinVisita(db, corredor, citaId, "mover") };
   const fin = new Date(inicio.getTime() + (cita.fin.getTime() - cita.inicio.getTime()));
   // La restricción de la base impide que quede encima de otra visita.
   const { error } = await db
@@ -132,7 +145,7 @@ export async function cambiarVisita(
   avisarCliente: boolean,
 ): Promise<ResultadoVisita> {
   const cita = await citaPropia(db, corredor, citaId);
-  if (!cita) return { ok: false, motivo: "No encontré la visita." };
+  if (!cita) return { ok: false, motivo: await motivoSinVisita(db, corredor, citaId, estado) };
   if (!(await deps.repo.cambiarEstadoCita(corredor.id, citaId, estado))) return { ok: false, motivo: "La visita ya cambió." };
   const cuando = etiquetaHorario(cita.inicio, corredor.zona_horaria);
   // Queda en la historia del cliente y, si la visita se hizo, un recordatorio para mañana: "¿Qué le

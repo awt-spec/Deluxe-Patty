@@ -166,6 +166,29 @@ describe("Ajustes desde las guías paso a paso (guardarAjustes con solo y volver
     expect(db.escrituras.some((w) => w.filtros.some(([, v]) => v === ID.otro))).toBe(false);
   });
 
+  it("comisión 0 se guarda como 0 (antes volvía a 5); vacía queda en 5", async () => {
+    const db = supabaseFalso({ corredores: filas() });
+    estado.sesion = { corredor, usuario: { id: ID.usuario, email: "patricia@ejemplo.com" }, supabase: db };
+    await redirigeA(acciones.guardarAjustes(formulario({ tono: "Cordial", comision_pct: "0", hora_plan: "07:30" })));
+    expect(db.escrituras[0].valores).toMatchObject({ comision_pct: 0, hora_plan_dia: "07:30" });
+    await redirigeA(acciones.guardarAjustes(formulario({ tono: "Cordial", comision_pct: "" })));
+    expect(db.escrituras[1].valores).toMatchObject({ comision_pct: 5 });
+  });
+
+  it("un tono de 10.000 letras, una comisión de 50 % o un precio que no se entiende avisan y no guardan nada", async () => {
+    const db = supabaseFalso({ corredores: filas() });
+    estado.sesion = { corredor, usuario: { id: ID.usuario, email: "patricia@ejemplo.com" }, supabase: db };
+    const malos: Record<string, string>[] = [{ tono: "x".repeat(10_000) }, { comision_pct: "50" }, { precio_min: "doscientos mil" }];
+    for (const malo of malos) {
+      const url = decodeURIComponent(await redirigeA(acciones.guardarAjustes(formulario({ tono: "Cordial", ...malo }))));
+      expect(url, JSON.stringify(malo).slice(0, 40)).not.toMatch(/Guardado/);
+    }
+    // Desde una guía (solo=tono), el error de otro campo no estorba.
+    await redirigeA(acciones.guardarAjustes(formulario({ solo: "tono", tono: "Cordial", comision_pct: "50" })));
+    expect(db.escrituras).toHaveLength(1);
+    expect(db.escrituras[0].valores).toEqual({ tono: "Cordial" });
+  });
+
   it("solo con un campo desconocido guarda el formulario completo, y volver solo acepta rutas de la lista", async () => {
     const db = supabaseFalso({ corredores: filas() });
     estado.sesion = { corredor, usuario: { id: ID.usuario, email: "patricia@ejemplo.com" }, supabase: db };

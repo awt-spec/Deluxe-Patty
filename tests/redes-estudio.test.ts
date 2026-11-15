@@ -47,7 +47,9 @@ describe("cifras", () => {
     expect(cifrasInventadas("Precio $1.250.000, 3,5 baños, wa.me/50688887777", p)).toEqual([]);
     expect(cifrasInventadas("A 5 minutos de la playa y 1.300.000", p)).toEqual(["5", "1300000"]);
     expect(traeCifra("Solo $1.250.000", 1250000)).toBe(true);
-    expect(traeCifra("Solo $1,25 millones", 1250000)).toBe(false);
+    // Se lee por su valor: "$1,25 millones" es el mismo precio (H-07).
+    expect(traeCifra("Solo $1,25 millones", 1250000)).toBe(true);
+    expect(traeCifra("Solo $1,3 millones", 1250000)).toBe(false);
   });
 });
 

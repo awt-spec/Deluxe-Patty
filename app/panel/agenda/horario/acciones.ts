@@ -93,17 +93,34 @@ export async function guardarReglasVisitas(f: FormData) {
   volver(error ? "No se pudo guardar." : "Guardado.");
 }
 
-/** "¿Qué días enseñas casas?": mañana y tarde por día. Reemplaza el horario de la semana. */
+/**
+ * "¿Qué días enseñas casas?": mañana y tarde por día. Reemplaza el horario de la semana sin transacción (no hay RPC
+ * para esto y no se agregan migraciones), así que el orden cuida que nunca quede vacío por una falla a medias:
+ * primero se insertan las franjas nuevas, después se borran las viejas por id. Si la inserción falla, el horario de
+ * antes sigue intacto; si falla el borrado, se quitan las nuevas y queda el de antes. La tabla no tiene unicidad que
+ * impida tener las dos un instante (y por un instante la asistente vería la unión, nunca un horario vacío).
+ */
 export async function guardarTurnos(f: FormData) {
   const { supabase, corredor } = await sesionConCorredor();
   const franjas = franjasDeTurnos(f);
-  const { error: borrar } = await supabase.from("horarios_visitas").delete().eq("corredor_id", corredor.id);
-  if (borrar) volver("No se pudo guardar el horario.");
+  const { data: antes, error: leer } = await supabase.from("horarios_visitas").select("id").eq("corredor_id", corredor.id);
+  if (leer) volver("No se pudo guardar el horario.");
+  const viejas = ((antes ?? []) as { id: string }[]).map((x) => x.id);
+  let nuevas: string[] = [];
   if (franjas.length > 0) {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("horarios_visitas")
-      .insert(franjas.map((x) => ({ ...x, corredor_id: corredor.id })));
-    if (error) volver("No se pudo guardar el horario. Revísalo y guárdalo otra vez.");
+      .insert(franjas.map((x) => ({ ...x, corredor_id: corredor.id })))
+      .select("id");
+    if (error) volver("No se pudo guardar el horario: quedó el de antes. Vuelve a intentarlo.");
+    nuevas = ((data ?? []) as { id: string }[]).map((x) => x.id);
+  }
+  if (viejas.length > 0) {
+    const { error } = await supabase.from("horarios_visitas").delete().eq("corredor_id", corredor.id).in("id", viejas);
+    if (error) {
+      if (nuevas.length > 0) await supabase.from("horarios_visitas").delete().eq("corredor_id", corredor.id).in("id", nuevas);
+      volver("No se pudo guardar el horario: quedó el de antes. Vuelve a intentarlo.");
+    }
   }
   volver(franjas.length ? "Listo, guardé tu horario." : "Guardado: sin días, la asistente no ofrecerá visitas.");
 }

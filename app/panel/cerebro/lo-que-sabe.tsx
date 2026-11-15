@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { fechaCorta } from "@/lib/formato";
 import { archivar, responderDuda } from "./acciones";
+import { ConservarBorrador } from "../conservar-borrador";
 
 // "Lo que sabe": tarjetas por tema (casas, pagos, visitas…), con un buscador que filtra aquí mismo. Cada tarjeta
 // se cambia o se olvida con las acciones de siempre. Las ubicaciones confirmadas van en su propio grupo (vista.tsx).
@@ -66,6 +67,7 @@ export function LoQueSabe({ grupos }: { grupos: Grupo[] }) {
                       <input id={`t-${k.id}`} name="tema" type="text" defaultValue={k.tema} maxLength={300} />
                       <label htmlFor={`s-${k.id}`}>Respuesta</label>
                       <textarea id={`s-${k.id}`} name="respuesta" rows={3} defaultValue={k.respuesta ?? ""} maxLength={2000} />
+                      <ConservarBorrador nombre={`sabe-${k.id}`} />
                       <div className="botones">
                         <button type="submit" className="primario">
                           Guardar

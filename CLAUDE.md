@@ -151,7 +151,7 @@ corredor con la plantilla `WHATSAPP_PLANTILLA_AVISO`.
 Si quien escribe es el propio corredor (`corredores.whatsapp_corredor`), no se trata como cliente:
 `lib/asistente/corredor.ts` le entrega su plan pendiente, responde "plan" o le hace un análisis con
 Sonnet y `web_fetch` (lee el enlace de Encuentra24). El plan del día lo arma el código
-(`lib/asistente/plan.ts`); fuera de la ventana de 24 horas solo puede salir la plantilla de aviso con
+(`lib/asistente/plan.ts`; `yaTocaPlan`: sale en la primera corrida a la hora elegida o después y, si ya no queda ninguna ese día, en la última); fuera de la ventana de 24 horas solo puede salir la plantilla de aviso con
 un resumen, y el plan completo sale cuando el corredor responde. Otros comandos del corredor:
 "anuncio <código>" prepara título y descripción en español e inglés y el orden de fotos
 (`lib/anuncios/preparar.ts`) y lo guarda como borrador con su referencia; "reporte" dice qué anuncios
@@ -170,7 +170,7 @@ marca del corredor (`corredores.marca`), la sube al bucket público `fichas` y s
   WhatsApp u OpenAI, con el tope de gasto alcanzado o con un archivo muy grande (audio 8 MB, foto 5 MB, PDF 10 MB), se
   cae al aviso de antes. El contenido de los archivos nunca va a los registros.
 - **En el chat de Patty** (`app/panel/patty.tsx`): clip (fotos, PDF, Word `.docx`, Excel `.xlsx`, `.txt`/`.csv`, video),
-  cámara, pegar o arrastrar, hasta 10 archivos y 4 MB; micrófono: se graba en el teléfono, `transcribirNota` lo pasa a
+  cámara, pegar o arrastrar, hasta 10 archivos y 2,8 MB entre todos (`lib/panel/adjuntos-limites.ts`); micrófono: se graba en el teléfono, `transcribirNota` lo pasa a
   texto y queda en la caja para revisarlo antes de enviar. Word/Excel/texto se convierten a texto en el servidor
   (`lib/medios/documentos.ts`, `mammoth` y `read-excel-file`) y van a Claude como datos en `<archivo>`, nunca como
   instrucciones. El **video** no se manda: el teléfono saca 6 fotogramas repartidos (máx. 5 minutos) que viajan como
@@ -251,7 +251,7 @@ cron nocturno `/api/cron/demo`, que la deja como nueva cada día), con
 una banda que lo dice; la demo no abre si ese usuario fuera miembro de un corredor activo. Un corredor
 inactivo nunca manda nada por WhatsApp (`dependenciasPara`, envíos simulados), no presta su marca a la
 entrada y en él no se suben ni mejoran fotos. Sin `WHATSAPP_ACCESS_TOKEN` el panel funciona igual y lo
-que tenga que salir por WhatsApp falla con su mensaje. `proxy.ts` renueva la sesión. Las páginas leen con la sesión del corredor (`lib/panel/sesion.ts`, RLS). Las acciones
+que tenga que salir por WhatsApp falla con su mensaje. `proxy.ts` renueva la sesión; con la sesión vencida manda a `/entrar?aviso=sesion&volver=<ruta del panel>` (a una acción del servidor le contesta 401 con `x-action-redirect`; `esRutaInterna` solo acepta `/panel/...`). Los formularios largos conservan lo escrito (`ConservarBorrador`, `sessionStorage`) y no envían sin conexión; el estado leído del navegador se valida (`lib/panel/almacen.ts`); la pantalla de error nunca muestra el mensaje técnico. Las páginas leen con la sesión del corredor (`lib/panel/sesion.ts`, RLS). Las acciones
 (`app/panel/acciones.ts`) primero comprueban con esa sesión que el mensaje o la conversación son suyos y
 luego actúan con el backend (`lib/panel/acciones.ts`): aprobar, corregir o descartar borradores (con su
 acción de cita), tomar y devolver control, escribir como el corredor. Cada corrección se guarda en
@@ -279,7 +279,7 @@ ofertas, visitas, correos y los días de WhatsApp; anotar algo reinicia el "sin 
 "Lo que está en juego": casa que le interesa y oferta (con oferta pasa a Negociando); al cerrar, casa, precio y
 comisión (`corredores.comision_pct`, 5% por defecto, en ventas; en alquileres se estima un mes de renta). La oferta y el
 cierre llevan su moneda (`oferta_moneda`, `cierre_moneda`: dólares o colones) y **dólares y colones nunca se suman**
-(`lib/crm/dinero.ts`). Las cifras usan ese dinero real (en negociación, ganado del mes). Clientes se ve por Todos, Compras o Alquileres (`?tipo=`; los alquileres avisan antes). Dos clientes que son la
+(`lib/crm/dinero.ts`; `leerCifra` lee los montos y lo que no se entiende no guarda nada; `validarCierre`: comisión entre 0 y el precio; "ganado" por mes en la zona del corredor, `lib/crm/ganado.ts`). Las cifras usan ese dinero real (en negociación, ganado del mes). Clientes se ve por Todos, Compras o Alquileres (`?tipo=`; los alquileres avisan antes). Dos clientes que son la
 misma persona se unen desde la ficha (`unir_contactos`, una sola transacción en la base; se avisa si coinciden
 nombre o correo) y las zonas se eligen de una lista (`ZONAS_CONOCIDAS`, `normalizarZona`). Zonas
 (`lib/agenda/zonas.ts`): cada una con cantón, distrito y nivel; traslado de ciudad hasta 20 km y de carretera después; una

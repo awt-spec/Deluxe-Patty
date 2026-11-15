@@ -88,3 +88,26 @@ export function limitesDia(fecha: Date, zona: string, dias = 0): { desde: Date; 
   const dia = sumarDias(fechaLocal(fecha, zona), dias);
   return { desde: aUtc(dia, 0, zona), hasta: aUtc(sumarDias(dia, 1), 0, zona) };
 }
+
+/**
+ * "2026-10-20" → fecha local, solo si existe en el calendario (ida y vuelta): "2026-02-31", "2026-13-01" o
+ * "9999-99-99" → null, en vez de correrse al mes siguiente sin avisar.
+ */
+export function fechaDeIso(valor: string): FechaLocal | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(valor ?? "");
+  if (!m) return null;
+  const [anio, mes, dia] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const d = new Date(Date.UTC(anio, mes - 1, dia));
+  if (anio < 2000 || d.getUTCFullYear() !== anio || d.getUTCMonth() + 1 !== mes || d.getUTCDate() !== dia) return null;
+  return { anio, mes, dia, diaSemana: d.getUTCDay() };
+}
+
+/** "HH:MM" de 00:00 a 23:59 ("25:00" o "9:5" no). */
+export const esHora = (hora: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(hora ?? "");
+
+/** Instante UTC de un día ("2026-10-20") y una hora ("09:30") locales de la zona; null si alguno no existe. */
+export function instanteLocal(fecha: string, hora: string, zona: string): Date | null {
+  const f = fechaDeIso(fecha);
+  if (!f || !esHora(hora)) return null;
+  return aUtc(f, minutosDe(hora), zona);
+}

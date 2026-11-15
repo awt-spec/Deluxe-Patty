@@ -243,9 +243,21 @@ export async function procesarMensaje(deps: Dependencias, entrante: MensajeEntra
   }
 }
 
-export async function procesarEstado(deps: Pick<Dependencias, "repo">, estado: EstadoEntrega): Promise<void> {
+/** Espera antes de reintentar un aviso de entrega cuyo mensaje todavía no estaba guardado. */
+export const REINTENTO_ESTADO_MS = 2000;
+
+export async function procesarEstado(
+  deps: Pick<Dependencias, "repo">,
+  estado: EstadoEntrega,
+  esperar: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms)),
+): Promise<void> {
   // El corredor sale del número que recibió el aviso; sin corredor conocido no se toca nada.
   const corredor = await deps.repo.corredorPorPhoneNumberId(estado.phoneNumberId);
   if (!corredor) return;
+  if (await deps.repo.actualizarEstadoEntrega(corredor.id, estado.waMessageId, estado.estado)) return;
+  // Meta puede avisar "enviado" antes de que se guarde el mensaje con su wa_message_id (se guarda después de que
+  // la API responde): un reintento corto lo alcanza. Si tampoco (o el aviso era viejo y no debía retroceder), se
+  // deja así; limitación conocida: un aviso que llega después de los 2 s de reintento y antes de guardar se pierde.
+  await esperar(REINTENTO_ESTADO_MS);
   await deps.repo.actualizarEstadoEntrega(corredor.id, estado.waMessageId, estado.estado);
 }

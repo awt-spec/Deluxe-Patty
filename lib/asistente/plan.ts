@@ -66,6 +66,22 @@ export function fechaDelPlan(corredor: Corredor, ahora: Date): string {
   return fechaIso(fechaLocal(ahora, corredor.zona_horaria));
 }
 
+/** Cada cuántos minutos corre el cron del plan del día (vercel.json: "0 * * * *"). */
+export const PASO_CRON_PLAN = 60;
+
+/**
+ * ¿Ya toca mandar el plan (o el resumen por correo) de hoy? Regla: sale en la primera corrida del cron cuya hora
+ * local es igual o posterior a la hora elegida; si la hora elegida cae después de la última corrida del día (23:30
+ * con el cron de cada hora, 23:46 con el de cada 15 min), sale en esa última corrida, para que nunca se pierda el día.
+ * Con cron cada hora: 07:00 → 7:00, 07:30 → 8:00, 23:30 → 23:00. No se duplica: planes_dia y
+ * google_conexiones.resumen_enviado_fecha guardan la fecha ya enviada.
+ */
+export function yaTocaPlan(corredor: Pick<Corredor, "zona_horaria" | "hora_plan_dia">, ahora: Date, pasoMin = PASO_CRON_PLAN): boolean {
+  const ultimaCorrida = 24 * 60 - pasoMin;
+  const elegida = minutosDe(corredor.hora_plan_dia || "07:00");
+  return minutosLocales(ahora, corredor.zona_horaria) >= Math.min(elegida, ultimaCorrida);
+}
+
 export interface ResumenPlanes {
   enviados: number;
   avisados: number;
@@ -83,7 +99,7 @@ export async function enviarPlanes(deps: Dependencias): Promise<ResumenPlanes> {
   const resumen = { enviados: 0, avisados: 0, fallidos: 0 };
 
   for (const corredor of await deps.repo.corredoresActivos()) {
-    if (minutosLocales(ahora, corredor.zona_horaria) < minutosDe(corredor.hora_plan_dia)) continue;
+    if (!yaTocaPlan(corredor, ahora)) continue;
     const fecha = fechaDelPlan(corredor, ahora);
     try {
       const datos = await datosDelPlan(deps, corredor, ahora);

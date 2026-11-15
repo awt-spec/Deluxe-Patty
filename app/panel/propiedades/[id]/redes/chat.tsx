@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MAX_PEDIDO, type PestanaChat, type TurnoChat } from "@/lib/redes/chat";
 import { desplazamientoParaVer, resumenListo } from "@/lib/panel/movil";
+import { almacenLocal, leerAlmacen } from "@/lib/panel/almacen";
 import { transcribirNota } from "@/app/panel/patty-acciones";
 
 // "Pídeselo a …": chat corto dentro del estudio de redes, uno por pestaña. El corredor pide con sus palabras (o con
@@ -93,13 +94,21 @@ export function ChatRedes(p: PropsChat) {
   const grabadora = useRef<{ rec: MediaRecorder; trozos: Blob[]; flujo: MediaStream; reloj: ReturnType<typeof setTimeout>; cancelado: boolean } | null>(null);
 
   useEffect(() => {
-    try {
-      const g = JSON.parse(localStorage.getItem(clave) ?? "[]");
-      if (Array.isArray(g)) {
-        vivos.current = g.filter((t) => (t?.autor === "corredor" || t?.autor === "asistente") && typeof t?.texto === "string").slice(-MAX_TURNOS);
-        setTurnos(vivos.current);
-      }
-    } catch {}
+    // Lo guardado se valida turno por turno (también `cambios` y `error`, que se pintan): una versión vieja o una edición
+    // a mano no rompe la pestaña; si no es un arreglo, se borra.
+    const g = leerAlmacen(almacenLocal(), clave, (v) => (Array.isArray(v) ? v : null));
+    if (g) {
+      vivos.current = g
+        .filter((t) => (t?.autor === "corredor" || t?.autor === "asistente") && typeof t?.texto === "string")
+        .map((t) => ({
+          autor: t.autor as Turno["autor"],
+          texto: t.texto as string,
+          ...(Array.isArray(t.cambios) && t.cambios.every((c: unknown) => typeof c === "string") ? { cambios: t.cambios as string[] } : {}),
+          ...(t.error === true ? { error: true } : {}),
+        }))
+        .slice(-MAX_TURNOS);
+      setTurnos(vivos.current);
+    }
     cargado.current = true;
   }, [clave]);
 

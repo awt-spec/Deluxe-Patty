@@ -6,7 +6,8 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { sincronizarAhora } from "@/lib/google/tareas";
 import { guardarBloqueos } from "@/lib/agenda/guardar-bloqueos";
-import { aUtc, minutosDe } from "@/lib/agenda/tiempo";
+import { fechaDeIso, instanteLocal } from "@/lib/agenda/tiempo";
+import { firmaConfirmacion, revisarHoraVisita } from "@/lib/agenda/revisar-hora";
 import { dependenciasPara } from "@/lib/asistente/dependencias";
 import { leerBloqueo } from "@/lib/panel/formularios";
 import { sesionConCorredor } from "@/lib/panel/sesion";
@@ -39,10 +40,47 @@ export async function cambiarEnlaceCalendario() {
 const campo = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 const esId = (v: string) => /^[0-9a-f-]{36}$/.test(v);
 
-function instante(fecha: string, hora: string, zona: string): Date | null {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha) || !/^\d{2}:\d{2}$/.test(hora)) return null;
-  const [anio, mes, dia] = fecha.split("-").map(Number);
-  return aUtc({ anio, mes, dia, diaSemana: new Date(Date.UTC(anio, mes - 1, dia)).getUTCDay() }, minutosDe(hora), zona);
+/** Día y hora locales → instante; null si la fecha no existe (31 de febrero) o la hora no es válida (25:00). */
+const instante = instanteLocal;
+
+type Sesion = Awaited<ReturnType<typeof sesionConCorredor>>;
+
+/**
+ * Revisa la hora de una visita hecha a mano: si ya pasó, vuelve con el motivo; si cae fuera del horario o en un rato
+ * apartado y el corredor todavía no confirmó esa misma hora, vuelve a `confirmarEn` con la pregunta. Es su agenda:
+ * no se le impide, se le avisa. Las visitas encimadas las frena la base.
+ */
+async function revisarHora(
+  s: Sesion,
+  f: FormData,
+  inicio: Date,
+  minutos: number,
+  volver: string,
+  confirmarEn: string,
+  accion: "agendar" | "mover",
+) {
+  const fin = new Date(inicio.getTime() + minutos * 60_000);
+  const [{ data: franjas }, { data: bloqueos }] = await Promise.all([
+    s.supabase.from("horarios_visitas").select("dia_semana, hora_inicio, hora_fin").eq("corredor_id", s.corredor.id),
+    s.supabase
+      .from("bloqueos_agenda")
+      .select("inicio, fin")
+      .eq("corredor_id", s.corredor.id)
+      .lt("inicio", fin.toISOString())
+      .gt("fin", inicio.toISOString()),
+  ]);
+  const r = revisarHoraVisita({
+    inicio,
+    fin,
+    ahora: new Date(),
+    zona: s.corredor.zona_horaria,
+    franjas: (franjas ?? []) as { dia_semana: number; hora_inicio: string; hora_fin: string }[],
+    bloqueos: (bloqueos ?? []) as { inicio: string; fin: string }[],
+    accion,
+  });
+  if (!r.ok) irA(volver, r.motivo);
+  const firma = firmaConfirmacion(campo(f, "fecha"), campo(f, "hora"));
+  if (r.pregunta && campo(f, "confirmar") !== firma) irA(`${confirmarEn}&confirmar=${encodeURIComponent(firma)}`, r.pregunta);
 }
 
 /** Lleva el cambio al Google Calendar del corredor (si lo conectó) después de responder. */
@@ -57,7 +95,8 @@ function irA(ruta: string, aviso: string): never {
 }
 
 export async function agendarVisita(f: FormData) {
-  const { supabase, corredor } = await sesionConCorredor();
+  const sesion = await sesionConCorredor();
+  const { supabase, corredor } = sesion;
   const contactoId = campo(f, "cliente");
   const propiedadId = campo(f, "casa") || null;
   const fecha = campo(f, "fecha");
@@ -69,11 +108,14 @@ export async function agendarVisita(f: FormData) {
   if (propiedadId && !esId(propiedadId)) irA(volver, "Elige la casa de la lista.");
   const { data: propio } = await supabase.from("contactos").select("id").eq("corredor_id", corredor.id).eq("id", contactoId).maybeSingle();
   if (!propio) irA(volver, "No encontré ese cliente.");
+  const duracion = Math.min(240, Math.max(15, minutos));
+  const conDatos = `${volver}&cliente=${contactoId}${propiedadId ? `&casa=${propiedadId}` : ""}&minutos=${duracion}${f.get("avisar") !== null ? "" : "&avisar=0"}`;
+  await revisarHora(sesion, f, inicio!, duracion, conDatos, conDatos, "agendar");
   const r = await crearVisita(dependenciasPara(corredor), createAdminClient(), corredor, {
     contactoId,
     propiedadId,
     inicio: inicio!,
-    minutos: Math.min(240, Math.max(15, minutos)),
+    minutos: duracion,
     avisarCliente: f.get("avisar") !== null,
   });
   if (!r.ok) irA(volver, r.motivo);
@@ -82,18 +124,31 @@ export async function agendarVisita(f: FormData) {
 }
 
 async function visitaPropia(citaId: string) {
-  const { supabase, corredor } = await sesionConCorredor();
+  const sesion = await sesionConCorredor();
+  const { supabase, corredor } = sesion;
   if (!esId(citaId)) redirect("/panel/agenda");
-  const { data } = await supabase.from("citas").select("id").eq("corredor_id", corredor.id).eq("id", citaId).maybeSingle();
+  const { data } = await supabase.from("citas").select("id, inicio, fin").eq("corredor_id", corredor.id).eq("id", citaId).maybeSingle();
   if (!data) redirect("/panel/agenda?aviso=No%20encontr%C3%A9%20la%20visita.");
-  return corredor;
+  return { ...sesion, cita: data as { id: string; inicio?: string; fin?: string } };
 }
 
 export async function moverLaVisita(f: FormData) {
   const id = campo(f, "id");
-  const corredor = await visitaPropia(id);
+  const sesion = await visitaPropia(id);
+  const { corredor, cita } = sesion;
+  const volver = `/panel/agenda/visita/${id}`;
   const inicio = instante(campo(f, "fecha"), campo(f, "hora"), corredor.zona_horaria);
-  if (!inicio) irA(`/panel/agenda/visita/${id}`, "Revisa el día y la hora.");
+  if (!inicio) irA(volver, "Revisa el día y la hora.");
+  const duracion = cita.inicio && cita.fin ? Math.max(15, Math.round((Date.parse(cita.fin) - Date.parse(cita.inicio)) / 60_000)) : corredor.duracion_visita_min;
+  await revisarHora(
+    sesion,
+    f,
+    inicio!,
+    duracion,
+    volver,
+    `${volver}?fecha=${encodeURIComponent(campo(f, "fecha"))}&hora=${encodeURIComponent(campo(f, "hora"))}${f.get("avisar") !== null ? "" : "&avisar=0"}`,
+    "mover",
+  );
   const r = await moverVisita(dependenciasPara(corredor), createAdminClient(), corredor, id, inicio!, f.get("avisar") !== null);
   if (r.ok) alCalendario(corredor);
   irA(`/panel/agenda/visita/${id}`, r.ok ? r.aviso : r.motivo);
@@ -103,7 +158,7 @@ export async function cambiarLaVisita(f: FormData) {
   const id = campo(f, "id");
   const estado = campo(f, "estado");
   if (!["confirmada", "cancelada", "realizada", "no_asistio"].includes(estado)) redirect("/panel/agenda");
-  const corredor = await visitaPropia(id);
+  const { corredor } = await visitaPropia(id);
   const r = await cambiarVisita(
     dependenciasPara(corredor),
     createAdminClient(),
@@ -139,6 +194,8 @@ export async function bloquearDesdeAgenda(f: FormData) {
   const desde = campo(f, "fecha");
   const hasta = campo(f, "fecha_hasta") > desde ? campo(f, "fecha_hasta") : desde;
   const volver = `/panel/agenda/bloquear?fecha=${encodeURIComponent(desde)}`;
+  // Fecha vacía o que no existe: antes, con "Horas exactas", el recorrido de días lanzaba un error 500.
+  if (!fechaDeIso(desde) || !fechaDeIso(hasta)) irA(volver, "Revisa las fechas: elige un día del calendario.");
   const horas: [string, string] | null = RATOS[rato] ?? (rato === "horas" ? [campo(f, "hora_desde"), campo(f, "hora_hasta")] : null);
 
   // Todo el día: un solo bloqueo de punta a punta. Con horas: uno por día (la mañana de cada día).

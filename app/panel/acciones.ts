@@ -14,7 +14,7 @@ import {
 } from "@/lib/panel/acciones";
 import { quitarConexion } from "@/lib/google/conexion";
 import { errorSeguro } from "@/lib/monitoreo/errores";
-import { normalizarTelefono } from "@/lib/panel/formularios";
+import { leerAjustes, normalizarTelefono } from "@/lib/panel/formularios";
 import { reclamarConSupabase } from "@/lib/monitoreo/alertas";
 import { crearEnviadorWhatsApp, explicarErrorWhatsApp } from "@/lib/whatsapp/enviar";
 import { COOKIE_CORREDOR, sesionConCorredor } from "@/lib/panel/sesion";
@@ -171,34 +171,19 @@ export async function marcarLead(f: FormData) {
 
 export async function guardarAjustes(f: FormData) {
   const { supabase, corredor } = await sesionConCorredor();
-  const lineas = (k: string) =>
-    texto(f, k)
-      .split("\n")
-      .map((l) => l.trim())
-      .filter(Boolean);
-  const numero = (k: string) => {
-    const v = texto(f, k).replace(/[^\d]/g, "");
-    return v ? Number(v) : null;
-  };
-  const todo = {
-    tono: texto(f, "tono").trim(),
-    reglas_escalamiento: lineas("reglas"),
-    hora_plan_dia: texto(f, "hora_plan") || "07:00",
-    respuesta_automatica: f.get("respuesta_automatica") === "on",
-    zonas_e24: lineas("zonas_e24"),
-    precio_busqueda_min: numero("precio_min"),
-    precio_busqueda_max: numero("precio_max"),
-    nombre_asistente: texto(f, "nombre_asistente").trim().slice(0, 40) || "Patty",
-    comision_pct: Math.min(20, Math.max(0, Number(texto(f, "comision_pct").replace(",", ".")) || 5)),
-  };
+  const volver = VOLVER_AJUSTES.includes(texto(f, "volver")) ? texto(f, "volver") : "/panel/ajustes";
+  const leidos = leerAjustes(f);
+  // Con `solo`, solo cuenta el error de ese campo (las guías mandan uno nomás).
+  const soloCampo = SOLO_AJUSTE[texto(f, "solo")];
+  const error = soloCampo ? leidos.errores[soloCampo] : Object.values(leidos.errores)[0];
+  if (error) redirect(`${volver}?aviso=${encodeURIComponent(error)}`);
+  const todo = leidos.valores;
   // Las guías paso a paso (/panel/empezar) guardan un solo campo con la misma lectura: `solo` dice cuál, y el resto
   // no se toca. Sin `solo`, el formulario completo de Ajustes, como siempre.
-  const solo = SOLO_AJUSTE[texto(f, "solo")];
-  const cambios = solo ? { [solo]: todo[solo] } : todo;
-  const { error } = await supabase.from("corredores").update(cambios).eq("id", corredor.id);
+  const cambios = soloCampo ? { [soloCampo]: todo[soloCampo] } : todo;
+  const { error: fallo } = await supabase.from("corredores").update(cambios).eq("id", corredor.id);
   revalidatePath("/panel", "layout");
-  const volver = VOLVER_AJUSTES.includes(texto(f, "volver")) ? texto(f, "volver") : "/panel/ajustes";
-  redirect(`${volver}?aviso=${encodeURIComponent(error ? "No se pudo guardar. Revisa los datos." : "Guardado.")}`);
+  redirect(`${volver}?aviso=${encodeURIComponent(fallo ? "No se pudo guardar. Revisa los datos." : "Guardado.")}`);
 }
 
 /** Lo que una guía puede guardar sola desde guardarAjustes (nombre del campo del formulario → columna). */
