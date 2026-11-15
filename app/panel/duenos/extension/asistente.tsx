@@ -55,6 +55,8 @@ interface Props {
   version: string;
   demo: boolean;
   corredor: string;
+  /** Nombre de la asistente (para contar qué trae la versión nueva). */
+  asistente?: string;
 }
 
 export function InstalarExtension(p: Props) {
@@ -64,9 +66,9 @@ export function InstalarExtension(p: Props) {
   return <Pantalla {...p} entorno={entorno} />;
 }
 
-function Pantalla({ servidor, version, demo, corredor, entorno }: Props & { entorno: Entorno }) {
+function Pantalla({ servidor, version, demo, corredor, asistente = "Patty", entorno }: Props & { entorno: Entorno }) {
   const lugar = dondeInstalar(entorno);
-  const { estado, conexion, conectar } = useExtension({
+  const { estado, conexion, conectar, instalada: versionInstalada } = useExtension({
     servidor,
     version,
     demo,
@@ -154,6 +156,8 @@ function Pantalla({ servidor, version, demo, corredor, entorno }: Props & { ento
           sistema={sistema}
           copiada={copiado}
           version={version}
+          instalada={versionInstalada}
+          asistente={asistente}
           acciones={{
             elegir: setPasoAct,
             copiar: () => copiar(dir),

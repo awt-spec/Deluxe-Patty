@@ -182,5 +182,7 @@ export function useExtension(o: OpcionesExtension) {
     return base;
   }, [deteccion, conexion, o.servidor, o.version]);
 
-  return { estado, conexion, conectar };
+  /** La versión que tiene instalada este navegador (para contar qué trae la nueva), o null si no se ve. */
+  const instalada = deteccion.estado === "si" ? deteccion.version : null;
+  return { estado, conexion, conectar, instalada };
 }

@@ -77,7 +77,32 @@ export async function guardarLeads(db: SupabaseClient, corredorId: string, seman
 const claveHecha = (corredorId: string) => `busqueda_hecha:${corredorId}`;
 
 /** Datos de la extensión de Chrome (lib/encuentra24/extension.ts). */
+/** Un prefijo literal para LIKE ("_" y "%" no hacen de comodín). */
+export const comoPrefijo = (p: string) => `${p.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+
+/**
+ * Las claves de frenos y cuentas en `alertas` (una fila por clave) se barren al pasar su tiempo, sin cron ni migración:
+ * las que empiezan con `prefijo` y se reclamaron antes de `antes` (500 por vez; se vuelve a barrer la próxima).
+ */
+export async function borrarClavesViejas(db: SupabaseClient, prefijo: string, antes: Date): Promise<void> {
+  const { data, error } = await db
+    .from("alertas")
+    .select("clave, enviada_at")
+    .like("clave", comoPrefijo(prefijo))
+    .lt("enviada_at", antes.toISOString())
+    .limit(500);
+  verificar(error, "borrarClavesViejas");
+  // Se vuelve a mirar aquí el prefijo y la hora: solo se borra lo que de verdad cumple.
+  const viejas = ((data ?? []) as { clave: unknown; enviada_at: unknown }[])
+    .filter((f) => typeof f.clave === "string" && f.clave.startsWith(prefijo) && new Date(String(f.enviada_at)).getTime() < antes.getTime())
+    .map((f) => f.clave as string);
+  if (viejas.length === 0) return;
+  const { error: e2 } = await db.from("alertas").delete().in("clave", viejas);
+  verificar(e2, "borrarClavesViejas (borrar)");
+}
+
 export function crearAlmacenExtension(db: SupabaseClient): AlmacenExtension {
+  const borrarViejas = (prefijo: string, antes: Date) => borrarClavesViejas(db, prefijo, antes);
   return {
     async guardarCodigo(corredorId, codigoHash, vence) {
       // Un solo código vigente por corredor: pedir otro anula el anterior.
@@ -294,10 +319,29 @@ export function crearAlmacenExtension(db: SupabaseClient): AlmacenExtension {
         // Dos días de ventana: la clave de hoy no se vuelve a reclamar aunque el día local dure más que el UTC.
         const { data, error: e2 } = await db.rpc("reclamar_alerta", { p_clave: `${prefijo}${n}`, p_minutos: 2 * 24 * 60 });
         verificar(e2, "reservarPaginaDelDia");
-        if (data === true) return true;
+        if (data === true) {
+          // La primera del día barre las claves de días pasados (no quedan para siempre en `alertas`).
+          if (n === 1) await borrarViejas(`paginasdia:${corredorId}:`, new Date(Date.now() - 3 * 86_400_000));
+          return true;
+        }
       }
       return false;
     },
+
+    async paginasDelDia(corredorId, dia) {
+      const { count, error } = await db.from("alertas").select("clave", { count: "exact", head: true }).like("clave", `paginasdia:${corredorId}:${dia}:%`);
+      verificar(error, "paginasDelDia");
+      return count ?? 0;
+    },
+
+    async ultimaVez(clave) {
+      const { data, error } = await db.from("alertas").select("enviada_at").eq("clave", clave).maybeSingle();
+      verificar(error, "ultimaVez");
+      const t = typeof data?.enviada_at === "string" ? new Date(data.enviada_at) : null;
+      return t && Number.isFinite(t.getTime()) ? t : null;
+    },
+
+    borrarViejas: (prefijo, antes) => borrarViejas(prefijo, antes),
 
     async reclamar(clave, minutos) {
       const { data, error } = await db.rpc("reclamar_alerta", { p_clave: clave, p_minutos: minutos });

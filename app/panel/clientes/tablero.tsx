@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { comisionEstimada, montoExacto, reglaComision, type Moneda } from "@/lib/crm/dinero";
+import { etiquetaComision, previaComision } from "@/lib/crm/cierre";
+import { type Moneda } from "@/lib/crm/dinero";
 import { cerrarDesdeTablero, moverEtapa } from "./acciones";
 
 // Tablero de clientes para la computadora: una columna por etapa y cada cliente se arrastra de una
@@ -172,8 +173,8 @@ function VentanaCierre({
   const [error, setError] = useState<string | null>(null);
   const [guardando, empezar] = useTransition();
   const alquiler = tarjeta.cierre.operacion === "alquiler";
-  const numero = Number(precio.replace(/[^\d.,]/g, "").replace(/[.,](?=\d{3}(\D|$))/g, "").replace(",", "."));
-  const estimada = numero > 0 ? comisionEstimada(numero, comisionPct, tarjeta.cierre.operacion) : 0;
+  // Lo que se va a guardar, con las mismas reglas que el servidor: "5" o "5 %" es un porcentaje del precio.
+  const previa = previaComision({ precio, comision, moneda, comisionPct, operacion: tarjeta.cierre.operacion });
 
   useEffect(() => {
     const d = ventana.current;
@@ -197,21 +198,25 @@ function VentanaCierre({
         <p className="suave">{tarjeta.casa ? `${tarjeta.casa}. ` : ""}Anota en cuánto, así lo ganado cuenta desde hoy.</p>
         <label htmlFor="vc-precio">{alquiler ? "Renta mensual" : "Precio final"}</label>
         <div className="monto-moneda">
-          <input id="vc-precio" type="text" inputMode="numeric" value={precio} onChange={(e) => setPrecio(e.target.value)} required autoFocus />
+          <input id="vc-precio" type="text" inputMode="decimal" value={precio} onChange={(e) => setPrecio(e.target.value)} required autoFocus />
           <select aria-label="Moneda" value={moneda} onChange={(e) => setMoneda(e.target.value === "CRC" ? "CRC" : "USD")}>
             <option value="USD">Dólares</option>
             <option value="CRC">Colones</option>
           </select>
         </div>
-        <label htmlFor="vc-comision">Tu comisión (vacía: {reglaComision(comisionPct, tarjeta.cierre.operacion)})</label>
+        <label htmlFor="vc-comision">{etiquetaComision(comisionPct, tarjeta.cierre.operacion)}</label>
         <input
           id="vc-comision"
           type="text"
-          inputMode="numeric"
+          inputMode="decimal"
           value={comision}
           onChange={(e) => setComision(e.target.value)}
-          placeholder={estimada ? montoExacto(estimada, moneda) : alquiler ? "Un mes de renta" : `${comisionPct}% del precio`}
+          placeholder={alquiler ? "Un mes de renta" : `${comisionPct} % o el monto`}
+          aria-describedby="vc-comision-previa"
         />
+        <small id="vc-comision-previa" className={`vc-comision-previa${previa?.error ? " error" : ""}`} aria-live="polite">
+          {previa?.texto ?? ""}
+        </small>
         {error && <p className="aviso">{error}</p>}
         <div className="botones">
           <button type="submit" className="primario" disabled={guardando}>

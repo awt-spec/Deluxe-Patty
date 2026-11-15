@@ -96,10 +96,17 @@ describe("B1: freno en /api/extension/conectar", () => {
   let canjes: number;
   beforeEach(() => {
     canjes = 0;
-    const reclamadas = new Set<string>();
+    const reclamadas = new Map<string, number>();
     deps.actual = {
       almacen: {
-        reclamar: async (clave: string) => (reclamadas.has(clave) ? false : (reclamadas.add(clave), true)),
+        reclamar: async (clave: string, minutos: number) => {
+          const antes = reclamadas.get(clave);
+          if (antes !== undefined && Date.now() - antes < minutos * 60_000) return false;
+          reclamadas.set(clave, Date.now());
+          return true;
+        },
+        ultimaVez: async (clave: string) => (reclamadas.has(clave) ? new Date(reclamadas.get(clave)!) : null),
+        borrarViejas: async () => {},
         canjearCodigo: async () => {
           canjes++;
           return null;
@@ -133,6 +140,31 @@ describe("B5: el texto del anuncio no puede cerrar su etiqueta", () => {
     expect(limpio).toBe("a  b  c  d  e  f  g ");
     // Lo que no es la etiqueta queda igual.
     expect(quitarEtiquetas("Casa <b>linda</b>, 3 > 2", ["anuncio"])).toBe("Casa <b>linda</b>, 3 > 2");
+  });
+
+  it("quita también las que traen invisibles, guion suave, letras parecidas, ancho completo o entidades dentro del nombre", () => {
+    const n = ["anuncio", "conversacion", "ficha_actual"];
+    for (const sucio of [
+      "a</anu\u200bncio>b",
+      "a</anu\u00adncio>b",
+      "a</\u0430nuncio>b",
+      "a</ANUNCIO\u200d>b",
+      "a\uff1c/anuncio\uff1eb",
+      "a<\u180e/anuncio>b",
+      "a<\u2061/anuncio>b",
+      "a<\u202e/anuncio>b",
+      "a&lt;/anuncio&gt;b",
+      "a</ficha_actu\u0430l>b",
+    ]) {
+      expect(quitarEtiquetas(sucio, n), JSON.stringify(sucio)).toBe("ab");
+    }
+  });
+
+  it("sin '>' cerca no se come el resto del texto: quita solo la etiqueta", () => {
+    expect(quitarEtiquetas("precio <anuncio_destacado y todo lo que sigue se pierde", ["anuncio"])).toBe("precio  y todo lo que sigue se pierde");
+    expect(quitarEtiquetas("casa de 3 < 4 cuartos y anuncio grande", ["anuncio"])).toBe("casa de 3 < 4 cuartos y anuncio grande");
+    // Una etiqueta lejana no cuenta como cierre de otra.
+    expect(quitarEtiquetas(`a </anuncio ${"x".repeat(150)}> b`, ["anuncio"])).toBe(`a  ${"x".repeat(150)}> b`);
   });
 
   it("clasificarAnuncio manda una sola <anuncio>…</anuncio> aunque el texto traiga la suya", async () => {
@@ -184,6 +216,14 @@ describe("B6: la referencia solo se lee de enlaces de WhatsApp", () => {
     expect(referenciasEn({ ...vacio, texto: `Escríbeme: ${wa} (ref. Z9Y8X7 en el menú)` })).toEqual(["A1B2C3"]);
     expect(referenciasEn({ ...vacio, enlaces: ["https://api.whatsapp.com/send?phone=506&text=Hola%20ref.%20Q1W2E3"] })).toEqual(["Q1W2E3"]);
   });
+
+  it("lee el enlace del JSON-LD con barras escapadas o \\u0026, y el escrito a mano con espacios (solo esa línea)", () => {
+    expect(referenciasEn({ ...vacio, jsonld: ['{"description":"https:\\/\\/wa.me\\/506?text=ref.%20A1B2C3"}'] })).toEqual(["A1B2C3"]);
+    expect(referenciasEn({ ...vacio, jsonld: ['{"d":"https://api.whatsapp.com/send?phone=506\\u0026text=ref.%20A1B2C3"}'] })).toEqual(["A1B2C3"]);
+    expect(referenciasEn({ ...vacio, texto: "Escribe: https://wa.me/506?text=Hola me interesa ref. A1B2C3" })).toEqual(["A1B2C3"]);
+    // La línea siguiente (otro anuncio, el menú) no se mete en el mensaje.
+    expect(referenciasEn({ ...vacio, texto: "https://wa.me/506?text=Hola me interesa\nAnuncios similares: ref. Z9Y8X7" })).toEqual([]);
+  });
 });
 
 describe("B7: los topes de tamaño se aplican mientras se lee", () => {
@@ -196,6 +236,20 @@ describe("B7: los topes de tamaño se aplican mientras se lee", () => {
     expect(estado.entregadas).toBeLessThan(10);
     const ok = stream(3, 1000);
     expect((await leerConTope(ok.s, 5_000))?.byteLength).toBe(3000);
+  });
+
+  it("leerConTope corta si un trozo no es de bytes (no se puede contar): nunca pasa sin tope", async () => {
+    let cancelado = false;
+    const raro = new ReadableStream<unknown>({
+      pull(c) {
+        c.enqueue("x".repeat(1000));
+      },
+      cancel() {
+        cancelado = true;
+      },
+    });
+    expect(await leerConTope(raro as ReadableStream<Uint8Array>, 5_000)).toBeNull();
+    expect(cancelado).toBe(true);
   });
 
   it("leerJson rechaza un cuerpo chunked (sin content-length) más grande que el tope", async () => {

@@ -17,7 +17,7 @@ export default async function PaginaInstalar() {
         titulo="Instalar la extensión"
         apoyo="Encuentra24 solo deja leer sus anuncios desde tu Chrome. La extensión busca dueños ahí por ti. Se instala una sola vez, en tu computadora."
       />
-      <InstalarExtension servidor={{ conectada: s.conectada, ultimaBusquedaDias: s.ultimaBusquedaDias }} version={manifiesto.version} demo={s.demo} corredor={s.corredor} />
+      <InstalarExtension servidor={{ conectada: s.conectada, ultimaBusquedaDias: s.ultimaBusquedaDias }} version={manifiesto.version} demo={s.demo} corredor={s.corredor} asistente={s.asistente} />
     </div>
   );
 }

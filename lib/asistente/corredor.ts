@@ -2,7 +2,7 @@ import { apartar } from "../agenda/apartar";
 import { codigoLoEntiende, pideApartarLibre } from "../agenda/apartar-ia";
 import { pideBloqueo } from "../agenda/bloquear";
 import { apartarPorWhatsApp } from "../agenda/whatsapp-apartar";
-import { anotarSeguimiento } from "../agenda/seguimiento-visitas";
+import { anotarSeguimiento, marcarPreguntadasEnPlan } from "../agenda/seguimiento-visitas";
 import { prepararAnuncio } from "../anuncios/preparar";
 import { DIAS_REPORTE, armarReporte } from "../anuncios/reporte";
 import type { Conversacion, Corredor } from "../datos/tipos";
@@ -195,8 +195,14 @@ export async function procesarMensajeCorredor(
       fallo = mensajeMedioCorredor(lectura.motivo, corredor.nombre_asistente ?? "Patty");
     }
   }
+  // El plan pregunta por las visitas de ayer: al entregarlo cuentan como preguntadas (su respuesta se anota).
+  const mandarPlan = async () => {
+    const datos = await datosDelPlan(deps, corredor, ahora);
+    await responder(armarPlan(corredor, datos, ahora));
+    await marcarPreguntadasEnPlan(deps, datos);
+  };
   if (pendiente !== null) {
-    await responder(armarPlan(corredor, await datosDelPlan(deps, corredor, ahora), ahora));
+    await mandarPlan();
     await repo.marcarPlanEnviado(corredor.id, fecha);
   }
   // Lo demás que esperaba la ventana (por ejemplo la lista semanal de dueños).
@@ -205,7 +211,8 @@ export async function procesarMensajeCorredor(
     if (await repo.marcarEnvioEntregado(corredor.id, envio.id)) await responder(envio.contenido);
   }
   // Respuesta a "¿Cómo te fue en la visita…?" (texto o nota de voz): queda en la historia del cliente y la visita
-  // pasa a hecha, "no llegó" o cancelada. Los comandos, enlaces, preguntas y acuses siguen su camino.
+  // pasa a hecha, "no llegó" o cancelada. Solo si cuenta cómo fue (lib/agenda/seguimiento-visitas.ts): saludos,
+  // acuses, pedidos, comandos, enlaces y preguntas siguen su camino.
   if (!fallo) {
     const anotado = await anotarSeguimiento(deps, corredor, texto, adjuntos.length > 0, ahora).catch((error) => {
       log("error_seguimiento_visita", { corredorId: corredor.id, error: errorSeguro(error) });
@@ -222,7 +229,7 @@ export async function procesarMensajeCorredor(
   }
 
   if (/^plan\b/i.test(texto)) {
-    await responder(armarPlan(corredor, await datosDelPlan(deps, corredor, ahora), ahora));
+    await mandarPlan();
     return { tipo: "corredor", accion: "plan" };
   }
 

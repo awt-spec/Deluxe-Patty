@@ -61,6 +61,7 @@ export function leerPedido(de, m) {
       case "desconectar":
       case "buscar":
       case "ver_ultima":
+      case "estado":
       case "pausar":
       case "seguir":
       case "detener":

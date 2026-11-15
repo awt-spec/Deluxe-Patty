@@ -32,6 +32,8 @@ export const MAX_PAGINAS_BUSQUEDA = 12;
 export const MAX_PAGINAS_DIA = 24;
 /** Canjear un código: un intento cada 6 segundos por conexión (10 por minuto). */
 const VENTANA_CONECTAR_MS = 6_000;
+/** Las claves del freno de canjes (`alertas`) se borran pasado un día: no quedan para siempre. */
+const LIMPIAR_CONECTAR_MS = 86_400_000;
 // Sin letras ni números que se confundan al copiarlos (0/O, 1/I/L).
 const ALFABETO = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 
@@ -85,8 +87,14 @@ export interface AlmacenExtension {
   reservarBusquedaAuto(corredorId: string, horas: number): Promise<boolean>;
   /** Cuenta una página leída por el corredor en `dia` (fecha local): false si ya leyó `max` ese día. */
   reservarPaginaDelDia(corredorId: string, dia: string, max: number): Promise<boolean>;
+  /** Páginas que el corredor ya leyó en `dia` (fecha local del corredor). */
+  paginasDelDia(corredorId: string, dia: string): Promise<number>;
   /** reclamar_alerta: true si la clave no se usó en los últimos `minutos` (atómico). */
   reclamar(clave: string, minutos: number): Promise<boolean>;
+  /** Cuándo se reclamó por última vez la clave (null si nunca). */
+  ultimaVez(clave: string): Promise<Date | null>;
+  /** Borra de `alertas` las claves que empiezan con `prefijo` y se reclamaron antes de `antes`. */
+  borrarViejas(prefijo: string, antes: Date): Promise<void>;
 }
 
 export interface DependenciasExtension {
@@ -116,11 +124,24 @@ export function permisoVigente(c: { ultimo_uso_at: string | null; conectada_at: 
 
 /**
  * Freno de intentos de canje por conexión, sin guardar la IP (solo su huella en la clave de `alertas`): un intento
- * por ventana de 6 s, atómico en la base. false = esperar (la ruta contesta 429).
+ * cada 6 s contados desde el anterior (no por ventanas fijas: dos intentos a 20 ms, uno a cada lado del borde de una
+ * ventana, no pasan los dos). La marca del último intento se lee primero; el turno se reserva atómico en la base
+ * (reclamar_alerta cuenta en minutos enteros, por eso la ventana va en la clave) para que dos pedidos simultáneos no
+ * pasen juntos. Las claves de más de un día se borran. false = esperar (la ruta contesta 429).
  */
-export async function puedeIntentarConectar(almacen: Pick<AlmacenExtension, "reclamar">, ip: string, ahora = new Date()): Promise<boolean> {
+export async function puedeIntentarConectar(
+  almacen: Pick<AlmacenExtension, "reclamar" | "ultimaVez" | "borrarViejas">,
+  ip: string,
+  ahora = new Date(),
+): Promise<boolean> {
+  const base = `extension_conectar:${huella(`ip:${ip}`).slice(0, 32)}`;
+  const previa = await almacen.ultimaVez(base);
+  if (previa && ahora.getTime() - previa.getTime() < VENTANA_CONECTAR_MS) return false;
   const ventana = Math.floor(ahora.getTime() / VENTANA_CONECTAR_MS);
-  return almacen.reclamar(`extension_conectar:${huella(`ip:${ip}`).slice(0, 32)}:t${ventana}`, 1);
+  if (!(await almacen.reclamar(`${base}:t${ventana}`, 1))) return false;
+  await almacen.reclamar(base, 0);
+  await almacen.borrarViejas("extension_conectar:", new Date(ahora.getTime() - LIMPIAR_CONECTAR_MS));
+  return true;
 }
 
 /** La extensión canjea el código por su permiso. null si el código no existe, venció o ya se usó. */
@@ -147,13 +168,34 @@ export function tokenDe(cabecera: string | null): string | null {
 }
 
 export type Inicio =
-  | { ok: true; busqueda: string; siguiente: string; zonas: number; asistente: string }
-  | { ok: false; motivo: "sin_corredor" | "sin_zonas" | "sin_presupuesto" };
+  | {
+      ok: true;
+      busqueda: string;
+      siguiente: string;
+      zonas: number;
+      asistente: string;
+      /** Páginas que quedan hoy, contadas en el día local del corredor: la extensión usa esto, no la hora del aparato. */
+      paginasHoy: number;
+    }
+  | { ok: false; motivo: "sin_corredor" | "sin_zonas" | "sin_presupuesto" | "tope_dia" };
 
-export async function iniciarBusqueda(d: DependenciasExtension, corredorId: string, opciones: { automatica?: boolean } = {}): Promise<Inicio> {
+/** El día local del corredor (su zona horaria, no la del servidor ni la del Chrome) con que se cuenta el tope diario. */
+export function diaDelCorredor(corredor: Pick<CorredorBusqueda, "zona_horaria">, ahora: Date): string {
+  return fechaIso(fechaLocal(ahora, corredor.zona_horaria));
+}
+
+export async function iniciarBusqueda(
+  d: DependenciasExtension,
+  corredorId: string,
+  opciones: { automatica?: boolean; ahora?: Date } = {},
+): Promise<Inicio> {
   const corredor = await d.almacen.corredor(corredorId);
   if (!corredor) return { ok: false, motivo: "sin_corredor" };
   if (corredor.zonas_e24.length === 0) return { ok: false, motivo: "sin_zonas" };
+  // El tope del día lo dice el servidor, en el día del corredor: si ya leyó las 24, no se abre ninguna página.
+  const usadas = await d.almacen.paginasDelDia(corredorId, diaDelCorredor(corredor, opciones.ahora ?? new Date()));
+  const paginasHoy = Math.max(0, MAX_PAGINAS_DIA - usadas);
+  if (paginasHoy === 0) return { ok: false, motivo: "tope_dia" };
   if (!(await hayPresupuestoHoy(d.repo, corredor))) return { ok: false, motivo: "sin_presupuesto" };
 
   const recorrido = iniciarRecorrido(corredor.zonas_e24);
@@ -167,7 +209,7 @@ export async function iniciarBusqueda(d: DependenciasExtension, corredorId: stri
   const busqueda = await d.almacen.crearBusqueda(corredorId, estado);
   // El nombre de la asistente va en la barra que se ve sobre Encuentra24 ("Patty está buscando dueños…").
   const asistente = (corredor.nombre_asistente ?? "").trim().slice(0, 40) || "Patty";
-  return { ok: true, busqueda, siguiente: estado.esperada!, zonas: recorrido.activas.length, asistente };
+  return { ok: true, busqueda, siguiente: estado.esperada!, zonas: recorrido.activas.length, asistente, paginasHoy };
 }
 
 export interface Resumen {
@@ -199,7 +241,7 @@ export async function recibirPagina(
 
   // Topes de páginas (los mismos de la extensión): pasado el de la búsqueda o el del día, la página no se lee y la
   // búsqueda se corta como "tope": lo leído hasta ahí se revisa igual (la ruta corre terminarBusqueda).
-  const dia = fechaIso(fechaLocal(entrada.ahora ?? new Date(), corredor.zona_horaria));
+  const dia = diaDelCorredor(corredor, entrada.ahora ?? new Date());
   if (
     estado.recorrido.paginas >= MAX_PAGINAS_BUSQUEDA ||
     !(await d.almacen.reservarPaginaDelDia(corredorId, dia, MAX_PAGINAS_DIA))

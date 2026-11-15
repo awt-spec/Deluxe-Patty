@@ -22,7 +22,7 @@ export const RITMO = Object.freeze({
   descansoCadaMax: 6,
   descansoMinMs: 45_000,
   descansoMaxMs: 120_000,
-  /** Topes: por búsqueda y por día (en este Chrome). El servidor además corta a 8 páginas por zona. */
+  /** Topes: por búsqueda y por día (el día lo cuenta el servidor, en la zona del corredor). Además, 8 páginas por zona. */
   maxPaginasSesion: 12,
   maxPaginasDia: 24,
   /** Para estimar el tiempo que falta. */
@@ -99,22 +99,14 @@ export function siguientePausa(estado, rng) {
   return { tipo: "pausa", ms: entre(rng, RITMO.pausaEntreMinMs, RITMO.pausaEntreMaxMs), estado: { paraDescanso: falta } };
 }
 
-/** "2026-11-13" en la hora del aparato: el tope diario cuenta por día local. */
-export function hoyLocal(fecha = new Date()) {
-  const d = new Date(fecha);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-/** Páginas que quedan hoy según lo guardado ({fecha, paginas}); otro día empieza en cero. */
-export function quedanHoy(registro, hoy) {
-  const usadas = registro && registro.fecha === hoy && Number.isFinite(registro.paginas) ? registro.paginas : 0;
-  return Math.max(0, RITMO.maxPaginasDia - usadas);
-}
-
-/** Suma una página al registro del día (otro día empieza en cero). */
-export function anotarPaginaDelDia(registro, hoy) {
-  const usadas = registro && registro.fecha === hoy && Number.isFinite(registro.paginas) ? registro.paginas : 0;
-  return { fecha: hoy, paginas: usadas + 1 };
+/**
+ * Páginas que quedan hoy según el servidor (`paginasHoy` de /api/extension/busqueda). El día lo cuenta el servidor en
+ * la zona horaria del corredor, nunca con la hora de este aparato: con la computadora en otra zona, la extensión y el
+ * servidor no pueden discrepar. Sin el dato (un servidor anterior) se usa el tope y el servidor corta igual.
+ */
+export function quedanHoy(delServidor) {
+  if (typeof delServidor !== "number" || !Number.isFinite(delServidor)) return RITMO.maxPaginasDia;
+  return Math.max(0, Math.min(RITMO.maxPaginasDia, Math.floor(delServidor)));
 }
 
 /**

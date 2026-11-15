@@ -38,6 +38,8 @@ function almacenEnMemoria(
   /** Páginas por "corredor:día" y claves reclamadas (reclamar_alerta en memoria, con la hora de cada una). */
   const paginasDia = new Map<string, number>();
   const reclamadas = new Map<string, number>();
+  /** La hora de la "base" para reclamar_alerta (la ponen las pruebas del freno). */
+  const reloj = { t: Date.now() };
   const conexiones: { corredorId: string; codigo: string | null; vence: Date | null; token: string | null; revocada: boolean }[] = [];
   const busquedas = new Map<string, { corredorId: string; estado: EstadoBusqueda; terminada: boolean; anuncios: Map<string, AnuncioE24> }>();
   const leads: { semana: string; lead: LeadDueno }[] = [];
@@ -136,13 +138,24 @@ function almacenEnMemoria(
       paginasDia.set(k, n + 1);
       return true;
     },
-    async reclamar(clave) {
-      if (reclamadas.has(clave)) return false;
-      reclamadas.set(clave, Date.now());
+    async paginasDelDia(corredorId, dia) {
+      return paginasDia.get(`${corredorId}:${dia}`) ?? 0;
+    },
+    async reclamar(clave, minutos) {
+      const antes = reclamadas.get(clave);
+      if (antes !== undefined && reloj.t - antes < minutos * 60_000) return false;
+      reclamadas.set(clave, reloj.t);
       return true;
     },
+    async ultimaVez(clave) {
+      const t = reclamadas.get(clave);
+      return t === undefined ? null : new Date(t);
+    },
+    async borrarViejas(prefijo, antes) {
+      for (const [k, t] of reclamadas) if (k.startsWith(prefijo) && t < antes.getTime()) reclamadas.delete(k);
+    },
   };
-  return { almacen, leads, busquedas, conexiones, marcas, paginasDia, reclamadas };
+  return { almacen, leads, busquedas, conexiones, marcas, paginasDia, reclamadas, reloj };
 }
 
 function corredor(extra: Partial<CorredorBusqueda> = {}): CorredorBusqueda {
@@ -499,14 +512,63 @@ describe("topes del servidor (seguridad B8, B1, M1)", () => {
     expect(await almacen.reservarPaginaDelDia(ID, "2026-11-16", MAX_PAGINAS_DIA)).toBe(true);
   });
 
+  it("al empezar, el servidor dice cuántas páginas quedan hoy, contadas en el día de Costa Rica (no el del aparato)", async () => {
+    const { almacen, paginasDia } = almacenEnMemoria(corredor());
+    const d = dependencias(almacen);
+    // 16 de noviembre a las 05:30 UTC: en Nueva York ya es 16, en Costa Rica todavía es 15 (23:30).
+    const tarde = new Date("2026-11-16T05:30:00Z");
+    paginasDia.set(`${ID}:2026-11-15`, 20);
+    expect(await iniciarBusqueda(d, ID, { ahora: tarde })).toMatchObject({ ok: true, paginasHoy: 4 });
+    // Con las 24 del día de Costa Rica ya leídas no se empieza (y no se abre ninguna página).
+    paginasDia.set(`${ID}:2026-11-15`, MAX_PAGINAS_DIA);
+    expect(await iniciarBusqueda(d, ID, { ahora: tarde })).toEqual({ ok: false, motivo: "tope_dia" });
+    // A las 06:00 UTC empieza el 16 en Costa Rica: de nuevo 24.
+    expect(await iniciarBusqueda(d, ID, { ahora: new Date("2026-11-16T06:00:00Z") })).toMatchObject({ ok: true, paginasHoy: MAX_PAGINAS_DIA });
+  });
+
+  it("la ruta /api/extension/busqueda contesta el tope del día con un mensaje claro", async () => {
+    const { MENSAJES } = await import("../lib/encuentra24/extension-servidor");
+    expect(MENSAJES.tope_dia).toMatch(/24 páginas.*Sigo mañana/);
+  });
+
   it("canjear el código: un intento cada 6 s por conexión, sin guardar la IP", async () => {
-    const { almacen, reclamadas } = almacenEnMemoria(corredor());
-    const t = new Date("2026-11-15T15:00:00.500Z");
-    expect(await puedeIntentarConectar(almacen, "203.0.113.7", t)).toBe(true);
-    expect(await puedeIntentarConectar(almacen, "203.0.113.7", new Date(t.getTime() + 1000))).toBe(false);
-    expect(await puedeIntentarConectar(almacen, "198.51.100.2", t)).toBe(true);
-    expect(await puedeIntentarConectar(almacen, "203.0.113.7", new Date(t.getTime() + 6000))).toBe(true);
+    const { almacen, reclamadas, reloj } = almacenEnMemoria(corredor());
+    const t = new Date("2026-11-15T15:00:00.500Z").getTime();
+    const intentar = (ip: string, ms: number) => {
+      reloj.t = t + ms;
+      return puedeIntentarConectar(almacen, ip, new Date(t + ms));
+    };
+    expect(await intentar("203.0.113.7", 0)).toBe(true);
+    expect(await intentar("203.0.113.7", 1000)).toBe(false);
+    expect(await intentar("198.51.100.2", 0)).toBe(true);
+    expect(await intentar("203.0.113.7", 6000)).toBe(true);
     expect([...reclamadas.keys()].join(" ")).not.toContain("203.0.113");
+  });
+
+  it("canjear el código: seis segundos desde el intento anterior, no ventanas fijas (dos a 20 ms no pasan)", async () => {
+    const { almacen, reloj } = almacenEnMemoria(corredor());
+    // 5,99 s después del borde de una ventana de 6 s, y 20 ms más tarde (ya en la ventana siguiente).
+    const borde = Math.ceil(new Date("2026-11-15T15:00:00Z").getTime() / 6000) * 6000;
+    const intentar = (ms: number) => {
+      reloj.t = borde + ms;
+      return puedeIntentarConectar(almacen, "203.0.113.7", new Date(borde + ms));
+    };
+    expect(await intentar(-10)).toBe(true);
+    expect(await intentar(10)).toBe(false);
+    expect(await intentar(5_980)).toBe(false);
+    expect(await intentar(6_000)).toBe(true);
+  });
+
+  it("canjear el código: las claves del freno de más de un día se borran (no quedan para siempre)", async () => {
+    const { almacen, reclamadas, reloj } = almacenEnMemoria(corredor());
+    const t = new Date("2026-11-15T15:00:00Z").getTime();
+    reloj.t = t;
+    for (const ip of ["192.0.2.1", "192.0.2.2", "192.0.2.3"]) await puedeIntentarConectar(almacen, ip, new Date(t));
+    expect([...reclamadas.keys()].filter((k) => k.startsWith("extension_conectar:"))).toHaveLength(6);
+    reloj.t = t + 2 * 86_400_000;
+    await puedeIntentarConectar(almacen, "192.0.2.9", new Date(reloj.t));
+    // Solo quedan las del intento nuevo (su marca y su ventana).
+    expect([...reclamadas.keys()].filter((k) => k.startsWith("extension_conectar:"))).toHaveLength(2);
   });
 
   it("el permiso vence a los 60 días sin uso (o desde la conexión si nunca se usó)", () => {

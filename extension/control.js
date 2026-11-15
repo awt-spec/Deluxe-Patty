@@ -5,7 +5,9 @@
 // Es solo un dibujo encima de la página: no hace clic, no escribe ni lee nada del sitio (los datos los lee otro
 // script del trabajador de fondo). Vive en un Shadow DOM cerrado, sin variables globales ni postMessage hacia la
 // página: Encuentra24 no puede leerlo ni cambiarlo, y sus estilos no lo tocan. Solo la barra recibe el mouse.
-// Si la persona usa la pestaña (mueve el mouse, teclea, hace clic o rueda), se pausa sola.
+// Si la persona usa la pestaña (mueve el mouse, teclea, hace clic o rueda), se pausa sola. En pausa la barra se achica a
+// una ficha en la esquina de abajo que deja pasar los clics (solo sus dos botones los reciben) y el marco deja de brillar:
+// la persona puede usar la página entera mientras tanto.
 (() => {
   const VERDE = "#008069";
   const sinMovimiento = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -33,6 +35,9 @@
   }
   [data-fase="buscando"] .marco::after { animation: brillo 2.8s ease-in-out infinite; }
   [data-fase="verificacion"] .marco::after { opacity: .9; }
+  /* En pausa, sin brillo: apenas un borde quieto. */
+  [data-fase="pausada"] .marco { box-shadow: inset 0 0 0 1.5px var(--c-suave); }
+  [data-fase="pausada"] .marco::after { display: none; }
   @keyframes brillo { 0%, 100% { opacity: .15; } 50% { opacity: 1; } }
   .barra {
     position: fixed; left: 50%; top: 12px; transform: translateX(-50%);
@@ -45,6 +50,16 @@
     transition: top .35s ease, bottom .35s ease, opacity .25s ease;
   }
   .barra[data-abajo] { top: auto; bottom: 14px; }
+  /* Ficha de la pausa: chica, en la esquina, y el cuerpo deja pasar los clics a la página (solo los botones no). */
+  .barra[data-chip] {
+    left: auto; right: 14px; top: auto; bottom: 14px; transform: none;
+    max-width: min(340px, calc(100vw - 28px)); gap: 6px; padding: 4px 4px 4px 5px;
+    pointer-events: none; background: rgb(255 255 255 / 92%);
+  }
+  .barra[data-chip] .avatar { width: 24px; height: 24px; font-size: 12px; }
+  .barra[data-chip] .titulo { font-size: 12.5px; font-weight: 600; }
+  .barra[data-chip] .detalle, .barra[data-chip] .avance { display: none; }
+  .barra[data-chip] button { pointer-events: auto; padding: 7px 11px; font-size: 12.5px; }
   .avatar {
     position: relative; flex: none; width: 30px; height: 30px; border-radius: 50%;
     display: grid; place-items: center; background: var(--c); color: #fff; font-weight: 700; font-size: 14px;
@@ -187,7 +202,8 @@
       partes.push(String(estado.haciendo || "Buscando…"), estado.restanteMs ? minutos(estado.restanteMs) : "");
       botones = [boton("Pausar", "", "control_pausar"), boton("Detener", "parar", "control_detener")];
     } else if (f === "pausada") {
-      titulo = estado.motivoPausa === "actividad" ? `${nombre} se detuvo para no estorbarte` : `${nombre} está en pausa`;
+      // Corto: en pausa la barra es una ficha chica en la esquina.
+      titulo = `${nombre} en pausa`;
       partes.push(estado.motivoPausa === "actividad" ? "Toca Seguir cuando quieras" : "Espera a que sigas", pagina);
       botones = [boton("Seguir", "primario", "control_seguir"), boton("Detener", "parar", "control_detener")];
     } else if (f === "verificacion") {
@@ -201,6 +217,8 @@
     $(".titulo").textContent = titulo;
     ponerDetalle(partes);
     $(".botones").replaceChildren(...botones);
+    // En pausa, ficha chica en la esquina (no tapa lo que la persona quiere usar).
+    barra.toggleAttribute("data-chip", f === "pausada");
     // En la verificación la barra baja para no tapar el recuadro de Encuentra24.
     abajo.verificacion = f === "verificacion";
     ubicarBarra();

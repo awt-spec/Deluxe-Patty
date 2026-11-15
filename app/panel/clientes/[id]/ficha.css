@@ -1132,3 +1132,9 @@
     transition: none;
   }
 }
+
+/* "Cambiar el cierre": la comisión de ahora, como pista (el campo va vacío). */
+.marco.tema .fc-comision-ahora {
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}

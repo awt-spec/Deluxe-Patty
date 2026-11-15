@@ -8,6 +8,7 @@ import type { Corredor, Foto } from "../datos/tipos";
 import { quitarEtiquetas } from "../asistente/etiquetas";
 import { copiarFotoExterna } from "../fotos/copiar";
 import { ErrorDatos } from "../monitoreo/errores";
+import { borrarClavesViejas } from "./datos";
 import { siguienteCodigo } from "../panel/formularios";
 import { conversarFicha, datosParaGuardar, faltantes } from "../propiedades/conversar";
 
@@ -107,6 +108,24 @@ export function leerPaginaAnuncio(c: Record<string, unknown>): PaginaAnuncio | n
 /** Enlaces de WhatsApp (wa.me, api.whatsapp.com) que aparecen en un texto o como dirección de un enlace. */
 const ENLACE_WA = /https?:\/\/(?:wa\.me|(?:api\.|www\.)?whatsapp\.com)\/[^\s"'<>\\]*/gi;
 
+/** En el JSON-LD los enlaces pueden venir con "\/" y "\u0026" (o "&amp;" si venían del HTML): se leen como "/" y "&". */
+function sinEscapesJson(t: string): string {
+  return t.replace(/\\\//g, "/").replace(/\\u0026/gi, "&").replace(/&amp;/gi, "&");
+}
+
+/**
+ * Un enlace escrito a mano en el texto ("https://wa.me/506?text=Hola me interesa ref. A1B2C3") se corta en el primer
+ * espacio: si termina dentro de `text=` sin codificar, el mensaje sigue hasta el final de esa línea (200 caracteres como
+ * mucho).
+ */
+function conMensajeSuelto(texto: string, m: RegExpMatchArray): string {
+  const enlace = m[0];
+  // Solo si el enlace no venía codificado (con %20 o "+" ya trae su mensaje entero).
+  if (!/[?&]text=[^&]*$/i.test(enlace) || /%[0-9a-f]{2}|\+/i.test(enlace)) return enlace;
+  const resto = texto.slice((m.index ?? 0) + enlace.length, (m.index ?? 0) + enlace.length + 200).split(/[\r\n"<]/)[0];
+  return enlace + encodeURIComponent(resto.replace(/https?:\/\/\S*/gi, ""));
+}
+
 /** El mensaje que trae un enlace de WhatsApp (`?text=`), ya decodificado; "" si no es de WhatsApp o no trae. */
 function textoDeEnlaceWa(enlace: string): string {
   try {
@@ -126,7 +145,7 @@ function textoDeEnlaceWa(enlace: string): string {
  * pase por este anuncio. El enlace puede venir como dirección (`enlaces`) o escrito en el texto o el JSON-LD.
  */
 export function referenciasEn(p: Pick<PaginaAnuncio, "texto" | "enlaces" | "jsonld">): string[] {
-  const enTexto = [p.texto, ...p.jsonld].flatMap((t) => [...t.matchAll(ENLACE_WA)].map((m) => m[0]));
+  const enTexto = [p.texto, ...p.jsonld.map(sinEscapesJson)].flatMap((t) => [...t.matchAll(ENLACE_WA)].map((m) => conMensajeSuelto(t, m)));
   const mensajes = [...p.enlaces, ...enTexto].slice(0, 100).map(textoDeEnlaceWa).filter(Boolean);
   const refs = new Set<string>();
   for (const m of mensajes.join("\n").matchAll(/\bref(?:\.|:|#|\s)\s*[:#]?\s*([A-Z0-9]{4,10})\b/gi)) refs.add(m[1].toUpperCase());
@@ -137,7 +156,7 @@ export type ResultadoLectura =
   | { ok: true; tipo: "publicado"; mensaje: string; ruta: string }
   | { ok: true; tipo: "traida"; mensaje: string; ruta: string; fotos: number }
   | { ok: true; tipo: "repetida"; mensaje: string; ruta: string }
-  | { ok: false; motivo: "incompleta" | "sin_presupuesto" | "espera" | "ocupado"; mensaje: string };
+  | { ok: false; motivo: "incompleta" | "sin_presupuesto" | "espera" | "ocupado" | "varias_referencias"; mensaje: string };
 
 export interface DependenciasAnuncio {
   db: SupabaseClient;
@@ -172,6 +191,8 @@ async function puedeLeer(d: DependenciasAnuncio, corredorId: string, p: PaginaAn
   }
   const marca = await d.db.rpc("reclamar_alerta", { p_clave: clave, p_minutos: 0 });
   verificar(marca.error, "puedeLeer (marca)");
+  // Los turnos y las huellas de más de un día ya no frenan nada: se borran (la marca `leer_anuncio:<corredor>` queda).
+  await borrarClavesViejas(d.db, `${clave}:`, new Date(ahora.getTime() - 86_400_000));
   const mismo = await d.db.rpc("reclamar_alerta", { p_clave: `${clave}:${huella(p.url)}`, p_minutos: 1 });
   verificar(mismo.error, "puedeLeer (mismo)");
   if (mismo.data !== true) {
@@ -197,10 +218,22 @@ async function marcarPublicado(d: DependenciasAnuncio, corredor: Corredor, p: Pa
     .eq("corredor_id", corredor.id)
     .in("referencia", refs);
   verificar(error, "marcarPublicado (anuncio)");
-  const anuncio = (data ?? []).find((a) => a.corredor_id === corredor.id) as
-    | { id: string; propiedad_id: string | null; titulo: string | null; publicado_en: string | null }
-    | undefined;
-  if (!anuncio) return null;
+  const propios = (data ?? []).filter((a) => a.corredor_id === corredor.id) as {
+    id: string;
+    propiedad_id: string | null;
+    titulo: string | null;
+    publicado_en: string | null;
+  }[];
+  if (propios.length === 0) return null;
+  // Con dos referencias propias en la misma página no se adivina cuál es: no se marca nada.
+  if (propios.length > 1) {
+    return {
+      ok: false,
+      motivo: "varias_referencias",
+      mensaje: "Este anuncio trae las referencias de varios de tus anuncios y no sé cuál es. No marqué nada: revisa el texto del anuncio en Encuentra24 y deja solo su referencia.",
+    };
+  }
+  const anuncio = propios[0];
 
   const cambios: Record<string, unknown> = { estado: "activo", url: p.url, e24_id: p.e24Id, ultima_lectura_at: ahora.toISOString() };
   // No hay regla de vencimiento en el código (vence_en no se calcula): solo se anota desde cuándo está publicado.

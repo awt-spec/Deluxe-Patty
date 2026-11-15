@@ -159,3 +159,21 @@ describe("cuentaEnJuego", () => {
     ]);
   });
 });
+
+describe("Ver en cifras exactas: dólares y colones nunca pegados", () => {
+  it("las dos columnas de monto se separan y, en el teléfono, va una línea por moneda con su nombre", async () => {
+    const { readFileSync } = await import("node:fs");
+    const css = readFileSync("app/globals.css", "utf8");
+    const pagina = readFileSync("app/panel/negocio/page.tsx", "utf8");
+    // Separación entre dos montos de la misma fila (antes: "+ $59.000,00+ ₡32.500.000,00" a 390 px).
+    expect(css).toMatch(/\.cont-tabla \.cont-monto \+ \.cont-monto \{\s*padding-left: 16px;/);
+    // Teléfono: la fila es una cuadrícula con el mes a la izquierda y cada moneda en su propia línea.
+    const movil = css.slice(css.indexOf("@media (max-width: 560px) {\n  .tema .negocio-cifras"));
+    expect(movil).toMatch(/\.cont-dos-monedas tr \{\s*display: grid;\s*grid-template-columns: minmax\(0, 1fr\) auto;/);
+    expect(movil).toMatch(/\.cont-dos-monedas tr > \.cont-monto \{\s*grid-column: 2;/);
+    expect(movil).toMatch(/\.cont-dos-monedas \.cont-moneda \{\s*display: inline;/);
+    // Cada celda lleva el nombre de su moneda y la tabla se marca cuando hay dos.
+    expect(pagina).toContain('monedasMeses.length > 1 ? " cont-dos-monedas" : ""');
+    expect(pagina.match(/<span className="cont-moneda">/g)).toHaveLength(2);
+  });
+});

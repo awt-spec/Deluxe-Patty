@@ -248,6 +248,8 @@ describe("Clientes: el cierre valida precio y comisión", () => {
     estado.admin.tablas.contactos[0].busca = { operacion: "venta" };
     await redirigeA(clientes.guardarCierre(formulario({ id: ID.cliente, precio: "300.000", comision: "0", moneda: "USD" })));
     expect(estado.admin.tablas.contactos[0]).toMatchObject({ etapa: "cerrado", cierre_precio: 300_000, cierre_comision: 0 });
+    // Otro cliente igual, todavía sin cerrar (al corregir, la vacía deja la de antes si el precio no cambia).
+    Object.assign(estado.admin.tablas.contactos[0], { etapa: "negociando", cierre_precio: null, cierre_comision: null });
     expect(await clientes.cerrarDesdeTablero(ID.cliente, { precio: "300000", moneda: "USD", comision: "" })).toEqual({ ok: true });
     expect(estado.admin.tablas.contactos[0].cierre_comision).toBe(15_000);
   });
@@ -281,6 +283,75 @@ describe("Clientes: el cierre valida precio y comisión", () => {
     const cambio = estado.admin.escrituras.find((e) => e.tabla === "contactos" && e.op === "update");
     expect(cambio?.filtros).toEqual([["corredor_id", ID.deluxe], ["id", ID.cliente]]);
     expect(estado.admin.tablas.actividades?.at(-1)).toMatchObject({ tipo: "cierre", texto: expect.stringMatching(/^Cierre corregido/) });
+  });
+
+  it("la comisión «5» es el 5 % del precio, no $5 (ficha y tablero); la Historia lleva los centavos", async () => {
+    estado.admin.tablas.contactos[0].busca = { operacion: "venta" };
+    await redirigeA(clientes.guardarCierre(formulario({ id: ID.cliente, precio: "1.180.000,50", comision: "5", moneda: "USD" })));
+    expect(estado.admin.tablas.contactos[0]).toMatchObject({ cierre_precio: 1_180_000.5, cierre_comision: 59_000.03 });
+    const texto = String(estado.admin.tablas.actividades?.at(-1)?.texto).replace(/\u00a0/g, " ");
+    expect(texto).toContain("$1.180.000,50");
+    expect(texto).toContain("comisión $59.000,03 (5 %)");
+    estado.admin.tablas.contactos[0].etapa = "interesado";
+    estado.admin.tablas.contactos[0].cierre_precio = null;
+    expect(await clientes.cerrarDesdeTablero(ID.cliente, { precio: "300000", moneda: "USD", comision: "4,5%" })).toEqual({ ok: true });
+    expect(estado.admin.tablas.contactos[0].cierre_comision).toBe(13_500);
+  });
+
+  it("un precio absurdo frente a la lista no se guarda y dice lo que entendió (ficha y tablero)", async () => {
+    Object.assign(estado.admin.tablas.propiedades[0], { titulo: "Casa Lindora", precio: 1_250_000, moneda: "USD", operacion: "venta" });
+    estado.admin.tablas.contactos[0].propiedad_interes_id = ID.casa;
+    estado.sesion!.supabase.tablas.contactos[0].propiedad_interes_id = ID.casa;
+    const url = decodeURIComponent(await redirigeA(clientes.guardarCierre(formulario({ id: ID.cliente, casa: ID.casa, precio: "1,5", comision: "", moneda: "USD" }))));
+    expect(url.replace(/\u00a0/g, " ")).toMatch(/Entendí \$1,50 y la casa está en \$1\.250\.000,00\. ¿Era \$1\.500\.000,00\?/);
+    expect(await clientes.cerrarDesdeTablero(ID.cliente, { precio: "1.180", moneda: "USD", comision: "" })).toMatchObject({
+      ok: false,
+      motivo: expect.stringMatching(/¿Era \$1\.180\.000,00\?/),
+    });
+    expect(await clientes.cerrarDesdeTablero(ID.cliente, { precio: "1,180", moneda: "USD", comision: "" })).toMatchObject({ ok: false, motivo: expect.stringMatching(/1,18 o 1\.180/) });
+    expect(escrituras()).toEqual([]);
+  });
+
+  it("la casa de otro corredor no entra en el cierre: ni su precio de lista ni el enlace", async () => {
+    Object.assign(estado.admin.tablas.propiedades[1], { titulo: "Ajena", precio: 9_000_000, moneda: "USD", operacion: "venta" });
+    estado.admin.tablas.contactos[0].busca = { operacion: "venta" };
+    // Frente a la lista ajena ($9 millones) $300.000 sería menos del 20 %: como no es suya, no se compara.
+    await redirigeA(clientes.guardarCierre(formulario({ id: ID.cliente, casa: ID.casaAjena, precio: "300000", comision: "", moneda: "USD" })));
+    expect(estado.admin.tablas.contactos[0]).toMatchObject({ cierre_precio: 300_000, cierre_propiedad_id: null, cierre_comision: 15_000 });
+    expect(String(estado.admin.tablas.actividades?.at(-1)?.texto)).not.toContain("Ajena");
+  });
+
+  it("corregir un alquiler con la comisión vacía la recalcula con la renta nueva (antes: «mayor que el precio»)", async () => {
+    Object.assign(estado.admin.tablas.propiedades[0], { titulo: "Apto Escazú", precio: 1_500, moneda: "USD", operacion: "alquiler" });
+    Object.assign(estado.admin.tablas.contactos[0], {
+      etapa: "cerrado",
+      etapa_at: "2026-10-01T15:00:00Z",
+      cierre_at: "2026-10-01T15:00:00Z",
+      cierre_propiedad_id: ID.casa,
+      cierre_precio: 1_500,
+      cierre_comision: 1_500,
+      cierre_moneda: "USD",
+    });
+    const url = decodeURIComponent(await redirigeA(clientes.guardarCierre(formulario({ id: ID.cliente, casa: ID.casa, precio: "1400", comision: "", moneda: "USD" }))));
+    expect(url).toMatch(/cierre corregido/);
+    expect(estado.admin.tablas.contactos[0]).toMatchObject({ cierre_precio: 1_400, cierre_comision: 1_400 });
+  });
+
+  it("corregir sin cambiar precio, moneda ni operación y con la comisión vacía deja la comisión escrita antes", async () => {
+    Object.assign(estado.admin.tablas.contactos[0], {
+      etapa: "cerrado",
+      etapa_at: "2026-10-01T15:00:00Z",
+      cierre_at: "2026-10-01T15:00:00Z",
+      cierre_precio: 300_000,
+      cierre_comision: 14_500,
+      cierre_moneda: "USD",
+      busca: { operacion: "venta" },
+    });
+    await redirigeA(clientes.guardarCierre(formulario({ id: ID.cliente, precio: "300.000", comision: "", moneda: "USD" })));
+    expect(estado.admin.tablas.contactos[0]).toMatchObject({ cierre_comision: 14_500 });
+    // Pasó a colones: la comisión en dólares ya no sirve, se recalcula.
+    await redirigeA(clientes.guardarCierre(formulario({ id: ID.cliente, precio: "150.000.000", comision: "", moneda: "CRC" })));
+    expect(estado.admin.tablas.contactos[0]).toMatchObject({ cierre_moneda: "CRC", cierre_comision: 7_500_000 });
   });
 
   it("guardar las notas con caracteres de dirección los quita; notas muy largas avisan sin guardar", async () => {

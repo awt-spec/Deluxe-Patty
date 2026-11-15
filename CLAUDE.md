@@ -166,10 +166,17 @@ traen contactos (`lib/anuncios/reporte.ts`); "fotos <código>" mejora hasta 12 f
 (`lib/fotos/mejorar.ts`) y se las manda para revisar; "ficha <código>" genera la ficha PDF con la
 marca del corredor (`corredores.marca`), la sube al bucket público `fichas` y se la manda como documento.
 **Seguimiento de visitas** (`lib/agenda/seguimiento-visitas.ts`, en el cron de recordatorios): de 30 min a 18 h después del fin
-de cada visita agendada o confirmada, solo de 7:00 a 21:00 en su zona, le pregunta al corredor "¿Cómo te fue…?" una sola vez
-(`reclamar_alerta('seguimiento_visita:<cita>')`; con la ventana cerrada, plantilla corta sin el nombre del cliente). Durante 36 h (así vale también la respuesta al plan de la mañana, que pregunta por las de ayer) su
-respuesta (texto o nota de voz; no comandos, enlaces, preguntas, acuses ni adjuntos) va a la Historia, la visita pasa a hecha (con
-recordatorio para mañana), o a no llegó / cancelada si dice «no vino» / «se canceló» (lo detecta el código), y la confirmación la arma el código.
+de cada visita de hoy agendada o confirmada, solo de 7:00 a 21:00 en su zona, le pregunta al corredor "¿Cómo te fue…?" una sola vez
+(turno corto `seguimiento_visita_envio:<cita>` antes de enviar; `seguimiento_visita:<cita>` en `alertas` solo cuando la pregunta
+salió, así un envío fallido se reintenta en la corrida siguiente; con la ventana cerrada, plantilla corta sin el nombre del cliente).
+Las visitas que empezaron ayer no se preguntan aparte: las pregunta el plan de la mañana y, al salir (texto o plantilla),
+`marcarPreguntadasEnPlan` las deja como preguntadas. Durante 36 h su respuesta (texto o nota de voz) va a la Historia **solo si
+cuenta cómo fue** (`puedeSerResumen`, reglas del código): nunca saludos, acuses ("Ok gracias", emojis), pedidos o recordatorios,
+comandos, enlaces, preguntas ni adjuntos; sí si nombra al cliente o la casa, usa palabras de visita (le encantó, ofert*, no vino…) o
+tiene 6 palabras o más; en la duda, no. La visita pasa a hecha (con recordatorio para mañana), o a no llegó / cancelada
+(`resultadoDeVisita`: «no vino/no llegaron/no pudo venir/me dejó plantada», «canceló/se canceló», sin tomar «no vino solo» ni «no se
+canceló»). Con varias visitas esperando, se anota en la que nombra (primer nombre sin tildes o la casa) o, si nombra varias, en cada
+una por frase; si no nombra ninguna o no se separa limpio, pregunta cuál (hora y nombre) y no guarda. La confirmación la arma el código.
 
 ## Multimedia (notas de voz, fotos, PDF, Word, Excel y video)
 - **Por WhatsApp** (`lib/asistente/medios.ts`, `lib/whatsapp/media.ts`): el webhook trae el id del archivo
@@ -291,7 +298,7 @@ ofertas, visitas, correos y los días de WhatsApp; anotar algo reinicia el "sin 
 "Lo que está en juego": casa que le interesa y oferta (con oferta pasa a Negociando); al cerrar, casa, precio y
 comisión (`corredores.comision_pct`, 5% por defecto, en ventas; en alquileres se estima un mes de renta). La oferta y el
 cierre llevan su moneda (`oferta_moneda`, `cierre_moneda`: dólares o colones) y **dólares y colones nunca se suman**
-(`lib/crm/dinero.ts`; `leerCifra` lee los montos y lo que no se entiende no guarda nada; `validarCierre`: comisión entre 0 y el precio; "ganado" por mes en la zona del corredor, `lib/crm/ganado.ts`). Las cifras usan ese dinero real (en negociación, ganado del mes). **Montos contables** (`lib/crm/contable.ts`, `app/panel/tabla-contable.tsx`): `montoContable` con signo (+ / −) y 2 decimales; "Cerró" es una liquidación (`liquidacionCierre`: precio de lista, descuento, precio final, comisión, IVA 13 % estimado y total a facturar; moneda distinta se omite, nunca se mezcla) con "Cambiar el cierre" (`guardarCierre` sobre un cliente ya cerrado corrige y anota "Cierre corregido" en la Historia); en Cómo va el negocio, tabla "en cifras exactas" por moneda. Clientes se ve por Todos, Compras o Alquileres (`?tipo=`; los alquileres avisan antes). Dos clientes que son la
+(`lib/crm/dinero.ts`; `leerCifra` lee los montos y lo que no se entiende no guarda nada; `validarCierre` y `lib/crm/cierre.ts`: la comisión acepta % («5», «4,5 %», hasta 20 sin símbolo ni miles) o monto, y un monto menor al 0,5 % del precio se rechaza; un precio final menor al 20 % del de lista o de $1.000 / ₡500.000 en venta no se guarda y se explica lo entendido; «1,180» es ambiguo y se pide sin coma; "ganado" por mes en la zona del corredor, `lib/crm/ganado.ts`). Las cifras usan ese dinero real (en negociación, ganado del mes). **Montos contables** (`lib/crm/contable.ts`, `app/panel/tabla-contable.tsx`): `montoContable` con signo (+ / −) y 2 decimales; "Cerró" es una liquidación (`liquidacionCierre`: precio de lista, descuento, precio final, comisión, IVA 13 % estimado y total a facturar; moneda distinta se omite, nunca se mezcla) con "Cambiar el cierre" (`guardarCierre` sobre un cliente ya cerrado corrige y anota "Cierre corregido" en la Historia); en Cómo va el negocio, tabla "en cifras exactas" por moneda. Clientes se ve por Todos, Compras o Alquileres (`?tipo=`; los alquileres avisan antes). Dos clientes que son la
 misma persona se unen desde la ficha (`unir_contactos`, una sola transacción en la base; se avisa si coinciden
 nombre o correo) y las zonas se eligen de una lista (`ZONAS_CONOCIDAS`, `normalizarZona`). Zonas
 (`lib/agenda/zonas.ts`): cada una con cantón, distrito y nivel; traslado de ciudad hasta 20 km y de carretera después; una

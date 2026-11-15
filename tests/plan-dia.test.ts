@@ -164,7 +164,65 @@ describe("resumenPlan (plantilla con la ventana cerrada)", () => {
 
   it("día vacío", () => {
     expect(resumenPlan(corredor(), vacio())).toBe(
-      "Buenos días, Patricia. Tu plan de hoy: 0 visitas hoy, 0 prospectos nuevos. Respóndeme cualquier cosa y te lo mando completo.",
+      "Buenos días, Patricia. Tu plan de hoy: 0 visitas hoy. Respóndeme cualquier cosa y te lo mando completo.",
     );
+  });
+
+  it("dice «cliente(s) esperando tu respuesta» y omite los prospectos en cero", () => {
+    expect(resumenPlan(corredor(), { ...vacio(), conversacionesEscaladas: ["a"] })).toBe(
+      "Buenos días, Patricia. Tu plan de hoy: 0 visitas hoy, 1 cliente esperando tu respuesta. Respóndeme cualquier cosa y te lo mando completo.",
+    );
+    const dos = resumenPlan(corredor(), { ...vacio(), conversacionesEscaladas: ["a", "b"], prospectosNuevos: ["x"] });
+    expect(dos).toContain("2 clientes esperando tu respuesta, 1 prospecto nuevo.");
+  });
+});
+
+describe("plan: arreglos de QA", () => {
+  it("si la salida cae en plena visita anterior, avisa que no da el tiempo", () => {
+    const s = horasDeSalida(
+      [
+        { inicio: local("2026-10-21T09:00"), fin: local("2026-10-21T10:00"), zona: "Escazú" },
+        { inicio: local("2026-10-21T10:15"), fin: local("2026-10-21T11:15"), zona: "Heredia" },
+      ],
+      "Lindora",
+      "America/Costa_Rica",
+    );
+    const min = minutosEntre("Escazú", "Heredia")!;
+    expect(min).toBeGreaterThan(15);
+    expect(s[1]).toBe(`Sales de la anterior a las 10:00 a. m.: llegas ${min - 15} min tarde (${min} min de traslado)`);
+    // Con tiempo de sobra sigue diciendo a qué hora salir.
+    const holgada = horasDeSalida(
+      [
+        { inicio: local("2026-10-21T09:00"), fin: local("2026-10-21T10:00"), zona: "Escazú" },
+        { inicio: local("2026-10-21T13:00"), zona: "Heredia" },
+      ],
+      "Lindora",
+      "America/Costa_Rica",
+    );
+    expect(holgada[1]).toMatch(/^Sal a las .* \(\d+ min desde la anterior\)$/);
+  });
+
+  it("los nombres con * _ ~ no rompen el formato de WhatsApp", () => {
+    const texto = armarPlan(
+      corredor(),
+      {
+        ...vacio(),
+        citasHoy: [{ inicio: local("2026-10-20T09:00"), estado: "agendada", cliente: "*VIP* Juan_Pérez", propiedad: "Casa_Lindora*", zona: null }],
+        prospectosNuevos: ["a*b"],
+        sinRespuesta: ["~Eva~"],
+        seguimientos: [{ cliente: "Rosa", nota: "mandar *contrato*" }],
+        seguimientosTotal: 1,
+      },
+      AHORA,
+    );
+    expect(texto).toContain("• 9:00 a. m. · VIP Juan Pérez · Casa Lindora (por confirmar)");
+    expect(texto).toContain("Prospectos nuevos (1): a b");
+    expect(texto).toContain("No contestan hace 3 días: Eva");
+    expect(texto).toContain("Rosa (mandar contrato)");
+    // Los únicos * y _ son los del propio plan, siempre en pares por línea.
+    for (const linea of texto.split("\n")) {
+      expect((linea.match(/\*/g) ?? []).length % 2, linea).toBe(0);
+      expect((linea.match(/_/g) ?? []).length % 2, linea).toBe(0);
+    }
   });
 });

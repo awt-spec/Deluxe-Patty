@@ -61,3 +61,15 @@ export function textoFase(estado) {
       return estado?.mensaje || "";
   }
 }
+
+/**
+ * Lo que se muestra cuando la búsqueda se interrumpió (el trabajador de fondo se reinició a media búsqueda). `fase`: la
+ * que quedó guardada; `corte`: la respuesta de /api/extension/detener ({ ok, paginas }) o null si no se pudo pedir.
+ * Nunca dice "se cerró Chrome": no se sabe si fue eso.
+ */
+export function mensajeInterrumpida(fase, corte) {
+  if (fase === "revisando") return "La búsqueda se interrumpió mientras revisaba lo leído. Lo leído quedó guardado: en unos minutos lo ves en el panel.";
+  if (corte?.ok === true && corte.paginas > 0) return "La búsqueda se interrumpió; lo leído quedó guardado. Toca «Buscar dueños ahora» para seguir.";
+  if (corte?.ok === true) return "La búsqueda se interrumpió antes de leer anuncios. Toca «Buscar dueños ahora» para empezar.";
+  return "La búsqueda se interrumpió. Toca «Buscar dueños ahora» para seguir.";
+}

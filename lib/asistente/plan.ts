@@ -7,6 +7,7 @@ import { errorSeguro } from "../monitoreo/errores";
 import { minutosEntre } from "../agenda/zonas";
 import { hayMonto, montoExacto, sumar, type Montos } from "../crm/dinero";
 import { comisiones, delMes, mesLocal } from "../crm/ganado";
+import { marcarPreguntadasEnPlan } from "../agenda/seguimiento-visitas";
 
 const ESTADO: Record<string, string> = { agendada: "por confirmar", confirmada: "confirmada" };
 
@@ -21,6 +22,12 @@ const conResto = (nombres: string[], total: number) =>
 
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
+/**
+ * Nombres de clientes, casas y notas vienen de la base o del perfil de WhatsApp: sin `*`, `_`, `~` ni `` ` ``,
+ * que WhatsApp tomaría como formato (negrita, cursiva) y emparejaría con los del plan.
+ */
+export const sinFormato = (t: string) => t.replace(/[*_~`]+/g, " ").replace(/\s{2,}/g, " ").trim();
+
 /** Cuántas visitas de hoy se muestran una por una (cada una ocupa hasta dos líneas); el resto va en "y N más". */
 const MAX_VISITAS = 5;
 const MAX_AYER = 3;
@@ -31,18 +38,24 @@ const MAX_AYER = 3;
  * de dónde sale o a qué zona va.
  */
 export function horasDeSalida(
-  citas: Pick<DatosPlan["citasHoy"][number], "inicio" | "zona">[],
+  citas: Pick<DatosPlan["citasHoy"][number], "inicio" | "zona" | "fin">[],
   zonaBase: string | null | undefined,
   zonaHoraria: string,
 ): (string | null)[] {
+  const conArticulo = (hora: string) => `${/^1:/.test(hora) ? "a la" : "a las"} ${hora}`; // "a la 1:40 p. m.", "a las 9:35 a. m."
   return citas.map((c, i) => {
     const antes = citas[i - 1];
     const desde = antes ? (antes.zona ?? null) : (zonaBase ?? null);
     const min = desde ? minutosEntre(desde, c.zona) : null;
     if (min === null || !desde) return null;
-    const hora = horaCorta(new Date(c.inicio.getTime() - min * 60_000), zonaHoraria);
-    const a = /^1:/.test(hora) ? "a la" : "a las"; // "a la 1:40 p. m.", "a las 9:35 a. m."
-    return antes ? `Sal ${a} ${hora} (${min} min desde la anterior)` : `Sal de ${desde} ${a} ${hora} (${min} min)`;
+    const salida = c.inicio.getTime() - min * 60_000;
+    // Si para llegar a tiempo habría que salir antes de que termine la visita anterior, se dice que no da el tiempo.
+    if (antes?.fin && salida < antes.fin.getTime()) {
+      const tarde = Math.ceil((antes.fin.getTime() - salida) / 60_000);
+      return `Sales de la anterior ${conArticulo(horaCorta(antes.fin, zonaHoraria))}: llegas ${tarde} min tarde (${min} min de traslado)`;
+    }
+    const hora = conArticulo(horaCorta(new Date(salida), zonaHoraria));
+    return antes ? `Sal ${hora} (${min} min desde la anterior)` : `Sal de ${desde} ${hora} (${min} min)`;
   });
 }
 
@@ -68,7 +81,7 @@ function ganadoDelMes(datos: DatosPlan, ahora: Date, zona: string): { cierres: n
  */
 export function armarPlan(corredor: Corredor, datos: DatosPlan, ahora: Date): string {
   const zona = corredor.zona_horaria;
-  const l: string[] = [`*Buenos días, ${corredor.nombre_contacto}.* Tu plan para hoy, ${diaLargo(ahora, zona)}:`, ""];
+  const l: string[] = [`*Buenos días, ${sinFormato(corredor.nombre_contacto)}.* Tu plan para hoy, ${diaLargo(ahora, zona)}:`, ""];
   const seccion = (lineas: (string | null | false | undefined)[]) => {
     const con = lineas.filter((x): x is string => !!x);
     if (con.length) l.push(...con, "");
@@ -85,8 +98,8 @@ export function armarPlan(corredor: Corredor, datos: DatosPlan, ahora: Date): st
     const salidas = horasDeSalida(citas, corredor.zona_base, zona);
     const lineas: string[] = [`*Visitas de hoy (${citas.length})*`];
     citas.slice(0, MAX_VISITAS).forEach((c, i) => {
-      const casa = c.propiedad ? ` · ${c.propiedad}${c.zona && !c.propiedad.includes(c.zona) ? `, ${c.zona}` : ""}` : "";
-      lineas.push(`• ${horaCorta(c.inicio, zona)} · ${c.cliente}${casa} (${ESTADO[c.estado] ?? c.estado})`);
+      const casa = c.propiedad ? ` · ${sinFormato(c.propiedad)}${c.zona && !c.propiedad.includes(c.zona) ? `, ${sinFormato(c.zona)}` : ""}` : "";
+      lineas.push(`• ${horaCorta(c.inicio, zona)} · ${sinFormato(c.cliente)}${casa} (${ESTADO[c.estado] ?? c.estado})`);
       if (salidas[i]) lineas.push(`   _${salidas[i]}_`);
     });
     if (citas.length > MAX_VISITAS) lineas.push(`• y ${citas.length - MAX_VISITAS} más en tu agenda`);
@@ -99,7 +112,7 @@ export function armarPlan(corredor: Corredor, datos: DatosPlan, ahora: Date): st
   if (ayer.length) {
     seccion([
       `*¿Cómo salieron las de ayer?* Respóndeme y lo anoto.`,
-      ...ayer.slice(0, MAX_AYER).map((v) => `• ${horaCorta(v.inicio, zona)} · ${v.cliente}${v.propiedad ? ` · ${v.propiedad}` : ""}`),
+      ...ayer.slice(0, MAX_AYER).map((v) => `• ${horaCorta(v.inicio, zona)} · ${sinFormato(v.cliente)}${v.propiedad ? ` · ${sinFormato(v.propiedad)}` : ""}`),
       ayer.length > MAX_AYER ? `• y ${ayer.length - MAX_AYER} más` : null,
     ]);
   }
@@ -107,8 +120,11 @@ export function armarPlan(corredor: Corredor, datos: DatosPlan, ahora: Date): st
   // Para hoy: seguimientos que vencen y clientes que no contestan.
   const seguimientos = datos.seguimientos ?? [];
   const totalSeg = Math.max(datos.seguimientosTotal ?? 0, seguimientos.length);
-  const sinRespuesta = datos.sinRespuesta ?? [];
-  const nombresSeg = seguimientos.slice(0, 3).map((s) => (s.nota ? `${s.cliente} (${s.nota.length > 40 ? `${s.nota.slice(0, 39)}…` : s.nota})` : s.cliente));
+  const sinRespuesta = (datos.sinRespuesta ?? []).map(sinFormato);
+  const nombresSeg = seguimientos.slice(0, 3).map((s) => {
+    const nota = s.nota ? sinFormato(s.nota) : "";
+    return nota ? `${sinFormato(s.cliente)} (${nota.length > 40 ? `${nota.slice(0, 39)}…` : nota})` : sinFormato(s.cliente);
+  });
   seccion([
     (totalSeg > 0 || sinRespuesta.length > 0) && "*Para hoy*",
     totalSeg > 0 && `• Llamar (${totalSeg}): ${conResto(nombresSeg, totalSeg)}`,
@@ -116,7 +132,7 @@ export function armarPlan(corredor: Corredor, datos: DatosPlan, ahora: Date): st
   ]);
 
   // Lo que te espera en el panel.
-  const escaladas = datos.conversacionesEscaladas ?? [];
+  const escaladas = (datos.conversacionesEscaladas ?? []).map(sinFormato);
   const dudas = datos.dudasPendientes ?? 0;
   seccion([
     (datos.borradoresPendientes > 0 || escaladas.length > 0 || dudas > 0) && "*Te esperan*",
@@ -129,7 +145,7 @@ export function armarPlan(corredor: Corredor, datos: DatosPlan, ahora: Date): st
   const ofertas = datos.ofertas ?? [];
   const enOferta = sumar(ofertas);
   const ganado = ganadoDelMes(datos, ahora, zona);
-  const prospectos = datos.prospectosNuevos ?? [];
+  const prospectos = (datos.prospectosNuevos ?? []).map(sinFormato);
   const duenos = datos.duenosNuevos ?? 0;
   seccion([
     (hayMonto(enOferta) || ganado.cierres > 0 || prospectos.length > 0 || duenos > 0) && "*Tu negocio*",
@@ -161,12 +177,13 @@ export function resumenPlan(corredor: Corredor, datos: DatosPlan): string {
     seg && `${seg} por llamar`,
     (datos.sinRespuesta ?? []).length && plural(datos.sinRespuesta.length, "cliente sin contestar", "clientes sin contestar"),
     n(datos.borradoresPendientes) && `${datos.borradoresPendientes} por aprobar`,
-    (datos.conversacionesEscaladas ?? []).length && plural(datos.conversacionesEscaladas.length, "esperando tu respuesta", "esperando tu respuesta"),
-    plural((datos.prospectosNuevos ?? []).length, "prospecto nuevo", "prospectos nuevos"),
+    (datos.conversacionesEscaladas ?? []).length &&
+      plural(datos.conversacionesEscaladas.length, "cliente esperando tu respuesta", "clientes esperando tu respuesta"),
+    (datos.prospectosNuevos ?? []).length && plural(datos.prospectosNuevos.length, "prospecto nuevo", "prospectos nuevos"),
     n(datos.duenosNuevos) && plural(datos.duenosNuevos, "dueño nuevo", "dueños nuevos"),
   ].filter((x): x is string => typeof x === "string");
   const armar = (p: string[]) =>
-    `Buenos días, ${corredor.nombre_contacto}. Tu plan de hoy: ${p.join(", ")}. Respóndeme cualquier cosa y te lo mando completo.`;
+    `Buenos días, ${sinFormato(corredor.nombre_contacto)}. Tu plan de hoy: ${p.join(", ")}. Respóndeme cualquier cosa y te lo mando completo.`;
   // Si no cabe (un nombre de corredor muy largo), se quitan las cifras del final; las visitas siempre quedan.
   while (partes.length > 1 && armar(partes).length > MAX_RESUMEN_PLAN) partes.pop();
   const texto = armar(partes);
@@ -175,7 +192,7 @@ export function resumenPlan(corredor: Corredor, datos: DatosPlan): string {
 
 export async function datosDelPlan(deps: Pick<Dependencias, "repo">, corredor: Corredor, ahora: Date): Promise<DatosPlan> {
   const zona = corredor.zona_horaria;
-  return deps.repo.datosPlan(corredor.id, ahora, limitesDia(ahora, zona), limitesDia(ahora, zona, 1));
+  return deps.repo.datosPlan(corredor.id, ahora, limitesDia(ahora, zona), limitesDia(ahora, zona, 1), limitesDia(ahora, zona, -1));
 }
 
 export function fechaDelPlan(corredor: Corredor, ahora: Date): string {
@@ -227,6 +244,8 @@ export async function enviarPlanes(deps: Dependencias): Promise<ResumenPlanes> {
         plantillaSiCerrada: resumenPlan(corredor, datos),
         ahora,
       });
+      // El plan pregunta por las visitas de ayer: desde ya, la respuesta del corredor se anota en cada una.
+      if (entregado !== "nada") await marcarPreguntadasEnPlan(deps, datos);
       if (entregado === "texto") {
         await deps.repo.marcarPlanEnviado(corredor.id, fecha);
         resumen.enviados++;
