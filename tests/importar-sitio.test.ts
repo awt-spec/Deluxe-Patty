@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { CODIGO_SITIO, filaDesdeSitio, sincronizarSitio, type CasaSitio } from "@/lib/sitio/importar";
+import { amenidadesDelSitio, CODIGO_SITIO, filaDesdeSitio, sincronizarSitio, type CasaSitio } from "@/lib/sitio/importar";
 import { ID, supabaseFalso } from "./acciones/entorno";
 
 const HOST = "sitio.supabase.co";
@@ -43,6 +43,14 @@ describe("Casas del sitio web → portal", () => {
     expect(f).toMatchObject({ codigo: "DP-1A2B3C", tipo: "casa", operacion: "venta", zona: "Lindora", estado: "activa", habitaciones: 4, m2_terreno: 1330 });
     expect(f.descripcion).toContain("- Piscina con spa");
     expect(f.amenidades).toEqual(["piscina", "seguridad 24/7"]);
+    // El sitio también trae amenidades ya escritas en español (no solo claves): se guardan tal cual, sin repetir.
+    expect(amenidadesDelSitio(["gym", "Gimnasio", "Cine en casa", " Piscina niños ", "Seguridad 24/7", "security", "rocket", 7, "x".repeat(81)])).toEqual([
+      "gimnasio",
+      "Cine en casa",
+      "Piscina niños",
+      "Seguridad 24/7",
+    ]);
+    expect(filaDesdeSitio(casa({ amenidades: ["pool", "Canchas de tenis"] }))?.amenidades).toEqual(["piscina", "Canchas de tenis"]);
     expect(filaDesdeSitio(casa({ estado: "sold", operacion: "rent" }))).toMatchObject({ estado: "alquilada", operacion: "alquiler" });
     expect(filaDesdeSitio(casa({ oculta: true }))).toMatchObject({ estado: "inactiva" });
     expect(filaDesdeSitio(casa({ codigo: "P-001" }))).toBeNull();

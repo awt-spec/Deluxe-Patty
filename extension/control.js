@@ -1,4 +1,4 @@
-// Barra, marco y cursor de la búsqueda de dueños sobre la página de Encuentra24 (como cuando Claude maneja el
+// Barra, marco y cursor de la búsqueda de dueños sobre la página de Encuentra24 (como un asistente que maneja el
 // navegador): la persona ve que la asistente está trabajando en esa pestaña, qué mira y cuánto falta, y la puede
 // pausar o detener. background.js lo pone en la pestaña de la búsqueda después de cada carga.
 //
@@ -7,96 +7,103 @@
 // página: Encuentra24 no puede leerlo ni cambiarlo, y sus estilos no lo tocan. Solo la barra recibe el mouse.
 // Si la persona usa la pestaña (mueve el mouse, teclea, hace clic o rueda), se pausa sola.
 (() => {
-  const VERDE = "#00a884";
+  const VERDE = "#008069";
   const sinMovimiento = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   const host = document.createElement("div");
   host.setAttribute("style", "all: initial; position: fixed; inset: 0; z-index: 2147483647; pointer-events: none; display: block;");
   const raiz = host.attachShadow({ mode: "closed" });
+  // Plantilla fija (sin datos de nadie): los textos se ponen después con textContent.
   raiz.innerHTML = `
 <style>
   :host { all: initial; }
   * { box-sizing: border-box; }
+  .todo { --c: ${VERDE}; --c-suave: rgb(0 128 105 / 28%); --c-tenue: rgb(0 128 105 / 10%); }
+  .todo[data-fase="pausada"] { --c: #8696a0; --c-suave: rgb(134 150 160 / 26%); --c-tenue: rgb(134 150 160 / 8%); }
+  .todo[data-fase="verificacion"] { --c: #c98a00; --c-suave: rgb(201 138 0 / 30%); --c-tenue: rgb(201 138 0 / 10%); }
   .marco {
-    position: fixed; inset: 0; pointer-events: none; border-radius: 12px;
-    box-shadow: inset 0 0 0 3px ${VERDE}, inset 0 0 0 4px rgb(255 255 255 / 55%), inset 0 0 36px rgb(0 168 132 / 22%);
-    transition: box-shadow .4s ease;
+    position: fixed; inset: 0; pointer-events: none; border-radius: 14px;
+    box-shadow: inset 0 0 0 2.5px var(--c), inset 0 0 22px 2px var(--c-suave);
+    transition: box-shadow .5s ease;
   }
-  .marco[data-fase="pausada"] { box-shadow: inset 0 0 0 3px #8696a0, inset 0 0 0 4px rgb(255 255 255 / 55%), inset 0 0 30px rgb(134 150 160 / 18%); }
-  .marco[data-fase="verificacion"] { box-shadow: inset 0 0 0 3px #e0a100, inset 0 0 0 4px rgb(255 255 255 / 55%), inset 0 0 36px rgb(224 161 0 / 22%); }
+  .marco::after {
+    content: ""; position: absolute; inset: 0; border-radius: inherit;
+    box-shadow: inset 0 0 0 2.5px var(--c), inset 0 0 54px 10px var(--c-suave);
+    opacity: 0;
+  }
+  [data-fase="buscando"] .marco::after { animation: brillo 2.8s ease-in-out infinite; }
+  [data-fase="verificacion"] .marco::after { opacity: .9; }
+  @keyframes brillo { 0%, 100% { opacity: .15; } 50% { opacity: 1; } }
   .barra {
-    position: fixed; left: 50%; top: 14px; transform: translateX(-50%);
-    width: max-content; max-width: min(860px, calc(100vw - 24px));
-    display: flex; align-items: center; gap: 12px; padding: 10px 10px 12px 12px; overflow: hidden;
-    background: #fff; color: #111b21; border-radius: 16px;
-    box-shadow: 0 10px 30px rgb(17 27 33 / 18%), 0 0 0 1px rgb(17 27 33 / 8%);
-    font: 14px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; pointer-events: auto;
-    transition: top .3s ease, bottom .3s ease;
+    position: fixed; left: 50%; top: 12px; transform: translateX(-50%);
+    width: max-content; max-width: min(720px, calc(100vw - 24px));
+    display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 7px; overflow: hidden;
+    background: rgb(255 255 255 / 96%); color: #111b21; border-radius: 999px;
+    box-shadow: 0 8px 28px rgb(17 27 33 / 16%), 0 1px 3px rgb(17 27 33 / 10%), 0 0 0 1px rgb(17 27 33 / 6%);
+    font: 14px/1.3 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; pointer-events: auto;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    transition: top .35s ease, bottom .35s ease, opacity .25s ease;
   }
-  .barra[data-abajo] { top: auto; bottom: 16px; }
+  .barra[data-abajo] { top: auto; bottom: 14px; }
   .avatar {
-    position: relative; flex: none; width: 34px; height: 34px; border-radius: 50%;
-    display: grid; place-items: center; background: ${VERDE}; color: #fff; font-weight: 700; font-size: 15px;
+    position: relative; flex: none; width: 30px; height: 30px; border-radius: 50%;
+    display: grid; place-items: center; background: var(--c); color: #fff; font-weight: 700; font-size: 14px;
   }
-  .avatar::after {
-    content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid ${VERDE}; opacity: 0;
-  }
+  .avatar::after { content: ""; position: absolute; inset: -3px; border-radius: 50%; border: 2px solid var(--c); opacity: 0; }
   [data-fase="buscando"] .avatar::after { animation: latido 1.8s ease-out infinite; }
-  [data-fase="pausada"] .avatar { background: #8696a0; }
-  [data-fase="verificacion"] .avatar { background: #e0a100; }
-  @keyframes latido { 0% { transform: scale(.85); opacity: .7; } 100% { transform: scale(1.35); opacity: 0; } }
-  .textos { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  @keyframes latido { 0% { transform: scale(.85); opacity: .7; } 100% { transform: scale(1.4); opacity: 0; } }
+  .textos { min-width: 0; display: flex; flex-direction: column; gap: 0; padding-right: 2px; }
   .titulo { font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .detalle { color: #54656f; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .detalle { color: #54656f; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .detalle b { color: #111b21; font-weight: 600; }
-  .botones { display: flex; gap: 6px; margin-left: 4px; flex: none; }
+  .botones { display: flex; gap: 4px; flex: none; }
   button {
     font: 600 13px/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding: 9px 14px; border-radius: 999px;
-    border: 1px solid #d1d7db; background: #fff; color: #111b21; cursor: pointer; white-space: nowrap;
+    border: 0; background: #f0f2f5; color: #111b21; cursor: pointer; white-space: nowrap; transition: background .15s;
   }
-  button:hover { background: #f5f6f6; }
+  button:hover { background: #e4e7ea; }
   button:focus-visible { outline: 2px solid ${VERDE}; outline-offset: 2px; }
-  button.primario { background: ${VERDE}; border-color: ${VERDE}; color: #fff; }
-  button.primario:hover { background: #008f72; }
-  button.parar { color: #b42318; border-color: #f1c4bf; }
-  button.parar:hover { background: #fef3f2; }
-  .avance { position: absolute; left: 0; bottom: 0; height: 3px; background: ${VERDE}; transition: width .6s ease; border-radius: 0 3px 3px 0; }
-  [data-fase="pausada"] .avance { background: #8696a0; }
-  [data-fase="verificacion"] .avance { background: #e0a100; }
+  button.primario { background: ${VERDE}; color: #fff; }
+  button.primario:hover { background: #00664f; }
+  button.parar { background: #fdecea; color: #b42318; }
+  button.parar:hover { background: #fbd9d5; }
+  .avance { position: absolute; left: 0; bottom: 0; height: 2px; background: var(--c); transition: width .6s ease; }
   .cursor {
-    position: fixed; left: 0; top: 0; display: flex; align-items: flex-start; gap: 2px; pointer-events: none;
-    filter: drop-shadow(0 2px 4px rgb(0 0 0 / 28%)); will-change: transform; transition: opacity .3s;
+    position: fixed; left: 0; top: 0; pointer-events: none; will-change: transform; transition: opacity .3s;
   }
-  .cursor svg { transition: transform .15s; }
-  .cursor.clic svg { transform: scale(.8); }
-  .cursor.clic::after {
-    content: ""; position: absolute; left: -10px; top: -10px; width: 24px; height: 24px; border-radius: 50%;
-    border: 3px solid ${VERDE}; animation: onda .5s ease-out;
+  .flecha { display: block; filter: drop-shadow(0 2px 3px rgb(0 0 0 / 30%)); transition: transform .15s ease; transform-origin: 3px 2px; }
+  .cursor.clic .flecha { transform: scale(.82); }
+  .onda {
+    position: absolute; left: -13px; top: -13px; width: 30px; height: 30px; border-radius: 50%;
+    border: 2.5px solid ${VERDE}; background: rgb(0 128 105 / 14%); opacity: 0;
   }
-  @keyframes onda { from { transform: scale(.4); opacity: 1; } to { transform: scale(2); opacity: 0; } }
+  .cursor.clic .onda { animation: onda .55s ease-out; }
+  @keyframes onda { from { transform: scale(.3); opacity: 1; } to { transform: scale(1.9); opacity: 0; } }
   .nombre {
-    margin-top: 18px; padding: 3px 9px; border-radius: 999px; background: ${VERDE}; color: #fff;
-    font: 700 12px/1.2 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; white-space: nowrap;
+    position: absolute; left: 20px; top: 22px; padding: 4px 10px; border-radius: 999px 999px 999px 4px; background: ${VERDE}; color: #fff;
+    font: 650 12px/1.2 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; white-space: nowrap;
+    box-shadow: 0 2px 8px rgb(0 0 0 / 22%);
   }
-  [data-fase="pausada"] .cursor, [data-fase="verificacion"] .cursor { opacity: 0; }
+  [data-fase="pausada"] .cursor, [data-fase="verificacion"] .cursor, [data-fase="revisando"] .cursor { opacity: 0; }
   .resalte {
     position: fixed; border-radius: 12px; pointer-events: none; opacity: 0;
-    box-shadow: 0 0 0 3px rgb(0 168 132 / 85%), 0 0 0 8px rgb(0 168 132 / 14%); background: rgb(0 168 132 / 5%);
-    transition: opacity .3s;
+    box-shadow: 0 0 0 2.5px rgb(0 128 105 / 85%), 0 0 0 8px rgb(0 128 105 / 12%); background: rgb(0 128 105 / 4%);
+    transition: opacity .3s, top .3s ease, left .3s ease, width .3s ease, height .3s ease;
   }
   .resalte.ver { opacity: 1; }
-  .solo-lector { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-  @media (max-width: 560px) { .detalle { white-space: normal; } .barra { flex-wrap: wrap; } }
+  @media (max-width: 560px) { .detalle { display: none; } .barra { gap: 8px; } button { padding: 8px 11px; } }
   @media (prefers-reduced-motion: reduce) {
-    .avatar::after, .cursor.clic::after { animation: none !important; }
-    .resalte, .barra, .avance { transition: none; }
+    .marco::after, .avatar::after, .cursor.clic .onda { animation: none !important; }
+    [data-fase="buscando"] .marco::after { opacity: .6; }
+    .resalte, .barra, .avance, .flecha { transition: none !important; }
   }
 </style>
 <div class="todo" data-fase="buscando">
-  <div class="marco" data-fase="buscando"></div>
+  <div class="marco"></div>
   <div class="resalte"></div>
   <div class="cursor" aria-hidden="true">
-    <svg width="28" height="28" viewBox="0 0 24 24"><path d="M4 2l16 9-7 2-3 7z" fill="#111b21" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg>
+    <span class="onda"></span>
+    <svg class="flecha" width="24" height="26" viewBox="0 0 24 26"><path d="M3 2l17 10.2-7.4 1.6-3.7 7.2z" fill="#111b21" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>
     <span class="nombre"></span>
   </div>
   <div class="barra" role="region" aria-label="Búsqueda de dueños">
@@ -112,7 +119,6 @@
 
   const $ = (sel) => raiz.querySelector(sel);
   const todo = $(".todo");
-  const marco = $(".marco");
   const barra = $(".barra");
   const cursor = $(".cursor");
   const resalte = $(".resalte");
@@ -152,49 +158,75 @@
     return b;
   }
 
+  /** El detalle: trozos de texto separados por " · "; los números van en negrita. Todo con textContent. */
+  function ponerDetalle(partes) {
+    const nodos = [];
+    for (const p of partes.filter((x) => x && (typeof x === "string" || x.texto))) {
+      if (nodos.length) nodos.push(document.createTextNode(" · "));
+      if (typeof p === "string") nodos.push(document.createTextNode(p));
+      else {
+        const b = document.createElement("b");
+        b.textContent = p.texto;
+        nodos.push(document.createTextNode(p.antes ?? ""), b, document.createTextNode(p.despues ?? ""));
+      }
+    }
+    $(".detalle").replaceChildren(...nodos);
+  }
+
   function pintar() {
     const f = estado.fase;
     todo.dataset.fase = f;
-    marco.dataset.fase = f;
-    const nombre = estado.asistente || "Patty";
+    const nombre = String(estado.asistente || "Patty").slice(0, 40);
     $(".nombre").textContent = nombre;
     $(".avatar").textContent = nombre.trim().charAt(0).toUpperCase() || "P";
-    const pagina = estado.total ? `Página <b>${estado.pagina}</b> de ${estado.total}` : "";
+    const pagina = estado.total ? { antes: "Página ", texto: String(estado.pagina), despues: ` de ${estado.total}` } : null;
     const partes = [];
-    let titulo = `${nombre} está buscando dueños en esta pestaña`;
+    let titulo = `${nombre} está usando esta pestaña`;
     let botones = [];
     if (f === "buscando") {
-      partes.push(pagina, estado.restanteMs ? minutos(estado.restanteMs) : "", esc(estado.haciendo || "Buscando…"));
+      partes.push(String(estado.haciendo || "Buscando…"), estado.restanteMs ? minutos(estado.restanteMs) : "");
       botones = [boton("Pausar", "", "control_pausar"), boton("Detener", "parar", "control_detener")];
     } else if (f === "pausada") {
-      titulo = estado.motivoPausa === "actividad" ? "Parece que quieres usar esta pestaña" : `${nombre} está en pausa`;
-      partes.push(
-        estado.motivoPausa === "actividad" ? `${esc(nombre)} se detuvo para no estorbarte.` : "La búsqueda espera a que sigas.",
-        pagina,
-      );
+      titulo = estado.motivoPausa === "actividad" ? `${nombre} se detuvo para no estorbarte` : `${nombre} está en pausa`;
+      partes.push(estado.motivoPausa === "actividad" ? "Toca Seguir cuando quieras" : "Espera a que sigas", pagina);
       botones = [boton("Seguir", "primario", "control_seguir"), boton("Detener", "parar", "control_detener")];
     } else if (f === "verificacion") {
       titulo = "Encuentra24 pide que confirmes que eres tú";
-      partes.push(estado.mensaje && /Todavía/.test(estado.mensaje) ? esc(estado.mensaje) : "Resuélvelo en la página y toca Seguir.");
+      partes.push(estado.mensaje && /Todavía/.test(estado.mensaje) ? String(estado.mensaje) : "Complétalo en la página y toca Seguir");
       botones = [boton("Seguir", "primario", "control_seguir"), boton("Dejarlo para después", "", "control_dejar")];
     } else if (f === "revisando") {
       titulo = `${nombre} terminó de leer`;
-      partes.push(esc(estado.haciendo || "Revisando…"));
+      partes.push(String(estado.haciendo || "Revisando…"));
     }
     $(".titulo").textContent = titulo;
-    $(".detalle").innerHTML = partes.filter(Boolean).join(" · ");
+    ponerDetalle(partes);
     $(".botones").replaceChildren(...botones);
     // En la verificación la barra baja para no tapar el recuadro de Encuentra24.
-    barra.toggleAttribute("data-abajo", f === "verificacion");
+    abajo.verificacion = f === "verificacion";
+    ubicarBarra();
     $(".avance").style.width = estado.total ? `${Math.min(100, (estado.pagina / estado.total) * 100)}%` : "0";
     if (f !== "buscando") {
       animacion++;
       resalte.classList.remove("ver");
+      abajo.esquivar = false;
+      ubicarBarra();
     }
   }
 
-  function esc(t) {
-    return String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  // La barra nunca tapa lo que se está mirando: si el anuncio resaltado o el cursor quedan debajo de ella, se va abajo.
+  const abajo = { verificacion: false, esquivar: false };
+  function ubicarBarra() {
+    barra.toggleAttribute("data-abajo", abajo.verificacion || abajo.esquivar);
+  }
+  function esquivar(caja) {
+    if (!caja) return;
+    const zona = 12 + barra.offsetHeight + 16;
+    const arriba = caja.top < zona && caja.bottom > 0;
+    const abajoTapa = caja.bottom > innerHeight - zona && caja.top < innerHeight;
+    // Si está arriba, la barra baja; si está abajo, sube; si no tapa nada, se queda donde está.
+    if (arriba && !abajo.esquivar) abajo.esquivar = true;
+    else if (abajoTapa && abajo.esquivar) abajo.esquivar = false;
+    ubicarBarra();
   }
 
   // --- Cursor ------------------------------------------------------------------------------------------------
@@ -203,6 +235,7 @@
   const ponerCursor = (x, y) => {
     pos = { x, y };
     cursor.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+    esquivar({ top: y - 4, bottom: y + 48 });
   };
   ponerCursor(pos.x, pos.y);
 
@@ -269,6 +302,7 @@
     if (!el) return resalte.classList.remove("ver");
     ubicarResalte();
     resalte.classList.add("ver");
+    esquivar(el.getBoundingClientRect());
   }
   // El recuadro acompaña al anuncio cuando la página se desplaza.
   const alDesplazar = () => requestAnimationFrame(ubicarResalte);

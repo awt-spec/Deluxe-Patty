@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   busquedaEnCurso,
@@ -11,6 +11,7 @@ import {
 } from "../lib/panel/extension-instalar";
 import { CAPTCHA, DEMASIADAS, DESAFIO_CLOUDFLARE, LISTADO_CON_CAPTCHA } from "./fixtures/verificacion-e24";
 import { anuncioE24, paginaE24 } from "./fixtures/e24";
+import { ARCHIVOS_EXTENSION, direccionApp, normalizar, revisarCarpeta } from "../scripts/empacar-extension.mjs";
 
 // Módulos de la extensión (JavaScript sin compilar): se cargan tal cual.
 type Estado = { fase: string; motivoPausa?: string | null; detenida?: boolean; [k: string]: unknown };
@@ -26,6 +27,33 @@ interface Mensajes {
   deQuien(remitente: unknown, ctx: { id: string; origenApp: string | null; tabBusqueda: number | null }): string | null;
   leerPedido(de: string | null, m: unknown): Record<string, unknown> | null;
   estadoPublico(s: unknown): Record<string, unknown>;
+  esUrlDeE24(url: unknown): boolean;
+}
+type Paso = { icono: string; texto: string; t?: number };
+interface Bitacora {
+  ICONOS: string[];
+  MAX_PASOS: number;
+  nombreZona(url: string): string;
+  contarEnPagina(html: unknown): { anuncios: number; propietarios: number };
+  textoPaso: {
+    inicio(m: string): string;
+    abrir(url: string, pagina: number, total: number): string;
+    leer(c: { anuncios: number; propietarios: number }): string;
+    espera(ms: number): string;
+    descanso(ms: number): string;
+  };
+  pasoDeEvento(ev: { tipo: string }, nuevo: Estado): Paso | null;
+  agregarPaso(lista: unknown, paso: Paso, ahora?: number): Required<Paso>[];
+  leerBitacora(v: unknown): Required<Paso>[];
+}
+interface VistaPanel {
+  vistaPanel(d: unknown, ahora?: number): {
+    conectada: boolean;
+    cabecera: { nombre: string; inicial: string; conexion: string; tono: string; progreso: number | null; progresoTexto: string };
+    enCurso: null | { fase: string; titulo: string; detalle: string; tiempo: string; botones: Record<string, unknown> };
+    resultado: null | { texto: string; error: boolean };
+    pasos: { icono: string; texto: string; hora: string }[];
+  };
 }
 interface Comun {
   esVerificacion(p: { html?: string; estado?: number }): boolean;
@@ -34,6 +62,8 @@ const cargar = async <T,>(ruta: string) => (await import(/* @vite-ignore */ ruta
 const maq = await cargar<Maquina>("../extension/maquina.js");
 const men = await cargar<Mensajes>("../extension/mensajes.js");
 const comun = await cargar<Comun>("../extension/comun.js");
+const bit = await cargar<Bitacora>("../extension/bitacora.js");
+const vp = await cargar<VistaPanel>("../extension/vista-panel.js");
 
 const paso = (e: Estado, ...eventos: { tipo: string; motivo?: string }[]) => {
   let actual: Estado = e;
@@ -302,9 +332,185 @@ describe("la barra sobre Encuentra24 (extension/control.js) no se expone a la p�
   });
 
   it("la extensión no toca la identidad del navegador", () => {
-    for (const archivo of ["background.js", "control.js", "panel.js", "canal.js", "ritmo.js", "maquina.js", "mensajes.js", "popup.js"]) {
+    for (const archivo of ARCHIVOS_EXTENSION.filter((a) => a.endsWith(".js") || a.endsWith(".html"))) {
       const c = readFileSync(`extension/${archivo}`, "utf8");
       expect(c, archivo).not.toMatch(/userAgent|webdriver|defineProperty\(navigator|HTMLCanvasElement|WebGLRenderingContext|navigator\.plugins|declarativeNetRequest|proxy/i);
     }
+  });
+});
+
+describe("lo que va haciendo, paso a paso (extension/bitacora.js)", () => {
+  const URL_ESCAZU = "https://www.encuentra24.com/costa-rica-es/bienes-raices-venta-de-propiedades-casas/san-jose-provincia-escazu?page=2";
+
+  it("nombra la zona con su tilde, solo de Encuentra24", () => {
+    expect(bit.nombreZona(URL_ESCAZU)).toBe("Escazú");
+    expect(bit.nombreZona("https://www.encuentra24.com/costa-rica-es/casas/heredia-provincia-santo-domingo")).toBe("Santo Domingo");
+    expect(bit.nombreZona("https://www.encuentra24.com/costa-rica-es/casas/san-jose-provincia-montes-de-oca")).toBe("Montes de Oca");
+    expect(bit.nombreZona("https://malo.example/costa-rica-es/casas/escazu")).toBe("");
+    expect(bit.nombreZona("nada")).toBe("");
+  });
+
+  it("cuenta anuncios y posibles dueños en el payload de la página", () => {
+    const html = paginaE24([anuncioE24(1, "Propietario", "Ana"), anuncioE24(2, "Agente", "Luis"), anuncioE24(3, "Propietario", "Eva")]);
+    expect(bit.contarEnPagina(html)).toEqual({ anuncios: 3, propietarios: 2 });
+    expect(bit.contarEnPagina(null)).toEqual({ anuncios: 0, propietarios: 0 });
+  });
+
+  it("los textos de cada paso, en palabras de todos los días", () => {
+    expect(bit.textoPaso.abrir(URL_ESCAZU, 2, 12)).toBe("Abriendo Escazú, página 2 de 12");
+    expect(bit.textoPaso.leer({ anuncios: 18, propietarios: 3 })).toBe("Leí 18 anuncios · 3 posibles dueños");
+    expect(bit.textoPaso.leer({ anuncios: 1, propietarios: 0 })).toBe("Leí 1 anuncio · ningún posible dueño");
+    expect(bit.textoPaso.descanso(61_000)).toBe("Descanso de 1 min para ir a ritmo de persona");
+    expect(bit.textoPaso.espera(12_400)).toBe("Espero 12 s antes de la siguiente página");
+  });
+
+  it("cada cambio de la máquina de estados deja su línea", () => {
+    const enVerif = paso({ fase: "lista" }, { tipo: "iniciar" }, { tipo: "verificacion" });
+    expect(bit.pasoDeEvento({ tipo: "verificacion" }, enVerif)).toEqual({
+      icono: "verificacion",
+      texto: "Verificación de Encuentra24: toca «Seguir» cuando la completes",
+    });
+    expect(bit.pasoDeEvento({ tipo: "pausar" }, { fase: "pausada", motivoPausa: "actividad" })?.texto).toMatch(/usar la pestaña/);
+    expect(bit.pasoDeEvento({ tipo: "terminar" }, { fase: "terminada", mensaje: "Listo: 2 dueños nuevos." })).toEqual({ icono: "listo", texto: "Listo: 2 dueños nuevos." });
+    expect(bit.pasoDeEvento({ tipo: "iniciar" }, { fase: "buscando" })).toBeNull();
+  });
+
+  it("la lista no repite, se queda con los últimos y descarta lo raro", () => {
+    let l = bit.agregarPaso([], { icono: "abrir", texto: "Abriendo Escazú, página 1 de 12" }, 1000);
+    l = bit.agregarPaso(l, { icono: "abrir", texto: "Abriendo Escazú, página 1 de 12" }, 2000);
+    expect(l).toEqual([{ icono: "abrir", texto: "Abriendo Escazú, página 1 de 12", t: 1000 }]);
+    for (let i = 0; i < 60; i++) l = bit.agregarPaso(l, { icono: "leer", texto: `paso ${i}` }, 3000 + i);
+    expect(l).toHaveLength(bit.MAX_PASOS);
+    expect(l.at(-1)?.texto).toBe("paso 59");
+    expect(bit.agregarPaso(l, { icono: "<script>", texto: "x" }).length).toBe(bit.MAX_PASOS);
+    expect(bit.leerBitacora([{ icono: "leer", texto: "a".repeat(500), t: 5 }, { icono: "leer" }, "x", null])).toEqual([{ icono: "leer", texto: "a".repeat(160), t: 5 }]);
+    expect(bit.leerBitacora({ no: "lista" })).toEqual([]);
+  });
+});
+
+describe("el panel lateral (extension/vista-panel.js)", () => {
+  const AHORA = 1_700_000_000_000;
+  const busqueda = (cambios: Record<string, unknown> = {}) => ({
+    fase: "buscando",
+    pagina: 2,
+    total: 12,
+    restanteMs: 360_000,
+    haciendo: "Abriendo Escazú, página 2 de 12",
+    latido: AHORA - 2_000,
+    ...cambios,
+  });
+
+  it("dibuja un paso nuevo cuando llega el estado de la búsqueda", () => {
+    const antes = vp.vistaPanel({ token: "t", corredor: "Deluxe Properties", asistente: "Patty", busqueda: busqueda(), bitacora: [] }, AHORA);
+    expect(antes.pasos).toEqual([]);
+    const bitacora = bit.agregarPaso([], { icono: "leer", texto: bit.textoPaso.leer({ anuncios: 18, propietarios: 3 }) }, new Date(2026, 10, 15, 10, 42).getTime());
+    const v = vp.vistaPanel({ token: "t", corredor: "Deluxe Properties", asistente: "Patty", busqueda: busqueda(), bitacora }, AHORA);
+    expect(v.pasos[0]).toEqual({ icono: "leer", texto: "Leí 18 anuncios · 3 posibles dueños", hora: "10:42" });
+    expect(v.cabecera).toMatchObject({ nombre: "Patty", inicial: "P", conexion: "Conectada a Deluxe Properties", tono: "trabajando", progresoTexto: "Página 2 de 12" });
+    expect(v.cabecera.progreso).toBeCloseTo(2 / 12);
+    expect(v.enCurso).toMatchObject({ titulo: "Patty está buscando dueños", detalle: "Abriendo Escazú, página 2 de 12", tiempo: "quedan ~6 min" });
+    expect(v.enCurso?.botones).toEqual({ pausar: true, seguir: false, detener: true, detenerTexto: "Detener" });
+  });
+
+  it("lo más nuevo arriba", () => {
+    let l = bit.agregarPaso([], { icono: "inicio", texto: "Empecé" }, 1);
+    l = bit.agregarPaso(l, { icono: "abrir", texto: "Abriendo" }, 2);
+    expect(vp.vistaPanel({ token: "t", bitacora: l }, AHORA).pasos.map((p) => p.texto)).toEqual(["Abriendo", "Empecé"]);
+  });
+
+  it("los botones siguen a la máquina de estados", () => {
+    const pausada = vp.vistaPanel({ token: "t", busqueda: busqueda({ fase: "pausada", motivoPausa: "usuario" }) }, AHORA);
+    expect(pausada.enCurso?.botones).toMatchObject({ pausar: false, seguir: true, detener: true });
+    expect(pausada.cabecera.tono).toBe("pausa");
+    const verif = vp.vistaPanel({ token: "t", busqueda: busqueda({ fase: "verificacion" }) }, AHORA);
+    expect(verif.enCurso).toMatchObject({ titulo: "Encuentra24 pide que confirmes que eres tú" });
+    expect(verif.enCurso?.botones).toMatchObject({ seguir: true, detenerTexto: "Dejarlo para después" });
+    expect(vp.vistaPanel({ token: "t", busqueda: busqueda({ fase: "revisando" }) }, AHORA).enCurso?.botones.detener).toBe(false);
+  });
+
+  it("en reposo: el resultado; sin latido, se cortó; sin permiso, sin conectar", () => {
+    const fin = vp.vistaPanel({ token: "t", busqueda: { fase: "terminada", mensaje: "Listo: 2 dueños nuevos." } }, AHORA);
+    expect(fin.enCurso).toBeNull();
+    expect(fin.resultado).toEqual({ texto: "Listo: 2 dueños nuevos.", error: false });
+    const cortada = vp.vistaPanel({ token: "t", busqueda: busqueda({ latido: AHORA - 120_000 }) }, AHORA);
+    expect(cortada.enCurso).toBeNull();
+    expect(cortada.resultado?.error).toBe(true);
+    const nada = vp.vistaPanel({}, AHORA);
+    expect(nada).toMatchObject({ conectada: false, cabecera: { conexion: "Sin conectar", nombre: "Patty" } });
+    expect(JSON.stringify(vp.vistaPanel({ token: "secreto-123" }, AHORA))).not.toContain("secreto-123");
+  });
+});
+
+describe("seguridad de la extensión", () => {
+  const manifiesto = JSON.parse(readFileSync("extension/manifest.json", "utf8"));
+
+  it("solo abre páginas de https://www.encuentra24.com (B3)", () => {
+    expect(men.esUrlDeE24("https://www.encuentra24.com/costa-rica-es/casas/escazu?page=2")).toBe(true);
+    for (const u of [
+      "http://www.encuentra24.com/x",
+      "https://encuentra24.com/x",
+      "https://www.encuentra24.com.malo.example/x",
+      "https://usuario:clave@www.encuentra24.com/x",
+      "https://www.encuentra24.com:8443/x",
+      "javascript:alert(1)",
+      "chrome://settings",
+      "",
+      null,
+    ]) {
+      expect(men.esUrlDeE24(u), String(u)).toBe(false);
+    }
+    const fondo = readFileSync("extension/background.js", "utf8");
+    // La revisión va antes de navegar.
+    const abrir = fondo.slice(fondo.indexOf("async function abrirPagina"), fondo.indexOf("chrome.tabs.update(S.tabId, { url })"));
+    expect(abrir).toContain("if (!esUrlDeE24(url)) throw");
+  });
+
+  it("los content scripts no leen el permiso: storage.local solo para contextos de confianza (B4)", () => {
+    const fondo = readFileSync("extension/background.js", "utf8");
+    expect(fondo).toMatch(/chrome\.storage\.local\.setAccessLevel\?\.\(\{ accessLevel: "TRUSTED_CONTEXTS" \}\)/);
+    for (const archivo of ["control.js", "panel.js", "canal.js"]) expect(readFileSync(`extension/${archivo}`, "utf8"), archivo).not.toMatch(/chrome\.storage/);
+  });
+
+  it("el zip lleva solo la lista y nada más (B2)", () => {
+    expect(revisarCarpeta([...ARCHIVOS_EXTENSION, ".DS_Store"])).toEqual({ sobran: [], faltan: [] });
+    expect(revisarCarpeta([...ARCHIVOS_EXTENSION, ".env.local", "borrador.js", "captura.png", "sub"])).toEqual({
+      sobran: ["borrador.js", "captura.png", "sub"],
+      faltan: [],
+    });
+    expect(revisarCarpeta(ARCHIVOS_EXTENSION.filter((a) => a !== "sidepanel.js")).faltan).toEqual(["sidepanel.js"]);
+    // La carpeta de hoy coincide con la lista.
+    expect(revisarCarpeta(readdirSync("extension"))).toEqual({ sobran: [], faltan: [] });
+    // Lo que el manifiesto y el panel lateral cargan está en la lista.
+    const usados = [manifiesto.background.service_worker, manifiesto.side_panel.default_path, ...manifiesto.content_scripts[0].js, ...Object.values(manifiesto.icons)];
+    for (const u of usados) expect(ARCHIVOS_EXTENSION, String(u)).toContain(u);
+  });
+
+  it("en producción la dirección del panel tiene que ser https (B2)", () => {
+    expect(direccionApp(undefined, { VERCEL_ENV: "production", NEXT_PUBLIC_URL_APP: "panel.ejemplo.com" })).toBe("https://panel.ejemplo.com");
+    expect(() => direccionApp(undefined, { VERCEL_ENV: "production", NEXT_PUBLIC_URL_APP: "http://panel.ejemplo.com" })).toThrow(/https/);
+    expect(() => direccionApp(undefined, { VERCEL_ENV: "production" })).toThrow(/https/);
+    expect(direccionApp(undefined, { VERCEL_ENV: "preview" })).toBe("http://localhost:3000");
+    expect(direccionApp(undefined, {})).toBe("http://localhost:3000");
+    expect(direccionApp("http://127.0.0.1:3000", {})).toBe("http://127.0.0.1:3000");
+    expect(normalizar("https://x.example/ruta")).toBeNull();
+  });
+
+  it("1.4.0 con panel lateral y permisos mínimos", () => {
+    expect(manifiesto.version).toBe("1.4.0");
+    expect(manifiesto.side_panel.default_path).toBe("sidepanel.html");
+    expect(manifiesto.action.default_popup).toBeUndefined();
+    expect(manifiesto.permissions.sort()).toEqual(["alarms", "scripting", "sidePanel", "storage"]);
+    expect(manifiesto.host_permissions).toEqual(["https://www.encuentra24.com/*", "__APP__/*"]);
+    expect(manifiesto.content_security_policy).toBeUndefined();
+  });
+
+  it("el panel lateral y la barra dibujan con textContent, sin innerHTML con datos ni eval", () => {
+    const panel = readFileSync("extension/sidepanel.js", "utf8");
+    expect(panel).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML|eval\(|new Function/);
+    expect(readFileSync("extension/sidepanel.html", "utf8")).not.toMatch(/<script(?![^>]*src="sidepanel\.js")/);
+    const barra = readFileSync("extension/control.js", "utf8");
+    // Solo la plantilla fija del Shadow DOM.
+    expect(barra.match(/innerHTML/g)).toHaveLength(1);
+    expect(barra).not.toMatch(/eval\(|new Function|insertAdjacentHTML/);
   });
 });

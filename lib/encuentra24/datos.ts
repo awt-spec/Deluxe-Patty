@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Corredor } from "../datos/tipos";
 import type { Bloqueado, LeadDueno } from "./busqueda";
-import type { AlmacenExtension, EstadoBusqueda } from "./extension";
+import { permisoVigente, type AlmacenExtension, type EstadoBusqueda } from "./extension";
 import type { AnuncioE24 } from "./parsear";
 import { ErrorDatos } from "../monitoreo/errores";
 
@@ -107,16 +107,37 @@ export function crearAlmacenExtension(db: SupabaseClient): AlmacenExtension {
     },
 
     async corredorDeToken(tokenHash, ahora) {
+      // Primero se mira si sigue vigente (60 días sin uso, permisoVigente) y solo entonces se anota el uso: si no,
+      // cada intento lo renovaría. Uno vencido queda revocado y la extensión recibe "conéctala de nuevo".
       const { data, error } = await db
         .from("extension_conexiones")
-        .update({ ultimo_uso_at: ahora.toISOString() })
+        .select("id, corredor_id, conectada_at, ultimo_uso_at, corredores!inner(activo)")
         .eq("token_hash", tokenHash)
         .is("revocada_at", null)
-        .select("corredor_id, corredores!inner(activo)")
         .maybeSingle();
       verificar(error, "corredorDeToken");
-      const corredor = data?.corredores as unknown as { activo: boolean } | undefined;
-      return data && corredor?.activo ? (data.corredor_id as string) : null;
+      if (!data) return null;
+      const id = data.id as string;
+      const corredorId = data.corredor_id as string;
+      const fechas = data as unknown as { conectada_at: string | null; ultimo_uso_at: string | null };
+      if (!permisoVigente(fechas, ahora)) {
+        const { error: e2 } = await db
+          .from("extension_conexiones")
+          .update({ revocada_at: ahora.toISOString() })
+          .eq("corredor_id", corredorId)
+          .eq("id", id)
+          .is("revocada_at", null);
+        verificar(e2, "corredorDeToken (vencido)");
+        return null;
+      }
+      const { error: e3 } = await db
+        .from("extension_conexiones")
+        .update({ ultimo_uso_at: ahora.toISOString() })
+        .eq("corredor_id", corredorId)
+        .eq("id", id);
+      verificar(e3, "corredorDeToken (uso)");
+      const corredor = data.corredores as unknown as { activo: boolean } | undefined;
+      return corredor?.activo ? corredorId : null;
     },
 
     async revocarToken(tokenHash, ahora) {
@@ -260,6 +281,27 @@ export function crearAlmacenExtension(db: SupabaseClient): AlmacenExtension {
     async reservarBusquedaAuto(corredorId, horas) {
       const { data, error } = await db.rpc("reclamar_alerta", { p_clave: `busqueda_auto:${corredorId}`, p_minutos: horas * 60 });
       verificar(error, "reservarBusquedaAuto");
+      return data === true;
+    },
+
+    // Sin tabla nueva: cada página leída del día es una clave paginasdia:<corredor>:<día>:<n> en `alertas`. Se
+    // cuentan las que hay y se reclama la siguiente (atómico); si otra página ganó ese número, se prueba el que sigue.
+    async reservarPaginaDelDia(corredorId, dia, max) {
+      const prefijo = `paginasdia:${corredorId}:${dia}:`;
+      const { count, error } = await db.from("alertas").select("clave", { count: "exact", head: true }).like("clave", `${prefijo}%`);
+      verificar(error, "reservarPaginaDelDia (contar)");
+      for (let n = (count ?? 0) + 1; n <= max; n++) {
+        // Dos días de ventana: la clave de hoy no se vuelve a reclamar aunque el día local dure más que el UTC.
+        const { data, error: e2 } = await db.rpc("reclamar_alerta", { p_clave: `${prefijo}${n}`, p_minutos: 2 * 24 * 60 });
+        verificar(e2, "reservarPaginaDelDia");
+        if (data === true) return true;
+      }
+      return false;
+    },
+
+    async reclamar(clave, minutos) {
+      const { data, error } = await db.rpc("reclamar_alerta", { p_clave: clave, p_minutos: minutos });
+      verificar(error, "reclamar (extensión)");
       return data === true;
     },
   };

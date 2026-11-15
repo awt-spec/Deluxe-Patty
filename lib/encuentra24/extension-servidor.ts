@@ -3,6 +3,7 @@ import { alertar, esperarAlertas } from "../asistente/dependencias";
 import { crearCerebroClaude } from "../asistente/cerebro";
 import { SIN_PRESUPUESTO } from "../asistente/limites";
 import { crearRepositorioSupabase } from "../datos/repositorio";
+import { leerConTope } from "../http/cuerpo";
 import { errorSeguro } from "../monitoreo/errores";
 import { createAdminClient } from "../supabase/admin";
 import type { DependenciasAnuncio } from "./anuncio";
@@ -32,6 +33,7 @@ export function dependenciasExtension(): DependenciasExtension {
 
 export const MENSAJES: Record<string, string> = {
   codigo: "Ese código no sirve: puede haber vencido (dura 10 minutos) o ya se usó. Pide otro en el panel.",
+  intentos: "Hubo muchos intentos seguidos. Espera unos segundos y vuelve a probar el código.",
   permiso: "La extensión ya no está conectada. Conéctala de nuevo desde el panel, en Más y luego Dueños directos.",
   sin_corredor: "La extensión ya no está conectada. Conéctala de nuevo desde el panel, en Más y luego Dueños directos.",
   sin_zonas: "Primero escribe tus zonas de Encuentra24 en el panel, en Más y luego Ajustes, en Búsqueda de dueños.",
@@ -54,13 +56,14 @@ export function fallo(motivo: string, status = 400): Response {
   return responder({ ok: false, motivo, mensaje: MENSAJES[motivo] ?? MENSAJES.servidor }, status);
 }
 
-/** Cuerpo JSON con tope de tamaño (una página de Encuentra24 pesa menos de 2 MB). */
+/** Cuerpo JSON con tope de tamaño en bytes (una página de Encuentra24 pesa menos de 2 MB). */
 export async function leerJson(req: Request, maxBytes = 4_000_000): Promise<Record<string, unknown> | null> {
   if (Number(req.headers.get("content-length") ?? 0) > maxBytes) return null;
-  const texto = await req.text();
-  if (texto.length > maxBytes) return null;
+  // Sin content-length (chunked) se cuenta mientras llega: al pasar el tope se corta, sin leer el resto.
+  const bytes = await leerConTope(req.body, maxBytes);
+  if (!bytes) return null;
   try {
-    const v = JSON.parse(texto) as unknown;
+    const v = JSON.parse(new TextDecoder().decode(bytes)) as unknown;
     return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : null;
   } catch {
     return null;

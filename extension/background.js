@@ -1,7 +1,8 @@
 import { APP } from "./config.js";
 import { esPaginaDeAnuncio, esVerificacion } from "./comun.js";
 import { activa, textoFase, transicion } from "./maquina.js";
-import { deQuien, estadoPublico, leerPedido } from "./mensajes.js";
+import { agregarPaso, contarEnPagina, leerBitacora, pasoDeEvento, textoPaso } from "./bitacora.js";
+import { deQuien, esUrlDeE24, estadoPublico, leerPedido } from "./mensajes.js";
 import {
   anotarPaginaDelDia,
   azar,
@@ -35,6 +36,8 @@ import {
 //  - Búsqueda semanal sola: una alarma despierta cada ~6 horas (y al abrir Chrome) y le pregunta al servidor si toca
 //    (/api/extension/programa). Se apaga en el popup.
 //  - "Leer este anuncio": manda al servidor lo que muestra la página del anuncio abierto (texto, JSON-LD, fotos).
+//  - Panel lateral (sidepanel.html, desde la 1.4.0): el botón de la extensión lo abre junto a la página. Muestra cada
+//    paso de la búsqueda (bitacora.js, guardado en chrome.storage) y tiene los mismos Pausar, Seguir y Detener.
 
 const ESPERA_RESULTADO_MS = 6 * 60_000;
 const ESPERA_VERIFICACION_MS = 15 * 60_000;
@@ -43,6 +46,10 @@ const PAUSA_MAX_MS = 30 * 60_000;
 const LATIDO_MS = 4_000;
 const ALARMA = "busqueda-semanal";
 const CADA_MIN = 6 * 60;
+
+// El permiso vive en chrome.storage.local: solo las páginas de la extensión y el trabajador de fondo lo leen, nunca los
+// content scripts (panel.js en el panel, control.js sobre Encuentra24). Se fija en cada arranque.
+chrome.storage.local.setAccessLevel?.({ accessLevel: "TRUSTED_CONTEXTS" })?.catch?.(() => {});
 
 const ORIGEN_APP = (() => {
   try {
@@ -98,8 +105,15 @@ async function publicar() {
   await chrome.storage.local.set({
     busqueda: { ...p, mensaje: p.mensaje || textoFase(S) },
     busquedaViva: activa(S.fase) && S.id ? { id: S.id, tabId: S.tabId } : null,
+    bitacora: S.bitacora,
+    asistente: S.asistente,
   });
   avisarBarra({ tipo: "pintar", estado: { ...p, asistente: S.asistente } });
+}
+
+/** Una línea más en la lista de pasos del panel lateral (se guarda en el próximo publicar). */
+function anotar(paso) {
+  if (S) S.bitacora = agregarPaso(S.bitacora, paso);
 }
 
 function avisarBarra(m) {
@@ -114,6 +128,8 @@ async function cambiar(evento, extra = {}) {
   if (!nuevo) return false;
   Object.assign(S, nuevo, extra);
   if (S.fase === "pausada") S.pausadaDesde = Date.now();
+  const paso = pasoDeEvento(evento, S);
+  if (paso) anotar(paso);
   await publicar();
   return true;
 }
@@ -230,11 +246,10 @@ async function ponerBarra() {
   await publicar();
 }
 
-/** Cuántos anuncios trae la página (para el tiempo de lectura): cada anuncio dice su tipo de anunciante. */
-const contarAnuncios = (html) => Math.min(60, (html.match(/advertiserType/g) ?? []).length);
-
 async function abrirPagina(url) {
   if (S.detener) throw new Detenida();
+  // Solo Encuentra24: si el servidor pidiera otra dirección, la búsqueda se corta con error.
+  if (!esUrlDeE24(url)) throw Object.assign(new Error("url"), { mensaje: "El panel pidió abrir una página que no es de Encuentra24. Detuve la búsqueda." });
   S.barra = false;
   const cargada = cuandoCargue(S.tabId);
   await chrome.tabs.update(S.tabId, { url });
@@ -299,7 +314,7 @@ let limpieza = Promise.resolve();
 async function buscar(automatica = false) {
   await limpieza;
   if (S) return { ok: false, mensaje: "Ya hay una búsqueda en curso." };
-  const guardado = await chrome.storage.local.get(["token", "paginasHoy", "modoSemanal", "velocidadPrueba", "busqueda"]);
+  const guardado = await chrome.storage.local.get(["token", "paginasHoy", "modoSemanal", "velocidadPrueba", "busqueda", "bitacora", "asistente"]);
   const { token } = guardado;
   const fallarAntes = async (mensaje) => {
     if (!automatica) await chrome.storage.local.set({ busqueda: { fase: "error", mensaje, latido: Date.now() } });
@@ -319,8 +334,10 @@ async function buscar(automatica = false) {
     pagina: 0,
     total: 0,
     velocidad,
-    asistente: "Patty",
+    asistente: typeof guardado.asistente === "string" && guardado.asistente.trim() ? guardado.asistente.trim().slice(0, 40) : "Patty",
     antes: guardado.busqueda ?? null,
+    bitacoraAntes: leerBitacora(guardado.bitacora),
+    bitacora: [],
     haciendo: "Empezando…",
     tabId: null,
     barra: false,
@@ -342,6 +359,7 @@ async function buscar(automatica = false) {
     S.asistente = typeof inicio.asistente === "string" && inicio.asistente.trim() ? inicio.asistente.trim().slice(0, 40) : "Patty";
     S.total = Math.max(1, totalEstimado(inicio.zonas, restantesHoy));
     S.haciendo = `Empezando: tardaré ${textoDuracion(S.total)}.`;
+    anotar({ icono: "inicio", texto: textoPaso.inicio(textoDuracion(S.total)) });
 
     // Una sola pestaña. A la vista, junto a la del panel o el popup y enfrente; de fondo, sin quitarle la vista a nadie.
     const tab = await chrome.tabs.create({ url: "about:blank", active: S.aLaVista });
@@ -363,21 +381,24 @@ async function buscar(automatica = false) {
         const s = Math.round(p.ms / 1000);
         S.haciendo = p.tipo === "descanso" ? `Descansando ${s} s…` : "Pasando a la siguiente página…";
         S.descanso = p.tipo === "descanso";
+        anotar(p.tipo === "descanso" ? { icono: "descanso", texto: textoPaso.descanso(p.ms) } : { icono: "espera", texto: textoPaso.espera(p.ms) });
         await publicar();
         avisarBarra({ tipo: "siguiente", ms: Math.min(p.ms, 2500) / S.velocidad, pagina: S.pagina + 1 });
         await esperarActivo(p.ms);
         S.descanso = false;
       }
       S.pagina++;
-      S.haciendo = `Abriendo la página ${S.pagina}…`;
+      S.haciendo = textoPaso.abrir(url, S.pagina, S.total);
+      anotar({ icono: "abrir", texto: S.haciendo });
       await publicar();
       let pagina = await abrirPagina(url);
       if (esVerificacion(pagina)) pagina = await esperarVerificacion();
       await contarPaginaDelDia();
       await ponerBarra();
 
-      const plan = planLectura(contarAnuncios(pagina.html), rng);
-      S.haciendo = "Leyendo anuncios…";
+      const cuenta = contarEnPagina(pagina.html);
+      const plan = planLectura(cuenta.anuncios, rng);
+      S.haciendo = cuenta.anuncios ? `Leyendo ${cuenta.anuncios} anuncios…` : "Leyendo la página…";
       await publicar();
       const pedida = url;
       S.enviando = api("/api/extension/pagina", { busqueda: S.id, url: pedida, html: pagina.html }, token);
@@ -394,6 +415,7 @@ async function buscar(automatica = false) {
       };
       mirar(0);
       await esperarActivo(plan.ms, mirar);
+      anotar({ icono: "leer", texto: textoPaso.leer(cuenta) });
       const r = await S.enviando;
       S.enviando = null;
       if (!r.ok) throw Object.assign(new Error("pagina"), { mensaje: r.mensaje });
@@ -484,7 +506,7 @@ async function esperarResultado(origen = null) {
 /** La semanal de fondo no molesta: se vuelve a lo que se mostraba antes y se reintenta en el siguiente despertar. */
 async function silenciar() {
   await cerrarPestana();
-  await chrome.storage.local.set({ busqueda: S.antes ?? null });
+  await chrome.storage.local.set({ busqueda: S.antes ?? null, bitacora: S.bitacoraAntes ?? [] });
 }
 
 async function fallar(mensaje) {
@@ -509,19 +531,17 @@ chrome.tabs.onRemoved.addListener((tabId) => {
  * leído y se avisa.
  */
 async function limpiarCortada() {
-  const { busqueda: b, busquedaViva: viva, token } = await chrome.storage.local.get(["busqueda", "busquedaViva", "token"]);
+  const { busqueda: b, busquedaViva: viva, token, bitacora } = await chrome.storage.local.get(["busqueda", "busquedaViva", "token", "bitacora"]);
   if (!b || !activa(b.fase)) return;
   if (viva?.tabId) chrome.tabs.remove(viva.tabId).catch(() => {});
   if (token && viva?.id) await api("/api/extension/detener", { busqueda: viva.id, motivo: "usuario" }, token);
+  const mensaje =
+    viva?.id && !b.automatica
+      ? "La búsqueda anterior se cortó (se cerró Chrome). Guardé lo que alcancé a leer: míralo en el panel."
+      : "La búsqueda anterior se cortó. Vuelve a empezarla.";
   await chrome.storage.local.set({
-    busqueda: {
-      fase: "detenida",
-      mensaje:
-        viva?.id && !b.automatica
-          ? "La búsqueda anterior se cortó (se cerró Chrome). Guardé lo que alcancé a leer: míralo en el panel."
-          : "La búsqueda anterior se cortó. Vuelve a empezarla.",
-      latido: Date.now(),
-    },
+    busqueda: { fase: "detenida", mensaje, latido: Date.now() },
+    bitacora: agregarPaso(bitacora, { icono: "detenida", texto: mensaje }),
   });
 }
 limpieza = limpiarCortada().catch(() => {});
@@ -563,11 +583,14 @@ chrome.runtime.onInstalled.addListener(() => {
   avisarAlPanel().catch(() => {});
 });
 
+// El botón de la extensión abre el panel lateral (no hay popup desde la 1.4.0).
+chrome.sidePanel?.setPanelBehavior?.({ openPanelOnActionClick: true }).catch(() => {});
+
 async function desconectar() {
   detener("popup");
   const { token } = await chrome.storage.local.get("token");
   if (token) await api("/api/extension/desconectar", {}, token);
-  await chrome.storage.local.remove(["token", "corredor", "busqueda", "busquedaViva"]);
+  await chrome.storage.local.remove(["token", "corredor", "busqueda", "busquedaViva", "bitacora", "asistente"]);
   return { ok: true };
 }
 
@@ -628,14 +651,20 @@ function extraerAnuncio() {
     .filter((h) => /wa\.me|whatsapp/i.test(h))
     .slice(0, 50);
 
-  const fuente = (img) => img.currentSrc || img.src || img.dataset?.src || img.dataset?.lazy || "";
+  // Primera dirección de un srcset ("url 800w, url2 1600w").
+  const deSrcset = (v) => (typeof v === "string" ? v.trim().split(/\s+/)[0] ?? "" : "");
+  const diferidaUrl = (img) => img.dataset?.src || img.dataset?.lazy || deSrcset(img.dataset?.srcset) || deSrcset(img.getAttribute("srcset"));
+  const fuente = (img) => img.currentSrc || img.src || diferidaUrl(img) || "";
+  // Foto que todavía no carga (sin src, con data-src o srcset): cuenta por su dirección, no por su tamaño en pantalla
+  // (con alt, Chrome pinta el texto y el ancho deja de ser 0).
+  const diferida = (img) => !img.currentSrc && !img.getAttribute("src") && !!diferidaUrl(img);
   const ancho = (img) => img.naturalWidth || img.width || 0;
   const alto = (img) => img.naturalHeight || img.height || 0;
   const grande = (img, min) => ancho(img) >= min && alto(img) >= min * 0.6;
   const GALERIA = '[class*="gallery" i], [class*="galeria" i], [class*="carousel" i], [class*="slider" i], [class*="swiper" i], [class*="photo" i], [id*="gallery" i]';
   const imagenes = [...document.images];
-  // En la galería, una foto que todavía no carga (ancho 0) también cuenta; las miniaturas diminutas no.
-  const deGaleria = imagenes.filter((img) => img.closest(GALERIA) && (ancho(img) === 0 || grande(img, 300)));
+  // En la galería, una foto que todavía no carga también cuenta; las miniaturas diminutas no.
+  const deGaleria = imagenes.filter((img) => img.closest(GALERIA) && (diferida(img) || ancho(img) === 0 || grande(img, 300)));
   const elegidas = deGaleria.length >= 2 ? deGaleria : imagenes.filter((img) => grande(img, 400));
   const fotos = elegidas.map(fuente);
   for (const t of jsonld) {

@@ -78,6 +78,28 @@ const numero = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v
 const positivo = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v > 0 ? v : null);
 const texto = (v: unknown, max: number) => (typeof v === "string" && v.trim() ? v.trim().slice(0, max) : null);
 
+/**
+ * Amenidades del sitio en español. Trae dos clases: claves (pool, gym…) que se traducen, y frases ya escritas por el
+ * corredor ("Cine en casa", "Piscina niños") que se guardan tal cual (antes se perdían: la asistente no las conocía).
+ * Una clave que no se conoce (minúsculas sin espacios, "rocket") se omite. Sin repetidas aunque cambien mayúsculas.
+ */
+export function amenidadesDelSitio(lista: unknown): string[] {
+  const vistas = new Set<string>();
+  const salida: string[] = [];
+  for (const a of Array.isArray(lista) ? lista : []) {
+    if (typeof a !== "string") continue;
+    const t = a.trim();
+    const valor = AMENIDADES[t] ?? (/^[a-z_-]+$/.test(t) || t.length > 80 ? null : t);
+    if (!valor) continue;
+    const clave = valor.toLocaleLowerCase("es");
+    if (vistas.has(clave)) continue;
+    vistas.add(clave);
+    salida.push(valor);
+    if (salida.length >= 40) break;
+  }
+  return salida;
+}
+
 /** Lo que se guarda en propiedades a partir de una casa del sitio (sin fotos). null si no se puede usar. */
 export function filaDesdeSitio(c: CasaSitio): Record<string, unknown> | null {
   if (!c || typeof c.codigo !== "string" || !CODIGO_SITIO.test(c.codigo.toUpperCase())) return null;
@@ -107,7 +129,7 @@ export function filaDesdeSitio(c: CasaSitio): Record<string, unknown> | null {
     m2_construccion: positivo(c.m2_construccion),
     m2_terreno: positivo(c.m2_terreno),
     descripcion: descripcion || null,
-    amenidades: [...new Set((c.amenidades ?? []).map((a) => AMENIDADES[a] ?? null).filter((a): a is string => !!a))],
+    amenidades: amenidadesDelSitio(c.amenidades),
     url_e24: texto(c.url_e24, 500)?.startsWith("https://") ? texto(c.url_e24, 500) : null,
     estado,
   };

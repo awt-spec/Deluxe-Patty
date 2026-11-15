@@ -62,8 +62,8 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   pregunta `GET /api/extension/programa` (`programaBusqueda`): toca si la última búsqueda terminada (marca
   `busqueda_hecha:<corredor>` en `alertas`, o el último `leads_duenos.created_at`) tiene más de 7 días, y el turno se
   reserva 6 h con `reclamar_alerta('busqueda_auto:<corredor>')`; corre en una pestaña de fondo, y si Cloudflare pide
-  verificar se cancela en silencio (sin aviso a soporte) y se reintenta. Se apaga en el popup ("Buscar dueños sola
-  cada semana", `chrome.storage`). **Leer este anuncio** (popup, en la página de un anuncio): la extensión manda
+  verificar se cancela en silencio (sin aviso a soporte) y se reintenta. Se apaga en el panel lateral ("Buscar dueños sola
+  cada semana", `chrome.storage`). **Leer este anuncio** (panel lateral, en la página de un anuncio): la extensión manda
   dirección, título, texto, JSON-LD, enlaces wa.me y fotos a `POST /api/extension/anuncio` (`lib/encuentra24/anuncio.ts`);
   si trae la referencia de un `anuncios_e24` del corredor, lo pasa a `activo` (url, `e24_id`, `publicado_en` si
   faltaba) y llena `propiedades.url_e24`; si no, arma la ficha con `conversarFicha` (el texto va como dato, nunca
@@ -84,10 +84,17 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   Desde la 1.3.0 **busca a ritmo de persona** (`extension/ritmo.js`: 8–25 s por página, pausas de 6–20 s, descanso de 45–120 s
   cada 4–6 páginas, 12 páginas por búsqueda y 24 por día, una sola pestaña) y **sin tocar la identidad del navegador** (hay una
   prueba que lo vigila). A la vista, `control.js` (Shadow DOM cerrado) pone marco, barra y un cursor dibujado con
-  `nombre_asistente`; si la persona usa la pestaña, se pausa. Se pausa o detiene desde la barra, el popup y el panel
+  `nombre_asistente`; si la persona usa la pestaña, se pausa. Se pausa o detiene desde la barra, el panel lateral y el panel
   (`busqueda-en-vivo.tsx`, canal "busqueda"; estados en `maquina.js`, pedidos válidos en `mensajes.js`); `/api/extension/detener`
   guarda lo ya leído y una búsqueda detenida no cuenta como la semanal. Verificación de Cloudflare, captcha o 403/429: a la vista
   se detiene y pide "Seguir" (nunca se salta); de fondo se cancela. Prueba real: `npx tsx scripts/probar-buscador.mts <capturas>`.
+  Desde la 1.4.0 **panel lateral** (`sidePanel`; el botón de la extensión lo abre, ya no hay popup): `sidepanel.html/js/css`
+  muestra a la asistente trabajando (cabecera con nombre y conexión, avance, Pausar/Seguir/Detener por los mismos mensajes y
+  cada paso con ícono y hora: "Abriendo Escazú, página 2 de 12", "Leí 18 anuncios · 3 posibles dueños"; `bitacora.js` en
+  `chrome.storage`, vista pura en `vista-panel.js`) y en reposo lo del popup. La barra pasa a píldora "Patty está usando esta
+  pestaña" que se aparta de lo que mira, con borde que brilla y cursor con onda (respeta `prefers-reduced-motion`). Solo abre
+  direcciones de `https://www.encuentra24.com` (`esUrlDeE24`), `storage.local` es solo para contextos de confianza y el zip
+  lleva una lista fija de archivos (`ARCHIVOS_EXTENSION`; en producción exige https).
   El worker con Playwright (`worker/busqueda-duenos.ts`, `npm run duenos` con Chrome visible) usa el mismo
   recorrido y evaluación (`lib/encuentra24/busqueda.ts`) y queda para soporte;
   `.github/workflows/busqueda-duenos.yml` solo para pruebas a mano.

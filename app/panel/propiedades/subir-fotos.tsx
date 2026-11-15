@@ -2,7 +2,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { pedirSubidas, registrarFotos } from "./acciones";
 
 // Las fotos van directo del teléfono al bucket con un permiso de subida por archivo; antes se achican
@@ -32,6 +32,12 @@ export function SubirFotos({ propiedadId, actuales }: { propiedadId: string; act
   const router = useRouter();
   const [estado, setEstado] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
+  const [esFallo, setEsFallo] = useState(false);
+  const avisoRef = useRef<HTMLParagraphElement>(null);
+  // El aviso puede quedar debajo de la barra de abajo en el teléfono: se trae a la vista cuando cambia.
+  useEffect(() => {
+    if (estado) avisoRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [estado]);
 
   async function subir(elegidas: File[]) {
     if (elegidas.length === 0) return;
@@ -93,6 +99,7 @@ export function SubirFotos({ propiedadId, actuales }: { propiedadId: string; act
       if (noSubieron > 0 && guardadas > 0) {
         partes.push(`${noSubieron} no subieron. Vuelve a intentarlo con esas.`);
       }
+      setEsFallo(Boolean(fallo) || (guardadas === 0 && (noSubieron > 0 || noLeidas > 0)));
       setEstado(partes.join(" "));
       router.refresh();
     } finally {
@@ -123,7 +130,11 @@ export function SubirFotos({ propiedadId, actuales }: { propiedadId: string; act
         {actuales !== undefined && ` · Llevas ${actuales} de ${MAXIMO_CASA}`}
       </p>
       {estado && (
-        <p className="suave" role="status">
+        <p
+          ref={avisoRef}
+          className={esFallo ? "aviso error" : "aviso"}
+          role={esFallo ? "alert" : "status"}
+        >
           {estado}
         </p>
       )}

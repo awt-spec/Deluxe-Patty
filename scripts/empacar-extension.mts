@@ -5,34 +5,97 @@
 //
 //   npx tsx scripts/empacar-extension.mts [https://dominio]
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { deflateRawSync } from "node:zlib";
 
-// Sin esquema se asume https; una dirección rara no tumba el despliegue: se usa la de producción.
-const normalizar = (v: string | undefined) => {
+/**
+ * Lo único que entra al zip (que es público). Un archivo nuevo de la extensión se agrega aquí a propósito; cualquier
+ * otra cosa en extension/ (un borrador, una captura, un .env olvidado) hace fallar el empaque. Los ocultos (.DS_Store)
+ * se ignoran.
+ */
+export const ARCHIVOS_EXTENSION = [
+  "background.js",
+  "bitacora.js",
+  "canal.js",
+  "comun.js",
+  "config.js",
+  "control.js",
+  "icono-128.png",
+  "icono-16.png",
+  "icono-48.png",
+  "manifest.json",
+  "maquina.js",
+  "mensajes.js",
+  "panel.js",
+  "ritmo.js",
+  "sidepanel.css",
+  "sidepanel.html",
+  "sidepanel.js",
+  "vista-panel.js",
+] as const;
+
+/** Lo que hay en la carpeta y no está en la lista (sin contar los ocultos), y lo que falta de la lista. */
+export function revisarCarpeta(presentes: string[]): { sobran: string[]; faltan: string[] } {
+  const lista = new Set<string>(ARCHIVOS_EXTENSION);
+  const visibles = presentes.filter((n) => !n.startsWith("."));
+  return {
+    sobran: visibles.filter((n) => !lista.has(n)).sort(),
+    faltan: ARCHIVOS_EXTENSION.filter((n) => !visibles.includes(n)),
+  };
+}
+
+/** Sin esquema se asume https. Devuelve el origen limpio o null si no es una dirección válida. */
+export function normalizar(v: string | undefined): string | null {
   const d = (v ?? "").trim().replace(/\/+$/, "");
   const completa = !d || /^https?:\/\//.test(d) ? d : `https://${d}`;
   return /^https?:\/\/[a-z0-9.-]+(:\d+)?$/i.test(completa) ? completa : null;
-};
-const app =
-  normalizar(process.argv[2]) ??
-  normalizar(process.env.NEXT_PUBLIC_URL_APP) ??
-  normalizar(process.env.VERCEL_PROJECT_PRODUCTION_URL) ??
-  "http://localhost:3000";
+}
+
+/**
+ * La dirección del panel que lleva la extensión. En producción (VERCEL_ENV=production) tiene que ser https y no hay
+ * respaldo: una build mal configurada falla en vez de emitir una extensión que manda el permiso sin cifrar. Fuera de
+ * producción, si no hay nada válido, http://localhost:3000.
+ */
+export function direccionApp(arg: string | undefined, env: Record<string, string | undefined>): string {
+  const app = normalizar(arg) ?? normalizar(env.NEXT_PUBLIC_URL_APP) ?? normalizar(env.VERCEL_PROJECT_PRODUCTION_URL);
+  if (env.VERCEL_ENV === "production") {
+    if (!app || !app.startsWith("https://")) {
+      throw new Error("En producción NEXT_PUBLIC_URL_APP tiene que ser una dirección https:// válida para empacar la extensión.");
+    }
+    return app;
+  }
+  return app ?? "http://localhost:3000";
+}
 
 const CARPETA = "buscador-duenos";
 const CON_DIRECCION = new Set(["config.js", "manifest.json", "panel.js"]);
-const archivos = readdirSync("extension").sort().map((nombre) => {
-  let datos = readFileSync(join("extension", nombre));
-  if (CON_DIRECCION.has(nombre)) datos = Buffer.from(datos.toString("utf8").replaceAll("__APP__", app));
-  return { nombre: `${CARPETA}/${nombre}`, datos };
-});
 
-mkdirSync("public/extension", { recursive: true });
-writeFileSync("public/extension/buscador-duenos.zip", zip(archivos));
-// La versión que muestra el panel sale del mismo manifest.json (app/panel/duenos/extension/page.tsx lo importa).
-const { version } = JSON.parse(readFileSync(join("extension", "manifest.json"), "utf8")) as { version: string };
-console.log(`Extensión ${version} empacada para ${app}: public/extension/buscador-duenos.zip (${archivos.length} archivos)`);
+function empacar() {
+  const app = direccionApp(process.argv[2], process.env);
+  const { sobran, faltan } = revisarCarpeta(readdirSync("extension"));
+  if (sobran.length || faltan.length) {
+    throw new Error(
+      `extension/ no coincide con la lista de scripts/empacar-extension.mts.` +
+        (sobran.length ? ` Sobran: ${sobran.join(", ")}.` : "") +
+        (faltan.length ? ` Faltan: ${faltan.join(", ")}.` : ""),
+    );
+  }
+  const archivos = [...ARCHIVOS_EXTENSION].sort().map((nombre) => {
+    let datos = readFileSync(join("extension", nombre));
+    if (CON_DIRECCION.has(nombre)) datos = Buffer.from(datos.toString("utf8").replaceAll("__APP__", app));
+    return { nombre: `${CARPETA}/${nombre}`, datos };
+  });
+
+  mkdirSync("public/extension", { recursive: true });
+  writeFileSync("public/extension/buscador-duenos.zip", zip(archivos));
+  // La versión que muestra el panel sale del mismo manifest.json (app/panel/duenos/extension/page.tsx lo importa).
+  const { version } = JSON.parse(readFileSync(join("extension", "manifest.json"), "utf8")) as { version: string };
+  console.log(`Extensión ${version} empacada para ${app}: public/extension/buscador-duenos.zip (${archivos.length} archivos)`);
+}
+
+// Solo al correrlo como script (las pruebas importan las reglas sin empacar).
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) empacar();
 
 // ZIP mínimo (deflate, sin carpetas ni extras): lo que Chrome y los sistemas abren sin problema.
 function zip(entradas: { nombre: string; datos: Buffer }[]): Buffer {
