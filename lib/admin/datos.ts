@@ -19,6 +19,7 @@ export interface CorredorAdmin {
   whatsapp_corredor: string | null;
   tope_ia_dia_usd: number | null;
   tope_ia_mes_usd: number | null;
+  nombre_asistente: string | null;
   imagenes_activas: boolean;
 }
 
@@ -58,7 +59,7 @@ export async function cargarPlataforma(db: SupabaseClient) {
 }
 
 export const COLUMNAS_ADMIN =
-  "id, slug, nombre, nombre_contacto, activo, zona_horaria, tope_mensajes_mes, aviso_mensajes_mes, respuesta_automatica, whatsapp_numero, whatsapp_phone_number_id, whatsapp_corredor, tope_ia_dia_usd, tope_ia_mes_usd, imagenes_activas";
+  "id, slug, nombre, nombre_contacto, activo, zona_horaria, tope_mensajes_mes, aviso_mensajes_mes, respuesta_automatica, whatsapp_numero, whatsapp_phone_number_id, whatsapp_corredor, tope_ia_dia_usd, tope_ia_mes_usd, imagenes_activas, nombre_asistente";
 
 export async function cargarCorredores(db: SupabaseClient, soloId?: string): Promise<{ filas: FilaAdmin[]; plataforma: Awaited<ReturnType<typeof cargarPlataforma>> }> {
   const plataforma = await cargarPlataforma(db);

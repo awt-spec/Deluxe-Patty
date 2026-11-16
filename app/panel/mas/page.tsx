@@ -17,8 +17,8 @@ import {
 } from "../iconos";
 import { NOMBRE_CEREBRO } from "../cerebro/nombre";
 import { EncabezadoPagina } from "../piezas";
-import { TokensTarjeta } from "../tokens-ia";
-import { tokensDelCorredor } from "@/lib/panel/tokens";
+import { EnergiaTarjeta } from "../energia";
+import { energiaDelCorredor } from "@/lib/panel/energia";
 
 // Lo que no se usa todos los días. Lo que ya tiene su pestaña (agenda, horario, clientes) no se repite aquí.
 const GRUPOS = [
@@ -39,10 +39,10 @@ const GRUPOS = [
 
 export default async function Mas() {
   const { supabase, corredor, corredores, usuario } = await sesionConCorredor();
-  const [superadmin, puesta, tokens] = await Promise.all([
+  const [superadmin, puesta, energia] = await Promise.all([
     esSuperadmin(usuario.email),
     datosPuesta(supabase, corredor).then(estadoPuesta),
-    tokensDelCorredor(corredor.id),
+    energiaDelCorredor(corredor.id),
   ]);
   return (
     <>
@@ -70,7 +70,7 @@ export default async function Mas() {
       )}
 
       <div style={{ marginBottom: 18 }}>
-        <TokensTarjeta estado={tokens} />
+        <EnergiaTarjeta estado={energia} asistente={corredor.nombre_asistente} />
       </div>
 
       <nav aria-label="Más opciones" className="mas-grupos">

@@ -130,14 +130,20 @@
           </section>
         </div>
 
-        <section id="tokens" class="tarjeta mini tokens" data-nivel="bien" aria-labelledby="tokens-titulo" hidden>
-          <div class="tokens-fila">
-            <h3 id="tokens-titulo">Tokens de IA</h3>
-            <span id="tokens-detalle" class="tokens-detalle"></span>
+        <section id="energia" class="tarjeta mini energia" data-nivel="bien" aria-labelledby="energia-titulo" hidden>
+          <div class="energia-fila">
+            <svg class="energia-icono" viewBox="0 0 40 24" width="40" height="24" aria-hidden="true">
+              <rect x="1.5" y="2.5" width="31" height="19" rx="4.5" fill="none" stroke="currentColor" stroke-width="2" opacity="0.55" />
+              <path d="M36 8.5v7" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.55" />
+              <rect id="energia-relleno" x="4.5" y="5.5" width="0" height="13" rx="2.2" fill="currentColor" />
+            </svg>
+            <div class="energia-cuerpo">
+              <h3 id="energia-titulo">Energía de Patty</h3>
+              <p id="energia-detalle" class="energia-detalle"></p>
+            </div>
+            <strong id="energia-texto" class="energia-texto"></strong>
           </div>
-          <p id="tokens-texto" class="tokens-texto"></p>
-          <div class="barra-tokens" id="tokens-barra-pista" aria-hidden="true"><span id="tokens-barra"></span></div>
-          <p id="tokens-aviso" class="tokens-aviso" role="status" hidden></p>
+          <p id="energia-aviso" class="energia-aviso" role="status" hidden></p>
         </section>
 
         <section class="actividad" aria-labelledby="titulo-actividad">

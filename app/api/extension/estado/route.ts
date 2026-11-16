@@ -1,22 +1,27 @@
 import { autenticar, consultarBusqueda, type DependenciasExtension } from "@/lib/encuentra24/extension";
 import { conManejo, dependenciasExtension, fallo, leerJson, MENSAJES, responder, UUID } from "@/lib/encuentra24/extension-servidor";
+import { energiaDePresupuesto } from "@/lib/ia/energia";
 import { tokensDePresupuesto, type EstadoTokens } from "@/lib/ia/tokens";
 import { errorSeguro } from "@/lib/monitoreo/errores";
 
 export const runtime = "nodejs";
 
-/** Tokens de IA del mes del corredor del permiso (lib/ia/tokens.ts); null si no se pudieron leer. */
-async function tokensDe(d: DependenciasExtension, corredorId: string): Promise<EstadoTokens | null> {
+/**
+ * La energía del mes del corredor del permiso. El campo se sigue llamando `tokens` (las extensiones anteriores lo leen tal cual) y
+ * trae además `pct_restante`: el porcentaje que queda, de 0 a 100 hacia abajo (lib/ia/energia.ts). Null si no se pudo leer.
+ */
+async function tokensDe(d: DependenciasExtension, corredorId: string): Promise<(EstadoTokens & { pct_restante: number }) | null> {
   try {
-    return tokensDePresupuesto(await d.repo.presupuestoIA(corredorId));
+    const p = await d.repo.presupuestoIA(corredorId);
+    return { ...tokensDePresupuesto(p), pct_restante: energiaDePresupuesto(p).restante };
   } catch (e) {
-    console.error(JSON.stringify({ evento: "error_tokens_ia", ruta: "estado", error: errorSeguro(e) }));
+    console.error(JSON.stringify({ evento: "error_energia_ia", ruta: "estado", error: errorSeguro(e) }));
     return null;
   }
 }
 
-// El panel lateral de la extensión pregunta cuántos tokens de IA le quedan al corredor este mes:
-// { ok: true, tokens: { total, usados, restantes, pct, nivel } | null }. Solo con el permiso, solo su corredor.
+// El panel lateral de la extensión pregunta cuánta energía le queda a la asistente este mes:
+// { ok: true, tokens: { total, usados, restantes, pct, nivel, pct_restante } | null }. Solo con el permiso, solo su corredor.
 export async function GET(req: Request) {
   return conManejo("estado", async () => {
     const d = dependenciasExtension();
@@ -26,7 +31,7 @@ export async function GET(req: Request) {
   });
 }
 
-// La extensión pregunta si Haiku ya terminó de revisar la búsqueda (y, de paso, sus tokens de IA).
+// La extensión pregunta si Haiku ya terminó de revisar la búsqueda (y, de paso, su energía).
 export async function POST(req: Request) {
   return conManejo("estado", async () => {
     const d = dependenciasExtension();

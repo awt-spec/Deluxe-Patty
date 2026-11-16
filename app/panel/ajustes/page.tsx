@@ -6,9 +6,8 @@ import { desconectarGoogle, guardarAjustes, probarWhatsApp, salir } from "../acc
 import { Aviso } from "../aviso";
 import { BotonEnviar } from "../boton-enviar";
 import { ConservarBorrador } from "../conservar-borrador";
-import { TokensTarjeta } from "../tokens-ia";
-import { aTokens, cifraTokens } from "@/lib/ia/tokens";
-import { tokensDelCorredor } from "@/lib/panel/tokens";
+import { EnergiaTarjeta } from "../energia";
+import { energiaDelCorredor } from "@/lib/panel/energia";
 
 type Corredor = {
   zonas_e24: string[];
@@ -19,7 +18,7 @@ type Corredor = {
 export default async function Ajustes({ searchParams }: { searchParams: Promise<{ aviso?: string; prueba?: string; ok?: string }> }) {
   const { aviso, prueba, ok } = await searchParams;
   const { supabase, corredor, usuario } = await sesionConCorredor();
-  const [{ data: google }, { data: extra }, { data: mes }, { data: dias }, tokens] = await Promise.all([
+  const [{ data: google }, { data: extra }, { data: mes }, { data: dias }, energia] = await Promise.all([
     supabase.from("google_conexiones").select("correo, conectado_at, ultimo_error").eq("corredor_id", corredor.id).maybeSingle(),
     supabase.from("corredores").select("zonas_e24, precio_busqueda_min, precio_busqueda_max").eq("id", corredor.id).single(),
     supabase
@@ -35,7 +34,7 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
       .eq("corredor_id", corredor.id)
       .order("dia", { ascending: false })
       .limit(7),
-    tokensDelCorredor(corredor.id),
+    energiaDelCorredor(corredor.id),
   ]);
   const busqueda = (extra ?? { zonas_e24: [], precio_busqueda_min: null, precio_busqueda_max: null }) as Corredor;
   const usados = (mes?.mensajes_total as number | undefined) ?? 0;
@@ -189,7 +188,7 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
           </div>
         </form>
 
-        <TokensTarjeta estado={tokens} id="tokens" />
+        <EnergiaTarjeta estado={energia} id="energia" asistente={corredor.nombre_asistente} />
 
         <section className="tarjeta pila ajustes-grupo">
           <h2>Uso del mes</h2>
@@ -212,7 +211,6 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
                 <tr>
                   <th>Día</th>
                   <th>Mensajes</th>
-                  <th>Tokens de IA</th>
                 </tr>
               </thead>
               <tbody>
@@ -220,7 +218,6 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
                   <tr key={d.dia as string}>
                     <td>{fechaCorta(d.dia as string)}</td>
                     <td>{d.mensajes as number}</td>
-                    <td>{cifraTokens(aTokens(Number(d.costo_claude_usd ?? 0) + Number(d.costo_imagenes_usd ?? 0) + Number(d.costo_audio_usd ?? 0)))}</td>
                   </tr>
                 ))}
               </tbody>

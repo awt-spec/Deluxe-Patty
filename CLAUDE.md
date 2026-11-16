@@ -99,9 +99,9 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   estado en una palabra y conexión; tarjeta "Ahora" con anillo de avance (3/12), tiempo y botones grandes; pasos por minuto con
   los viejos plegados (`agruparPasos`); en reposo, "Buscar dueños ahora" y "Leer este anuncio" (solo en un anuncio; si no, dice
   por qué, `accionLeer`), la semanal como interruptor y el último resultado en tarjeta chica; ilustraciones SVG del paquete
-  (`ilustra-*.svg`). Tarjeta **Tokens de IA** (`vistaTokens`): el campo `tokens` de `GET /api/extension/estado` (pedido
-  `ver_tokens` al abrir el panel y de nuevo al terminar cada búsqueda), verde, ámbar con ≤ 15 % o rojo con "Se acabaron los
-  tokens de este mes"; sin datos no se muestra. La píldora, la ficha de pausa y la etiqueta del cursor de `control.js` van como vidrio.
+  (`ilustra-*.svg`). Tarjeta **Energía de Patty** (`vistaEnergia`): batería y %, desde el campo `tokens` de `GET /api/extension/estado`
+  (con `pct_restante`; pedido `ver_tokens` al abrir el panel y de nuevo al terminar cada búsqueda), verde, ámbar con ≤ 15 % o rojo
+  "se quedó sin energía"; sin datos o sin tope no se muestra (1.5.1). La píldora, la ficha de pausa y la etiqueta del cursor de `control.js` van como vidrio.
   El worker con Playwright (`worker/busqueda-duenos.ts`, `npm run duenos` con Chrome visible) usa el mismo
   recorrido y evaluación (`lib/encuentra24/busqueda.ts`) y queda para soporte;
   `.github/workflows/busqueda-duenos.yml` solo para pruebas a mano.
@@ -137,10 +137,14 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   `lib/admin/superadmin.ts`; quién lo es: tabla `superadmins`, por correo): los de la plataforma (`plataforma`) y,
   si hace falta, uno propio por corredor (`corredores.tope_ia_dia_usd` / `tope_ia_mes_usd`, vacío = plataforma, 0 =
   apagado) y si puede usar imágenes (`imagenes_activas`). El corredor no los puede leer ni cambiar fuera de su fila.
-  El corredor no ve dinero sino **tokens de IA** (`lib/ia/tokens.ts`: 1 dólar = 100 tokens, hacia abajo; el tanque es el tope
-  del mes de `presupuesto_ia()`; ámbar con ≤ 15 %, rojo agotado o tope 0): barra en el menú lateral (anillo en el riel), Ajustes
-  y Más (`app/panel/tokens-ia.tsx`, colores `PALETA_TOKENS`); `/admin` muestra el equivalente en vivo (`campo-usd.tsx`) y la
-  extensión lo lee en `GET /api/extension/estado` (`tokens`).
+  El corredor no ve dinero sino la **Energía** de su asistente, como la batería de un teléfono (`lib/ia/energia.ts`,
+  `estadoEnergia`: el tope del mes de `presupuesto_ia()` es el 100 %; se muestra lo que queda, hacia abajo; ámbar con ≤ 15 %
+  —"Le queda poca energía a Patty este mes"—, rojo agotado o tope 0 —"Patty se quedó sin energía este mes: los chats quedan para ti.
+  Habla con soporte."—; sin tope no se muestra): "Energía de Patty: 62 %" con batería SVG (`IconoBateria`, `app/panel/iconos.tsx`) en el menú
+  lateral (en el riel, solo la batería), Ajustes y Más (`app/panel/energia.tsx`, colores `PALETA_ENERGIA`; nombre de `nombre_asistente`);
+  ni cifras de tokens ni dinero. `/admin` muestra "Energía usada 38 % · $57 de $150" y, junto a los montos en dólares, "= 100 % de
+  energía de Patty al mes" (`campo-usd.tsx`). La base sigue siendo `lib/ia/tokens.ts` (1 dólar = 100 unidades internas). La extensión
+  la lee en `GET /api/extension/estado` (campo `tokens`, con `pct_restante` agregado; se mantiene el nombre por compatibilidad).
   `/admin` tiene cinco secciones (menú lateral; en el teléfono, pestañas): **Resumen** (cifras, "Atención" con lo
   que falta o se pasa, alertas), **Corredores** (y `/admin/corredores/<id>`: Phone number ID, número de la asistente,
   celular del corredor, activo, respuesta automática, topes, accesos y "Probar WhatsApp"), **WhatsApp** (diagnóstico

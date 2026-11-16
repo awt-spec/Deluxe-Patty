@@ -41,7 +41,7 @@ export function nombreAsistente(v) {
 }
 
 /**
- * `datos`: { token, corredor, asistente, busqueda, bitacora, tokens } tal como están en chrome.storage.local. Devuelve lo que se
+ * `datos`: { token, corredor, asistente, busqueda, bitacora, tokens (la energía) } tal como están en chrome.storage.local. Devuelve lo que se
  * dibuja; nunca el permiso.
  */
 export function vistaPanel(datos, ahora = Date.now()) {
@@ -97,7 +97,7 @@ export function vistaPanel(datos, ahora = Date.now()) {
     .map((p) => ({ icono: p.icono, texto: p.texto, hora: horaPaso(p.t) }))
     .reverse();
 
-  return { conectada, cabecera, enCurso, resultado, pasos, grupos: agruparPasos(pasos), tokens: vistaTokens(d.tokens) };
+  return { conectada, cabecera, enCurso, resultado, pasos, grupos: agruparPasos(pasos), energia: vistaEnergia(d.tokens, d.asistente) };
 }
 
 const ESTADOS = { buscando: "Trabajando", pausada: "En pausa", verificacion: "Te necesita", revisando: "Revisando" };
@@ -127,17 +127,19 @@ export function agruparPasos(pasos, visibles = PASOS_VISIBLES) {
   return { recientes, anteriores, ocultos: anteriores.reduce((n, g) => n + g.pasos.length, 0) };
 }
 
-// --- Tokens de IA del mes ------------------------------------------------------------------------------------
+// --- Energía de la asistente en el mes (el campo `tokens` de GET /api/extension/estado) --------------------------
 
 export const NIVELES_TOKENS = ["bien", "poco", "agotado", "sin_tope"];
-/** Con esto o menos de lo que queda (sobre el total), quedan pocos. */
+/** Con esto o menos de lo que queda (sobre el total), queda poca. */
 export const POCO = 0.15;
 
 const entero = (v) => (typeof v === "number" && Number.isFinite(v) ? Math.max(0, Math.round(v)) : null);
 
 /**
- * El campo `tokens` de GET /api/extension/estado, validado: { total, usados, restantes, pct, nivel } o null (sin
- * datos, o con datos que no se entienden). El nivel que manda el servidor vale si es uno conocido; si no, se calcula.
+ * El campo `tokens` de GET /api/extension/estado, validado: { total, usados, restantes, pct, restante, nivel } o null
+ * (sin datos, o con datos que no se entienden). `restante` es el porcentaje que queda (0 a 100, hacia abajo): el que manda
+ * el servidor en `pct_restante` o, con un servidor anterior, el calculado. El nivel que manda el servidor vale si es uno
+ * conocido; si no, se calcula.
  */
 export function limpiarTokens(t) {
   if (!t || typeof t !== "object" || Array.isArray(t)) return null;
@@ -148,34 +150,31 @@ export function limpiarTokens(t) {
   const pct = typeof t.pct === "number" && Number.isFinite(t.pct) ? Math.max(0, Math.min(100, t.pct)) : null;
   let nivel = NIVELES_TOKENS.includes(t.nivel) ? t.nivel : null;
   if (!nivel) nivel = total === 0 ? "sin_tope" : restantes <= 0 ? "agotado" : restantes / total <= POCO ? "poco" : "bien";
-  return { total, usados, restantes, pct, nivel };
-}
-
-/** 1240 → "1.240" (punto de miles, como en el panel). */
-export function miles(n) {
-  return String(Math.max(0, Math.round(Number(n) || 0))).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  let restante;
+  if (typeof t.pct_restante === "number" && Number.isFinite(t.pct_restante)) restante = Math.floor(Math.max(0, Math.min(100, t.pct_restante)));
+  else if (nivel === "sin_tope") restante = 100;
+  else if (nivel === "agotado" || total === 0) restante = 0;
+  else restante = Math.max(0, Math.min(100, Math.floor((restantes / total) * 100 + 1e-9)));
+  if (nivel === "agotado") restante = 0;
+  return { total, usados, restantes, pct, restante, nivel };
 }
 
 /**
- * La tarjeta "Tokens de IA": null si no hay datos (no se muestra). `uso` (0 a 1) es lo gastado, para la barra; sin
- * tope no hay barra.
+ * La tarjeta "Energía de Patty", como una batería: null si no hay datos o no hay tope (no se muestra). `restante` (0 a 100)
+ * llena la batería; sin dinero ni cifras de tokens.
  */
-export function vistaTokens(t) {
+export function vistaEnergia(t, asistente) {
   const k = limpiarTokens(t);
-  if (!k) return null;
-  if (k.nivel === "sin_tope") {
-    return { nivel: k.nivel, texto: `${miles(k.usados)} usados este mes`, detalle: "Sin tope este mes", uso: null, aviso: "" };
+  if (!k || k.nivel === "sin_tope") return null;
+  const nombre = nombreAsistente(asistente);
+  const titulo = `Energía de ${nombre}`;
+  if (k.nivel === "agotado") {
+    return { nivel: k.nivel, titulo, texto: "0 %", detalle: "", restante: 0, aviso: `${nombre} se quedó sin energía este mes: los chats quedan para ti. Habla con soporte.` };
   }
-  const uso = k.total > 0 ? Math.min(1, k.usados / k.total) : 1;
-  const texto = `${miles(Math.min(k.usados, k.total))} de ${miles(k.total)} este mes`;
-  if (k.nivel === "agotado") return { nivel: k.nivel, texto, detalle: "", uso: 1, aviso: "Se acabaron los tokens de este mes" };
-  return {
-    nivel: k.nivel,
-    texto,
-    detalle: k.nivel === "poco" ? `Quedan pocos: ${miles(k.restantes)}` : `Quedan ${miles(k.restantes)}`,
-    uso,
-    aviso: "",
-  };
+  if (k.nivel === "poco") {
+    return { nivel: k.nivel, titulo, texto: `${k.restante} %`, detalle: "", restante: k.restante, aviso: `Le queda poca energía a ${nombre} este mes` };
+  }
+  return { nivel: k.nivel, titulo, texto: `${k.restante} %`, detalle: `Te queda ${k.restante} % este mes`, restante: k.restante, aviso: "" };
 }
 
 // --- Inicio (sin búsqueda en curso) ----------------------------------------------------------------------------

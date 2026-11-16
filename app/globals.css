@@ -12387,8 +12387,8 @@ html body .marco.tema :is(input[type="time"], input[type="date"], input[type="da
 }
 
 /* ================================================================================================
-   Tokens de IA (app/panel/tokens-ia.tsx): cuánta IA le queda al corredor en el mes, sin dinero. Paleta --t-*
-   = PALETA_TOKENS de lib/panel/colores-menu.ts (tests/colores-menu.test.ts comprueba que coincidan y pasen AA).
+   Energía (app/panel/energia.tsx): cuánta energía le queda a la asistente en el mes, como una batería, sin dinero. Paleta --t-*
+   = PALETA_ENERGIA de lib/panel/colores-menu.ts (tests/colores-menu.test.ts comprueba que coincidan y pasen AA).
    ================================================================================================ */
 .marco.tema {
   --t-pista: #e9edef;
@@ -12426,11 +12426,25 @@ html body .marco.tema :is(input[type="time"], input[type="date"], input[type="da
 .tk.tk-agotado .tk-barra > i {
   width: 100% !important;
 }
-.tk .tk-pista {
-  stroke: var(--t-pista);
+.tk .tk-bateria {
+  flex: none;
+  color: var(--tk-color);
 }
-.tk .tk-relleno {
-  stroke: var(--tk-color);
+.tk .tk-sub {
+  font-size: 12.5px;
+  line-height: 17px;
+  color: var(--m-suave);
+}
+.tk.tk-poco .tk-sub {
+  color: var(--t-texto-poco);
+}
+.tk.tk-agotado .tk-sub {
+  color: var(--t-texto-agotado);
+}
+.tk .tk-titulo-tarjeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 .tk .tk-aviso {
   margin: 0;
@@ -12484,9 +12498,17 @@ html body .marco.tema :is(input[type="time"], input[type="date"], input[type="da
     display: grid;
     gap: 6px;
   }
+  .marco.tema .lateral .tk-menu .tk-titulo {
+    flex: 1;
+    min-width: 0;
+  }
+  .marco.tema .lateral .tk-menu .tk-bat-menu {
+    display: inline-flex;
+  }
   .marco.tema .lateral .tk-menu .tk-linea {
     display: flex;
-    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
     gap: 8px;
     font-size: 13px;
     line-height: 18px;
@@ -12517,7 +12539,7 @@ html body .marco.tema :is(input[type="time"], input[type="date"], input[type="da
     display: none;
   }
 }
-.adm-tokens {
+.adm-energia {
   display: block;
   margin-top: 2px;
   font-weight: 400;

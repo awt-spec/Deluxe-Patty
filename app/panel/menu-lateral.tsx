@@ -26,8 +26,8 @@ import {
 import { NOMBRE_CEREBRO } from "./cerebro/nombre";
 import { esActiva } from "./navegacion";
 import { abrirPatty } from "./patty";
-import { TokensMenu } from "./tokens-ia";
-import type { EstadoTokens } from "@/lib/ia/tokens";
+import { EnergiaMenu } from "./energia";
+import type { EstadoEnergia } from "@/lib/ia/energia";
 
 const CLAVE_PLEGADO = "menu-plegado";
 
@@ -94,7 +94,7 @@ export function MenuLateral({
   nombre,
   asistente,
   superadmin,
-  tokens = null,
+  energia = null,
 }: {
   teNecesitan: number;
   /** Visitas de hoy por hacer, o null si no se pudo contar (sin número). */
@@ -109,8 +109,8 @@ export function MenuLateral({
   nombre: string;
   asistente: string;
   superadmin: boolean;
-  /** Tokens de IA del mes (lib/ia/tokens.ts), o null si no se pudieron leer: sin barra. */
-  tokens?: EstadoTokens | null;
+  /** Energía de la asistente en el mes (lib/ia/energia.ts), o null si no se pudo leer: sin barra. */
+  energia?: EstadoEnergia | null;
 }) {
   const ruta = usePathname();
   const router = useRouter();
@@ -282,7 +282,7 @@ export function MenuLateral({
       </nav>
 
       <div className="lat-pie">
-        <TokensMenu estado={tokens} />
+        <EnergiaMenu estado={energia} asistente={asistente} />
         <details className="lat-cuenta" ref={cuenta} onToggle={() => setTip(null)}>
           <summary data-patty="nav-cuenta" data-tip={nombreCuenta} aria-label={`Tu cuenta: ${nombreCuenta}`}>
             <span className="lat-avatar" aria-hidden>

@@ -660,7 +660,7 @@ button.enlace {
   content: " →";
 }
 
-/* Tarjetas chicas: último resultado y tokens */
+/* Tarjetas chicas: último resultado y energía */
 .mini {
   padding: 12px 16px;
 }
@@ -717,54 +717,45 @@ button.enlace {
   margin: 4px 0 0;
   font-size: 12.5px;
 }
-.tokens-fila {
+.energia-fila {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
+  align-items: center;
+  gap: 12px;
 }
-.tokens-fila h3 {
+.energia-icono {
+  flex: none;
+  color: var(--verde);
+}
+.energia-cuerpo {
+  flex: 1;
+  min-width: 0;
+}
+.energia-cuerpo h3 {
   margin: 0;
 }
-.tokens-detalle {
+.energia-detalle {
+  margin: 2px 0 0;
   font-size: 12.5px;
   color: var(--suave);
-  white-space: nowrap;
 }
-.tokens-texto {
-  margin: 4px 0 8px;
-  font-size: 15px;
-  font-weight: 650;
+.energia-texto {
+  font-size: 20px;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
-.barra-tokens {
-  height: 8px;
-  border-radius: 999px;
-  background: var(--borde);
-  overflow: hidden;
+.energia[data-nivel="poco"] .energia-icono {
+  color: var(--ambar);
 }
-.barra-tokens span {
-  display: block;
-  height: 100%;
-  width: 0;
-  border-radius: 999px;
-  background: var(--verde);
-  transition: width 0.6s ease;
-}
-.tokens[data-nivel="poco"] .barra-tokens span {
-  background: var(--ambar);
-}
-.tokens[data-nivel="poco"] .tokens-detalle {
+.energia[data-nivel="poco"] .energia-aviso {
   color: var(--ambar-texto);
-  font-weight: 600;
 }
-.tokens[data-nivel="agotado"] {
+.energia[data-nivel="agotado"] {
   border-color: var(--alerta-borde);
 }
-.tokens[data-nivel="agotado"] .barra-tokens span {
-  background: var(--alerta);
+.energia[data-nivel="agotado"] .energia-icono {
+  color: var(--alerta);
 }
-.tokens-aviso {
+.energia-aviso {
   margin: 8px 0 0;
   font-size: 13.5px;
   font-weight: 600;
