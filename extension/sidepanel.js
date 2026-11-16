@@ -99,17 +99,21 @@ function pintarPasos(grupos, total) {
   $("sin-pasos").hidden = total > 0;
 }
 
-function pintarTokens(t) {
-  $("tokens").hidden = !t;
+// Ancho del relleno de la batería (SVG de 40 × 24: el cuerpo útil mide 25 de ancho).
+const ANCHO_BATERIA = 25;
+function pintarEnergia(t) {
+  $("energia").hidden = !t;
   if (!t) return;
-  $("tokens").dataset.nivel = t.nivel;
-  $("tokens-texto").textContent = t.texto;
-  $("tokens-detalle").textContent = t.detalle;
-  $("tokens-detalle").hidden = !t.detalle;
-  $("tokens-barra-pista").hidden = t.uso === null;
-  $("tokens-barra").style.width = `${Math.round((t.uso ?? 0) * 100)}%`;
-  $("tokens-aviso").textContent = t.aviso;
-  $("tokens-aviso").hidden = !t.aviso;
+  $("energia").dataset.nivel = t.nivel;
+  $("energia-titulo").textContent = t.titulo;
+  $("energia-texto").textContent = t.texto;
+  $("energia-detalle").textContent = t.detalle;
+  $("energia-detalle").hidden = !t.detalle;
+  // Con 1 % se alcanza a ver algo; en 0 % queda vacía.
+  $("energia-relleno").setAttribute("width", String(t.restante <= 0 ? 0 : Math.max(1.5, (ANCHO_BATERIA * t.restante) / 100)));
+  $("energia-aviso").textContent = t.aviso;
+  $("energia-aviso").hidden = !t.aviso;
+  $("energia").setAttribute("aria-label", `${t.titulo}: ${t.texto}`);
 }
 
 /** Dibuja todo desde la vista (vista-panel.js) y lo de la pestaña activa. */
@@ -183,7 +187,7 @@ function dibujar(v, extra = {}) {
   $("modo").disabled = extra.sola === false;
   for (const r of document.querySelectorAll('input[name="modo"]')) r.checked = r.value === (extra.modo === "vista" ? "vista" : "fondo");
 
-  pintarTokens(v.tokens);
+  pintarEnergia(v.energia);
   pintarPasos(v.grupos, v.pasos.length);
 }
 
@@ -295,7 +299,7 @@ setInterval(() => {
     })
     .catch(() => {});
 }, 2_000);
-// Hace cuánto fue la última búsqueda (sin reservar nada en el servidor) y los tokens de IA que quedan este mes. Al
-// terminar cada búsqueda el trabajador de fondo vuelve a pedir los tokens y el cambio en chrome.storage los redibuja.
+// Hace cuánto fue la última búsqueda (sin reservar nada en el servidor) y la energía que queda este mes. Al
+// terminar cada búsqueda el trabajador de fondo vuelve a pedirla y el cambio en chrome.storage los redibuja.
 chrome.runtime.sendMessage({ tipo: "ver_ultima" }).catch(() => {});
 chrome.runtime.sendMessage({ tipo: "ver_tokens" }).catch(() => {});

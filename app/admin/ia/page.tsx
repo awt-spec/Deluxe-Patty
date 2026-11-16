@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cargarCorredores } from "@/lib/admin/datos";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { Barra, Cifra, EXPLICA_TOKENS, Mensaje, TokensMes, usd } from "../ui";
+import { Barra, Cifra, EXPLICA_ENERGIA, Mensaje, EnergiaMes, usd } from "../ui";
 import { CampoUsd } from "../campo-usd";
 import { guardarTopesPlataforma } from "../acciones";
 
@@ -39,7 +39,7 @@ export default async function IA({ searchParams }: { searchParams: Promise<{ m?:
             Guardar
           </button>
         </form>
-        <p className="adm-suave">{EXPLICA_TOKENS}</p>
+        <p className="adm-suave">{EXPLICA_ENERGIA}</p>
         <p className="adm-suave">Un corredor puede tener topes propios en su pantalla (vacío usa estos; 0 apaga la IA de ese corredor).</p>
       </section>
 
@@ -52,7 +52,7 @@ export default async function IA({ searchParams }: { searchParams: Promise<{ m?:
                 <th>Corredor</th>
                 <th>Hoy</th>
                 <th>Este mes</th>
-                <th>Tokens del mes</th>
+                <th>Energía del mes</th>
                 <th>Imágenes</th>
               </tr>
             </thead>
@@ -76,8 +76,8 @@ export default async function IA({ searchParams }: { searchParams: Promise<{ m?:
                       <Barra gasto={f.gastoMes} tope={f.topeMes} />
                     </span>
                   </td>
-                  <td data-etiqueta="Tokens del mes">
-                    <TokensMes gastoMes={f.gastoMes} topeMes={f.topeMes} />
+                  <td data-etiqueta="Energía del mes">
+                    <EnergiaMes gastoMes={f.gastoMes} topeMes={f.topeMes} />
                   </td>
                   <td data-etiqueta="Imágenes">{f.c.imagenes_activas ? `${f.mes.imagenes} este mes` : "Apagadas"}</td>
                 </tr>

@@ -1,10 +1,10 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { AGOTADO_TEXTO, aTokens, cifraTokens, estadoTokens, estadoTokensDia, textoTokens, tokensDePresupuesto, topeEfectivo, TOKENS_POR_DOLAR } from "../lib/ia/tokens";
-import { PALETA_TOKENS as T, contraste } from "../lib/panel/colores-menu";
+import { aTokens, estadoTokens, estadoTokensDia, tokensDePresupuesto, topeEfectivo, TOKENS_POR_DOLAR } from "../lib/ia/tokens";
+import { PALETA_ENERGIA as T, contraste } from "../lib/panel/colores-menu";
 
-describe("tokens de IA: 1 dólar = 100 tokens", () => {
+describe("unidades de IA (base de la energía): 1 dólar = 100 unidades", () => {
   it("convierte y redondea hacia abajo", () => {
     expect(TOKENS_POR_DOLAR).toBe(100);
     expect(aTokens(20)).toBe(2000);
@@ -36,8 +36,6 @@ describe("tokens de IA: 1 dólar = 100 tokens", () => {
   it("tope 0 = IA apagada: agotado con su mensaje", () => {
     const e = estadoTokens({ gastoMesUsd: 0, topeMesUsd: 0 });
     expect(e).toEqual({ total: 0, usados: 0, restantes: 0, pct: 100, nivel: "agotado" });
-    expect(textoTokens(e)).toBe(AGOTADO_TEXTO);
-    expect(AGOTADO_TEXTO).toContain("la asistente deja los chats para ti");
   });
 
   it("tope vacío del corredor = el de la plataforma; 0 propio gana; sin ninguno, sin_tope", () => {
@@ -54,19 +52,9 @@ describe("tokens de IA: 1 dólar = 100 tokens", () => {
     expect(tokensDePresupuesto({ gastoMes: 1, topeMes: 150 })).toMatchObject({ total: 15000, usados: 100, nivel: "bien" });
     expect(estadoTokensDia({ gastoDiaUsd: 10, topeDiaUsd: 10 }).nivel).toBe("agotado");
   });
-
-  it("cifras con punto de miles y texto para el corredor (sin dinero)", () => {
-    expect(cifraTokens(2000)).toBe("2.000");
-    expect(cifraTokens(1240)).toBe("1.240");
-    expect(cifraTokens(15000000)).toBe("15.000.000");
-    expect(cifraTokens(999)).toBe("999");
-    const t = textoTokens(estadoTokens({ gastoMesUsd: 12.4, topeMesUsd: 20 }));
-    expect(t).toBe("Tokens de IA: 1.240 de 2.000 este mes");
-    expect(t).not.toMatch(/\$|USD|dólar/);
-  });
 });
 
-describe("colores de la barra de tokens", () => {
+describe("colores de la barra de energía", () => {
   it("pasan AA: barra contra la pista y el blanco (3:1) y avisos (4,5:1)", () => {
     for (const c of [T.bien, T.poco, T.agotado]) {
       expect(contraste(c, "#ffffff")).toBeGreaterThanOrEqual(4.5);
@@ -79,7 +67,7 @@ describe("colores de la barra de tokens", () => {
 
   it("globals.css usa exactamente esta paleta (--t-*)", () => {
     const css = readFileSync(join(__dirname, "../app/globals.css"), "utf8");
-    const capa = css.slice(css.indexOf("Tokens de IA (app/panel/tokens-ia.tsx)"));
+    const capa = css.slice(css.indexOf("Energía (app/panel/energia.tsx)"));
     for (const [nombre, valor] of Object.entries(T)) {
       expect(capa).toContain(`--t-${nombre.replace(/[A-Z]/g, (l) => `-${l.toLowerCase()}`)}: ${valor};`);
     }

@@ -1,5 +1,5 @@
 // Piezas comunes de /admin (solo presentación).
-import { cifraTokens, estadoTokens } from "@/lib/ia/tokens";
+import { estadoEnergia } from "@/lib/ia/energia";
 
 export const usd = (n: number) => `$${n.toLocaleString("es-CR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 export const fechaEn = (zona: string, d = new Date()) => new Intl.DateTimeFormat("en-CA", { timeZone: zona }).format(d);
@@ -46,21 +46,22 @@ export function Cifra({ valor, etiqueta, tono }: { valor: React.ReactNode; etiqu
   );
 }
 
-/** Tokens de IA del mes de un corredor (lo que él ve): usados de total, con la misma barra. */
-export function TokensMes({ gastoMes, topeMes }: { gastoMes: number; topeMes: number }) {
-  const e = estadoTokens({ gastoMesUsd: gastoMes, topeMesUsd: topeMes });
+/** Energía del mes de un corredor (lo que él ve como batería): usada en %, con dólares usados de dólares del tope. */
+export function EnergiaMes({ gastoMes, topeMes }: { gastoMes: number; topeMes: number }) {
+  const e = estadoEnergia({ gastoMesUsd: gastoMes, topeMesUsd: topeMes });
   return (
     <span className="adm-uso-fila">
       <span>
-        Tokens del mes{" "}
-        <strong>
-          {cifraTokens(e.usados)} <span className="adm-suave">de {cifraTokens(e.total)}</span>
-        </strong>
-        {e.nivel === "agotado" ? <em className="adm-rojo"> · agotados</em> : e.nivel === "poco" ? <em className="adm-ambar"> · quedan pocos</em> : null}
+        Energía usada <strong>{e.usado} %</strong>
+        <span className="adm-suave">
+          {" "}
+          · {usd(gastoMes)} de {usd(topeMes)}
+        </span>
+        {e.nivel === "agotado" ? <em className="adm-rojo"> · agotada</em> : e.nivel === "poco" ? <em className="adm-ambar"> · queda poca</em> : null}
       </span>
-      <Barra gasto={e.usados} tope={e.total} />
+      <Barra gasto={gastoMes} tope={topeMes} />
     </span>
   );
 }
 
-export const EXPLICA_TOKENS = "El corredor ve su tope del mes como tokens: 1 dólar = 100 tokens (1 token = 1 centavo). Se guarda en dólares.";
+export const EXPLICA_ENERGIA = "El monto del mes es el 100 % de la energía de la asistente: el corredor ve una batería con lo que le queda. Se guarda en dólares.";

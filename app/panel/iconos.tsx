@@ -287,3 +287,17 @@ export const IconoPulgarAbajo = (p: Props) => (
     <path d="M16.5 13.5 13 20.5a2 2 0 0 1-2.5-2.2l.6-3.8H5.8a2 2 0 0 1-2-2.4l1.3-6.4a2 2 0 0 1 2-1.7h9.4" />
   </Icono>
 );
+
+/** Batería: el relleno es proporcional a `pct` (0 a 100). El relleno toma el color del texto (currentColor). */
+export function IconoBateria({ pct, tamano = 24, className }: { pct: number; tamano?: number; className?: string }) {
+  const p = Math.max(0, Math.min(100, Number.isFinite(pct) ? pct : 0));
+  // Cuerpo útil: de x=5 a x=17.5 (12,5 de ancho); un ancho mínimo para que se vea algo con 1 %.
+  const ancho = p <= 0 ? 0 : Math.max(1.2, (12.5 * p) / 100);
+  return (
+    <svg width={tamano} height={tamano} viewBox="0 0 24 24" aria-hidden focusable="false" className={className} data-pct={Math.round(p)}>
+      <rect x="2.75" y="7" width="16.5" height="10" rx="2.4" fill="none" stroke="currentColor" strokeWidth={1.6} opacity={0.55} />
+      <path d="M21.25 10.5v3" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" opacity={0.55} />
+      {ancho > 0 && <rect x="4.5" y="8.75" width={ancho} height="6.5" rx="1.2" fill="currentColor" />}
+    </svg>
+  );
+}

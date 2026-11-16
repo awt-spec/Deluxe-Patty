@@ -1,5 +1,5 @@
-// Extensión 1.5.0: el panel lateral rediseñado. Las reglas puras de lo que dibuja (vista-panel.js): la tarjeta de los
-// tokens de IA en cada nivel, los pasos juntados por minuto con los viejos plegados, el botón "Leer este anuncio" que
+// Extensión 1.5.0: el panel lateral rediseñado. Las reglas puras de lo que dibuja (vista-panel.js): la tarjeta de la
+// energía (batería) en cada nivel, los pasos juntados por minuto con los viejos plegados, el botón "Leer este anuncio" que
 // dice por qué no se puede, y el pedido nuevo "ver_tokens". Los módulos de la extensión se cargan tal cual.
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -10,13 +10,15 @@ interface Tokens {
   usados: number;
   restantes: number;
   pct: number | null;
+  restante: number;
   nivel: string;
 }
-interface VistaTokens {
+interface VistaEnergia {
   nivel: string;
+  titulo: string;
   texto: string;
   detalle: string;
-  uso: number | null;
+  restante: number;
   aviso: string;
 }
 interface Paso {
@@ -31,9 +33,8 @@ interface Grupos {
 }
 interface VistaPanel {
   PASOS_VISIBLES: number;
-  miles(n: number): string;
   limpiarTokens(t: unknown): Tokens | null;
-  vistaTokens(t: unknown): VistaTokens | null;
+  vistaEnergia(t: unknown, asistente?: string): VistaEnergia | null;
   agruparPasos(pasos: Paso[], visibles?: number): Grupos;
   accionLeer(a?: { enAnuncio?: boolean; leyendo?: boolean }): { activo: boolean; texto: string; motivo: string };
   textoUltima(dias: unknown): string;
@@ -43,7 +44,7 @@ interface VistaPanel {
   ): {
     cabecera: { estado: string; conexion: string };
     enCurso: null | { titulo: string; avance: null | { pct: number; texto: string } };
-    tokens: VistaTokens | null;
+    energia: VistaEnergia | null;
     grupos: Grupos;
   };
 }
@@ -55,69 +56,78 @@ const vp = await cargar<VistaPanel>("../extension/vista-panel.js");
 const men = await cargar<Mensajes>("../extension/mensajes.js");
 const leer = (archivo: string) => readFileSync(`extension/${archivo}`, "utf8");
 
-describe("tarjeta «Tokens de IA»", () => {
-  it("bien: «1.240 de 2.000 este mes», cuánto queda y la barra con lo gastado", () => {
-    expect(vp.vistaTokens({ total: 2000, usados: 1240, restantes: 760, pct: 62, nivel: "bien" })).toEqual({
+describe("tarjeta «Energía de Patty» (batería)", () => {
+  const base = { total: 2000, usados: 1240, restantes: 760, pct: 62, nivel: "bien" };
+
+  it("bien: «38 %», batería con lo que queda y «Te queda 38 % este mes»", () => {
+    expect(vp.vistaEnergia({ ...base, pct_restante: 38 }, "Patty")).toEqual({
       nivel: "bien",
-      texto: "1.240 de 2.000 este mes",
-      detalle: "Quedan 760",
-      uso: 0.62,
+      titulo: "Energía de Patty",
+      texto: "38 %",
+      detalle: "Te queda 38 % este mes",
+      restante: 38,
       aviso: "",
     });
+  });
+
+  it("usa el nombre de la asistente y, con un servidor anterior (sin pct_restante), calcula hacia abajo", () => {
+    const e = vp.vistaEnergia({ total: 3, usados: 1, restantes: 2, pct: 33, nivel: "bien" }, " Ana ");
+    expect(e).toMatchObject({ titulo: "Energía de Ana", texto: "66 %", restante: 66 });
+    expect(vp.vistaEnergia(base, "")?.titulo).toBe("Energía de Patty");
   });
 
   it("poco (15 % o menos): ámbar y lo dice", () => {
-    const t = vp.vistaTokens({ total: 2000, usados: 1760, restantes: 240, pct: 88, nivel: "poco" });
-    expect(t).toMatchObject({ nivel: "poco", texto: "1.760 de 2.000 este mes", detalle: "Quedan pocos: 240", aviso: "" });
-    expect(t?.uso).toBeCloseTo(0.88);
+    const t = vp.vistaEnergia({ total: 2000, usados: 1760, restantes: 240, pct: 88, nivel: "poco", pct_restante: 12 }, "Patty");
+    expect(t).toMatchObject({ nivel: "poco", texto: "12 %", restante: 12, aviso: "Le queda poca energía a Patty este mes" });
   });
 
-  it("agotado: barra llena y el texto llano «Se acabaron los tokens de este mes»", () => {
-    expect(vp.vistaTokens({ total: 2000, usados: 2150, restantes: 0, pct: 100, nivel: "agotado" })).toEqual({
+  it("agotado: 0 % y el texto llano", () => {
+    expect(vp.vistaEnergia({ total: 2000, usados: 2150, restantes: 0, pct: 100, nivel: "agotado", pct_restante: 0 }, "Patty")).toEqual({
       nivel: "agotado",
-      texto: "2.000 de 2.000 este mes",
+      titulo: "Energía de Patty",
+      texto: "0 %",
       detalle: "",
-      uso: 1,
-      aviso: "Se acabaron los tokens de este mes",
+      restante: 0,
+      aviso: "Patty se quedó sin energía este mes: los chats quedan para ti. Habla con soporte.",
     });
   });
 
-  it("sin tope: lo usado, sin barra", () => {
-    expect(vp.vistaTokens({ total: 0, usados: 1240, restantes: 0, pct: 0, nivel: "sin_tope" })).toEqual({
-      nivel: "sin_tope",
-      texto: "1.240 usados este mes",
-      detalle: "Sin tope este mes",
-      uso: null,
-      aviso: "",
-    });
+  it("sin tope: no se muestra", () => {
+    expect(vp.vistaEnergia({ total: 0, usados: 1240, restantes: 0, pct: 0, nivel: "sin_tope" }, "Patty")).toBeNull();
+  });
+
+  it("nada de tokens ni dinero en lo que se ve", () => {
+    for (const t of [base, { ...base, nivel: "poco", pct_restante: 10 }, { ...base, nivel: "agotado" }]) {
+      expect(JSON.stringify(vp.vistaEnergia(t, "Patty"))).not.toMatch(/token|\$|USD|dólar/i);
+    }
   });
 
   it("null, sin el campo o con datos raros: no se muestra", () => {
     for (const malo of [null, undefined, "x", [], {}, { total: "2000", usados: 3 }, { total: 2000 }, { total: NaN, usados: 1 }]) {
-      expect(vp.vistaTokens(malo), JSON.stringify(malo)).toBeNull();
+      expect(vp.vistaEnergia(malo, "Patty"), JSON.stringify(malo)).toBeNull();
     }
-    expect(vp.vistaPanel({ token: "t" }).tokens).toBeNull();
-    expect(vp.vistaPanel({ token: "t", tokens: null }).tokens).toBeNull();
-    expect(vp.vistaPanel({ token: "t", tokens: { total: 2000, usados: 1240, restantes: 760, pct: 62, nivel: "bien" } }).tokens?.texto).toBe(
-      "1.240 de 2.000 este mes",
-    );
+    expect(vp.vistaPanel({ token: "t" }).energia).toBeNull();
+    expect(vp.vistaPanel({ token: "t", tokens: null }).energia).toBeNull();
+    expect(vp.vistaPanel({ token: "t", asistente: "Ana", tokens: { ...base, pct_restante: 38 } }).energia).toMatchObject({ titulo: "Energía de Ana", texto: "38 %" });
   });
 
   it("un nivel desconocido se calcula (≤ 15 % que queda es poco); los números se limpian", () => {
-    expect(vp.limpiarTokens({ total: 2000, usados: 1700, nivel: "otro" })).toEqual({ total: 2000, usados: 1700, restantes: 300, pct: null, nivel: "poco" });
+    expect(vp.limpiarTokens({ total: 2000, usados: 1700, nivel: "otro" })).toEqual({ total: 2000, usados: 1700, restantes: 300, pct: null, restante: 15, nivel: "poco" });
     expect(vp.limpiarTokens({ total: 2000, usados: 1699 })?.nivel).toBe("bien");
     expect(vp.limpiarTokens({ total: 2000, usados: 2000 })?.nivel).toBe("agotado");
     expect(vp.limpiarTokens({ total: 0, usados: 5 })?.nivel).toBe("sin_tope");
     expect(vp.limpiarTokens({ total: -4, usados: 1.6, pct: 400 })).toMatchObject({ total: 0, usados: 2, pct: 100 });
+    expect(vp.limpiarTokens({ total: 2000, usados: 0, pct_restante: 250 })?.restante).toBe(100);
     // Solo lo de la forma conocida: nada más viaja a la vista.
-    expect(Object.keys(vp.limpiarTokens({ total: 1, usados: 0, html: "<b>x</b>" }) ?? {})).toEqual(["total", "usados", "restantes", "pct", "nivel"]);
+    expect(Object.keys(vp.limpiarTokens({ total: 1, usados: 0, html: "<b>x</b>" }) ?? {})).toEqual(["total", "usados", "restantes", "pct", "restante", "nivel"]);
   });
 
-  it("punto de miles", () => {
-    expect(vp.miles(0)).toBe("0");
-    expect(vp.miles(999)).toBe("999");
-    expect(vp.miles(1240)).toBe("1.240");
-    expect(vp.miles(2_000_000)).toBe("2.000.000");
+  it("el panel dibuja una batería (sin la palabra tokens) y el aviso", () => {
+    const html = leer("sidepanel.html");
+    expect(html).toContain("Energía de Patty");
+    expect(html).toContain('id="energia-relleno"');
+    expect(html).not.toMatch(/token/i);
+    expect(leer("sidepanel.js")).toContain("pintarEnergia(v.energia)");
   });
 
   it("se piden al abrir el panel y después de cada búsqueda (GET /api/extension/estado), con el pedido 'ver_tokens'", () => {

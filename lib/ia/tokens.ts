@@ -1,6 +1,5 @@
-// "Tokens de IA": una unidad sencilla para que el corredor vea cuánta IA le queda en el mes, sin hablar de
-// dinero. No son tokens de Claude: 1 token = 1 centavo de dólar del tope de gasto de IA que define el
-// superadministrador (/admin → IA y topes). El tanque es el tope del MES: el propio del corredor
+// Unidades de IA (1 unidad = 1 centavo de dólar) del tope de gasto de IA que define el
+// superadministrador (/admin → IA y topes). Base de `energia.ts`. El tanque es el tope del MES: el propio del corredor
 // (`corredores.tope_ia_mes_usd`) o, si está vacío, el de la plataforma; 0 apaga la IA (agotado).
 // Funciones puras: sin base ni red.
 
@@ -60,20 +59,4 @@ export function estadoTokensDia({ gastoDiaUsd, topeDiaUsd }: { gastoDiaUsd: numb
 /** Desde lo que devuelve `presupuesto_ia()` (repositorio.presupuestoIA). */
 export function tokensDePresupuesto(p: { gastoMes: number; topeMes: number | null }): EstadoTokens {
   return estadoTokens({ gastoMesUsd: p.gastoMes, topeMesUsd: p.topeMes });
-}
-
-/** Miles con punto, como se lee en Costa Rica: 2000 → "2.000". */
-export function cifraTokens(n: number): string {
-  return Math.max(0, Math.floor(n))
-    .toString()
-    .replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-}
-
-export const AGOTADO_TEXTO = "Se acabaron los tokens de este mes: la asistente deja los chats para ti. Habla con soporte.";
-
-/** Frase corta para el corredor (sin dinero). */
-export function textoTokens(e: EstadoTokens): string {
-  if (e.nivel === "sin_tope") return "Tokens de IA: sin límite este mes";
-  if (e.nivel === "agotado") return AGOTADO_TEXTO;
-  return `Tokens de IA: ${cifraTokens(e.usados)} de ${cifraTokens(e.total)} este mes`;
 }

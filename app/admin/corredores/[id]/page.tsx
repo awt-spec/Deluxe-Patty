@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cargarCorredores } from "@/lib/admin/datos";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { Barra, EXPLICA_TOKENS, Insignia, Mensaje, TokensMes, hace, usd } from "../../ui";
+import { Barra, EXPLICA_ENERGIA, Insignia, Mensaje, EnergiaMes, hace, usd } from "../../ui";
 import { CampoUsd } from "../../campo-usd";
 import { darAcceso, guardarDatosCorredor, guardarTopesCorredor, probarWhatsApp, quitarAcceso } from "../../acciones";
 
@@ -130,7 +130,7 @@ export default async function CorredorDetalle({
               {usd(f.gastoMes)} <span className="adm-suave">de {usd(f.topeMes)}</span>
             </strong>
             <Barra gasto={f.gastoMes} tope={f.topeMes} />
-            <TokensMes gastoMes={f.gastoMes} topeMes={f.topeMes} />
+            <EnergiaMes gastoMes={f.gastoMes} topeMes={f.topeMes} />
             <small>
               Claude {usd(f.mes.costoClaude)} ({f.mes.llamadas} llamadas) · Imágenes {usd(f.mes.costoImagenes)} ({f.mes.imagenes}) · Audio {usd(f.mes.costoAudio)} ({Math.round(f.mes.segundosAudio / 60)} min)
             </small>
@@ -152,6 +152,7 @@ export default async function CorredorDetalle({
             defaultValue={c.tope_ia_dia_usd ?? ""}
             placeholder={`${plataforma.topeDia} (plataforma)`}
             periodo="día"
+            asistente={c.nombre_asistente}
             respaldo={plataforma.topeDia}
           />
           <CampoUsd
@@ -160,6 +161,7 @@ export default async function CorredorDetalle({
             defaultValue={c.tope_ia_mes_usd ?? ""}
             placeholder={`${plataforma.topeMes} (plataforma)`}
             periodo="mes"
+            asistente={c.nombre_asistente}
             respaldo={plataforma.topeMes}
           />
           <label>
@@ -178,7 +180,7 @@ export default async function CorredorDetalle({
             Guardar topes
           </button>
         </form>
-        <p className="adm-suave">{EXPLICA_TOKENS}</p>
+        <p className="adm-suave">{EXPLICA_ENERGIA}</p>
         <p className="adm-suave">Vacío usa el de la plataforma; 0 apaga la IA de este corredor. Los topes de IA cuentan Claude, imágenes y transcripción de audio. Al llegar al tope de mensajes del mes la IA no contesta: el chat queda para el corredor.</p>
       </section>
 

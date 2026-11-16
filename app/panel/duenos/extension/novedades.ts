@@ -6,9 +6,13 @@ import { compararVersiones } from "@/lib/panel/extension-instalar";
 
 const NOVEDADES: { version: string; texto: (asistente: string) => string }[] = [
   {
+    version: "1.5.1",
+    texto: (a) => `El panel lateral muestra la energía de ${a} como una batería: así ves cuánto le queda este mes.`,
+  },
+  {
     version: "1.5.0",
     texto: (a) =>
-      `El panel de ${a} se ve más claro: el avance en un círculo, los pasos por minuto, cuántos tokens de IA te quedan este mes y botones grandes para buscar dueños o leer el anuncio que estás viendo.`,
+      `El panel de ${a} se ve más claro: el avance en un círculo, los pasos por minuto y botones grandes para buscar dueños o leer el anuncio que estás viendo.`,
   },
   {
     version: "1.4.1",

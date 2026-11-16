@@ -37,10 +37,10 @@ const pedir = async (token?: string) => {
 };
 
 describe("GET /api/extension/estado", () => {
-  it("devuelve los tokens del corredor del permiso, y solo de él", async () => {
+  it("devuelve la energía (campo tokens, más pct_restante) del corredor del permiso, y solo de él", async () => {
     const r = await pedir(TOKEN);
     expect(r.status).toBe(200);
-    expect(await r.json()).toEqual({ ok: true, tokens: { total: 2000, usados: 1240, restantes: 760, pct: 62, nivel: "bien" } });
+    expect(await r.json()).toEqual({ ok: true, tokens: { total: 2000, usados: 1240, restantes: 760, pct: 62, nivel: "bien", pct_restante: 38 } });
     expect(pedidos).toEqual([MIO]);
   });
 
