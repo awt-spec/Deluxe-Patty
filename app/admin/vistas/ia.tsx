@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { FilaAdmin } from "@/lib/admin/datos";
+import { estaPausado, nivelUso } from "@/lib/admin/atencion";
 import { estadoEnergia } from "@/lib/ia/energia";
 import { IconoAlerta, IconoInfo, IconoRayo, IconoReloj, IconoResumen } from "../../panel/iconos";
 import { guardarTopesPlataforma } from "../acciones";
@@ -15,7 +16,13 @@ export interface DatosIA {
 }
 
 function TopePropio({ valor, plataforma }: { valor: number | null; plataforma: number }) {
-  if (valor === null) return <span className="ad-suave ad-num">Plataforma ({usd(plataforma)})</span>;
+  // En dos líneas: así la tabla cabe en una computadora sin cortar el botón "Cambiar".
+  if (valor === null)
+    return (
+      <span className="ad-suave ad-tope-plataforma">
+        Plataforma <span className="ad-num">({usd(plataforma)})</span>
+      </span>
+    );
   if (valor === 0)
     return (
       <Pildora tono="info" punto={false}>
@@ -33,7 +40,8 @@ export function VistaIA({ filas, plataforma }: DatosIA) {
   const totalHoy = filas.reduce((s, f) => s + f.gastoHoy, 0);
   const totalMes = filas.reduce((s, f) => s + f.gastoMes, 0);
   const topeMes = filas.filter((f) => f.c.activo).reduce((s, f) => s + f.topeMes, 0);
-  const frenados = filas.filter((f) => f.gastoHoy >= f.topeDia || f.gastoMes >= f.topeMes).length;
+  // Frenados de verdad: activos que llegaron al tope (un pausado con tope 0 no cuenta, se ve como "Pausado").
+  const frenados = filas.filter((f) => f.c.activo && !estaPausado(f) && (nivelUso(f.gastoHoy, f.topeDia) === "agotado" || nivelUso(f.gastoMes, f.topeMes) === "agotado")).length;
   const e = estadoEnergia({ gastoMesUsd: totalMes, topeMesUsd: topeMes });
 
   return (

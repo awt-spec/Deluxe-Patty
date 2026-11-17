@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { FilaAdmin } from "@/lib/admin/datos";
-import { describirAlerta, estadoCorredor, estadoWhatsApp, type Atencion } from "@/lib/admin/atencion";
+import { describirAlerta, estaPausado, estadoCorredor, estadoWhatsApp, nivelUso, type Atencion } from "@/lib/admin/atencion";
 import { estadoEnergia } from "@/lib/ia/energia";
 import { IconoAlerta, IconoCampana, IconoCheck, IconoChats, IconoFlecha, IconoInfo, IconoPersonas, IconoRayo } from "../../panel/iconos";
 import { Avatar, Encabezado, EnergiaMes, Kpi, Pildora, Tarjeta, Vacio, hace, usd } from "../ui";
@@ -25,7 +25,8 @@ export function VistaResumen({ filas, atencion, alertas, alertas24h, ahora = new
   const totalMes = filas.reduce((s, f) => s + f.gastoMes, 0);
   const topeMes = activos.reduce((s, f) => s + f.topeMes, 0);
   const energia = estadoEnergia({ gastoMesUsd: totalMes, topeMesUsd: topeMes });
-  const frenados = filas.filter((f) => f.gastoHoy >= f.topeDia || f.gastoMes >= f.topeMes).length;
+  // Frenados de verdad: activos que llegaron al tope. Un pausado (tope 0) no es un freno, va aparte.
+  const frenados = activos.filter((f) => !estaPausado(f) && (nivelUso(f.gastoHoy, f.topeDia) === "agotado" || nivelUso(f.gastoMes, f.topeMes) === "agotado")).length;
   const urgentes = atencion.filter((a) => a.tono === "mal").length;
 
   return (
@@ -33,13 +34,14 @@ export function VistaResumen({ filas, atencion, alertas, alertas24h, ahora = new
       <Encabezado titulo="Resumen" descripcion="Cómo va la plataforma hoy y qué necesita tu atención." />
 
       <div className="ad-kpis">
-        <Kpi icono={<IconoPersonas tamano={22} />} etiqueta="Corredores activos" valor={activos.length} detalle={filas.length > activos.length ? `${filas.length - activos.length} en demo` : "Todos activos"} />
+        <Kpi icono={<IconoPersonas tamano={22} />} etiqueta="Corredores activos" valor={activos.length} detalle={filas.length === 0 ? "Ninguno todavía" : filas.length > activos.length ? `${filas.length - activos.length} en demo` : "Todos activos"} />
         <Kpi icono={<IconoChats tamano={22} />} etiqueta="Mensajes este mes" valor={mensajesMes.toLocaleString("es-CR")} detalle="Entrantes y salientes" />
         <Kpi
           icono={<IconoRayo tamano={22} />}
           etiqueta="Energía usada"
-          valor={`${energia.usado} %`}
-          detalle={`${usd(totalMes)} de ${usd(topeMes)} este mes`}
+          // Sin tope entre los activos (ninguno, o todos pausados) no hay "100 % usado" que mostrar.
+          valor={topeMes > 0 ? `${energia.usado} %` : "—"}
+          detalle={topeMes > 0 ? `${usd(totalMes)} de ${usd(topeMes)} este mes` : `${usd(totalMes)} este mes, sin tope activo`}
           tono={frenados ? "mal" : energia.nivel === "poco" ? "poco" : undefined}
         >
           {frenados > 0 && <span className="ad-kpi-detalle ad-txt-mal">{frenados === 1 ? "1 corredor frenado" : `${frenados} corredores frenados`}</span>}
