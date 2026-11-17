@@ -1,3 +1,4 @@
+import { sesionSuperadmin } from "@/lib/admin/superadmin";
 import { cargarCorredores } from "@/lib/admin/datos";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Mensaje } from "../ui";
@@ -8,6 +9,8 @@ import { VistaIA } from "../vistas/ia";
 // corredor y no se generan imágenes hasta el día o el mes siguiente. Lo que se ve está en vistas/ia.tsx.
 
 export default async function IA({ searchParams }: { searchParams: Promise<{ m?: string; ok?: string }> }) {
+  // Cada página comprueba al superadmin por su cuenta (no solo el layout): sin serlo, 404.
+  await sesionSuperadmin();
   const { m, ok } = await searchParams;
   const { filas, plataforma } = await cargarCorredores(createAdminClient());
   return (

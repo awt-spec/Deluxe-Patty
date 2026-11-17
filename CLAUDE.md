@@ -152,9 +152,13 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   celular del corredor, activo, respuesta automática, topes, accesos y "Probar WhatsApp"), **WhatsApp** (pasos en orden con su estado y su botón; diagnóstico
   en vivo con la Graph API, `lib/whatsapp/graph.ts`: llaves puestas, estado de cada número, **registrar el número**
   con PIN —error 133010—, **suscribir la app** a la cuenta y **conectar el webhook**), **Accesos** (crear usuarios con
-  contraseña, enlazar a un corredor, superadmins; nunca se quita el último ni a uno mismo) e **IA y topes**. Las
-  acciones (`app/admin/acciones.ts`) vuelven a comprobar al superadmin y no registran correos, teléfonos ni
-  contraseñas. El resultado de cada acción sale como aviso flotante que se cierra (`?m=&ok=`, `app/admin/aviso.tsx`). `explicarErrorWhatsApp` traduce los
+  contraseña, enlazar a un corredor, superadmins; nunca se quita el último ni a uno mismo) e **IA y topes**. Cada
+  página (no solo el layout) y cada acción (`app/admin/acciones.ts`) llama a `sesionSuperadmin()` (con `cache` de React, una
+  consulta por petición; `tests/acciones/admin-paginas.test.ts` lo vigila) y no registran correos, teléfonos ni contraseñas.
+  Quitar un superadmin borra, vuelve a contar y, si quedó en 0 (dos "quitar" a la vez), repone la fila; el arreglo definitivo
+  es un trigger en la base (migración pendiente). Un corredor con tope 0 sale como "Pausado" (informativo, nunca "frenado" en
+  rojo) y el ámbar de barras y Atención es el de la energía (85 % usado, `PCT_CERCA`/`nivelUso` en `lib/admin/atencion.ts`).
+  Los topes en dólares se leen con `leerMontoUsd` (`lib/admin/montos.ts`: "1.000" = mil; máximo $10.000) y llevan ayuda. El resultado de cada acción sale como aviso flotante que se cierra (`?m=&ok=`, `app/admin/aviso.tsx`). `explicarErrorWhatsApp` traduce los
   códigos de Meta (190, 133010, 131030, 131042, 132001…).
 - El corredor (rol `authenticated`) solo escribe lo que el panel le deja: ficha de sus propiedades (no las
   fotos), horario, bloqueos, corredores conocidos, leads y algunos ajustes. Mensajes, conversaciones,

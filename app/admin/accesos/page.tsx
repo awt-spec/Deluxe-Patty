@@ -6,8 +6,8 @@ import { VistaAccesos } from "../vistas/accesos";
 // Accesos: quién puede entrar, a qué corredor y quién es superadministrador. Todo se hace aquí, sin entrar a Supabase.
 
 export default async function Accesos({ searchParams }: { searchParams: Promise<{ m?: string; ok?: string }> }) {
-  const { m, ok } = await searchParams;
   const { correo: yo } = await sesionSuperadmin();
+  const { m, ok } = await searchParams;
   const db = createAdminClient();
   const [{ data: lista }, { data: miembros }, { data: corredores }, { data: supers }] = await Promise.all([
     db.auth.admin.listUsers({ page: 1, perPage: 1000 }),

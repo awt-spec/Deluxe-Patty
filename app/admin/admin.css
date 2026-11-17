@@ -109,6 +109,11 @@
   font-style: normal;
   font-weight: 600;
 }
+.ad-txt-info {
+  color: var(--ad-suave);
+  font-style: normal;
+  font-weight: 600;
+}
 .ad-saltar {
   position: absolute;
   left: 12px;
@@ -329,7 +334,10 @@
   flex: 1 1 320px;
   min-width: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
+  /* Nombres y correos largos sin espacios (el contacto del corredor) se parten en vez de ensanchar la página. */
+  overflow-wrap: anywhere;
 }
 .ad-encabezado h1 {
   font-size: 28px;
@@ -561,6 +569,10 @@
 .ad-barra.lleno > span {
   background: var(--ad-mal);
 }
+.ad-barra.apagada {
+  background: repeating-linear-gradient(135deg, var(--ad-gris-fondo) 0 6px, transparent 6px 12px);
+  outline: 1px solid var(--ad-gris-fondo);
+}
 .ad-energia {
   display: grid;
   gap: 6px;
@@ -686,9 +698,14 @@
 }
 .ad-aviso p {
   flex: 1;
+  min-width: 0;
   display: grid;
   gap: 2px;
   font-size: 15px;
+  /* Un mensaje muy largo no tapa media pantalla: se desplaza dentro del aviso. */
+  max-height: min(40vh, 240px);
+  overflow-y: auto;
+  overflow-wrap: anywhere;
 }
 .ad-aviso-icono {
   flex: none;
@@ -1074,11 +1091,12 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  min-width: 240px;
+  min-width: 200px;
 }
 .ad-nombre-fila > span {
   display: grid;
   min-width: 0;
+  overflow-wrap: anywhere;
 }
 .ad-celda-nombre .ad-suave {
   font-size: 13px;
@@ -1096,6 +1114,9 @@
 .ad-num {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+.ad-tope-plataforma {
+  display: inline-grid;
 }
 .ad-celda-ver {
   text-align: right;

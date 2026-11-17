@@ -1,3 +1,4 @@
+import { sesionSuperadmin } from "@/lib/admin/superadmin";
 import { notFound } from "next/navigation";
 import { cargarCorredores } from "@/lib/admin/datos";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -11,6 +12,8 @@ export default async function CorredorDetalle({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ m?: string; ok?: string }>;
 }) {
+  // Cada página comprueba al superadmin por su cuenta (no solo el layout): sin serlo, 404.
+  await sesionSuperadmin();
   const { id } = await params;
   const { m, ok } = await searchParams;
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();

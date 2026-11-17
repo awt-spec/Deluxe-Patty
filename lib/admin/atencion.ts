@@ -1,6 +1,16 @@
 // Reglas puras de /admin (sin base ni red): lo que pide atención en el Resumen, el estado de cada corredor y cómo
 // se nombra cada alerta de monitoreo. Las páginas leen los datos y las vistas solo dibujan esto.
+import { UMBRAL_POCO, estadoTokens } from "../ia/tokens";
 import type { FilaAdmin } from "./datos";
+
+/** Porcentaje usado desde el que algo está "cerca del tope": el mismo de la energía (queda el 15 % o menos). */
+export const PCT_CERCA = Math.round((1 - UMBRAL_POCO) * 100);
+
+/** Pausado a propósito: activo pero con un tope de IA en 0 (la IA apagada no es una falla). */
+export const estaPausado = (f: Pick<FilaAdmin, "topeDia" | "topeMes">) => f.topeMes <= 0 || f.topeDia <= 0;
+
+/** Nivel de un gasto contra su tope con la misma regla que la energía (lib/ia/tokens.ts): bien, poco o agotado. */
+export const nivelUso = (gasto: number, tope: number) => estadoTokens({ gastoMesUsd: gasto, topeMesUsd: tope }).nivel;
 
 export type Tono = "mal" | "poco" | "info" | "gris" | "bien";
 
@@ -32,8 +42,10 @@ export function listaAtencion(filas: FilaAdmin[], llaves: Llaves): Atencion[] {
     if (!f.c.whatsapp_phone_number_id) a.push({ tono: "mal", titulo: `${n}: sin número de WhatsApp`, texto: "Falta el Phone number ID: sus clientes no pueden escribirle a la asistente.", href: ruta, accion: "Poner el número" });
     else if (!f.ultimoEntrante) a.push({ tono: "poco", titulo: `${n}: no ha llegado ningún mensaje`, texto: "Todavía no entra nada por WhatsApp. Revisa el registro del número y el webhook.", ...meta });
     if (!f.c.whatsapp_corredor) a.push({ tono: "poco", titulo: `${n}: falta el celular del corredor`, texto: "Sin él no recibe el plan del día ni los avisos, y sus mensajes se tratan como de un cliente.", href: ruta, accion: "Agregar celular" });
-    if (f.gastoHoy >= f.topeDia || f.gastoMes >= f.topeMes) a.push({ tono: "mal", titulo: `${n}: frenado por tope de IA`, texto: "La asistente no contesta: los chats quedan para el corredor.", href: `${ruta}#ia`, accion: "Revisar topes" });
-    else if (f.gastoHoy >= f.topeDia * 0.8 || f.gastoMes >= f.topeMes * 0.8) a.push({ tono: "poco", titulo: `${n}: cerca del tope de IA`, texto: "Usó el 80 % o más del tope del día o del mes.", href: `${ruta}#ia`, accion: "Revisar topes" });
+    const niveles = [nivelUso(f.gastoHoy, f.topeDia), nivelUso(f.gastoMes, f.topeMes)];
+    if (estaPausado(f)) a.push({ tono: "info", titulo: `${n}: pausado (tope 0)`, texto: "La IA está apagada a propósito: los chats quedan para el corredor.", href: `${ruta}#ia`, accion: "Revisar topes" });
+    else if (niveles.includes("agotado")) a.push({ tono: "mal", titulo: `${n}: frenado por tope de IA`, texto: "La asistente no contesta: los chats quedan para el corredor.", href: `${ruta}#ia`, accion: "Revisar topes" });
+    else if (niveles.includes("poco")) a.push({ tono: "poco", titulo: `${n}: cerca del tope de IA`, texto: `Usó el ${PCT_CERCA} % o más del tope del día o del mes.`, href: `${ruta}#ia`, accion: "Revisar topes" });
     if (f.mensajesMes >= f.c.aviso_mensajes_mes) a.push({ tono: "poco", titulo: `${n}: ${f.mensajesMes} de ${f.c.tope_mensajes_mes} mensajes`, texto: "Se acerca al tope de mensajes del mes.", href: `${ruta}#ia`, accion: "Revisar topes" });
     if (!f.c.respuesta_automatica) a.push({ tono: "info", titulo: `${n}: piloto en sombra`, texto: "Las respuestas esperan la aprobación del corredor antes de salir.", href: ruta, accion: "Abrir" });
   }
@@ -42,9 +54,9 @@ export function listaAtencion(filas: FilaAdmin[], llaves: Llaves): Atencion[] {
 }
 
 /** Estado de la cuenta: activo, demo (inactivo) o pausado (activo pero con la IA apagada por tope 0). */
-export function estadoCorredor(f: Pick<FilaAdmin, "c" | "topeMes">): { texto: string; tono: Tono } {
+export function estadoCorredor(f: Pick<FilaAdmin, "c" | "topeDia" | "topeMes">): { texto: string; tono: Tono } {
   if (!f.c.activo) return { texto: "Demo", tono: "gris" };
-  if (f.topeMes <= 0) return { texto: "Pausado", tono: "poco" };
+  if (estaPausado(f)) return { texto: "Pausado", tono: "info" };
   return { texto: "Activo", tono: "bien" };
 }
 

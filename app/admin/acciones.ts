@@ -243,9 +243,14 @@ export async function quitarAcceso(f: FormData) {
   ir(volverA, error ? "No se pudo quitar el acceso." : "Acceso quitado.", !error);
 }
 
+/** Correo comparable: sin espacios a los lados y en minúsculas (como se guarda en superadmins). */
+const normalizarCorreo = (c: string | null | undefined) => String(c ?? "").trim().toLowerCase();
+
+const ULTIMO_SUPERADMIN = "Tiene que quedar al menos un superadministrador.";
+
 export async function alternarSuperadmin(f: FormData) {
   const { correo: yo } = await sesionSuperadmin();
-  const correo = texto(f, "correo").toLowerCase();
+  const correo = normalizarCorreo(texto(f, "correo"));
   const hacer = texto(f, "hacer") === "1";
   if (!correoValido(correo)) ir("/admin/accesos", "Ese correo parece incompleto.");
   const db = createAdminClient();
@@ -255,10 +260,22 @@ export async function alternarSuperadmin(f: FormData) {
     ir("/admin/accesos", error ? "No se pudo dar el permiso." : "Ahora es superadministrador.", !error);
   }
   // Quitar: nunca a uno mismo (quedarías fuera) y nunca al último.
-  if (correo === yo.toLowerCase()) ir("/admin/accesos", "No puedes quitarte el permiso a ti mismo: pídeselo a otro superadministrador.");
-  const { count } = await db.from("superadmins").select("correo", { count: "exact", head: true });
-  if ((count ?? 0) <= 1) ir("/admin/accesos", "Tiene que quedar al menos un superadministrador.");
-  const { error } = await db.from("superadmins").delete().eq("correo", correo);
+  if (correo === normalizarCorreo(yo)) ir("/admin/accesos", "No puedes quitarte el permiso a ti mismo: pídeselo a otro superadministrador.");
+  const contar = async () => {
+    const { count, error } = await db.from("superadmins").select("correo", { count: "exact", head: true });
+    return error ? null : (count ?? 0);
+  };
+  if (((await contar()) ?? 0) <= 1) ir("/admin/accesos", ULTIMO_SUPERADMIN);
+  // PostgREST no deja condicionar el borrado al conteo en una sola sentencia (sin subconsultas). Para que dos "quitar"
+  // casi a la vez no dejen la tabla vacía: se borra, se vuelve a contar y, si no quedó ninguno (o no se puede saber),
+  // se repone la fila borrada. El arreglo definitivo es un trigger BEFORE DELETE en la base (migración pendiente).
+  const { data: borradas, error } = await db.from("superadmins").delete().eq("correo", correo).select("correo, created_at");
+  if (!error && ((await contar()) ?? 0) < 1) {
+    const filas: { correo: string; created_at?: string }[] = Array.isArray(borradas) && borradas.length ? borradas : [{ correo }];
+    const { error: repuesto } = await db.from("superadmins").upsert(filas, { onConflict: "correo" });
+    registro("quitar_superadmin_repuesto", !repuesto);
+    ir("/admin/accesos", ULTIMO_SUPERADMIN);
+  }
   registro("quitar_superadmin", !error);
   ir("/admin/accesos", error ? "No se pudo quitar el permiso." : "Ya no es superadministrador.", !error);
 }

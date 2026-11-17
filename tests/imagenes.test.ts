@@ -221,5 +221,19 @@ describe("QA: montos de los topes en el superadministrador", () => {
     expect(monto("-3", false)).toBe("error");
     expect(monto("20000", false)).toBe("error");
     expect(monto("abc", false)).toBe("error");
+    expect(monto("150,50", false)).toBe(150.5);
+    expect(monto("10.500", false)).toBe("error"); // diez mil quinientos: pasa del máximo
+  });
+
+  it("dice cómo leyó el monto: el punto con tres cifras es de miles", async () => {
+    const { ayudaMontoUsd, leerMontoUsd } = await import("../lib/admin/montos");
+    expect(leerMontoUsd("1.000")).toEqual({ tipo: "ok", n: 1000, miles: true });
+    expect(leerMontoUsd("150")).toEqual({ tipo: "ok", n: 150, miles: false });
+    expect(leerMontoUsd("10.50")).toEqual({ tipo: "ok", n: 10.5, miles: false });
+    expect(leerMontoUsd("10.500")).toEqual({ tipo: "fuera", n: 10500 });
+    expect(leerMontoUsd(" ")).toEqual({ tipo: "vacio" });
+    expect(leerMontoUsd("diez")).toEqual({ tipo: "invalido" });
+    expect(ayudaMontoUsd(true)).toMatch(/^Escribe el monto en dólares, por ejemplo 150 o 150,50\. Vacío = el de la plataforma; 0 = apagado\./);
+    expect(ayudaMontoUsd(false)).not.toMatch(/Vacío/);
   });
 });
