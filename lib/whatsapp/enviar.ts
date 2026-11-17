@@ -135,9 +135,17 @@ export function porQueNoLlego(codigo: number | undefined): string {
   }
 }
 
-// Meta rechaza parámetros de plantilla con saltos de línea, tabuladores o más de 4 espacios seguidos.
+// Meta rechaza parámetros de plantilla con saltos de línea, tabuladores o más de 4 espacios seguidos. Los avisos de
+// varias líneas (`armarAviso`) se aplanan uniendo cada línea con " · " (sin líneas vacías ni viñetas sueltas).
 export function limpiarParametro(valor: string, max = 900): string {
-  const limpio = valor.replace(/[\r\n\t]+/g, " · ").replace(/ {4,}/g, "   ").trim();
+  const limpio = valor
+    .replace(/\t+/g, " ")
+    .split(/\r\n?|\n/)
+    .map((l) => l.trim().replace(/^[•◦]\s*/, ""))
+    .filter(Boolean)
+    .join(" · ")
+    .replace(/ {4,}/g, "   ")
+    .trim();
   return limpio.length > max ? `${limpio.slice(0, max - 1)}…` : limpio;
 }
 

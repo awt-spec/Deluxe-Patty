@@ -33,11 +33,13 @@ export async function avisarVencimientos(deps: Dependencias): Promise<{ avisados
       const anuncios = candidatos.filter((a) => marcados.has(a.id));
       if (anuncios.length === 0) continue;
 
-      const partes = anuncios.map((a) => `${a.titulo ?? `ref. ${a.referencia}`} (vence el ${fechaCorta(a.vence_en)})`);
-      const texto =
-        anuncios.length === 1
-          ? `Tu anuncio de Encuentra24 ${partes[0]} está por vencer. Renuévalo para no perder posición.`
-          : `Tienes ${anuncios.length} anuncios de Encuentra24 por vencer: ${partes.join("; ")}. Renuévalos para no perder posición.`;
+      // Varias líneas en WhatsApp; en la plantilla (ventana cerrada) `limpiarParametro` las une con " · ".
+      const partes = anuncios.map((a) => `• ${a.titulo ?? `ref. ${a.referencia}`}: vence el ${fechaCorta(a.vence_en)}`);
+      const texto = [
+        anuncios.length === 1 ? "*Tu anuncio de Encuentra24 está por vencer*" : `*Tienes ${anuncios.length} anuncios de Encuentra24 por vencer*`,
+        ...partes,
+        `Qué hacer: ${anuncios.length === 1 ? "renuévalo" : "renuévalos"} para no perder posición.`,
+      ].join("\n");
       const conversacion = await conversacionDelCorredor(deps, corredor);
       await enviarAlCorredor(deps, corredor, conversacion, texto, { plantillaSiCerrada: texto, ahora });
       resumen.avisados += anuncios.length;

@@ -3,6 +3,7 @@ import type { AccionPendiente, Conversacion, Corredor, Intencion, UsoDelta, UsoM
 import type { EditorFotos } from "../fotos/editor";
 import { ErrorWhatsApp, codigoWhatsApp, esErrorDeConfiguracion, porQueNoLlego, type EnviadorWhatsApp } from "../whatsapp/enviar";
 import type { Medios } from "../whatsapp/media";
+import { armarAviso, ordenarParaWhatsApp } from "../whatsapp/formato";
 import { telefonoE164 } from "../whatsapp/telefono";
 import type { Cerebro } from "./cerebro";
 import type { Consumo } from "./costo";
@@ -44,8 +45,11 @@ export function diaDelCorredor(corredor: Pick<Corredor, "zona_horaria">, ahora: 
  * asistente para que su estado de entrega se vea (y si Meta no lo entrega, se le avise a soporte). true si salió.
  * Un corredor inactivo (demo) nunca manda nada.
  */
+/** Ventana de 24 horas del corredor, con 10 minutos de margen (como en `enviarAlCorredor`). */
+const VENTANA_AVISO_MS = 24 * 60 * 60_000 - 10 * 60_000;
+
 export async function avisarAlCorredor(
-  deps: Pick<Dependencias, "repo" | "whatsapp" | "plantillaAviso">,
+  deps: Pick<Dependencias, "repo" | "whatsapp" | "plantillaAviso"> & { ahora?: () => Date },
   corredor: Pick<Corredor, "id" | "whatsapp_corredor" | "whatsapp_phone_number_id" | "activo">,
   texto: string,
   log: (evento: string, datos: Record<string, unknown>) => void,
@@ -59,12 +63,35 @@ export async function avisarAlCorredor(
     log("aviso_simulado", { corredorId: corredor.id });
     return false;
   }
-  let waId: string;
+  // Con su ventana de 24 horas abierta el aviso va como texto libre, en varias líneas y ordenado; si no (o si el texto
+  // falla), por la plantilla, que lo aplana en una línea.
+  let conversacionId: string | null = null;
+  let abierta = false;
   try {
-    waId = await deps.whatsapp.plantilla(corredor.whatsapp_phone_number_id, destino, deps.plantillaAviso, [texto]);
-  } catch (error) {
-    log("error_aviso_corredor", { corredorId: corredor.id, codigo: codigoWhatsApp(error), error: errorSeguro(error) });
-    return false;
+    const contacto = await deps.repo.contactoCorredor(corredor.id, destino);
+    conversacionId = (await deps.repo.conversacionActiva(corredor.id, contacto.id)).id;
+    const ultimo = await deps.repo.ultimoMensajeDe(corredor.id, contacto.id);
+    abierta = !!ultimo && (deps.ahora?.() ?? new Date()).getTime() - ultimo.getTime() < VENTANA_AVISO_MS;
+  } catch (e) {
+    log("aviso_sin_ventana", { corredorId: corredor.id, error: errorSeguro(e) });
+  }
+  let waId: string | null = null;
+  let tipo: "texto" | "plantilla" = "plantilla";
+  if (abierta) {
+    try {
+      waId = await deps.whatsapp.texto(corredor.whatsapp_phone_number_id, destino, texto);
+      tipo = "texto";
+    } catch (error) {
+      log("aviso_texto_fallo", { corredorId: corredor.id, codigo: codigoWhatsApp(error), error: errorSeguro(error) });
+    }
+  }
+  if (!waId) {
+    try {
+      waId = await deps.whatsapp.plantilla(corredor.whatsapp_phone_number_id, destino, deps.plantillaAviso, [texto]);
+    } catch (error) {
+      log("error_aviso_corredor", { corredorId: corredor.id, codigo: codigoWhatsApp(error), error: errorSeguro(error) });
+      return false;
+    }
   }
   // El aviso también es un mensaje de la cuenta y cuenta contra el tope (sin volver a revisar el umbral, para no
   // encadenar avisos).
@@ -72,14 +99,13 @@ export async function avisarAlCorredor(
     log("error_uso_aviso", { corredorId: corredor.id, error: errorSeguro(e) }),
   );
   try {
-    const contacto = await deps.repo.contactoCorredor(corredor.id, destino);
-    const conversacion = await deps.repo.conversacionActiva(corredor.id, contacto.id);
+    if (!conversacionId) throw new Error("sin_conversacion");
     await deps.repo.guardarMensaje({
       corredor_id: corredor.id,
-      conversacion_id: conversacion.id,
+      conversacion_id: conversacionId,
       direccion: "saliente",
       autor: "sistema",
-      tipo: "plantilla",
+      tipo,
       contenido: texto,
       wa_message_id: waId,
       estado_entrega: "enviado",
@@ -137,8 +163,11 @@ export class Contexto {
     if (uso.mensajes_total < this.corredor.aviso_mensajes_mes || uso.aviso_tope_enviado_at) return uso;
     if (!(await this.deps.repo.marcarAvisoTope(this.corredor.id, uso.mes))) return uso;
     await this.avisarCorredor(
-      `Tu asistente lleva ${uso.mensajes_total} de ${this.corredor.tope_mensajes_mes} mensajes de WhatsApp este mes. ` +
-        `Al llegar a ${this.corredor.tope_mensajes_mes} deja de contestar sola y los chats te quedan a ti.`,
+      armarAviso({
+        titulo: `Tu asistente lleva ${uso.mensajes_total} de ${this.corredor.tope_mensajes_mes} mensajes de WhatsApp este mes`,
+        porQue: `al llegar a ${this.corredor.tope_mensajes_mes} deja de contestar sola y los chats te quedan a ti`,
+        queHacer: "si necesitas más mensajes este mes, escríbele a soporte",
+      }),
     );
     return uso;
   }
@@ -147,8 +176,11 @@ export class Contexto {
    * Responde al cliente. En piloto en sombra (respuesta_automatica = false) solo guarda el borrador
    * para que el corredor lo apruebe. Devuelve true si quedó como borrador.
    */
-  async responderCliente(texto: string, intencion: Intencion | null, accion: AccionPendiente | null = null): Promise<boolean> {
+  async responderCliente(textoModelo: string, intencion: Intencion | null, accion: AccionPendiente | null = null): Promise<boolean> {
     const { repo, whatsapp } = this.deps;
+    // WhatsApp no lee markdown: lo que escribió el modelo se pasa a su formato antes de guardarlo y enviarlo (el
+    // borrador que ve el corredor es lo mismo que le llegaría al cliente).
+    const texto = ordenarParaWhatsApp(textoModelo);
     const borrador = !this.corredor.respuesta_automatica;
     const id = await repo.guardarMensaje({
       corredor_id: this.corredor.id,
@@ -174,7 +206,13 @@ export class Contexto {
       this.log("error_envio_cliente", { corredorId: this.corredor.id, mensajeId: id, codigo, error: errorSeguro(error) });
       if (await this.unaVez(`entrega_fallida:${this.corredor.id}:${this.conversacion.id}`, 60)) {
         await this.avisarCorredor(
-          `No le pude mandar la respuesta a ${this.nombreCliente()}: ${porQueNoLlego(codigo)}. Lo que le iba a decir: "${texto.slice(0, 200)}". Escríbele desde tu WhatsApp o desde el chat en el panel.`,
+          armarAviso({
+            titulo: `No le pude mandar la respuesta a ${this.nombre ?? "un cliente"}`,
+            porQue: porQueNoLlego(codigo),
+            mensaje: texto,
+            queHacer: "escríbele desde tu WhatsApp o desde el chat en el panel",
+            telefono: this.telefonoCliente,
+          }),
         );
       }
       if (esErrorDeConfiguracion(codigo, error instanceof ErrorWhatsApp ? error.status : undefined)) {

@@ -2,6 +2,7 @@ import type { Dependencias } from "../asistente/procesar";
 import { conPunto, etiquetaHorario } from "./formato";
 import { errorSeguro } from "../monitoreo/errores";
 import { avisarAlCorredor } from "../asistente/contexto";
+import { armarAviso } from "../whatsapp/formato";
 import { codigoWhatsApp, esErrorDeConfiguracion, esErrorTransitorio, ErrorWhatsApp, porQueNoLlego } from "../whatsapp/enviar";
 
 const HORA = 60 * 60_000;
@@ -69,11 +70,16 @@ export async function enviarRecordatorios(
           log("error_recordatorio", { corredorId: cita.corredor_id, citaId: cita.id, error: errorSeguro(e) }),
         );
       } else if (deps.plantillaAviso && cita.whatsapp_corredor) {
-        const quien = cita.nombre_cliente ? `${cita.nombre_cliente} (${cita.telefono})` : cita.telefono;
         await avisarAlCorredor(
           { repo: deps.repo, whatsapp: deps.whatsapp, plantillaAviso: deps.plantillaAviso },
           { id: cita.corredor_id, whatsapp_corredor: cita.whatsapp_corredor, whatsapp_phone_number_id: cita.phone_number_id, activo: true },
-          `No le pude mandar a ${quien} el recordatorio de la visita del ${cuando}: ${porQueNoLlego(codigo)}. Escríbele tú para confirmarla.`,
+          armarAviso({
+            titulo: `No le llegó el recordatorio de visita a ${cita.nombre_cliente?.trim() || "un cliente"}`,
+            porQue: porQueNoLlego(codigo),
+            detalles: [`Visita: ${cuando}`],
+            queHacer: "escríbele tú para confirmarla",
+            telefono: cita.telefono,
+          }),
           log,
         );
       }

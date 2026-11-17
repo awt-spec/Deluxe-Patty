@@ -65,7 +65,7 @@ describe("seguimiento de visitas", () => {
     await abrirVentana();
     expect(await preguntarPorVisitas(deps)).toEqual({ preguntadas: 1, fallidos: 0 });
     expect(textos()).toEqual([
-      "¿Cómo te fue en la visita de las 3:00 p. m. con Robert Miller (Casa Lindora)? Cuéntame en un mensaje o nota de voz y lo anoto en su historia. Si no se hizo, respóndeme «no vino» o «se canceló».",
+      "*¿Cómo te fue en la visita de las 3:00 p. m. con Robert Miller (Casa Lindora)?*\nCuéntame en un mensaje o nota de voz y lo anoto en su historia.\nSi no se hizo, respóndeme «no vino» o «se canceló».",
     ]);
     expect(db.alertas.has(claveSeguimiento(citaId))).toBe(true);
     reloj("2026-10-21T00:00:00Z");

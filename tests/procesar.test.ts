@@ -43,6 +43,28 @@ describe("procesarMensaje", () => {
     ]);
   });
 
+  it("lo que escribe el modelo sale en formato de WhatsApp (sin markdown) y así queda guardado", async () => {
+    cerebro.responder.mockResolvedValueOnce({
+      texto: "## Casa en Escazú\n\n- **Precio:** $485.000\n- **Cuartos:** 3\n\n\n\n¿Le gustaría verla?",
+      avisarCorredor: null,
+      consumo: SIN_CONSUMO,
+    });
+    await procesarMensaje(deps, entrante("¿Sigue disponible la casa de Escazú?"));
+    const esperado = "*Casa en Escazú*\n\n• *Precio:* $485.000\n• *Cuartos:* 3\n\n¿Le gustaría verla?";
+    expect(whatsapp.texto).toHaveBeenCalledWith("PNID", "+50688880001", esperado);
+    expect(db.mensajes.find((m) => m.direccion === "saliente")?.contenido).toBe(esperado);
+  });
+
+  it("el aviso a Patricia tiene título en negrita, mensaje y teléfono en su línea", async () => {
+    cerebro.clasificar.mockResolvedValueOnce({ intencion: "pasar_a_corredor", tema: "negociación de precio", consumo: SIN_CONSUMO });
+    await procesarMensaje(deps, entrante("¿Me lo deja en 400 mil?"));
+    const aviso: string = whatsapp.plantilla.mock.calls[0][3][0];
+    const lineas = aviso.split("\n");
+    expect(lineas[0]).toMatch(/^\*.+ quiere hablar contigo\*$/);
+    expect(lineas).toContain('Mensaje: "¿Me lo deja en 400 mil?"');
+    expect(lineas.at(-1)).toBe("Teléfono: +50688880001");
+  });
+
   it("lo de la lista de escalamiento llega a Patricia, no al cliente", async () => {
     cerebro.clasificar.mockResolvedValueOnce({ intencion: "pasar_a_corredor", tema: "negociación de precio", consumo: SIN_CONSUMO });
     const r = await procesarMensaje(deps, entrante("¿Me lo deja en 400 mil?"));
