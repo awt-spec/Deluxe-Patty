@@ -301,3 +301,59 @@ export function IconoBateria({ pct, tamano = 24, className }: { pct: number; tam
     </svg>
   );
 }
+
+// Íconos de /admin (consola del superadministrador).
+export const IconoEscudo = (p: Props) => (
+  <Icono {...p}>
+    <path d="M12 3 5 6v5.5c0 4.2 2.9 8 7 9.5 4.1-1.5 7-5.3 7-9.5V6l-7-3Z" />
+    <path d="m9.2 12.2 2 2 3.8-4" />
+  </Icono>
+);
+export const IconoAlerta = (p: Props) => (
+  <Icono {...p}>
+    <path d="M10.3 4.2 2.9 17.5A2 2 0 0 0 4.6 20.5h14.8a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0Z" />
+    <path d="M12 9.5v4.2M12 17h.01" strokeWidth={2} />
+  </Icono>
+);
+export const IconoRayo = (p: Props) => (
+  <Icono {...p}>
+    <path d="M13 2.5 4.5 13.5H12l-1 8 8.5-11H12l1-8Z" />
+  </Icono>
+);
+export const IconoBuscar = (p: Props) => (
+  <Icono {...p}>
+    <circle cx="11" cy="11" r="6.5" />
+    <path d="m20 20-4.2-4.2" />
+  </Icono>
+);
+export const IconoCerrar = (p: Props) => (
+  <Icono {...p}>
+    <path d="M6 6l12 12M18 6 6 18" />
+  </Icono>
+);
+export const IconoInfo = (p: Props) => (
+  <Icono {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 11v5.5M12 7.8h.01" strokeWidth={2} />
+  </Icono>
+);
+export const IconoCandado = (p: Props) => (
+  <Icono {...p}>
+    <rect x="5" y="10.5" width="14" height="10" rx="2.2" />
+    <path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3" />
+  </Icono>
+);
+export const IconoEnlace = (p: Props) => (
+  <Icono {...p}>
+    <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" />
+    <path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
+  </Icono>
+);
+export const IconoTablero = (p: Props) => (
+  <Icono {...p}>
+    <rect x="3.5" y="3.5" width="7" height="8" rx="1.6" />
+    <rect x="13.5" y="3.5" width="7" height="5" rx="1.6" />
+    <rect x="3.5" y="14.5" width="7" height="6" rx="1.6" />
+    <rect x="13.5" y="11.5" width="7" height="9" rx="1.6" />
+  </Icono>
+);

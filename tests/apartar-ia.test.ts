@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import {
   choquesConVisitas,
   codigoLoEntiende,
@@ -403,6 +403,12 @@ describe("por WhatsApp", () => {
 
 describe("en el chat de Patty", () => {
   it("lo que el código no entiende: resumen armado por código y botón a la pantalla, sin guardar", async () => {
+    // El chat de Patty usa la hora real: se fija un lunes antes de las fechas del caso para que no dependa del día en que corre.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-16T15:00:00Z"));
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
     const { hablarConPatty } = await import("../lib/panel/patty");
     const ops = [apartar({ desde: "2026-11-17", rato: "horas", hora_inicio: "14:00", hora_fin: "16:00", motivo: "Dentista" }), apartar({ desde: "2026-11-20" })];
     const { corredor, db, entenderApartado } = await preparar(ops);

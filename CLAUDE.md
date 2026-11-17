@@ -145,14 +145,16 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   ni cifras de tokens ni dinero. `/admin` muestra "Energía usada 38 % · $57 de $150" y, junto a los montos en dólares, "= 100 % de
   energía de Patty al mes" (`campo-usd.tsx`). La base sigue siendo `lib/ia/tokens.ts` (1 dólar = 100 unidades internas). La extensión
   la lee en `GET /api/extension/estado` (campo `tokens`, con `pct_restante` agregado; se mantiene el nombre por compatibilidad).
-  `/admin` tiene cinco secciones (menú lateral; en el teléfono, pestañas): **Resumen** (cifras, "Atención" con lo
+  `/admin` tiene cinco secciones (menú lateral oscuro con íconos e insignia "Administración"; en el teléfono, barra de abajo;
+  páginas que solo leen y vistas puras en `app/admin/vistas/`, reglas en `lib/admin/atencion.ts`, paleta `PALETA_ADMIN` =
+  `--ad-*` de `app/admin/admin.css`, AA probado; `loading.tsx` con esqueleto): **Resumen** (cifras, "Atención" con lo
   que falta o se pasa, alertas), **Corredores** (y `/admin/corredores/<id>`: Phone number ID, número de la asistente,
-  celular del corredor, activo, respuesta automática, topes, accesos y "Probar WhatsApp"), **WhatsApp** (diagnóstico
+  celular del corredor, activo, respuesta automática, topes, accesos y "Probar WhatsApp"), **WhatsApp** (pasos en orden con su estado y su botón; diagnóstico
   en vivo con la Graph API, `lib/whatsapp/graph.ts`: llaves puestas, estado de cada número, **registrar el número**
   con PIN —error 133010—, **suscribir la app** a la cuenta y **conectar el webhook**), **Accesos** (crear usuarios con
   contraseña, enlazar a un corredor, superadmins; nunca se quita el último ni a uno mismo) e **IA y topes**. Las
   acciones (`app/admin/acciones.ts`) vuelven a comprobar al superadmin y no registran correos, teléfonos ni
-  contraseñas. El resultado de cada acción sale pegado arriba (`?m=&ok=`). `explicarErrorWhatsApp` traduce los
+  contraseñas. El resultado de cada acción sale como aviso flotante que se cierra (`?m=&ok=`, `app/admin/aviso.tsx`). `explicarErrorWhatsApp` traduce los
   códigos de Meta (190, 133010, 131030, 131042, 132001…).
 - El corredor (rol `authenticated`) solo escribe lo que el panel le deja: ficha de sus propiedades (no las
   fotos), horario, bloqueos, corredores conocidos, leads y algunos ajustes. Mensajes, conversaciones,
