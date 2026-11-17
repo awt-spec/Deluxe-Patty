@@ -107,6 +107,8 @@ function repoSimulado(real: Repositorio, corredor: Corredor, estado: EstadoSimul
     propiedadesActivas: (corredorId) => real.propiedadesActivas(corredorId),
     correccionesRecientes: (corredorId, limite) => real.correccionesRecientes(corredorId, limite),
     conocimientoActivo: (corredorId, limite) => real.conocimientoActivo(corredorId, limite),
+    // Los avisos "una vez por chat" (topes, archivos que no lee) se muestran siempre en la prueba; no tocan `alertas`.
+    reclamarAlerta: async () => true,
     // En la prueba, lo que la asistente no sabe se muestra como aviso; no se anota en su cerebro.
     registrarDuda: async () => {},
     // La agenda real ocupa los horarios; las citas de la prueba también, para que la conversación sea coherente.

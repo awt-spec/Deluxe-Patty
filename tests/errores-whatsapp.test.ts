@@ -13,7 +13,8 @@ describe("explicarErrorWhatsApp", () => {
 
   it("sin llave configurada (estado 0) lo dice, y un código desconocido da la guía general", () => {
     expect(explicarErrorWhatsApp(new ErrorWhatsApp(0, undefined))).toMatch(/llave de acceso/);
-    expect(explicarErrorWhatsApp(new ErrorWhatsApp(500, 999999))).toMatch(/lista de prueba/);
+    expect(explicarErrorWhatsApp(new ErrorWhatsApp(500, 999999))).toMatch(/código 999999/);
+    expect(explicarErrorWhatsApp(new ErrorWhatsApp(500, 999999))).not.toMatch(/lista de prueba/);
   });
 
   it("un error que no es de WhatsApp no rompe y no expone su mensaje", () => {

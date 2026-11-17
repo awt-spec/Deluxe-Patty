@@ -194,6 +194,9 @@ export interface CitaParaRecordar {
   phone_number_id: string;
   zona_horaria: string;
   nombre_contacto: string;
+  /** Celular del corredor, para avisarle si el recordatorio no salió. */
+  whatsapp_corredor?: string | null;
+  nombre_cliente?: string | null;
 }
 
 export interface CitaCalendario {

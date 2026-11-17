@@ -1,3 +1,4 @@
+import { telefonoE164 } from "../whatsapp/telefono";
 import { ocupadoEnGoogle } from "../google/calendario";
 import { errorSeguro } from "../monitoreo/errores";
 import { reportarFalla } from "../monitoreo/fallas";
@@ -71,6 +72,10 @@ export interface Repositorio {
    * llegó). true si encontró el mensaje en un estado que lo admite (o ya en ese mismo estado).
    */
   actualizarEstadoEntrega(corredorId: string, waMessageId: string, estado: NonNullable<NuevoMensaje["estado_entrega"]>): Promise<boolean>;
+  /** Mensaje saliente por su wamid, con el contacto de su conversación (para avisar qué no le llegó a quién). */
+  mensajePorWaId?(corredorId: string, waMessageId: string): Promise<MensajeEnviado | null>;
+  /** Conversaciones abiertas cuyo último mensaje es del cliente y quedó sin respuesta entre `desde` y `hasta`. */
+  sinRespuesta?(corredorId: string, desde: Date, hasta: Date): Promise<{ conversacion_id: string; nombre: string | null; telefono: string }[]>;
 
   // Agenda
   datosAgenda(corredorId: string, desde: Date, hasta: Date): Promise<DatosAgenda>;
@@ -88,6 +93,8 @@ export interface Repositorio {
   citasParaRecordar(desde: Date, hasta: Date): Promise<CitaParaRecordar[]>;
   /** Marca el recordatorio. true solo para la llamada que lo marcó (evita recordatorios dobles). */
   marcarRecordatorio(corredorId: string, citaId: string): Promise<boolean>;
+  /** Quita la marca del recordatorio (el envío falló por algo pasajero): la próxima corrida lo vuelve a intentar. */
+  desmarcarRecordatorio?(corredorId: string, citaId: string): Promise<void>;
   calendarioPorToken(token: string, desde: Date): Promise<{ nombre: string; citas: CitaCalendario[] } | null>;
 
   // Asistente Base
@@ -184,6 +191,16 @@ export interface Repositorio {
   ponerSeguimiento(corredorId: string, contactoId: string, fecha: string, nota: string): Promise<boolean>;
 }
 
+/** Mensaje enviado con su contacto (avisos de "no le llegó"). */
+export interface MensajeEnviado {
+  id: string;
+  conversacion_id: string;
+  contenido: string | null;
+  telefono: string;
+  nombre: string | null;
+  es_corredor: boolean;
+}
+
 /** Visita que ya terminó y sigue sin resultado (agendada o confirmada). */
 export interface CitaTerminada {
   id: string;
@@ -199,6 +216,11 @@ const EXCLUSION_VIOLADA = "23P01";
 const CITA_ACTIVA = ["agendada", "confirmada"];
 
 // Las relaciones embebidas de PostgREST llegan como objeto (muchos a uno).
+/** El celular del corredor en E.164 aunque se haya guardado como "7000-0000": si no, Meta rechaza cada aviso. */
+function conCelularNormalizado(c: Corredor): Corredor {
+  return c.whatsapp_corredor ? { ...c, whatsapp_corredor: telefonoE164(c.whatsapp_corredor) } : c;
+}
+
 type Embebido<T> = T | T[] | null;
 function uno<T>(v: Embebido<T>): T | null {
   return Array.isArray(v) ? (v[0] ?? null) : v;
@@ -240,7 +262,7 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
         .eq("activo", true)
         .maybeSingle();
       verificar(error, "corredorPorPhoneNumberId");
-      return data as Corredor | null;
+      return data ? conCelularNormalizado(data as Corredor) : null;
     },
 
     async contacto(corredorId, telefono, nombrePerfil) {
@@ -409,6 +431,58 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
       return (data ?? []).length > 0;
     },
 
+    async mensajePorWaId(corredorId, waMessageId) {
+      const { data, error } = await db
+        .from("mensajes")
+        .select("id, conversacion_id, contenido, direccion, conversaciones!inner(contactos!inner(telefono, nombre, es_corredor))")
+        .eq("corredor_id", corredorId)
+        .eq("wa_message_id", waMessageId)
+        .eq("conversaciones.corredor_id", corredorId)
+        .maybeSingle();
+      verificar(error, "mensajePorWaId");
+      if (!data || data.direccion !== "saliente") return null;
+      const conv = uno(data.conversaciones as Embebido<{ contactos: Embebido<{ telefono: string; nombre: string | null; es_corredor: boolean }> }>);
+      const contacto = conv ? uno(conv.contactos) : null;
+      if (!contacto) return null;
+      return {
+        id: data.id as string,
+        conversacion_id: data.conversacion_id as string,
+        contenido: (data.contenido as string | null) ?? null,
+        telefono: contacto.telefono,
+        nombre: contacto.nombre ?? null,
+        es_corredor: contacto.es_corredor === true,
+      };
+    },
+
+    async sinRespuesta(corredorId, desde, hasta) {
+      const { data, error } = await db
+        .from("conversaciones")
+        .select("id, contactos!inner(telefono, nombre, es_corredor)")
+        .eq("corredor_id", corredorId)
+        .eq("estado", "abierta")
+        .eq("control", "asistente")
+        .eq("contactos.es_corredor", false)
+        .gte("ultimo_mensaje_cliente_at", desde.toISOString())
+        .lte("ultimo_mensaje_cliente_at", hasta.toISOString())
+        .limit(50);
+      verificar(error, "sinRespuesta (conversaciones)");
+      const fuera: { conversacion_id: string; nombre: string | null; telefono: string }[] = [];
+      for (const c of data ?? []) {
+        const { data: ultimo, error: e2 } = await db
+          .from("mensajes")
+          .select("direccion")
+          .eq("corredor_id", corredorId)
+          .eq("conversacion_id", c.id as string)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        verificar(e2, "sinRespuesta (mensajes)");
+        const contacto = uno(c.contactos as Embebido<{ telefono: string; nombre: string | null }>);
+        if (ultimo?.direccion === "entrante" && contacto) fuera.push({ conversacion_id: c.id as string, nombre: contacto.nombre ?? null, telefono: contacto.telefono });
+      }
+      return fuera;
+    },
+
     async datosAgenda(corredorId, desde, hasta) {
       const [horarios, bloqueos, citas] = await Promise.all([
         db.from("horarios_visitas").select("dia_semana, hora_inicio, hora_fin").eq("corredor_id", corredorId),
@@ -520,7 +594,7 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
       const { data, error } = await db
         .from("citas")
         .select(
-          "id, corredor_id, contacto_id, conversacion_id, inicio, created_at, contactos(telefono), propiedades(titulo), corredores!inner(whatsapp_phone_number_id, zona_horaria, nombre_contacto, activo)",
+          "id, corredor_id, contacto_id, conversacion_id, inicio, created_at, contactos(telefono, nombre), propiedades(titulo), corredores!inner(whatsapp_phone_number_id, zona_horaria, nombre_contacto, activo, whatsapp_corredor)",
         )
         .in("estado", CITA_ACTIVA)
         .is("recordatorio_enviado_at", null)
@@ -531,9 +605,9 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
       verificar(error, "citasParaRecordar");
       return (data ?? []).flatMap((c) => {
         const corredor = uno(
-          c.corredores as Embebido<{ whatsapp_phone_number_id: string; zona_horaria: string; nombre_contacto: string }>,
+          c.corredores as Embebido<{ whatsapp_phone_number_id: string; zona_horaria: string; nombre_contacto: string; whatsapp_corredor: string | null }>,
         );
-        const contacto = uno(c.contactos as Embebido<{ telefono: string }>);
+        const contacto = uno(c.contactos as Embebido<{ telefono: string; nombre: string | null }>);
         if (!corredor || !contacto) return [];
         return [
           {
@@ -548,6 +622,8 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
             phone_number_id: corredor.whatsapp_phone_number_id,
             zona_horaria: corredor.zona_horaria,
             nombre_contacto: corredor.nombre_contacto,
+            whatsapp_corredor: corredor.whatsapp_corredor ?? null,
+            nombre_cliente: contacto.nombre ?? null,
           },
         ];
       });
@@ -563,6 +639,11 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
         .select("id");
       verificar(error, "marcarRecordatorio");
       return (data ?? []).length > 0;
+    },
+
+    async desmarcarRecordatorio(corredorId, citaId) {
+      const { error } = await db.from("citas").update({ recordatorio_enviado_at: null }).eq("corredor_id", corredorId).eq("id", citaId);
+      verificar(error, "desmarcarRecordatorio");
     },
 
     async calendarioPorToken(token, desde) {
@@ -637,7 +718,7 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
         .not("whatsapp_phone_number_id", "is", null)
         .not("whatsapp_corredor", "is", null);
       verificar(error, "corredoresActivos");
-      return (data ?? []) as Corredor[];
+      return ((data ?? []) as Corredor[]).map(conCelularNormalizado);
     },
 
     async datosPlan(corredorId, ahora, hoy, manana, ayerLocal) {

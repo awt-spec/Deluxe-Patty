@@ -92,7 +92,7 @@ export function repoEnMemoria(corredor: Corredor) {
     guardarMensaje: async (m) => {
       if (m.wa_message_id && mensajes.some((x) => x.wa_message_id === m.wa_message_id)) return null;
       const id = `m${++n}`;
-      mensajes.push({ ...m, id, creado: new Date() });
+      mensajes.push({ ...m, id, creado: reloj.ahora ?? new Date() });
       return id;
     },
     actualizarMensaje: async (_c, id, cambios) => {
@@ -110,7 +110,7 @@ export function repoEnMemoria(corredor: Corredor) {
           autor: m.autor,
           contenido: m.contenido,
           estado_borrador: m.estado_borrador ?? null,
-          created_at: "",
+          created_at: m.creado ? m.creado.toISOString() : "",
         })),
     propiedadesActivas: async () => [],
     registrarUso: async (_c, d) => {
@@ -134,7 +134,39 @@ export function repoEnMemoria(corredor: Corredor) {
       uso.aviso_tope_enviado_at = "ahora";
       return true;
     },
-    actualizarEstadoEntrega: async () => true,
+    actualizarEstadoEntrega: async (corredorId, waMessageId, estado) => {
+      const m = mensajes.find((x) => x.corredor_id === corredorId && x.wa_message_id === waMessageId);
+      if (!m) return false;
+      m.estado_entrega = estado;
+      return true;
+    },
+    mensajePorWaId: async (corredorId, waMessageId) => {
+      const m = mensajes.find((x) => x.corredor_id === corredorId && x.wa_message_id === waMessageId && x.direccion === "saliente");
+      const conv = m && conversaciones.find((c) => c.id === m.conversacion_id && c.corredor_id === corredorId);
+      const contacto = conv && contactos.find((c) => c.id === conv.contacto_id && c.corredor_id === corredorId);
+      if (!m || !conv || !contacto) return null;
+      return {
+        id: m.id,
+        conversacion_id: conv.id,
+        contenido: m.contenido ?? null,
+        telefono: contacto.telefono,
+        nombre: contacto.nombre ?? null,
+        es_corredor: contacto.es_corredor === true,
+      };
+    },
+    sinRespuesta: async (corredorId, desde, hasta) =>
+      conversaciones
+        .filter((c) => c.corredor_id === corredorId && c.estado === "abierta" && c.control === "asistente" && c.ultimo_mensaje_cliente_at)
+        .filter((c) => {
+          const t = new Date(c.ultimo_mensaje_cliente_at!);
+          return t >= desde && t <= hasta;
+        })
+        .flatMap((c) => {
+          const contacto = contactos.find((x) => x.id === c.contacto_id && x.corredor_id === corredorId);
+          const ultimo = mensajes.filter((m) => m.conversacion_id === c.id).at(-1);
+          if (!contacto || contacto.es_corredor || ultimo?.direccion !== "entrante") return [];
+          return [{ conversacion_id: c.id, nombre: contacto.nombre ?? null, telefono: contacto.telefono }];
+        }),
     datosAgenda: async () => ({ horarios, bloqueos: [...bloqueos], citas: citas.filter(activa) }),
     crearBloqueo: async (_c, inicio, fin, motivo) => {
       bloqueos.push({ inicio, fin, id: `bl${++n}`, motivo });
@@ -177,12 +209,18 @@ export function repoEnMemoria(corredor: Corredor) {
           phone_number_id: "PNID",
           zona_horaria: "America/Costa_Rica",
           nombre_contacto: "Patricia",
+          whatsapp_corredor: corredor.whatsapp_corredor,
+          nombre_cliente: contactos.find((x) => x.id === c.contacto_id)?.nombre ?? null,
         })),
     marcarRecordatorio: async (_c, id) => {
       const c = citas.find((x) => x.id === id);
       if (!c || c.recordatorio) return false;
       c.recordatorio = true;
       return true;
+    },
+    desmarcarRecordatorio: async (corredorId, id) => {
+      const c = citas.find((x) => x.id === id && x.corredor_id === corredorId);
+      if (c) c.recordatorio = false;
     },
     calendarioPorToken: async () => null,
     contactoCorredor: async (corredorId, telefono) => {

@@ -2,7 +2,7 @@ import "server-only";
 import { crearRepositorioSupabase } from "../datos/repositorio";
 import { createAdminClient } from "../supabase/admin";
 import { crearEditorOpenAI } from "../fotos/editor";
-import { crearAlertas, reclamarConSupabase, type Alertas } from "../monitoreo/alertas";
+import { crearAlertas, liberarConSupabase, reclamarConSupabase, type Alertas } from "../monitoreo/alertas";
 import { alAvisarFallas } from "../monitoreo/fallas";
 import type { Corredor } from "../datos/tipos";
 import { crearTranscriptor } from "../medios/transcribir";
@@ -40,6 +40,7 @@ export function alertasSoporte(): Alertas {
       destino: process.env.SOPORTE_WHATSAPP,
       phoneNumberId: process.env.SOPORTE_PHONE_NUMBER_ID,
       reclamar: reclamarConSupabase(createAdminClient()),
+      liberar: liberarConSupabase(createAdminClient()),
     });
   }
   return alertas;
@@ -69,12 +70,19 @@ export function dependencias(): Dependencias {
       plantillaRecordatorio: process.env.WHATSAPP_PLANTILLA_RECORDATORIO ?? "recordatorio_visita",
       fotos: process.env.OPENAI_API_KEY ? crearEditorOpenAI() : undefined,
       medios: crearMedios(),
+      // Varios mensajes seguidos del mismo cliente: se espera un momento y se contesta una vez, al último.
+      esperaAgruparMs: Number(process.env.WHATSAPP_AGRUPAR_MS ?? 6000),
       registrar: (evento, datos) => {
         const linea = JSON.stringify({ evento, ...datos });
         if (evento.startsWith("error_")) {
           console.error(linea);
-          // Alerta a soporte por tipo de error y corredor (una por hora como máximo).
-          alertar(`${evento}:${String(datos.corredorId ?? "")}`, `${evento} (corredor ${String(datos.corredorId ?? "?")})`);
+          // Alerta a soporte por tipo de error y corredor (o número, si no hay corredor) y código, una por hora como máximo.
+          const donde = datos.corredorId ? `corredor ${String(datos.corredorId)}` : datos.phoneNumberId ? `número ${String(datos.phoneNumberId)}` : "?";
+          const codigo = typeof datos.codigo === "number" ? datos.codigo : null;
+          alertar(
+            `${evento}:${String(datos.corredorId ?? datos.phoneNumberId ?? "")}${codigo ? `:${codigo}` : ""}`,
+            `${evento} (${donde}${codigo ? `, código ${codigo}` : ""})${typeof datos.detalle === "string" ? `: ${datos.detalle}` : ""}`,
+          );
         } else {
           console.info(linea);
         }

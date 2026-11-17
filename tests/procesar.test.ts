@@ -92,11 +92,11 @@ describe("procesarMensaje", () => {
     expect(db.mensajes[1]).toMatchObject({ direccion: "saliente", estado_borrador: "pendiente" });
   });
 
-  it("los audios e imágenes sin texto van a Patricia sin llamar a Claude", async () => {
+  it("lo que no trae texto ni archivo legible no llama a Claude ni escala: respuesta fija y el chat sigue abierto", async () => {
     const r = await procesarMensaje(deps, entrante(null));
-    expect(r).toEqual({ tipo: "escalado", intencion: null });
+    expect(r).toEqual({ tipo: "sin_respuesta", motivo: "no_legible" });
     expect(cerebro.clasificar).not.toHaveBeenCalled();
-    expect(whatsapp.plantilla.mock.calls[0][3][0]).toContain("un audio");
+    expect(db.conversaciones[0].estado).toBe("abierta");
   });
 
   it("si Claude falla o declina, el cliente no queda sin respuesta y Patricia recibe el mensaje", async () => {
@@ -127,10 +127,15 @@ describe("procesarMensaje", () => {
     expect(avisos[0][3][0]).toContain("de 1000");
   });
 
-  it("ignora mensajes a un número que no es de ningún corredor", async () => {
+  it("un mensaje a un número que no es de ningún corredor activo no guarda nada y alerta a soporte sin datos personales", async () => {
+    const eventos: [string, Record<string, unknown>][] = [];
+    deps.registrar = (e, d) => eventos.push([e, d]);
     const r = await procesarMensaje(deps, entrante("Hola", { phoneNumberId: "OTRO" }));
     expect(r).toEqual({ tipo: "corredor_desconocido" });
     expect(db.mensajes).toHaveLength(0);
+    expect(eventos.map(([e]) => e)).toEqual(["error_corredor_desconocido"]);
+    expect(JSON.stringify(eventos)).not.toContain("88880001");
+    expect(JSON.stringify(eventos)).not.toContain("Hola");
   });
 
   describe("topes que frenan la IA", () => {
@@ -140,7 +145,9 @@ describe("procesarMensaje", () => {
       expect(r).toEqual({ tipo: "sin_respuesta", motivo: "tope_mes" });
       expect(cerebro.clasificar).not.toHaveBeenCalled();
       expect(whatsapp.texto).not.toHaveBeenCalled();
-      expect(db.conversaciones[0].estado).toBe("escalada");
+      // El freno no escala: el chat sigue abierto y Patricia recibe el aviso de que queda para ella.
+      expect(db.conversaciones[0].estado).toBe("abierta");
+      expect(whatsapp.plantilla.mock.calls.some((c) => String(c[3][0]).includes("tope de mensajes"))).toBe(true);
     });
 
     it("con el costo del día en el tope, se frena hasta mañana", async () => {

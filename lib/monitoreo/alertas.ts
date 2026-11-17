@@ -18,6 +18,8 @@ export interface ConfigAlertas {
   /** phone_number_id desde el que salen. */
   phoneNumberId: string | undefined;
   reclamar: (clave: string, minutos: number) => Promise<boolean>;
+  /** Suelta la clave si el envío falló: la siguiente alerta de esa clave vuelve a intentar (no queda callada una hora). */
+  liberar?: (clave: string) => Promise<void>;
   minutos?: number;
 }
 
@@ -28,16 +30,27 @@ export function crearAlertas(c: ConfigAlertas): Alertas {
         console.error(JSON.stringify({ evento: "alerta_sin_destino", clave }));
         return false;
       }
+      let reclamada = false;
       try {
         if (!(await c.reclamar(clave, c.minutos ?? 60))) return false;
+        reclamada = true;
         await c.whatsapp.plantilla(c.phoneNumberId, c.destino, c.plantilla, [`[Asistente] ${texto}`]);
         return true;
       } catch (error) {
-        // Una alerta que falla no puede tumbar lo que la disparó.
+        // Una alerta que falla no puede tumbar lo que la disparó, ni dejar callada su clave por una hora.
         console.error(JSON.stringify({ evento: "error_alerta", clave, error: errorSeguro(error) }));
+        if (reclamada && c.liberar) await c.liberar(clave).catch(() => {});
         return false;
       }
     },
+  };
+}
+
+/** Borra la marca de una clave (`alertas`): solo la usa el backend, la tabla no tiene datos de corredores. */
+export function liberarConSupabase(db: SupabaseClient) {
+  return async (clave: string) => {
+    const { error } = await db.from("alertas").delete().eq("clave", clave);
+    if (error) throw new Error(`liberar_alerta: ${error.message}`);
   };
 }
 
