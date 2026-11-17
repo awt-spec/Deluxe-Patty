@@ -8,6 +8,7 @@ import { RechazoModelo } from "./cerebro";
 import { Contexto, avisarAlCorredor, unaVez, type Dependencias } from "./contexto";
 import { mismoTelefono, telefonoE164 } from "../whatsapp/telefono";
 import { esErrorDeConfiguracion, explicarCodigoWhatsApp, porQueNoLlego } from "../whatsapp/enviar";
+import { armarAviso } from "../whatsapp/formato";
 import { SIN_CONSUMO, sumar, type Consumo } from "./costo";
 import { errorSeguro } from "../monitoreo/errores";
 import { MAX_MENSAJES_CLIENTE_HORA, frenoCliente, type Freno } from "./limites";
@@ -108,13 +109,23 @@ export async function procesarMensaje(deps: Dependencias, entrante: MensajeEntra
   ctx.nombre = contacto.nombre ?? null;
   const uso = await ctx.uso({ mensajesEntrantes: 1 });
   const nombreCliente = contacto.nombre ?? contacto.telefono;
+  // En los avisos el nombre va en la primera línea y el teléfono en la suya (sin nombre: "Un cliente").
+  const quien = contacto.nombre?.trim() || "Un cliente";
+  const telefono = contacto.telefono;
   const asistente = corredor.nombre_asistente || "La asistente";
+  const avisoPrivacidad = (texto: string) =>
+    armarAviso({
+      titulo: `${quien} hizo una solicitud de privacidad de sus datos (Ley 8968)`,
+      mensaje: texto,
+      queHacer: "respóndele en máximo 5 días hábiles",
+      telefono,
+    });
 
   // Derechos de privacidad (Ley 8968): pasa directo al corredor, que tiene cinco días hábiles para responder. No lo
   // contesta el modelo y va antes de todo corte (chat tomado, escalado o con tope): el plazo corre igual.
   if (entrante.texto && esSolicitudPrivacidad(entrante.texto)) {
     log("solicitud_privacidad", { corredorId: corredor.id, conversacionId: conversacion.id });
-    const aviso = `${nombreCliente} (${contacto.telefono}) hizo una solicitud de privacidad de sus datos (Ley 8968): "${entrante.texto.slice(0, 300)}". Respóndele en máximo 5 días hábiles.`;
+    const aviso = avisoPrivacidad(entrante.texto);
     const libre = conversacion.control !== "corredor" && conversacion.estado !== "escalada";
     // En un chat que ya es del corredor no se le escribe al cliente: solo se le avisa a él.
     const avisado = libre ? await ctx.escalar(null, aviso) : await ctx.avisarCorredor(aviso);
@@ -126,8 +137,15 @@ export async function procesarMensaje(deps: Dependencias, entrante: MensajeEntra
   if (conversacion.estado === "escalada") {
     // El chat espera al corredor: si el cliente vuelve a escribir, se le avisa (una vez cada 2 horas por chat).
     if (await ctx.unaVez(`escalada_nuevo:${corredor.id}:${conversacion.id}`, 120)) {
-      const que = entrante.texto ? `: "${entrante.texto.slice(0, 200)}"` : ` (${entrante.media ? NOMBRE_CLASE[entrante.media.clase] : DESCRIPCION_TIPO[entrante.tipo]})`;
-      await ctx.avisarCorredor(`${nombreCliente} (${contacto.telefono}) te volvió a escribir y espera tu respuesta${que}`);
+      await ctx.avisarCorredor(
+        armarAviso({
+          titulo: `${quien} te volvió a escribir y espera tu respuesta`,
+          mensaje: entrante.texto ?? null,
+          detalles: [entrante.texto ? null : `Mandó: ${entrante.media ? NOMBRE_CLASE[entrante.media.clase] : DESCRIPCION_TIPO[entrante.tipo]}`],
+          queHacer: "contéstale desde el chat en el panel o desde tu WhatsApp",
+          telefono,
+        }),
+      );
     }
     return { tipo: "sin_respuesta", motivo: "escalada" };
   }
@@ -142,9 +160,14 @@ export async function procesarMensaje(deps: Dependencias, entrante: MensajeEntra
       conversacionId: conversacion.id,
     });
     if (await ctx.unaVez(ctx.claveDelDia("sin_contestar"), Contexto.MINUTOS_DIA)) {
-      const que = entrante.texto ? ` Su mensaje: "${entrante.texto.slice(0, 200)}"` : "";
       await ctx.avisarCorredor(
-        `${asistente} no le contestó a ${nombreCliente} (${contacto.telefono}) porque ${MOTIVO_FRENO[freno]}; el chat queda para ti.${que}`,
+        armarAviso({
+          titulo: `${asistente} no le contestó a ${quien === "Un cliente" ? "un cliente" : quien}`,
+          porQue: MOTIVO_FRENO[freno],
+          mensaje: entrante.texto ?? null,
+          queHacer: "el chat queda para ti: contéstale desde el panel o desde tu WhatsApp",
+          telefono,
+        }),
       );
     }
     return { tipo: "sin_respuesta", motivo: freno };
@@ -175,7 +198,12 @@ export async function procesarMensaje(deps: Dependencias, entrante: MensajeEntra
       // Video, Word, archivo muy grande, sin llave: el corredor se entera (una vez por chat y hora) para verlo él.
       if (await ctx.unaVez(`medio_no_leido:${corredor.id}:${conversacion.id}`, 60)) {
         await ctx.avisarCorredor(
-          `${nombreCliente} (${contacto.telefono}) mandó ${NOMBRE_CLASE[entrante.media.clase]} que ${asistente} no puede leer por WhatsApp.${entrante.texto ? ` Con el texto: "${entrante.texto.slice(0, 200)}"` : ""} Revísalo en WhatsApp.`,
+          armarAviso({
+            titulo: `${quien} mandó ${NOMBRE_CLASE[entrante.media.clase]} que ${asistente} no puede leer por WhatsApp`,
+            mensaje: entrante.texto ?? null,
+            queHacer: "revísalo en WhatsApp",
+            telefono,
+          }),
         );
       }
     }
@@ -192,10 +220,7 @@ export async function procesarMensaje(deps: Dependencias, entrante: MensajeEntra
   // Una nota de voz transcrita también puede ser una solicitud de privacidad.
   if (esSolicitudPrivacidad(entrante.texto.replace(/^Nota de voz:\s*/i, ""))) {
     log("solicitud_privacidad", { corredorId: corredor.id, conversacionId: conversacion.id });
-    const avisado = await ctx.escalar(
-      null,
-      `${nombreCliente} (${contacto.telefono}) hizo una solicitud de privacidad de sus datos (Ley 8968): "${entrante.texto.slice(0, 300)}". Respóndele en máximo 5 días hábiles.`,
-    );
+    const avisado = await ctx.escalar(null, avisoPrivacidad(entrante.texto));
     if (!avisado) log("error_privacidad_sin_aviso", { corredorId: corredor.id, conversacionId: conversacion.id });
     return { tipo: "escalado", intencion: null };
   }
@@ -249,7 +274,13 @@ export async function procesarMensaje(deps: Dependencias, entrante: MensajeEntra
       [llamadas, consumo] = [0, SIN_CONSUMO]; // ya registrado; el catch no lo vuelve a contar
       await ctx.escalar(
         intencion,
-        `${nombreCliente} (${contacto.telefono}) escribió sobre ${clasificacion.tema}: "${textoCliente}"`,
+        armarAviso({
+          titulo: `${quien} quiere hablar contigo`,
+          porQue: `escribió sobre ${clasificacion.tema}, que te toca a ti`,
+          mensaje: textoCliente,
+          queHacer: "escríbele tú; al cliente ya le dije que lo ves personalmente",
+          telefono,
+        }),
       );
       return { tipo: "escalado", intencion };
     }
@@ -297,7 +328,13 @@ export async function procesarMensaje(deps: Dependencias, entrante: MensajeEntra
         log("error_conocimiento", { corredorId: corredor.id, error: e instanceof Error ? e.name : "desconocido" }),
       );
       await ctx.avisarCorredor(
-        `${nombreCliente} (${contacto.telefono}): ${respuesta.avisarCorredor}. Mensaje del cliente: "${textoCliente}"`,
+        armarAviso({
+          titulo: `${quien} preguntó algo que hay que confirmar`,
+          detalles: [`Duda: ${respuesta.avisarCorredor}`],
+          mensaje: textoCliente,
+          queHacer: "contéstala en el Cerebro del panel y desde ahí la sé",
+          telefono,
+        }),
       );
     }
     return { tipo: "respondido", intencion, borrador };
@@ -314,7 +351,13 @@ export async function procesarMensaje(deps: Dependencias, entrante: MensajeEntra
     });
     await ctx.escalar(
       intencion,
-      `La asistente no pudo responder a ${nombreCliente} (${contacto.telefono}). Su mensaje: "${textoCliente}"`,
+      armarAviso({
+        titulo: `${asistente} no pudo responderle a ${quien === "Un cliente" ? "un cliente" : quien}`,
+        porQue: "falló la IA al preparar la respuesta",
+        mensaje: textoCliente,
+        queHacer: "escríbele tú desde el panel o desde tu WhatsApp",
+        telefono,
+      }),
     );
     return { tipo: "escalado", intencion };
   }
@@ -391,12 +434,16 @@ async function entregaFallida(
   if (!deps.whatsapp || !deps.plantillaAviso) return;
   const clave = `entrega_fallida:${corredor.id}:${mensaje.conversacion_id}`;
   if (!(await unaVez(deps, clave, 60, log, corredor.id))) return;
-  const quien = mensaje.nombre ? `${mensaje.nombre} (${mensaje.telefono})` : mensaje.telefono;
-  const que = mensaje.contenido ? ` el mensaje "${mensaje.contenido.slice(0, 160)}"` : " un mensaje";
   await avisarAlCorredor(
     { repo: deps.repo, whatsapp: deps.whatsapp, plantillaAviso: deps.plantillaAviso },
     corredor,
-    `No le llegó a ${quien}${que}: ${porQueNoLlego(codigo)}. Escríbele desde tu WhatsApp o revisa el chat en el panel.`,
+    armarAviso({
+      titulo: `No le llegó un mensaje a ${mensaje.nombre?.trim() || "un cliente"}`,
+      porQue: porQueNoLlego(codigo),
+      mensaje: mensaje.contenido ? mensaje.contenido.slice(0, 160) : null,
+      queHacer: "escríbele desde tu WhatsApp o revisa el chat en el panel",
+      telefono: mensaje.telefono,
+    }),
     log,
   );
 }

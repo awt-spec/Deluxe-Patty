@@ -9,6 +9,7 @@ import type { Conversacion, Corredor } from "../datos/tipos";
 import { fichaDePropiedad } from "../fichas/comando";
 import { mejorarFotos } from "../fotos/mejorar";
 import { puedeUsarImagenes } from "../fotos/variantes";
+import { ordenarParaWhatsApp } from "../whatsapp/formato";
 import type { MensajeEntrante } from "../whatsapp/parsear";
 import { RechazoModelo, type Adjunto } from "./cerebro";
 import { Contexto, type Dependencias } from "./contexto";
@@ -319,7 +320,8 @@ export async function procesarMensajeCorredor(
     const propiedades = await repo.propiedadesActivas(corredor.id);
     const analisis = await deps.cerebro.analizar(corredor, propiedades, historial, texto, adjuntos);
     await ctx.usoClaude(1, analisis.consumo);
-    await responder(analisis.texto);
+    // El análisis lo escribe el modelo: se pasa a formato de WhatsApp (sin markdown) antes de enviarlo.
+    await responder(ordenarParaWhatsApp(analisis.texto));
     return { tipo: "corredor", accion: "analisis" };
   } catch (error) {
     if (error instanceof RechazoModelo) await ctx.usoClaude(1, error.consumo);

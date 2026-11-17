@@ -54,7 +54,8 @@ function deLaVisita(cita: CitaTerminada, zona: string, conNombre: boolean): stri
 
 export function preguntaSeguimiento(cita: CitaTerminada, zona: string): string {
   return (
-    `¿Cómo te fue en ${deLaVisita(cita, zona, true)}? Cuéntame en un mensaje o nota de voz y lo anoto en su historia. ` +
+    `*¿Cómo te fue en ${deLaVisita(cita, zona, true)}?*\n` +
+    "Cuéntame en un mensaje o nota de voz y lo anoto en su historia.\n" +
     "Si no se hizo, respóndeme «no vino» o «se canceló»."
   );
 }

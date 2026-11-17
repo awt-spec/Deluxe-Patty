@@ -51,7 +51,11 @@ function armar(over: Partial<ReturnType<typeof corredorBase>> = {}) {
     plantillaRecordatorio: "recordatorio_visita",
     registrar: (e, d) => eventos.push([e, d]),
   };
-  const avisos = () => whatsapp.plantilla.mock.calls.map((c) => String(c[3][0]));
+  // Avisos al corredor: por plantilla o, con su ventana abierta, como texto a su número.
+  const avisos = () => [
+    ...whatsapp.plantilla.mock.calls.map((c) => String(c[3][0])),
+    ...whatsapp.texto.mock.calls.filter((c) => String(c[1]).replace(/\D/g, "") === String(PATRICIA).replace(/\D/g, "")).map((c) => String(c[2])),
+  ];
   const nombres = () => eventos.map(([e]) => e);
   return { corredor, db, whatsapp, cerebro, deps, eventos, avisos, nombres };
 }
@@ -180,8 +184,9 @@ describe("H3: estados 'failed' de Meta", () => {
     expect(t.db.mensajes.find((m) => m.wa_message_id === waId)?.estado_entrega).toBe("fallido");
     expect(t.whatsapp.plantilla).toHaveBeenCalledTimes(1);
     const aviso = t.avisos()[0];
-    expect(aviso).toContain("Ana (+50688880001)");
-    expect(aviso).toContain("Sí, sigue disponible.");
+    expect(aviso.split("\n")[0]).toBe("*No le llegó un mensaje a Ana*");
+    expect(aviso).toContain("\nTeléfono: +50688880001");
+    expect(aviso).toContain('Mensaje: "Sí, sigue disponible."');
     expect(aviso).toContain("24 horas");
     expect(t.nombres()).toContain("whatsapp_fallido");
     expect(t.eventos.find(([e]) => e === "whatsapp_fallido")?.[1].codigo).toBe(131047);
@@ -265,7 +270,7 @@ describe("H5: los frenos no dejan el chat escalado para siempre", () => {
     let r;
     for (let i = 0; i < 22; i++) r = await procesarMensaje(t.deps, entrante(`hola ${i}`));
     expect(r).toEqual({ tipo: "sin_respuesta", motivo: "rafaga" });
-    const frenos = t.avisos().filter((a) => a.includes("el chat queda para ti"));
+    const frenos = t.avisos().filter((a) => /el chat queda para ti/i.test(a));
     expect(frenos).toHaveLength(1);
     expect(frenos[0]).toContain("más de 20 mensajes en una hora");
     expect(t.db.conversaciones[0].estado).toBe("abierta");
@@ -510,7 +515,8 @@ describe("S1: un mensaje que quedó sin respuesta (función cortada) no se pierd
 
     t.deps.ahora = () => new Date("2026-11-17T15:20:00Z");
     expect(await avisarSinRespuesta(t.deps)).toEqual({ avisados: 1 });
-    expect(t.avisos()[0]).toContain("Ana (+50688880001)");
+    expect(t.avisos()[0]).toContain("no alcanzó a contestarle a Ana*");
+    expect(t.avisos()[0]).toContain("\nTeléfono: +50688880001");
     expect(t.nombres()).toContain("error_mensaje_sin_respuesta");
     expect(await avisarSinRespuesta(t.deps)).toEqual({ avisados: 0 });
   });

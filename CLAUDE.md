@@ -170,6 +170,10 @@ propiedades activas; si la intención es agendar, `lib/asistente/agenda.ts` calc
 `corredores.zona_base` —Patricia, Lindora— y primero los días con otra visita cerca), Sonnet elige la acción con ids cortos y el código arma las fechas y
 crea la cita. El modelo nunca escribe una fecha que llegue al cliente. Escalamientos, audios/imágenes, fallas de Claude y datos por confirmar se avisan al
 corredor con la plantilla `WHATSAPP_PLANTILLA_AVISO`.
+**Formato:** lo que escribe el modelo pasa por `ordenarParaWhatsApp` (`lib/whatsapp/formato.ts`, pura e idempotente: markdown →
+*negrita*, • viñetas, tablas → "• dato: valor"; nunca toca cifras ni URLs) al responder al cliente, en el análisis del corredor y al
+aprobar un borrador; los avisos al corredor se arman con `armarAviso` (título en negrita, Por qué, Mensaje, Qué hacer, Teléfono) y en
+van como texto en varias líneas si la ventana de 24 h del corredor está abierta (`avisarAlCorredor`); si no, por la plantilla, donde `limpiarParametro` los une en una línea con " · ".
 **Casos borde** (`tests/whatsapp-qa.test.ts`): `parsearWebhook` ignora reacciones, stickers, ediciones, borrados y avisos del
 sistema; ubicación y tarjeta de contacto llegan como texto corto y siguen el flujo. Lo que no se puede leer (`unsupported`,
 video, Word, archivo grande) no escala: al cliente `TEXTO_NO_LEO` una vez por chat y día y, si era un archivo, aviso al corredor.

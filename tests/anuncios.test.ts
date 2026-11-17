@@ -155,7 +155,7 @@ describe("anuncios por WhatsApp", () => {
     expect(await avisarVencimientos(deps)).toEqual({ avisados: 1, fallidos: 0 });
     // Ventana cerrada: sale por la plantilla de aviso.
     expect(whatsapp.plantilla).toHaveBeenCalledWith("PNID", PATRICIA, "aviso_corredor", [
-      "Tu anuncio de Encuentra24 Casa Escazú (vence el 24 de octubre) está por vencer. Renuévalo para no perder posición.",
+      "*Tu anuncio de Encuentra24 está por vencer*\n• Casa Escazú: vence el 24 de octubre\nQué hacer: renuévalo para no perder posición.",
     ]);
     expect(await avisarVencimientos(deps)).toEqual({ avisados: 0, fallidos: 0 });
   });

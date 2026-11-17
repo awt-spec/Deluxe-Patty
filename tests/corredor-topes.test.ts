@@ -108,6 +108,16 @@ describe("WhatsApp del corredor: los topes frenan la IA", () => {
     expect(textos().filter((t) => t === CORREDOR_TOPE_MENSAJES)).toHaveLength(2);
   });
 
+  it("el análisis del modelo le llega a Patricia en formato de WhatsApp", async () => {
+    cerebro.analizar.mockResolvedValueOnce({
+      texto: "## Resumen\nCasa en **Escazú**.\n\n## Precio\n| Dato | Valor |\n|---|---|\n| Precio | $485.000 |\n| Por m² | $2.425 |",
+      avisarCorredor: null,
+      consumo: SIN_CONSUMO,
+    });
+    await procesarMensaje(deps, dePatricia("Analízame https://www.encuentra24.com/x/123"));
+    expect(textos().at(-1)).toBe("*Resumen*\nCasa en *Escazú*.\n\n*Precio*\n• Precio: $485.000\n• Por m²: $2.425");
+  });
+
   it('dentro del tope sigue igual, y "plan" o "reporte" (sin IA) funcionan aunque se pase el tope', async () => {
     await procesarMensaje(deps, dePatricia("Analízame https://www.encuentra24.com/x/123"));
     expect(cerebro.analizar).toHaveBeenCalledTimes(1);

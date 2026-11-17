@@ -4,6 +4,7 @@ import type { Cita, Mensaje, Propiedad } from "../datos/tipos";
 import type { ContextoAgenda } from "./cerebro";
 import type { Contexto } from "./contexto";
 import type { Consumo } from "./costo";
+import { armarAviso, type PartesAviso } from "../whatsapp/formato";
 
 const DIA = 24 * 60 * 60_000;
 /** Cuántos horarios libres se le muestran al modelo para elegir. */
@@ -34,7 +35,15 @@ export async function flujoAgenda(
   const zona = corredor.zona_horaria;
   const ahora = deps.ahora?.() ?? new Date();
   const etiqueta = (d: Date) => etiquetaHorario(d, zona);
-  const cliente = `${entrada.nombreCliente} (${ctx.telefonoCliente})`;
+  // Avisos al corredor: el nombre en la primera línea y el teléfono en la suya (sin nombre guardado: "Un cliente").
+  const cliente = entrada.nombreCliente && entrada.nombreCliente !== ctx.telefonoCliente ? entrada.nombreCliente : "Un cliente";
+  const aviso = (p: Omit<PartesAviso, "telefono">) => armarAviso({ ...p, telefono: ctx.telefonoCliente });
+  const sinHorarios = () =>
+    aviso({
+      titulo: `${cliente} quiere agendar una visita y no hay horarios libres`,
+      porQue: "la agenda no tiene horas libres en los próximos días",
+      queHacer: "abre espacio en tu horario o escríbele para coordinar",
+    });
 
   const hasta = new Date(ahora.getTime() + (corredor.horizonte_agenda_dias + 1) * DIA);
   const [datos, citasCliente, propiedades] = await Promise.all([
@@ -64,7 +73,7 @@ export async function flujoAgenda(
   const dosOpciones = (l: Intervalo[]) => dosOpcionesPorZona(l, datos.citas, zonaVisita, zona);
 
   if (libres.length === 0 && citasCliente.length === 0) {
-    return { tipo: "escalar", aviso: `${cliente} quiere agendar una visita y no hay horarios libres en la agenda.` };
+    return { tipo: "escalar", aviso: sinHorarios() };
   }
 
   const idsLibres = new Map(libres.map((l, i) => [`H${i + 1}`, l]));
@@ -93,7 +102,7 @@ export async function flujoAgenda(
 
   const proponer = async (intro: string, opciones: Intervalo[]) => {
     if (opciones.length === 0) {
-      return { tipo: "escalar" as const, aviso: `${cliente} quiere agendar una visita y no hay horarios libres en la agenda.` };
+      return { tipo: "escalar" as const, aviso: sinHorarios() };
     }
     const lista = opciones.map((o, i) => `${i + 1}. ${capitalizar(etiqueta(o.inicio))}`).join("\n");
     const pregunta = opciones.length > 1 ? "¿Cuál le queda mejor?" : "¿Le queda bien?";
@@ -127,7 +136,10 @@ export async function flujoAgenda(
 
     case "cancelar": {
       if (!cita) {
-        resultado = { tipo: "escalar", aviso: `${cliente} quiere cancelar una visita y no se identificó cuál. Mensaje: "${entrada.texto}"` };
+        resultado = {
+          tipo: "escalar",
+          aviso: aviso({ titulo: `${cliente} quiere cancelar una visita`, porQue: "no se identificó cuál", mensaje: entrada.texto, queHacer: "escríbele para confirmar cuál cancela" }),
+        };
         break;
       }
       const texto = `${conPunto(`Listo, cancelé su visita del ${etiqueta(cita.inicio)}`)} Si gusta, buscamos otro día.`;
@@ -137,14 +149,19 @@ export async function flujoAgenda(
       }
       await repo.cambiarEstadoCita(corredor.id, cita.id, "cancelada");
       await ctx.responderCliente(texto, "agendar_visita");
-      await ctx.avisarCorredor(conPunto(`Visita cancelada: ${cliente}, ${etiqueta(cita.inicio)}${conPropiedad(cita.propiedad_titulo)}`));
+      await ctx.avisarCorredor(
+        aviso({ titulo: `Visita cancelada: ${cliente}`, detalles: [`Era: ${etiqueta(cita.inicio)}`, cita.propiedad_titulo && `Casa: ${cita.propiedad_titulo}`] }),
+      );
       resultado = { tipo: "cancelado", borrador: false };
       break;
     }
 
     case "confirmar_asistencia": {
       if (!cita) {
-        resultado = { tipo: "escalar", aviso: `${cliente} escribió sobre una visita que no se identificó. Mensaje: "${entrada.texto}"` };
+        resultado = {
+          tipo: "escalar",
+          aviso: aviso({ titulo: `${cliente} escribió sobre una visita`, porQue: "no se identificó cuál", mensaje: entrada.texto, queHacer: "escríbele para aclararlo" }),
+        };
         break;
       }
       const texto = conPunto(`¡Perfecto! Te esperamos el ${etiqueta(cita.inicio)}`);
@@ -163,7 +180,10 @@ export async function flujoAgenda(
 
     case "responder": {
       if (!d.mensaje) {
-        resultado = { tipo: "escalar", aviso: `${cliente} escribió sobre una visita y la asistente no supo qué responder. Mensaje: "${entrada.texto}"` };
+        resultado = {
+          tipo: "escalar",
+          aviso: aviso({ titulo: `${cliente} escribió sobre una visita`, porQue: "la asistente no supo qué responder", mensaje: entrada.texto, queHacer: "escríbele tú" }),
+        };
         break;
       }
       resultado = { tipo: "respondido", borrador: await ctx.responderCliente(d.mensaje, "agendar_visita") };
@@ -172,7 +192,7 @@ export async function flujoAgenda(
   }
 
   if (d.avisarCorredor && resultado.tipo !== "escalar") {
-    await ctx.avisarCorredor(`${cliente}: ${d.avisarCorredor}. Mensaje del cliente: "${entrada.texto}"`);
+    await ctx.avisarCorredor(aviso({ titulo: `${cliente} preguntó algo que hay que confirmar`, detalles: [`Duda: ${d.avisarCorredor}`], mensaje: entrada.texto }));
   }
   return resultado;
 }
@@ -222,7 +242,11 @@ async function agendar(
     ? ` (antes: ${etiquetaHorario(p.reemplaza.inicio, corredor.zona_horaria)})`
     : "";
   await ctx.avisarCorredor(
-    conPunto(`${p.reemplaza ? "Visita reprogramada" : "Nueva visita"}: ${p.cliente}, ${etiqueta}${antes}${conPropiedad(p.propiedad?.titulo ?? null)}`),
+    armarAviso({
+      titulo: `${p.reemplaza ? "Visita reprogramada" : "Nueva visita"}: ${p.cliente}`,
+      detalles: [`Cuándo: ${etiqueta}${antes}`, p.propiedad?.titulo && `Casa: ${p.propiedad.titulo}`],
+      telefono: ctx.telefonoCliente,
+    }),
   );
   return { tipo: "agendado", borrador: false };
 }
@@ -237,10 +261,6 @@ export function propiedadMencionada(propiedades: Propiedad[], textos: string[]):
   if (porTitulo.length === 1) return porTitulo[0];
   const porZona = propiedades.filter((p) => p.zona && texto.includes(norm(p.zona)));
   return porZona.length === 1 ? porZona[0] : null;
-}
-
-function conPropiedad(titulo: string | null): string {
-  return titulo ? `, ${titulo}` : "";
 }
 
 function capitalizar(s: string): string {

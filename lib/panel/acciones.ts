@@ -1,3 +1,4 @@
+import { ordenarParaWhatsApp } from "../whatsapp/formato";
 import type { Dependencias } from "../asistente/contexto";
 import type { Corredor } from "../datos/tipos";
 import { LIMITES, textoLibre } from "./texto-libre";
@@ -43,9 +44,11 @@ export async function aprobarBorrador(
   // Lo que corrige el corredor se limpia (sin caracteres de dirección o control) y no se corta: si pasa del tope, se le dice.
   const propio = textoCorregido === undefined ? null : mensajeParaCliente(textoCorregido);
   if (propio && !propio.ok) return propio;
-  const final = propio?.ok ? propio.texto : b.contenido.trim();
+  // Lo que sale por WhatsApp va en su formato (sin markdown del modelo); idempotente, así que un borrador ya ordenado queda igual.
+  const final = ordenarParaWhatsApp(propio?.ok ? propio.texto : b.contenido.trim());
   if (!final) return { ok: false, motivo: "El mensaje está vacío." };
-  const corregido = final !== b.contenido.trim();
+  // Solo cuenta como corrección lo que cambió el corredor, no el formato.
+  const corregido = final !== ordenarParaWhatsApp(b.contenido.trim());
 
   // Se reclama el borrador antes de actuar: un segundo toque encuentra que ya no está pendiente.
   const estado = corregido ? "corregido" : "aprobado";

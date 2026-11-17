@@ -1,5 +1,6 @@
 import { avisarAlCorredor, diaDelCorredor, unaVez, type Dependencias } from "./contexto";
 import { errorSeguro } from "../monitoreo/errores";
+import { armarAviso } from "../whatsapp/formato";
 
 // Red de seguridad: si la función se corta (maxDuration) después de guardar el mensaje de un cliente y antes de
 // contestarle, Meta ya recibió su 200 y no reintenta. Cada hora (cron de recordatorios) se buscan chats abiertos de
@@ -22,11 +23,14 @@ export async function avisarSinRespuesta(
       for (const chat of chats) {
         const clave = `sin_contestar:${corredor.id}:${chat.conversacion_id}:${diaDelCorredor(corredor, ahora)}`;
         if (!(await unaVez(deps, clave, 24 * 60, log, corredor.id))) continue;
-        const quien = chat.nombre ? `${chat.nombre} (${chat.telefono})` : chat.telefono;
         const ok = await avisarAlCorredor(
           deps,
           corredor,
-          `${corredor.nombre_asistente || "La asistente"} no alcanzó a contestarle a ${quien}; el chat queda para ti. Revísalo en el panel.`,
+          armarAviso({
+            titulo: `${corredor.nombre_asistente || "La asistente"} no alcanzó a contestarle a ${chat.nombre?.trim() || "un cliente"}`,
+            queHacer: "el chat queda para ti: revísalo en el panel",
+            telefono: chat.telefono,
+          }),
           log,
         );
         if (ok) avisados++;

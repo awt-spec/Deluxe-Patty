@@ -49,6 +49,14 @@ describe("panel: piloto en sombra y toma de control", () => {
     expect(whatsapp.texto).toHaveBeenCalledTimes(1);
   });
 
+  it("aprobar un borrador viejo con markdown lo manda en formato de WhatsApp y no cuenta como corrección", async () => {
+    await llega("¿Sigue disponible?");
+    borrador().contenido = "**Sí**, está disponible:\n- **Precio:** $250.000";
+    expect(await aprobarBorrador(deps, corredor, borrador().id)).toEqual({ ok: true });
+    expect(whatsapp.texto).toHaveBeenCalledWith("PNID", "+50688880001", "*Sí*, está disponible:\n• *Precio:* $250.000");
+    expect(borrador()).toMatchObject({ estado_borrador: "aprobado" });
+  });
+
   it("en la demo aprobar simula el envío: queda como enviado sin llamar a Meta", async () => {
     await llega("¿Sigue disponible?");
     const demo = { ...deps, whatsapp: enviadorDemo() };
