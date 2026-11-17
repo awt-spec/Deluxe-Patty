@@ -18,8 +18,8 @@ function TopePropio({ valor, plataforma }: { valor: number | null; plataforma: n
   if (valor === null) return <span className="ad-suave ad-num">Plataforma ({usd(plataforma)})</span>;
   if (valor === 0)
     return (
-      <Pildora tono="mal" punto={false}>
-        Apagada
+      <Pildora tono="info" punto={false}>
+        Pausado (tope 0)
       </Pildora>
     );
   return (

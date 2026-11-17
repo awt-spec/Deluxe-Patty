@@ -1,3 +1,4 @@
+import { sesionSuperadmin } from "@/lib/admin/superadmin";
 import { cargarCorredores, llavesWhatsApp } from "@/lib/admin/datos";
 import { urlWebhook } from "@/lib/admin/urls";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -10,6 +11,8 @@ import { VistaWhatsApp } from "../vistas/whatsapp";
 // cuenta y webhook sin conectar. Las llaves nunca se muestran: solo si existen. Lo que se ve está en vistas/whatsapp.tsx.
 
 export default async function WhatsApp({ searchParams }: { searchParams: Promise<{ m?: string; ok?: string; waba?: string }> }) {
+  // Cada página comprueba al superadmin por su cuenta (no solo el layout): sin serlo, 404.
+  await sesionSuperadmin();
   const { m, ok, waba } = await searchParams;
   const llaves = llavesWhatsApp();
   const token = process.env.WHATSAPP_ACCESS_TOKEN;

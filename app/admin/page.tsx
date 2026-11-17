@@ -1,3 +1,4 @@
+import { sesionSuperadmin } from "@/lib/admin/superadmin";
 import { listaAtencion } from "@/lib/admin/atencion";
 import { cargarCorredores, llavesWhatsApp } from "@/lib/admin/datos";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -8,6 +9,8 @@ import { VistaResumen } from "./vistas/resumen";
 // últimas alertas de monitoreo. Esta página solo lee; lo que se ve está en vistas/resumen.tsx.
 
 export default async function Resumen({ searchParams }: { searchParams: Promise<{ m?: string; ok?: string }> }) {
+  // Cada página comprueba al superadmin por su cuenta (no solo el layout): sin serlo, 404.
+  await sesionSuperadmin();
   const { m, ok } = await searchParams;
   const db = createAdminClient();
   const desde = new Date(Date.now() - 24 * 3600 * 1000).toISOString();

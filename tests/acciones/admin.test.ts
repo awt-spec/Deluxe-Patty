@@ -117,10 +117,49 @@ describe("Accesos", () => {
     expect(estado.admin.escrituras).toEqual([]);
   });
 
+  it("«a sí mismo» compara el correo sin mayúsculas ni espacios", async () => {
+    estado.superadmin = " Dueno@Ejemplo.COM ";
+    expect(mensaje(await redirigeA(acciones.alternarSuperadmin(formulario({ correo: "  DUENO@ejemplo.com ", hacer: "0" }))))).toMatch(/a ti mismo/);
+    expect(estado.admin.escrituras).toEqual([]);
+  });
+
+  it("dos «quitar» casi a la vez no dejan la plataforma sin superadmin", async () => {
+    estado.superadmin = "tercero@ejemplo.com";
+    estado.admin.tablas.superadmins = [{ correo: "a@ejemplo.com" }, { correo: "b@ejemplo.com" }];
+    // Las dos leen "quedan 2" antes de que la otra borre: sin la segunda cuenta, quedarían 0.
+    const urls = await Promise.all([
+      redirigeA(acciones.alternarSuperadmin(formulario({ correo: "a@ejemplo.com", hacer: "0" }))),
+      redirigeA(acciones.alternarSuperadmin(formulario({ correo: "b@ejemplo.com", hacer: "0" }))),
+    ]);
+    expect(estado.admin.tablas.superadmins.length).toBeGreaterThanOrEqual(1);
+    expect(urls.map(mensaje)).toContain("Tiene que quedar al menos un superadministrador.");
+    expect(estado.admin.escrituras.some((e) => e.tabla === "superadmins" && e.op === "upsert")).toBe(true);
+  });
+
+  it("si al borrar no quedó ninguno, repone la fila y lo dice", async () => {
+    estado.superadmin = "tercero@ejemplo.com";
+    estado.admin.tablas.superadmins = [{ correo: "a@ejemplo.com" }, { correo: "b@ejemplo.com" }];
+    const desde = estado.admin.from.bind(estado.admin);
+    // Otro superadmin borra a "b" justo después de la primera cuenta, antes del borrado de "a".
+    estado.admin.from = (tabla: string) => {
+      const q = desde(tabla);
+      const borrar = q.delete;
+      q.delete = () => {
+        estado.admin.tablas.superadmins = estado.admin.tablas.superadmins.filter((x) => x.correo !== "b@ejemplo.com");
+        return borrar();
+      };
+      return q;
+    };
+    expect(mensaje(await redirigeA(acciones.alternarSuperadmin(formulario({ correo: "a@ejemplo.com", hacer: "0" }))))).toBe("Tiene que quedar al menos un superadministrador.");
+    expect(estado.admin.tablas.superadmins).toEqual([{ id: expect.any(String), correo: "a@ejemplo.com" }]);
+  });
+
   it("quita el permiso a otro superadmin cuando quedan más", async () => {
     const url = await redirigeA(acciones.alternarSuperadmin(formulario({ correo: "patricia@ejemplo.com", hacer: "0" })));
     expect(mensaje(url)).toBe("Ya no es superadministrador.");
     expect(estado.admin.escrituras[0]).toMatchObject({ tabla: "superadmins", op: "delete", filtros: [["correo", "patricia@ejemplo.com"]] });
+    expect(estado.admin.escrituras).toHaveLength(1);
+    expect(estado.admin.tablas.superadmins).toEqual([{ correo: SUPER }]);
   });
 });
 

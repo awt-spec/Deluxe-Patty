@@ -109,6 +109,11 @@
   font-style: normal;
   font-weight: 600;
 }
+.ad-txt-info {
+  color: var(--ad-suave);
+  font-style: normal;
+  font-weight: 600;
+}
 .ad-saltar {
   position: absolute;
   left: 12px;
@@ -560,6 +565,10 @@
 }
 .ad-barra.lleno > span {
   background: var(--ad-mal);
+}
+.ad-barra.apagada {
+  background: repeating-linear-gradient(135deg, var(--ad-gris-fondo) 0 6px, transparent 6px 12px);
+  outline: 1px solid var(--ad-gris-fondo);
 }
 .ad-energia {
   display: grid;

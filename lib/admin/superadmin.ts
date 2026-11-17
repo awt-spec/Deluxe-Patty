@@ -1,5 +1,6 @@
 import "server-only";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import { createAdminClient } from "../supabase/admin";
 import { clienteConSesion } from "../supabase/servidor";
 
@@ -13,11 +14,15 @@ export async function esSuperadmin(correo: string | null | undefined): Promise<b
   return !error && !!data;
 }
 
-/** Usuario con sesión que es superadministrador; si no, 404. Las páginas y acciones de /admin la usan. */
-export async function sesionSuperadmin() {
+/**
+ * Usuario con sesión que es superadministrador; si no, 404. La llaman el layout, CADA página de /admin (el layout no se
+ * vuelve a dibujar en cada navegación, así que no basta) y cada acción. Con `cache` de React se consulta una sola vez
+ * por petición aunque la llamen el layout y la página.
+ */
+export const sesionSuperadmin = cache(async () => {
   const supabase = await clienteConSesion();
   const { data } = await supabase.auth.getUser();
   const correo = data.user?.email ?? null;
   if (!data.user || !(await esSuperadmin(correo))) notFound();
   return { usuario: data.user, correo: correo! };
-}
+});

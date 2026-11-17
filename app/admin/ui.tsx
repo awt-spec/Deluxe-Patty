@@ -1,7 +1,7 @@
 // Piezas comunes de /admin (solo presentación, sin datos ni red): las usan las vistas de app/admin/vistas/.
 import Link from "next/link";
 import { estadoEnergia } from "@/lib/ia/energia";
-import { iniciales, type Tono } from "@/lib/admin/atencion";
+import { iniciales, nivelUso, type Tono } from "@/lib/admin/atencion";
 import { AvisoResultado } from "./aviso";
 
 export const usd = (n: number) => `$${n.toLocaleString("es-CR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -28,12 +28,13 @@ export function Nota({ tono = "info", children }: { tono?: "info" | "poco" | "ma
   return <p className={`ad-nota ${tono}`}>{children}</p>;
 }
 
-/** Barra de uso: verde, ámbar desde el 80 % y roja al tope. */
+/** Barra de uso: verde, ámbar desde el 85 % usado (PCT_CERCA, la regla de la energía, queda el 15 % o menos) y roja al tope. */
 export function Barra({ gasto, tope, etiqueta }: { gasto: number; tope: number; etiqueta?: string }) {
   const pct = tope > 0 ? Math.min(100, (gasto / tope) * 100) : 100;
+  const nivel = nivelUso(gasto, tope);
   return (
     <span
-      className={`ad-barra${pct >= 100 ? " lleno" : pct >= 80 ? " cerca" : ""}`}
+      className={`ad-barra${nivel === "agotado" ? " lleno" : nivel === "poco" ? " cerca" : ""}`}
       role="meter"
       aria-valuemin={0}
       aria-valuemax={100}
@@ -186,6 +187,18 @@ export function Avatar({ nombre, tamano = 40, tono }: { nombre: string; tamano?:
 /** Energía del mes de un corredor (lo que él ve como batería): usada en %, con dólares usados de dólares del tope. */
 export function EnergiaMes({ gastoMes, topeMes, compacta }: { gastoMes: number; topeMes: number; compacta?: boolean }) {
   const e = estadoEnergia({ gastoMesUsd: gastoMes, topeMesUsd: topeMes });
+  // Tope 0 = pausado a propósito (IA apagada): se dice así, en gris, no como "agotada" en rojo.
+  if (topeMes <= 0)
+    return (
+      <span className={`ad-energia${compacta ? " compacta" : ""}`}>
+        <span className="ad-energia-texto">
+          <span>IA apagada</span>
+          <em className="ad-txt-info">pausado (tope 0)</em>
+        </span>
+        <span className="ad-barra apagada" aria-hidden />
+        <span className="ad-suave ad-energia-usd">{usd(gastoMes)} usados este mes</span>
+      </span>
+    );
   return (
     <span className={`ad-energia${compacta ? " compacta" : ""}`}>
       <span className="ad-energia-texto">
