@@ -1,6 +1,8 @@
 import type { Dependencias } from "../asistente/procesar";
 import { conPunto, etiquetaHorario } from "./formato";
 import { errorSeguro } from "../monitoreo/errores";
+import { avisarAlCorredor } from "../asistente/contexto";
+import { codigoWhatsApp, esErrorDeConfiguracion, esErrorTransitorio, ErrorWhatsApp, porQueNoLlego } from "../whatsapp/enviar";
 
 const HORA = 60 * 60_000;
 
@@ -13,9 +15,15 @@ export interface ResumenRecordatorios {
  * Manda el recordatorio de las visitas de las próximas 24 horas. Corre cada hora (Vercel Cron).
  * Solo recuerda citas agendadas con más de un día y medio de anticipación: a las demás no se les
  * prometió recordatorio al confirmarlas.
+ *
+ * Sale también en piloto en sombra (respuesta_automatica = false): es una plantilla fija armada por el código, y en
+ * sombra una cita solo existe si el corredor la aprobó o la agendó él. Si el envío falla por algo pasajero, la cita se
+ * desmarca y la próxima corrida lo reintenta; si falla por algo permanente, se le avisa al corredor para que le
+ * escriba él (y, si es la cuenta o la plantilla, a soporte).
  */
 export async function enviarRecordatorios(
-  deps: Pick<Dependencias, "repo" | "whatsapp" | "plantillaRecordatorio" | "registrar" | "ahora">,
+  deps: Pick<Dependencias, "repo" | "whatsapp" | "plantillaRecordatorio" | "registrar" | "ahora"> &
+    Partial<Pick<Dependencias, "plantillaAviso">>,
 ): Promise<ResumenRecordatorios> {
   const ahora = deps.ahora?.() ?? new Date();
   const log = deps.registrar ?? ((evento, datos) => console.info(JSON.stringify({ evento, ...datos })));
@@ -51,7 +59,24 @@ export async function enviarRecordatorios(
       resumen.enviados++;
     } catch (error) {
       resumen.fallidos++;
-      log("error_recordatorio", { corredorId: cita.corredor_id, citaId: cita.id, error: errorSeguro(error) });
+      const codigo = codigoWhatsApp(error);
+      log("error_recordatorio", { corredorId: cita.corredor_id, citaId: cita.id, codigo, error: errorSeguro(error) });
+      if (esErrorDeConfiguracion(codigo, error instanceof ErrorWhatsApp ? error.status : undefined)) {
+        log("error_whatsapp_config", { corredorId: cita.corredor_id, codigo });
+      }
+      if (esErrorTransitorio(error) && deps.repo.desmarcarRecordatorio) {
+        await deps.repo.desmarcarRecordatorio(cita.corredor_id, cita.id).catch((e: unknown) =>
+          log("error_recordatorio", { corredorId: cita.corredor_id, citaId: cita.id, error: errorSeguro(e) }),
+        );
+      } else if (deps.plantillaAviso && cita.whatsapp_corredor) {
+        const quien = cita.nombre_cliente ? `${cita.nombre_cliente} (${cita.telefono})` : cita.telefono;
+        await avisarAlCorredor(
+          { repo: deps.repo, whatsapp: deps.whatsapp, plantillaAviso: deps.plantillaAviso },
+          { id: cita.corredor_id, whatsapp_corredor: cita.whatsapp_corredor, whatsapp_phone_number_id: cita.phone_number_id, activo: true },
+          `No le pude mandar a ${quien} el recordatorio de la visita del ${cuando}: ${porQueNoLlego(codigo)}. Escríbele tú para confirmarla.`,
+          log,
+        );
+      }
     }
   }
   return resumen;

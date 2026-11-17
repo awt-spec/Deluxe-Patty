@@ -5,8 +5,8 @@ import type { Corredor, PresupuestoIA, UsoMensual } from "../datos/tipos";
 // Topes que frenan las llamadas a la IA (no solo avisan): el tope de mensajes del mes del plan, los topes
 // de gasto de IA (Claude + imágenes de OpenAI) por día y por mes, y un límite de mensajes por cliente por
 // hora contra ráfagas. Los topes de gasto los define el superadministrador (/admin): uno de la plataforma
-// y, si hace falta, uno propio por corredor. Cuando se frena, el chat queda para el corredor ("Te
-// necesitan") y nadie paga de más.
+// y, si hace falta, uno propio por corredor. Cuando se frena, el chat queda para el corredor (un aviso
+// por chat y día, sin escalar: la IA vuelve sola cuando el tope se renueva) y nadie paga de más.
 
 export const MAX_MENSAJES_CLIENTE_HORA = 20;
 

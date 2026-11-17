@@ -3,7 +3,7 @@ import { after, type NextRequest } from "next/server";
 import { alertar, dependencias, esperarAlertas } from "@/lib/asistente/dependencias";
 import { procesarEstado, procesarMensaje } from "@/lib/asistente/procesar";
 import { firmaValida } from "@/lib/whatsapp/firma";
-import { parsearWebhook } from "@/lib/whatsapp/parsear";
+import { parsearWebhook, type MensajeEntrante } from "@/lib/whatsapp/parsear";
 import { errorSeguro } from "@/lib/monitoreo/errores";
 
 export const runtime = "nodejs";
@@ -14,6 +14,16 @@ function iguales(a: string, b: string): boolean {
   const x = Buffer.from(a);
   const y = Buffer.from(b);
   return x.length === y.length && timingSafeEqual(x, y);
+}
+
+function porRemitente(mensajes: MensajeEntrante[]): Map<string, MensajeEntrante[]> {
+  const grupos = new Map<string, MensajeEntrante[]>();
+  for (const m of mensajes) {
+    const clave = `${m.phoneNumberId}:${m.telefono}`;
+    grupos.set(clave, [...(grupos.get(clave) ?? []), m]);
+  }
+  for (const lista of grupos.values()) lista.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  return grupos;
 }
 
 // Verificación del webhook al configurarlo en Meta for Developers.
@@ -52,18 +62,25 @@ export async function POST(req: NextRequest) {
   // Los reintentos no duplican nada: mensajes.wa_message_id es único.
   after(async () => {
     const deps = dependencias();
-    for (const estado of estados) {
-      await procesarEstado(deps, estado).catch((e) =>
-        console.error(JSON.stringify({ evento: "error_estado", error: errorSeguro(e) })),
-      );
-      if (estado.estado === "fallido") alertar("whatsapp_fallido", "WhatsApp reportó un mensaje no entregado");
-    }
-    for (const mensaje of mensajes) {
-      await procesarMensaje(deps, mensaje).catch((e) => {
-        console.error(JSON.stringify({ evento: "error_mensaje", waMessageId: mensaje.waMessageId, error: errorSeguro(e) }));
-        alertar("error_webhook", `El webhook falló procesando un mensaje: ${errorSeguro(e)}`);
-      });
-    }
+    // Los avisos de entrega van en paralelo (cada uno puede esperar 2 s a que su mensaje se guarde). Un "failed"
+    // avisa al corredor y, si es de la cuenta, a soporte (procesarEstado).
+    await Promise.allSettled(
+      estados.map((estado) =>
+        procesarEstado(deps, estado).catch((e) => console.error(JSON.stringify({ evento: "error_estado", error: errorSeguro(e) }))),
+      ),
+    );
+    // Mensajes: cada cliente en orden y los clientes en paralelo. Si en el mismo aviso vienen varios del mismo
+    // cliente, se guardan todos y se contesta una vez, con el último.
+    await Promise.allSettled(
+      [...porRemitente(mensajes).values()].map(async (lista) => {
+        for (const [i, mensaje] of lista.entries()) {
+          await procesarMensaje(deps, mensaje, { siguenMas: i < lista.length - 1 }).catch((e) => {
+            console.error(JSON.stringify({ evento: "error_mensaje", waMessageId: mensaje.waMessageId, error: errorSeguro(e) }));
+            alertar("error_webhook", `El webhook falló procesando un mensaje: ${errorSeguro(e)}`);
+          });
+        }
+      }),
+    );
     await esperarAlertas();
   });
 

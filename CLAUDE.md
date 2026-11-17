@@ -170,6 +170,23 @@ propiedades activas; si la intención es agendar, `lib/asistente/agenda.ts` calc
 `corredores.zona_base` —Patricia, Lindora— y primero los días con otra visita cerca), Sonnet elige la acción con ids cortos y el código arma las fechas y
 crea la cita. El modelo nunca escribe una fecha que llegue al cliente. Escalamientos, audios/imágenes, fallas de Claude y datos por confirmar se avisan al
 corredor con la plantilla `WHATSAPP_PLANTILLA_AVISO`.
+**Casos borde** (`tests/whatsapp-qa.test.ts`): `parsearWebhook` ignora reacciones, stickers, ediciones, borrados y avisos del
+sistema; ubicación y tarjeta de contacto llegan como texto corto y siguen el flujo. Lo que no se puede leer (`unsupported`,
+video, Word, archivo grande) no escala: al cliente `TEXTO_NO_LEO` una vez por chat y día y, si era un archivo, aviso al corredor.
+«Privacidad…» (también tras un saludo, `esSolicitudPrivacidad`) va antes de todo corte (chat tomado, escalado o con tope). Un
+número que no es de ningún corredor activo deja `error_corredor_desconocido` (solo el Phone number ID). **"Escalada" = quiere
+hablar con el corredor** y solo se levanta al devolver el chat; los frenos (ráfaga, tope del mes, energía) **no escalan**: al
+cliente nada, al corredor un aviso por chat y día (`sin_contestar:…`), y la IA vuelve sola al renovarse el tope o bajar la
+ráfaga. En un chat escalado, un mensaje nuevo se le avisa al corredor (cada 2 h). Al cliente nunca se le dice "le escribe"
+si el aviso al corredor no salió. Varios mensajes seguidos se contestan una vez (`WHATSAPP_AGRUPAR_MS`, 6 s; los del mismo
+POST con `siguenMas`). Envíos: lo pasajero (130429, 131056, 5xx, red, 20 s) se reintenta 2 veces (1,5 y 4 s); lo demás no.
+Si una respuesta no sale o Meta manda `failed` (el código se guarda en el registro, no hay columna), el corredor recibe "no le
+llegó a X: <porQueNoLlego>" (una vez por chat y hora) y lo de cuenta o plantilla va a soporte (`error_whatsapp_config`); un aviso
+al corredor que no llega, `error_aviso_no_entregado`. Los avisos al corredor se guardan en su conversación (estado visible). Los
+recordatorios salen también en sombra (la cita ya la aprobó el corredor): falla pasajera → se reintenta la hora siguiente;
+permanente → aviso al corredor. Una alerta a soporte que falla suelta su clave. El cron de recordatorios barre chats con el último
+mensaje del cliente sin respuesta (10 min–24 h, `avisarSinRespuesta`) por si la función se cortó. El celular del corredor se
+compara y se usa en E.164 aunque se haya guardado sin "+506" (`lib/whatsapp/telefono.ts`).
 Si quien escribe es el propio corredor (`corredores.whatsapp_corredor`), no se trata como cliente:
 `lib/asistente/corredor.ts` le entrega su plan pendiente, responde "plan" o le hace un análisis con
 Sonnet y `web_fetch` (lee el enlace de Encuentra24). El plan del día lo arma el código
@@ -200,9 +217,9 @@ una por frase; si no nombra ninguna o no se separa limpio, pregunta cuál (hora 
   si fuera texto, también la de un **cliente** ("Nota de voz: …" queda en el mensaje). Una **foto o PDF de Patricia**
   se analiza con Claude (`cerebro.analizar` con `adjuntos`); la de un **cliente** la describe Haiku
   (`cerebro.describirMedio`, `prompts/describir-medio.md`) y la descripción entra como texto. Video, Word y Excel por
-  WhatsApp no se leen (se le dice a Patricia que los suba al panel; el cliente queda para el corredor). Sin la llave de
+  WhatsApp no se leen (se le dice a Patricia que los suba al panel; del cliente, aviso al corredor y respuesta fija, sin escalar). Sin la llave de
   WhatsApp u OpenAI, con el tope de gasto alcanzado o con un archivo muy grande (audio 8 MB, foto 5 MB, PDF 10 MB), se
-  cae al aviso de antes. El contenido de los archivos nunca va a los registros.
+  le avisa al corredor sin escalar. El contenido de los archivos nunca va a los registros.
 - **En el chat de Patty** (`app/panel/patty.tsx`): clip (fotos, PDF, Word `.docx`, Excel `.xlsx`, `.txt`/`.csv`, video),
   cámara, pegar o arrastrar, hasta 10 archivos y 2,8 MB entre todos (`lib/panel/adjuntos-limites.ts`); micrófono: se graba en el teléfono, `transcribirNota` lo pasa a
   texto y queda en la caja para revisarlo antes de enviar. Word/Excel/texto se convierten a texto en el servidor

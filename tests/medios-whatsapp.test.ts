@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Cerebro } from "../lib/asistente/cerebro";
 import { SIN_CONSUMO } from "../lib/asistente/costo";
-import { procesarMensaje, type Dependencias } from "../lib/asistente/procesar";
+import { TEXTO_NO_LEO, procesarMensaje, type Dependencias } from "../lib/asistente/procesar";
 import type { Corredor } from "../lib/datos/tipos";
 import type { EnviadorWhatsApp } from "../lib/whatsapp/enviar";
 import { ErrorMedio, type Medios } from "../lib/whatsapp/media";
@@ -133,31 +133,37 @@ describe("medios por WhatsApp", () => {
       expect(enviado).toContain("Fachada de una casa de dos pisos");
     });
 
-    it("un video del cliente pasa a Patricia, con su nombre en el aviso", async () => {
+    // Lo que no se puede leer no escala ni silencia el chat: aviso a Patricia (con freno), respuesta fija al cliente
+    // una vez al día, y la conversación sigue abierta para la IA.
+    it("un video del cliente: aviso a Patricia con su nombre, respuesta fija al cliente y el chat sigue abierto", async () => {
       const r = await procesarMensaje(deps, cliente({ tipo: "otro", media: media("video", "video/mp4") }));
-      expect(r).toEqual({ tipo: "escalado", intencion: null });
+      expect(r).toEqual({ tipo: "sin_respuesta", motivo: "no_legible" });
       expect(whatsapp.plantilla).toHaveBeenCalledWith("PNID", PATRICIA, "aviso_corredor", [expect.stringContaining("un video")]);
+      expect(whatsapp.texto).toHaveBeenCalledWith("PNID", "+50688880001", TEXTO_NO_LEO);
       expect(cerebro.clasificar).not.toHaveBeenCalled();
+      expect(db.conversaciones[0].estado).toBe("abierta");
     });
 
-    it("sin la llave de WhatsApp o de OpenAI, la nota de voz pasa a Patricia como antes", async () => {
+    it("sin la llave de WhatsApp o de OpenAI, la nota de voz se le avisa a Patricia sin escalar", async () => {
       medios.descargar.mockRejectedValueOnce(new ErrorMedio("sin_llave"));
       const r = await procesarMensaje(deps, cliente({ tipo: "audio", media: media("audio", "audio/ogg") }));
-      expect(r).toEqual({ tipo: "escalado", intencion: null });
+      expect(r).toEqual({ tipo: "sin_respuesta", motivo: "no_legible" });
       expect(whatsapp.plantilla.mock.calls[0][3][0]).toContain("una nota de voz");
+      expect(db.conversaciones[0].estado).toBe("abierta");
     });
 
-    it("sin la configuración de medios (deps.medios vacío) todo sigue como antes", async () => {
+    it("sin la configuración de medios (deps.medios vacío) no se cae nada", async () => {
       deps.medios = undefined;
       const r = await procesarMensaje(deps, cliente({ tipo: "imagen", media: media("imagen", "image/jpeg") }));
-      expect(r).toEqual({ tipo: "escalado", intencion: null });
+      expect(r).toEqual({ tipo: "sin_respuesta", motivo: "no_legible" });
     });
 
-    it("si Claude no puede describir la foto, el cliente queda para Patricia y no se cae nada", async () => {
+    it("si Claude no puede describir la foto, Patricia se entera y no se cae nada", async () => {
       medios.descargar.mockResolvedValueOnce({ datos: Buffer.from("jpg"), mime: "image/jpeg" });
       cerebro.describirMedio.mockRejectedValueOnce(new Error("falla"));
       const r = await procesarMensaje(deps, cliente({ tipo: "imagen", media: media("imagen", "image/jpeg") }));
-      expect(r).toEqual({ tipo: "escalado", intencion: null });
+      expect(r).toEqual({ tipo: "sin_respuesta", motivo: "no_legible" });
+      expect(whatsapp.plantilla.mock.calls[0][3][0]).toContain("una foto");
     });
   });
 });

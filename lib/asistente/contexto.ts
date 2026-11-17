@@ -1,8 +1,9 @@
 import type { Repositorio } from "../datos/repositorio";
 import type { AccionPendiente, Conversacion, Corredor, Intencion, UsoDelta, UsoMensual } from "../datos/tipos";
 import type { EditorFotos } from "../fotos/editor";
-import type { EnviadorWhatsApp } from "../whatsapp/enviar";
+import { ErrorWhatsApp, codigoWhatsApp, esErrorDeConfiguracion, porQueNoLlego, type EnviadorWhatsApp } from "../whatsapp/enviar";
 import type { Medios } from "../whatsapp/media";
+import { telefonoE164 } from "../whatsapp/telefono";
 import type { Cerebro } from "./cerebro";
 import type { Consumo } from "./costo";
 import { errorSeguro } from "../monitoreo/errores";
@@ -22,6 +23,88 @@ export interface Dependencias {
   medios?: Medios;
   /** Reloj inyectable para pruebas. */
   ahora?: () => Date;
+  /**
+   * Varios mensajes seguidos del mismo cliente: cuánto esperar antes de contestar para hacerlo una sola vez, al último
+   * (0 o sin valor: no se espera; así corren las pruebas y el simulador).
+   */
+  esperaAgruparMs?: number;
+  /** Espera inyectable para pruebas (agrupar mensajes, reintentos). */
+  dormir?: (ms: number) => Promise<void>;
+}
+
+const MINUTOS_DIA = 24 * 60;
+
+/** Fecha local (AAAA-MM-DD) del corredor: las claves "una vez al día" cambian a su medianoche. */
+export function diaDelCorredor(corredor: Pick<Corredor, "zona_horaria">, ahora: Date): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: corredor.zona_horaria || "America/Costa_Rica", year: "numeric", month: "2-digit", day: "2-digit" }).format(ahora);
+}
+
+/**
+ * Aviso al corredor con la plantilla (sirve fuera de la ventana de 24 horas). Queda guardado en su conversación con la
+ * asistente para que su estado de entrega se vea (y si Meta no lo entrega, se le avise a soporte). true si salió.
+ * Un corredor inactivo (demo) nunca manda nada.
+ */
+export async function avisarAlCorredor(
+  deps: Pick<Dependencias, "repo" | "whatsapp" | "plantillaAviso">,
+  corredor: Pick<Corredor, "id" | "whatsapp_corredor" | "whatsapp_phone_number_id" | "activo">,
+  texto: string,
+  log: (evento: string, datos: Record<string, unknown>) => void,
+): Promise<boolean> {
+  const destino = telefonoE164(corredor.whatsapp_corredor);
+  if (!destino || !corredor.whatsapp_phone_number_id) {
+    log("error_aviso_sin_destino", { corredorId: corredor.id });
+    return false;
+  }
+  if (corredor.activo === false) {
+    log("aviso_simulado", { corredorId: corredor.id });
+    return false;
+  }
+  let waId: string;
+  try {
+    waId = await deps.whatsapp.plantilla(corredor.whatsapp_phone_number_id, destino, deps.plantillaAviso, [texto]);
+  } catch (error) {
+    log("error_aviso_corredor", { corredorId: corredor.id, codigo: codigoWhatsApp(error), error: errorSeguro(error) });
+    return false;
+  }
+  // El aviso también es un mensaje de la cuenta y cuenta contra el tope (sin volver a revisar el umbral, para no
+  // encadenar avisos).
+  await deps.repo.registrarUso(corredor.id, { mensajesSalientes: 1 }).catch((e: unknown) =>
+    log("error_uso_aviso", { corredorId: corredor.id, error: errorSeguro(e) }),
+  );
+  try {
+    const contacto = await deps.repo.contactoCorredor(corredor.id, destino);
+    const conversacion = await deps.repo.conversacionActiva(corredor.id, contacto.id);
+    await deps.repo.guardarMensaje({
+      corredor_id: corredor.id,
+      conversacion_id: conversacion.id,
+      direccion: "saliente",
+      autor: "sistema",
+      tipo: "plantilla",
+      contenido: texto,
+      wa_message_id: waId,
+      estado_entrega: "enviado",
+    });
+  } catch (e) {
+    // Guardarlo es un extra (sirve para ver su estado): el aviso ya salió.
+    log("aviso_sin_guardar", { corredorId: corredor.id, error: errorSeguro(e) });
+  }
+  return true;
+}
+
+/** Reclama una clave de `alertas` (con la del corredor adentro); si la base falla, no frena el flujo. */
+export async function unaVez(
+  deps: Pick<Dependencias, "repo">,
+  clave: string,
+  minutos: number,
+  log: (evento: string, datos: Record<string, unknown>) => void,
+  corredorId: string,
+): Promise<boolean> {
+  try {
+    return await deps.repo.reclamarAlerta(clave, minutos);
+  } catch (e) {
+    log("error_reclamar", { corredorId, error: errorSeguro(e) });
+    return false;
+  }
 }
 
 export class Contexto {
@@ -79,41 +162,69 @@ export class Contexto {
     });
     if (borrador || id === null) return borrador;
 
+    // El enviador ya reintentó lo pasajero (límite de Meta, 5xx, red). Si igual falla, el cliente se quedó sin
+    // respuesta: se le dice al corredor (una vez por conversación y hora) en vez de dejarlo en silencio.
     try {
       const waId = await whatsapp.texto(this.phoneNumberId, this.telefonoCliente, texto);
       await repo.actualizarMensaje(this.corredor.id, id, { wa_message_id: waId, estado_entrega: "enviado" });
       await this.uso({ mensajesSalientes: 1 });
     } catch (error) {
       await repo.actualizarMensaje(this.corredor.id, id, { estado_entrega: "fallido" });
-      this.log("error_envio_cliente", { corredorId: this.corredor.id, mensajeId: id, error: errorSeguro(error) });
+      const codigo = codigoWhatsApp(error);
+      this.log("error_envio_cliente", { corredorId: this.corredor.id, mensajeId: id, codigo, error: errorSeguro(error) });
+      if (await this.unaVez(`entrega_fallida:${this.corredor.id}:${this.conversacion.id}`, 60)) {
+        await this.avisarCorredor(
+          `No le pude mandar la respuesta a ${this.nombreCliente()}: ${porQueNoLlego(codigo)}. Lo que le iba a decir: "${texto.slice(0, 200)}". Escríbele desde tu WhatsApp o desde el chat en el panel.`,
+        );
+      }
+      if (esErrorDeConfiguracion(codigo, error instanceof ErrorWhatsApp ? error.status : undefined)) {
+        this.log("error_whatsapp_config", { corredorId: this.corredor.id, codigo });
+      }
     }
     return false;
   }
 
-  /** Lo que está en la lista de escalamiento va al corredor; al cliente solo se le avisa que le escribe. */
-  async escalar(intencion: Intencion | null, aviso: string) {
+  /** Cómo se nombra al cliente en los avisos al corredor (nombre y teléfono; van por WhatsApp, nunca a registros). */
+  nombreCliente(): string {
+    return this.nombre ? `${this.nombre} (${this.telefonoCliente})` : this.telefonoCliente;
+  }
+
+  /** Nombre del cliente para los avisos; lo pone procesarMensaje. */
+  nombre: string | null = null;
+
+  /**
+   * Lo que está en la lista de escalamiento va al corredor; al cliente solo se le avisa que le escribe, y solo si el
+   * aviso al corredor salió (nunca se le promete al cliente algo que el corredor no sabe). true si se avisó.
+   */
+  async escalar(intencion: Intencion | null, aviso: string): Promise<boolean> {
     await this.deps.repo.actualizarConversacion(this.corredor.id, this.conversacion.id, { estado: "escalada" });
-    await this.avisarCorredor(aviso);
+    const avisado = await this.avisarCorredor(aviso);
+    if (!avisado) {
+      // Queda en "Te esperan" del panel y del plan; soporte recibe la alerta de error_aviso_corredor.
+      this.log("escalada_sin_aviso", { corredorId: this.corredor.id, conversacionId: this.conversacion.id });
+      return false;
+    }
     await this.responderCliente(
       `Gracias por escribir. Esto lo ve ${this.corredor.nombre_contacto} personalmente y le escribe en cuanto pueda.`,
       intencion,
     );
+    return true;
   }
 
-  async avisarCorredor(texto: string) {
-    const destino = this.corredor.whatsapp_corredor;
-    if (!destino) {
-      this.log("aviso_sin_destino", { corredorId: this.corredor.id });
-      return;
-    }
-    try {
-      await this.deps.whatsapp.plantilla(this.phoneNumberId, destino, this.deps.plantillaAviso, [texto]);
-      // El aviso también es un mensaje de la cuenta y cuenta contra el tope (sin volver a revisar el
-      // umbral, para no encadenar avisos).
-      await this.deps.repo.registrarUso(this.corredor.id, { mensajesSalientes: 1 });
-    } catch (error) {
-      this.log("error_aviso_corredor", { corredorId: this.corredor.id, error: errorSeguro(error) });
-    }
+  avisarCorredor(texto: string): Promise<boolean> {
+    return avisarAlCorredor(this.deps, this.corredor, texto, this.log);
   }
+
+  /** Clave de `alertas` reclamada: true solo la primera vez dentro de `minutos`. */
+  unaVez(clave: string, minutos: number): Promise<boolean> {
+    return unaVez(this.deps, clave, minutos, this.log, this.corredor.id);
+  }
+
+  /** Clave que vale por el día local del corredor. */
+  claveDelDia(prefijo: string): string {
+    return `${prefijo}:${this.corredor.id}:${this.conversacion.id}:${diaDelCorredor(this.corredor, this.deps.ahora?.() ?? new Date())}`;
+  }
+
+  static readonly MINUTOS_DIA = MINUTOS_DIA;
 
 }
