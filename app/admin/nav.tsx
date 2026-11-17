@@ -2,24 +2,32 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { IconoChats, IconoEscudo, IconoPersonas, IconoRayo, IconoTablero } from "../panel/iconos";
 
-const SECCIONES = [
-  ["/admin", "Resumen"],
-  ["/admin/corredores", "Corredores"],
-  ["/admin/whatsapp", "WhatsApp"],
-  ["/admin/accesos", "Accesos"],
-  ["/admin/ia", "IA y topes"],
+// Secciones de /admin. En computadora, menú lateral con íconos; en el teléfono, la misma lista es la barra de abajo.
+export const SECCIONES = [
+  { href: "/admin", nombre: "Resumen", corto: "Resumen", Icono: IconoTablero },
+  { href: "/admin/corredores", nombre: "Corredores", corto: "Corredores", Icono: IconoPersonas },
+  { href: "/admin/whatsapp", nombre: "WhatsApp", corto: "WhatsApp", Icono: IconoChats },
+  { href: "/admin/accesos", nombre: "Accesos", corto: "Accesos", Icono: IconoEscudo },
+  { href: "/admin/ia", nombre: "IA y topes", corto: "IA", Icono: IconoRayo },
 ] as const;
 
+export const seccionActiva = (ruta: string, href: string) => (href === "/admin" ? ruta === "/admin" : ruta === href || ruta.startsWith(`${href}/`));
+
 export function NavAdmin() {
-  const ruta = usePathname();
+  const ruta = usePathname() ?? "/admin";
   return (
-    <nav className="adm-nav" aria-label="Secciones de administración">
-      {SECCIONES.map(([href, nombre]) => {
-        const activa = href === "/admin" ? ruta === "/admin" : ruta.startsWith(href);
+    <nav className="ad-nav" aria-label="Secciones de administración">
+      {SECCIONES.map(({ href, nombre, corto, Icono }) => {
+        const activa = seccionActiva(ruta, href);
         return (
-          <Link key={href} href={href} aria-current={activa ? "page" : undefined}>
-            {nombre}
+          <Link key={href} href={href} aria-current={activa ? "page" : undefined} title={nombre}>
+            <Icono tamano={22} />
+            <span className="ad-nav-largo">{nombre}</span>
+            <span className="ad-nav-corto" aria-hidden>
+              {corto}
+            </span>
           </Link>
         );
       })}
