@@ -20,9 +20,11 @@ describe("unidades de IA (base de la energía): 1 dólar = 100 unidades", () => 
     expect(estadoTokens({ gastoMesUsd: 12.4, topeMesUsd: 20 })).toEqual({ total: 2000, usados: 1240, restantes: 760, pct: 62, nivel: "bien" });
   });
 
-  it("'poco' con el 15 % o menos; justo arriba sigue 'bien'", () => {
+  it("'poco' cuando lo que se ve es 15 % o menos; 16 % sigue 'bien'", () => {
     expect(estadoTokens({ gastoMesUsd: 17, topeMesUsd: 20 }).nivel).toBe("poco"); // quedan 300 = 15 %
-    expect(estadoTokens({ gastoMesUsd: 16.99, topeMesUsd: 20 }).nivel).toBe("bien"); // quedan 301
+    // Quedan 301 = 15,05 %: se ve «15 %», así que va en ámbar (antes salía verde con «15 %»). Usado + restante = 100.
+    expect(estadoTokens({ gastoMesUsd: 16.99, topeMesUsd: 20 })).toMatchObject({ nivel: "poco", pct: 85 });
+    expect(estadoTokens({ gastoMesUsd: 16.8, topeMesUsd: 20 })).toMatchObject({ nivel: "bien", pct: 84 }); // quedan 320 = 16 %
     expect(estadoTokens({ gastoMesUsd: 19.99, topeMesUsd: 20 })).toMatchObject({ restantes: 1, nivel: "poco" });
   });
 

@@ -9,6 +9,8 @@ import { crearTranscriptor } from "../medios/transcribir";
 import { crearEnviadorWhatsApp, enviadorDemo, enviadorSinConfigurar } from "../whatsapp/enviar";
 import { crearDescargador, mediosSinConfigurar, ErrorMedio, type Medios } from "../whatsapp/media";
 import { crearCerebroClaude } from "./cerebro";
+import { cerebroDemo } from "./cerebro-demo";
+import { registrarFallaIA } from "./falla-ia";
 import type { Dependencias } from "./procesar";
 
 let deps: Dependencias | null = null;
@@ -94,9 +96,14 @@ export function dependencias(): Dependencias {
 
 /**
  * Dependencias para actuar en nombre de un corredor desde el panel. Un corredor inactivo (la cuenta de
- * demo) nunca manda nada por WhatsApp: los envíos se simulan.
+ * demo) nunca manda nada por WhatsApp: los envíos se simulan. Su cerebro usa la IA real y, si falla, contesta con
+ * una respuesta de muestra marcada (lib/asistente/cerebro-demo.ts); una falla de configuración se alerta igual.
  */
-export function dependenciasPara(corredor: Pick<Corredor, "activo">): Dependencias {
+export function dependenciasPara(corredor: Pick<Corredor, "activo"> & { id?: string }): Dependencias {
   const base = dependencias();
-  return corredor.activo === false ? { ...base, whatsapp: enviadorDemo() } : base;
+  if (corredor.activo !== false) return base;
+  const cerebro = cerebroDemo(base.cerebro, (_causa, error) => {
+    registrarFallaIA(base.registrar, { corredorId: corredor.id ?? "demo", donde: "demo" }, error);
+  });
+  return { ...base, whatsapp: enviadorDemo(), cerebro };
 }

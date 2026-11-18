@@ -10,6 +10,7 @@ import { FormularioCierre } from "./formulario-cierre";
 import { FotoCasa } from "./foto-casa";
 import { juegoAbierto, modoJuego, resumenJuego, type EnJuego } from "./reglas";
 import type { CasaCorta, ClienteFicha } from "./tipos";
+import { BotonEnviar } from "../../../boton-enviar";
 
 // "Lo que está en juego" (#juego): según la etapa, el cierre ya anotado, el formulario para anotarlo o la casa que le
 // interesa y la oferta con la comisión estimada.
@@ -206,9 +207,7 @@ function EnJuegoAhora({ c, juego, casaInteres, todas, comisionPct }: Comun) {
             <input id="op-oferta" name="oferta" type="text" inputMode="numeric" defaultValue={c.oferta_monto ?? ""} placeholder="Si hizo una" />
             <SelectorMoneda name="oferta_moneda" defecto={juego.moneda} />
           </div>
-          <button type="submit" className="primario">
-            Guardar
-          </button>
+          <BotonEnviar texto="Guardar" pendiente="Guardando…" className="primario" />
         </form>
       </details>
     </>

@@ -4,7 +4,7 @@
 // Dólares y colones nunca se mezclan: el precio de lista solo se compara si está en la misma moneda.
 
 import { montoContable, porcentaje, redondear } from "./contable";
-import { cifraAmbigua, comisionEstimada, leerCifra, monedaDe, NO_ENTENDI_MONTO, traeMiles, traeMoneda, type Moneda } from "./dinero";
+import { cifraAmbigua, comisionEstimada, leerCifra, monedaDe, NO_ENTENDI_MONTO, traeMiles, traeMoneda, validarOferta, type Moneda } from "./dinero";
 
 /** Precio de venta más bajo que se cree (más bajo es un error de dedo: "1,5" → $1,50). */
 export const MINIMO_VENTA: Record<Moneda, number> = { USD: 1_000, CRC: 500_000 };
@@ -171,3 +171,46 @@ export function previaComision(e: {
 /** La etiqueta del campo: "Tu comisión: % o monto. Vacía: 5 %" (en alquiler, "un mes de renta"). */
 export const etiquetaComision = (comisionPct: number, operacion: string | null) =>
   `Tu comisión: % o monto. Vacía: ${operacion === "alquiler" ? "un mes de renta" : porcentaje(comisionPct)}`;
+
+/** Las columnas del cierre anotado (precio, comisión, moneda, casa y fecha). */
+const SIN_CIERRE = { cierre_precio: null, cierre_comision: null, cierre_moneda: null, cierre_propiedad_id: null, cierre_at: null } as const;
+
+/**
+ * Qué cambia en el cliente al moverlo de etapa (ficha o tablero). Entrar a "Cerró" desde otra etapa empieza un cierre
+ * nuevo: se borra cualquier cierre viejo y la fecha es la de hoy, así lo ganado cuenta en este mes (antes un cliente
+ * reabierto y vuelto a cerrar se quedaba con la fecha y las cifras del cierre anterior). Salir de "Cerró" anula el
+ * cierre (`anulado`: había precio anotado; la Historia lo dice). "Cambiar el cierre" no pasa por aquí: corrige sin
+ * volver a fechar.
+ */
+export function cambiosDeEtapa(
+  antes: { etapa?: string | null; cierre_precio?: number | string | null },
+  etapa: string,
+  ahora: string,
+): { cambios: Record<string, unknown>; anulado: boolean } {
+  const cambios: Record<string, unknown> = { etapa, etapa_at: ahora };
+  if (etapa === "cerrado" && antes.etapa !== "cerrado") return { cambios: { ...cambios, ...SIN_CIERRE, cierre_at: ahora }, anulado: false };
+  if (antes.etapa === "cerrado" && etapa !== "cerrado") {
+    const habia = antes.cierre_precio !== null && antes.cierre_precio !== undefined;
+    return { cambios: { ...cambios, ...SIN_CIERRE }, anulado: habia };
+  }
+  return { cambios, anulado: false };
+}
+
+/**
+ * Oferta de la ficha con el mismo criterio que el cierre: vacía → null (se quita); «1,180» se pregunta (¿1,18 o
+ * 1.180?) y una cifra que no se cree (menos del 20 % de la lista en la misma moneda o, en venta, menos de $1.000 /
+ * ₡500.000) se explica con lo que se entendió. Antes «1,180» guardaba una oferta de $1.180 por una casa de $2.800 y
+ * pasaba al cliente a Negociando.
+ */
+export function validarOfertaCon(
+  valor: string,
+  moneda: Moneda,
+  contexto: ContextoCierre = {},
+): { ok: true; valor: number | null } | { ok: false; motivo: string } {
+  if (cifraAmbigua(valor)) return { ok: false, motivo: `Revisa la oferta: ${ambigua(valor, "la oferta")}` };
+  const leida = validarOferta(valor);
+  if (!leida.ok || leida.valor === null) return leida;
+  const increible = precioIncreible(leida.valor, moneda, contexto);
+  if (increible) return { ok: false, motivo: `Revisa la oferta. ${increible.replace("no parece el precio final", "no parece la oferta")}` };
+  return leida;
+}

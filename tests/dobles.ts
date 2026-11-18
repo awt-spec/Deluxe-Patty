@@ -190,7 +190,7 @@ export function repoEnMemoria(corredor: Corredor) {
       return id;
     },
     cambiarEstadoCita: async (_c, id, estado) => {
-      const c = citas.find((x) => x.id === id && activa(x));
+      const c = citas.find((x) => x.id === id && activa(x) && x.estado !== estado);
       if (c) c.estado = estado;
       return !!c;
     },
@@ -369,6 +369,7 @@ export function repoEnMemoria(corredor: Corredor) {
         id: m.id,
         contenido: m.contenido ?? "",
         estado_borrador: m.estado_borrador ?? null,
+        estado_entrega: (m as { estado_entrega?: string | null }).estado_entrega ?? null,
         accion: m.accion ?? null,
         conversacion_id: conv.id,
         contacto_id: conv.contacto_id,

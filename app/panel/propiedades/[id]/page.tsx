@@ -285,9 +285,7 @@ export default async function Propiedad({
                             <input type="hidden" name="id" value={p.id} />
                             <input type="hidden" name="url" value={f.url} />
                             <input type="hidden" name="variante" value={v.url} />
-                            <button type="submit" className="chico enlace" aria-label="Quitar esta imagen">
-                              Quitar
-                            </button>
+                            <BotonEnviar texto="Quitar" pendiente="Un momento…" className="chico enlace" ariaLabel="Quitar esta imagen" />
                           </form>
                         </li>
                       ))}
@@ -382,9 +380,7 @@ export default async function Propiedad({
                     ? " Si la trajiste desde un anuncio de Encuentra24, revisa los datos y las fotos antes de volver a ofrecerla."
                     : ""}
                 </p>
-                <button type="submit" className="primario chico">
-                  Volver a ofrecerla
-                </button>
+                <BotonEnviar texto="Volver a ofrecerla" pendiente="Un momento…" className="primario chico" />
               </form>
             ) : (
               <>
@@ -393,16 +389,12 @@ export default async function Propiedad({
                   <form action={cambiarEstado}>
                     <input type="hidden" name="id" value={p.id} />
                     <input type="hidden" name="estado" value={p.operacion === "alquiler" ? "alquilada" : "vendida"} />
-                    <button type="submit" className="chico">
-                      {p.operacion === "alquiler" ? "Ya se alquiló" : "Ya se vendió"}
-                    </button>
+                    <BotonEnviar texto={p.operacion === "alquiler" ? "Ya se alquiló" : "Ya se vendió"} pendiente="Un momento…" className="chico" />
                   </form>
                   <form action={cambiarEstado}>
                     <input type="hidden" name="id" value={p.id} />
                     <input type="hidden" name="estado" value="inactiva" />
-                    <button type="submit" className="chico">
-                      Pausarla
-                    </button>
+                    <BotonEnviar texto="Pausarla" pendiente="Un momento…" className="chico" />
                   </form>
                 </div>
               </>

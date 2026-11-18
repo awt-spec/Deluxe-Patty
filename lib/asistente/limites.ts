@@ -1,6 +1,7 @@
 import { fechaIso, fechaLocal } from "../agenda/tiempo";
 import type { Repositorio } from "../datos/repositorio";
 import type { Corredor, PresupuestoIA, UsoMensual } from "../datos/tipos";
+import { agotadoEnergia } from "../ia/energia";
 
 // Topes que frenan las llamadas a la IA (no solo avisan): el tope de mensajes del mes del plan, los topes
 // de gasto de IA (Claude + imágenes de OpenAI) por día y por mes, y un límite de mensajes por cliente por
@@ -43,3 +44,13 @@ export async function hayPresupuestoHoy(repo: Pick<Repositorio, "presupuestoIA">
 
 export const SIN_PRESUPUESTO =
   "Se llegó al límite de uso de la inteligencia artificial. Vuelve a funcionar mañana (o el próximo mes si es el límite del mes); si lo necesitas antes, escríbele a soporte.";
+
+/**
+ * Por qué no hay IA, con las palabras de la Energía: el tope del mes (o tope 0) es "se quedó sin energía este mes";
+ * el del día, que vuelve mañana.
+ */
+export function motivoSinPresupuesto(p: PresupuestoIA, nombre?: string | null): string {
+  const n = (nombre ?? "").trim() || "Patty";
+  if (p.gastoMes >= p.topeMes) return agotadoEnergia(n);
+  return `${n} ya usó la energía de hoy. Mañana sigue; si lo necesitas antes, habla con soporte.`;
+}

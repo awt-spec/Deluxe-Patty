@@ -5,6 +5,7 @@ import { cambiarEnlaceCalendario } from "../acciones";
 import { EncabezadoPagina } from "../../piezas";
 import { GuiaCalendario } from "./guia";
 import "../../pasos/pasos.css";
+import { BotonEnviar } from "../../boton-enviar";
 
 // Ver las visitas en el calendario del teléfono, paso a paso (el enlace ICS de siempre).
 export default async function Calendario() {
@@ -32,9 +33,7 @@ export default async function Calendario() {
           <GuiaCalendario enlace={enlace} https={`${protocolo}://${enlace}`} google={(google?.correo as string | undefined) ?? null} />
           <form action={cambiarEnlaceCalendario} className="pap-nota" style={{ marginTop: 24 }}>
             <p style={{ margin: "0 0 8px" }}>¿Compartiste el enlace sin querer? Cámbialo: el anterior deja de funcionar y hay que volver a agregarlo.</p>
-            <button type="submit" className="chico">
-              Cambiar el enlace
-            </button>
+            <BotonEnviar texto="Cambiar el enlace" pendiente="Un momento…" className="chico" />
           </form>
         </>
       ) : (

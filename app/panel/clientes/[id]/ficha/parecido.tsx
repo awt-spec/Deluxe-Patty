@@ -1,6 +1,7 @@
 import { telefonoBonito } from "@/lib/crm/perfil";
 import { unirCliente } from "../../acciones";
 import type { OtroCliente } from "./tipos";
+import { BotonEnviar } from "../../../boton-enviar";
 
 /** Aviso arriba cuando otro cliente parece la misma persona (mismo nombre o correo), con "Unirlos". */
 export function AvisoParecido({ id, parecidos }: { id: string; parecidos: OtroCliente[] }) {
@@ -13,7 +14,7 @@ export function AvisoParecido({ id, parecidos }: { id: string; parecidos: OtroCl
       <span>
         Parece la misma persona que <strong>{otro.nombre ?? telefonoBonito(otro.telefono)}</strong> ({telefonoBonito(otro.telefono)}).
       </span>
-      <button type="submit">Unirlos</button>
+      <BotonEnviar texto="Unirlos" pendiente="Uniendo…" />
     </form>
   );
 }

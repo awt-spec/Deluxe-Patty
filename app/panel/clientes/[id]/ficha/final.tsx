@@ -1,6 +1,7 @@
 import { MOTIVOS_PERDIDA, telefonoBonito, type Etapa } from "@/lib/crm/perfil";
 import { cambiarEtapa, unirCliente } from "../../acciones";
 import type { OtroCliente } from "./tipos";
+import { BotonEnviar } from "../../../boton-enviar";
 
 /** Lo de poco uso, plegado al final: marcarlo como perdido y unirlo con otro cliente. */
 export function PlegadosDelFinal({ id, etapa, otros }: { id: string; etapa: Etapa; otros: OtroCliente[] }) {
@@ -22,9 +23,7 @@ function MarcarPerdido({ id }: { id: string }) {
         <p className="suave">Toca por qué se perdió: así sabes qué mejorar. Si vuelve, lo cambias de etapa.</p>
         <div className="fc-botones-motivo">
           {MOTIVOS_PERDIDA.map((m) => (
-            <button key={m} type="submit" name="motivo" value={m}>
-              {m}
-            </button>
+            <BotonEnviar key={m} texto={m} pendiente={m} name="motivo" value={m} />
           ))}
         </div>
       </form>
@@ -50,7 +49,7 @@ function UnirConOtro({ id, otros }: { id: string; otros: OtroCliente[] }) {
           ))}
         </select>
         <p className="suave">Sus chats, visitas e historia pasan a este cliente y se completan los datos que falten. Su teléfono queda en las notas.</p>
-        <button type="submit">Unir</button>
+        <BotonEnviar texto="Unir" pendiente="Uniendo…" />
       </form>
     </details>
   );

@@ -1,6 +1,6 @@
 "use server";
 
-import { dependencias } from "@/lib/asistente/dependencias";
+import { dependenciasPara } from "@/lib/asistente/dependencias";
 import { SIN_PRESUPUESTO, hayPresupuestoHoy } from "@/lib/asistente/limites";
 import { crearRepositorioSupabase } from "@/lib/datos/repositorio";
 import { sesionConCorredor } from "@/lib/panel/sesion";
@@ -31,14 +31,17 @@ export async function probarTurno(estadoNavegador: unknown, texto: string): Prom
   }
   const real = crearRepositorioSupabase(createAdminClient());
   if (!(await hayPresupuestoHoy(real, corredor))) return { error: SIN_PRESUPUESTO };
+  // En la demo, si la IA falla, contesta con una respuesta de muestra marcada (lib/asistente/cerebro-demo.ts).
+  const deps = dependenciasPara(corredor);
   try {
     return await simularTurno({
       real,
-      cerebro: dependencias().cerebro,
+      cerebro: deps.cerebro,
       corredor,
       estado,
       texto: mensaje,
       ahora: new Date(),
+      alertar: deps.registrar,
     });
   } catch (error) {
     console.error(

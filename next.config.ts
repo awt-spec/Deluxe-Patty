@@ -10,7 +10,8 @@ const ARCHIVOS_ASISTENTE = [
 // Nadie puede mostrar la app dentro de otra página (para que un toque en "Enviar así" no se pueda
 // engañar desde un iframe), y el navegador no adivina tipos de archivo.
 // Permisos del navegador: micrófono y cámara solo para esta misma app (notas de voz y fotos en el chat de Patty y en
-// Apartar tiempo); compartir (navigator.share) también; lo demás apagado.
+// Apartar tiempo); compartir (navigator.share) queda con su valor de siempre (solo esta app). Sin `web-share` ni
+// `bluetooth`: Chrome no los reconoce y avisaba en la consola de cada página. Lo demás, apagado.
 // Sin CSP de scripts a propósito: Next mete scripts en línea al hidratar y mermaid / html-to-image arman estilos e
 // imágenes en el navegador; una política de scripts sin probarla en vivo puede dejar el panel en blanco. Si se agrega,
 // primero como Content-Security-Policy-Report-Only y con nonce (proxy.ts) tras revisar sus reportes. Tampoco
@@ -22,7 +23,7 @@ const CABECERAS_SEGURIDAD = [
   { key: "Referrer-Policy", value: "same-origin" },
   {
     key: "Permissions-Policy",
-    value: "camera=(self), microphone=(self), web-share=(self), geolocation=(), payment=(), usb=(), serial=(), bluetooth=(), hid=(), display-capture=(), browsing-topics=()",
+    value: "camera=(self), microphone=(self), geolocation=(), payment=(), usb=(), serial=(), hid=(), display-capture=(), browsing-topics=()",
   },
 ];
 

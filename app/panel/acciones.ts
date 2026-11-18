@@ -19,6 +19,7 @@ import { reclamarConSupabase } from "@/lib/monitoreo/alertas";
 import { crearEnviadorWhatsApp, explicarErrorWhatsApp } from "@/lib/whatsapp/enviar";
 import { COOKIE_CORREDOR, sesionConCorredor } from "@/lib/panel/sesion";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { leerEnvio, reclamarEnvio } from "@/lib/panel/una-vez";
 import { clienteConSesion } from "@/lib/supabase/servidor";
 
 // Server actions del panel. Antes de actuar con el backend (service_role) se comprueba con la sesión
@@ -31,7 +32,7 @@ const destino = (f: FormData, ruta: string) =>
 
 function volver(ruta: string, r: Resultado, ok: string): never {
   revalidatePath(ruta);
-  redirect(`${ruta}?aviso=${encodeURIComponent(r.ok ? ok : r.motivo)}`);
+  redirect(`${ruta}?aviso=${encodeURIComponent(r.ok ? (r.aviso ?? ok) : r.motivo)}`);
 }
 
 async function conversacionPropia(conversacionId: string) {
@@ -95,11 +96,14 @@ export async function devolver(f: FormData) {
 export async function escribir(f: FormData) {
   const id = texto(f, "conversacion");
   const corredor = await conversacionPropia(id);
-  volver(
-    `/panel/conversaciones/${id}`,
-    await escribirComoCorredor(dependenciasPara(corredor), corredor, id, texto(f, "texto")),
-    "Enviado.",
-  );
+  const ruta = `/panel/conversaciones/${id}`;
+  // Un doble toque (o el navegador que reenvía el formulario) no le manda el mismo mensaje dos veces al cliente: el
+  // segundo envío del mismo formulario con el mismo texto encuentra la marca y responde "Enviado." sin mandar nada.
+  const turno = await reclamarEnvio(createAdminClient(), "escribir", corredor.id, leerEnvio(f), `${id}\n${texto(f, "texto").trim()}`);
+  if (!turno.primero) volver(ruta, { ok: true }, "Enviado.");
+  const r = await escribirComoCorredor(dependenciasPara(corredor), corredor, id, texto(f, "texto"));
+  if (!r.ok) await turno.soltar();
+  volver(ruta, r, "Enviado.");
 }
 
 /**

@@ -14,9 +14,11 @@ import { cambiarEnlaceCalendario, quitarBloqueoAgenda } from "../acciones";
 import { PreguntaBloqueo } from "../pregunta-bloqueo";
 import { VistaDelTelefono } from "../vista-telefono";
 import { MesCalendario, SemanaTelefono, type CeldaMes } from "../movil";
+import { textoDiaVacio } from "@/lib/panel/movil";
 import "../agenda-movil.css";
 import { IconoAgenda } from "../../iconos";
 import { Vacio } from "../../piezas";
+import { BotonEnviar } from "../../boton-enviar";
 
 type Cita = {
   id: string;
@@ -197,6 +199,7 @@ export default async function Agenda({
       <Link
         key={c.id}
         href={`/panel/agenda/visita/${c.id}`}
+        prefetch={false}
         className={`cal-cita${c.estado === "confirmada" ? " confirmada" : ""}`}
         style={{ top: y(ini) + 1, height: Math.max(30, y(fin) - y(ini) - 3), ["--zona" as string]: colorZona(propiedad?.zona) }}
         title={`${contacto?.nombre ?? "Visita"}${propiedad ? ` · ${propiedad.titulo}` : ""} · ${c.estado === "confirmada" ? "Confirmada" : "Por confirmar"}`}
@@ -247,6 +250,7 @@ export default async function Agenda({
             <Link
               key={`n${m}`}
               href={`/panel/agenda/nueva?fecha=${fechaIso(f)}&hora=${hh}`}
+              prefetch={false}
               className="cal-agendar"
               style={{ top: y(m), height: ALTO_HORA }}
               aria-label={`Agendar a las ${hh}`}
@@ -351,6 +355,7 @@ export default async function Agenda({
                 <Link
                   key={fechaIso(f)}
                   href={enlaceA("dia", f)}
+                  prefetch={false}
                   className={`semana-dia${esHoy(f) ? " hoy" : ""}`}
                   aria-current={fechaIso(f) === fechaIso(base) ? "date" : undefined}
                   aria-label={`${capitalizar(DIAS_LARGOS[f.diaSemana])} ${f.dia}${n ? `, ${n} ${n === 1 ? "visita" : "visitas"}` : ""}`}
@@ -437,7 +442,15 @@ export default async function Agenda({
           {(() => {
             const plan = planDia(base);
             if (plan.length === 0) {
-              return <p className="suave dia-plan-vacio">No tienes visitas ni horario de visitas este día.</p>;
+              return (
+                <p className="suave dia-plan-vacio">
+                  {textoDiaVacio({
+                    tieneHorario: horarios.some((h) => h.dia_semana === base.diaSemana),
+                    esHoy: esHoy(base),
+                    yaPaso: fechaIso(base) < fechaIso(hoy),
+                  })}
+                </p>
+              );
             }
             return (
               <ul className="dia-lista">
@@ -448,7 +461,7 @@ export default async function Agenda({
                     const casa = uno(c.propiedades);
                     return (
                       <li key={c.id} style={{ ["--zona" as string]: colorZona(casa?.zona) }}>
-                        <Link href={`/panel/agenda/visita/${c.id}`} className="dia-visita">
+                        <Link href={`/panel/agenda/visita/${c.id}`} prefetch={false} className="dia-visita">
                           <span className="dia-hora">{horaCorta(new Date(c.inicio), zona)}</span>
                           <span className="dia-texto">
                             <strong>{cl?.nombre ?? (cl ? telefonoBonito(cl.telefono) : "Cliente")}</strong>
@@ -475,7 +488,7 @@ export default async function Agenda({
                             de {horaBonita(e.r.desde)} a {horaBonita(e.r.hasta)}
                           </span>
                         </span>
-                        <Link href={`/panel/agenda/nueva?fecha=${fechaIso(base)}&hora=${hhmm(e.r.desde)}`} className="boton chico">
+                        <Link href={`/panel/agenda/nueva?fecha=${fechaIso(base)}&hora=${hhmm(e.r.desde)}`} prefetch={false} className="boton chico">
                           + Agendar
                         </Link>
                       </li>
@@ -520,7 +533,7 @@ export default async function Agenda({
           <div className="cal-cabecera">
             <span />
             {diasVista.map((f) => (
-              <Link key={fechaIso(f)} href={enlaceA("dia", f)} className={esHoy(f) ? "hoy" : undefined}>
+              <Link key={fechaIso(f)} href={enlaceA("dia", f)} prefetch={false} className={esHoy(f) ? "hoy" : undefined}>
                 <small>{DIAS_CORTOS[f.diaSemana]}</small> <strong>{f.dia}</strong>
                 {(porDia.get(fechaIso(f)) ?? []).length > 0 && (
                   <span className="cal-cuantas">
@@ -602,7 +615,7 @@ export default async function Agenda({
               const contacto = uno(c.contactos);
               const propiedad = uno(c.propiedades);
               return (
-                <Link key={c.id} href={`/panel/agenda/visita/${c.id}`} className="tarjeta acento fila">
+                <Link key={c.id} href={`/panel/agenda/visita/${c.id}`} prefetch={false} className="tarjeta acento fila">
                   <div>
                     <strong>{horaCorta(new Date(c.inicio), zona)}</strong> · {contacto?.nombre ?? (contacto ? telefonoBonito(contacto.telefono) : "")}
                     {propiedad && <p className="suave">{propiedad.titulo}</p>}
@@ -628,9 +641,7 @@ export default async function Agenda({
                 </div>
                 <input type="hidden" name="id" value={b.id} />
                 <input type="hidden" name="volver" value={enlaceA(vista, base)} />
-                <button type="submit" className="chico">
-                  Quitar
-                </button>
+                <BotonEnviar texto="Quitar" pendiente="Un momento…" className="chico" />
               </form>
             ))}
         </section>
@@ -665,9 +676,7 @@ export default async function Agenda({
           <input type="text" readOnly value={`${protocolo}://${enlace}`} aria-label="Enlace del calendario" />
           <form action={cambiarEnlaceCalendario}>
             <p className="suave">¿Lo compartiste sin querer? Cámbialo y el anterior deja de funcionar.</p>
-            <button type="submit" className="chico">
-              Cambiar el enlace
-            </button>
+            <BotonEnviar texto="Cambiar el enlace" pendiente="Un momento…" className="chico" />
           </form>
         </details>
       )}

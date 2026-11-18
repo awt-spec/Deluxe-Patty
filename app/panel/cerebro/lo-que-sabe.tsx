@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { fechaCorta } from "@/lib/formato";
+import { fechaCortaEn } from "@/lib/formato";
+import { LIMITES } from "@/lib/panel/texto-libre";
+import { BotonEnviar } from "../boton-enviar";
 import { archivar, responderDuda } from "./acciones";
 import { ConservarBorrador } from "../conservar-borrador";
 
@@ -14,7 +16,7 @@ export type Ubicada = { id: string; codigo: string; titulo: string; zona: string
 
 const normal = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
-export function LoQueSabe({ grupos }: { grupos: Grupo[] }) {
+export function LoQueSabe({ grupos, zona }: { grupos: Grupo[]; zona?: string }) {
   const [buscar, setBuscar] = useState("");
   const q = normal(buscar.trim());
   const pasa = (t: string) => !q || normal(t).includes(q);
@@ -57,24 +59,20 @@ export function LoQueSabe({ grupos }: { grupos: Grupo[] }) {
                 <h4>{k.tema}</h4>
                 <p>{k.respuesta}</p>
                 <div className="cer-saber-pie">
-                  <span className="suave">Enseñado el {fechaCorta(k.updated_at.slice(0, 10))}</span>
+                  <span className="suave">Enseñado el {fechaCortaEn(k.updated_at, zona)}</span>
                   <details className="cer-cambiar">
                     <summary>Cambiar</summary>
                     <form action={responderDuda} className="cer-cambiar-form">
                       <input type="hidden" name="id" value={k.id} />
                       <input type="hidden" name="ver" value="sabe" />
                       <label htmlFor={`t-${k.id}`}>Pregunta</label>
-                      <input id={`t-${k.id}`} name="tema" type="text" defaultValue={k.tema} maxLength={300} />
+                      <input id={`t-${k.id}`} name="tema" type="text" defaultValue={k.tema} maxLength={LIMITES.tema} />
                       <label htmlFor={`s-${k.id}`}>Respuesta</label>
-                      <textarea id={`s-${k.id}`} name="respuesta" rows={3} defaultValue={k.respuesta ?? ""} maxLength={2000} />
+                      <textarea id={`s-${k.id}`} name="respuesta" rows={3} defaultValue={k.respuesta ?? ""} maxLength={LIMITES.respuesta} />
                       <ConservarBorrador nombre={`sabe-${k.id}`} />
                       <div className="botones">
-                        <button type="submit" className="primario">
-                          Guardar
-                        </button>
-                        <button type="submit" formAction={archivar} className="peligro">
-                          Olvidarlo
-                        </button>
+                        <BotonEnviar texto="Guardar" pendiente="Guardando…" className="primario" />
+                        <BotonEnviar texto="Olvidarlo" pendiente="Un momento…" formAction={archivar} className="peligro" />
                       </div>
                     </form>
                   </details>

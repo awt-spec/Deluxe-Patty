@@ -28,5 +28,7 @@ export interface TurnoSimulado {
   resultado: string;
   accionAgenda: string | null;
   error: boolean;
+  /** Por qué falló la IA, en palabras del corredor (solo si falló). */
+  motivoError?: string;
 }
 

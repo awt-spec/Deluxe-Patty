@@ -11,6 +11,7 @@ import { PreguntarPatty } from "../../preguntar-patty";
 import { ordenarCasas, type FiltroCasas } from "@/lib/panel/orden-casas";
 import { cambiarEstado } from "../acciones";
 import { PreguntaUbicacion, casasPorUbicar } from "../ubicacion";
+import { BotonEnviar } from "../../boton-enviar";
 
 // Mis casas: arriba cuántas hay y cuánto valen (dólares y colones aparte); filtros por venta, alquiler
 // y vendidas o pausadas, y un buscador. Cada casa con su foto, lo que es, sus datos, el movimiento
@@ -276,9 +277,7 @@ export default async function Propiedades({
                   <input type="hidden" name="id" value={p.id} />
                   <input type="hidden" name="estado" value="activa" />
                   <input type="hidden" name="volver_a" value="lista" />
-                  <button type="submit" className="chico">
-                    Volver a ofrecerla
-                  </button>
+                  <BotonEnviar texto="Volver a ofrecerla" pendiente="Un momento…" className="chico" />
                 </form>
               </div>
             ))}

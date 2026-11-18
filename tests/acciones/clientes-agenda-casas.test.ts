@@ -85,7 +85,8 @@ describe("Clientes: solo los del propio corredor", () => {
 
   it("mover el propio guarda la etapa (filtrando por corredor) y anota la historia", async () => {
     expect(await clientes.moverEtapa(ID.cliente, "visita")).toBe(true);
-    const cambio = estado.sesion!.supabase.escrituras[0];
+    // Lo escribe el backend (las columnas del cierre no las puede tocar la sesión), siempre filtrando por corredor.
+    const cambio = estado.admin.escrituras.find((e) => e.tabla === "contactos")!;
     expect(cambio).toMatchObject({ tabla: "contactos", op: "update", filtros: [["corredor_id", ID.deluxe], ["id", ID.cliente]] });
     expect(cambio.valores).toMatchObject({ etapa: "visita" });
     expect(estado.admin.escrituras.some((e) => e.tabla === "actividades")).toBe(true);

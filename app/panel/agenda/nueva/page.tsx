@@ -1,7 +1,9 @@
 import { fechaIso, fechaLocal } from "@/lib/agenda/tiempo";
 import { telefonoBonito } from "@/lib/crm/perfil";
 import { sesionConCorredor } from "@/lib/panel/sesion";
+import { nuevoEnvio } from "@/lib/panel/una-vez";
 import { Aviso } from "../../aviso";
+import { BotonEnviar } from "../../boton-enviar";
 import { Volver } from "../../volver";
 import "../agenda-movil.css";
 import { agendarVisita } from "../acciones";
@@ -38,6 +40,7 @@ export default async function NuevaVisita({
       </header>
       <Aviso texto={aviso} />
       <form action={agendarVisita} className="tarjeta pila">
+        <input type="hidden" name="envio" value={nuevoEnvio()} />
         <label htmlFor="cliente">Cliente</label>
         <select id="cliente" name="cliente" required defaultValue={cliente ?? ""}>
           <option value="" disabled>
@@ -75,9 +78,7 @@ export default async function NuevaVisita({
           <input type="checkbox" name="avisar" defaultChecked={avisar !== "0"} /> Avisarle al cliente por WhatsApp
         </label>
         {porConfirmar && <input type="hidden" name="confirmar" value={porConfirmar} />}
-        <button type="submit" className="primario">
-          {porConfirmar ? "Sí, agendar igual" : "Agendar"}
-        </button>
+        <BotonEnviar texto={porConfirmar ? "Sí, agendar igual" : "Agendar"} pendiente="Agendando…" className="primario" />
       </form>
     </>
   );

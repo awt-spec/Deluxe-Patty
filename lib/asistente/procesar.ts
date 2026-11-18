@@ -5,6 +5,7 @@ import type { EstadoEntrega, MensajeEntrante } from "../whatsapp/parsear";
 import { flujoAgenda } from "./agenda";
 import { procesarMensajeCorredor, type ResultadoCorredor } from "./corredor";
 import { RechazoModelo } from "./cerebro";
+import { esFallaDeConfiguracion, registrarFallaIA } from "./falla-ia";
 import { Contexto, avisarAlCorredor, unaVez, type Dependencias } from "./contexto";
 import { mismoTelefono, telefonoE164 } from "../whatsapp/telefono";
 import { esErrorDeConfiguracion, explicarCodigoWhatsApp, porQueNoLlego } from "../whatsapp/enviar";
@@ -344,16 +345,19 @@ export async function procesarMensaje(deps: Dependencias, entrante: MensajeEntra
       llamadas++;
     }
     await ctx.usoClaude(llamadas, consumo);
+    // Si es de configuración (llave, saldo, modelo), además sale "error_ia_config" a soporte.
+    const causa = registrarFallaIA(log, { corredorId: corredor.id, donde: "asistente" }, error);
     log("error_asistente", {
       corredorId: corredor.id,
       conversacionId: conversacion.id,
+      causa,
       error: error instanceof Error ? error.name : "desconocido",
     });
     await ctx.escalar(
       intencion,
       armarAviso({
         titulo: `${asistente} no pudo responderle a ${quien === "Un cliente" ? "un cliente" : quien}`,
-        porQue: "falló la IA al preparar la respuesta",
+        porQue: esFallaDeConfiguracion(causa) ? "falta configurar la IA (ya se avisó a soporte)" : "falló la IA al preparar la respuesta",
         mensaje: textoCliente,
         queHacer: "escríbele tú desde el panel o desde tu WhatsApp",
         telefono,

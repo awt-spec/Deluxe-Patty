@@ -2,12 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { fechaIso, fechaLocal, sumarDias } from "@/lib/agenda/tiempo";
+import { fechaDeIso, fechaIso, fechaLocal, sumarDias } from "@/lib/agenda/tiempo";
 import { normalizarZona } from "@/lib/agenda/zonas";
 import { anotar, type TipoActividad } from "@/lib/crm/actividades";
-import { comisionAlCorregir, validarCierre } from "@/lib/crm/cierre";
+import { cambiosDeEtapa, comisionAlCorregir, validarCierre, validarOfertaCon } from "@/lib/crm/cierre";
 import { montoContable, porcentaje } from "@/lib/crm/contable";
-import { comisionEstimada, monedaDe, validarOferta, type Moneda } from "@/lib/crm/dinero";
+import { comisionEstimada, monedaDe, type Moneda } from "@/lib/crm/dinero";
 import { ETAPAS, MOTIVOS_PERDIDA, NOMBRE_ETAPA, type Busca, type Etapa } from "@/lib/crm/perfil";
 import { LIMITES, leerNumero, limpiarTexto, normalizarTelefono, textoLibre } from "@/lib/panel/formularios";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -43,7 +43,12 @@ export async function cambiarEtapa(f: FormData) {
   const motivo = texto(f, "motivo");
   const motivo_perdida = etapa === "perdido" && (MOTIVOS_PERDIDA as readonly string[]).includes(motivo) ? motivo : null;
   const db = createAdminClient();
-  const { data: antes } = await db.from("contactos").select("etapa, cierre_at").eq("corredor_id", corredor.id).eq("id", id).single();
+  const { data: antes } = await db
+    .from("contactos")
+    .select("etapa, cierre_at, cierre_precio, cierre_moneda")
+    .eq("corredor_id", corredor.id)
+    .eq("id", id)
+    .single();
   if (antes?.etapa === etapa) {
     // Tocar la etapa en la que ya está no cuenta como cambio (ni reinicia los días ni ensucia la historia).
     if (etapa !== "perdido" || !motivo_perdida) volverA(id, `Ya está en ${NOMBRE_ETAPA[etapa]}.`);
@@ -51,13 +56,15 @@ export async function cambiarEtapa(f: FormData) {
     if (!error) await anotar(db, corredor.id, id, "etapa", `Se perdió: ${motivo_perdida}`);
     volverA(id, error ? "No se pudo guardar. Vuelve a intentarlo." : "Listo, guardado.");
   }
-  const ahora = new Date().toISOString();
+  const { cambios, anulado } = cambiosDeEtapa(antes ?? {}, etapa, new Date().toISOString());
+  const cierreAnterior = { precio: antes?.cierre_precio, moneda: antes?.cierre_moneda };
   const { error } = await db
     .from("contactos")
-    .update({ etapa, etapa_at: ahora, motivo_perdida, ...(etapa === "cerrado" && !antes?.cierre_at ? { cierre_at: ahora } : {}) })
+    .update({ ...cambios, motivo_perdida })
     .eq("corredor_id", corredor.id)
     .eq("id", id);
   if (error) volverA(id, "No se pudo guardar. Vuelve a intentarlo.");
+  if (anulado) await anotarAnulado(db, corredor.id, id, cierreAnterior);
   await anotar(db, corredor.id, id, "etapa", `Pasó a ${NOMBRE_ETAPA[etapa]}${motivo_perdida ? `: ${motivo_perdida}` : ""}`);
   volverA(
     id,
@@ -67,6 +74,17 @@ export async function cambiarEtapa(f: FormData) {
         ? "¡Felicidades! Anota abajo el precio y tu comisión."
         : "Listo, guardado.",
   );
+}
+
+/** "Cierre anulado: era $450.000,00" en la Historia, al sacar de Cerró a un cliente con el cierre anotado. */
+async function anotarAnulado(
+  db: ReturnType<typeof createAdminClient>,
+  corredorId: string,
+  id: string,
+  antes: { precio: unknown; moneda: unknown },
+) {
+  const precio = antes.precio === null || antes.precio === undefined ? NaN : Number(antes.precio);
+  await anotar(db, corredorId, id, "cierre", `Cierre anulado${Number.isFinite(precio) ? `: era ${montoContable(precio, monedaDe(antes.moneda))}` : ""}`);
 }
 
 export async function guardarBusca(f: FormData) {
@@ -97,14 +115,16 @@ export async function guardarSeguimiento(f: FormData) {
     const { corredor } = await sesionConCorredor();
     fecha = fechaIso(sumarDias(fechaLocal(new Date(), corredor.zona_horaria), dias));
   }
+  const id = texto(f, "id");
   const quitar = f.get("quitar") !== null;
-  await guardar(
-    texto(f, "id"),
-    quitar || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)
-      ? { seguimiento_fecha: null, seguimiento_nota: null }
-      : { seguimiento_fecha: fecha, seguimiento_nota: texto(f, "nota").slice(0, LIMITES.nota) || null },
-    quitar ? "Listo, ya está hecho." : "Listo, te lo recuerdo ese día.",
-  );
+  if (quitar) return guardar(id, { seguimiento_fecha: null, seguimiento_nota: null }, "Listo, ya está hecho.");
+  if (!idValido(id)) redirect("/panel/clientes");
+  // Sin día (borró la fecha de "Otro día") no se toca nada: antes borraba el recordatorio y decía "te lo recuerdo".
+  if (!fechaDeIso(fecha)) volverA(id, "Elige el día del recordatorio.");
+  // La nota no se corta a escondidas: si pasa del tope, se le dice.
+  const nota = textoLibre(texto(f, "nota"), LIMITES.nota, "Lo que tienes que hacer");
+  if (!nota.ok) volverA(id, nota.motivo);
+  await guardar(id, { seguimiento_fecha: fecha, seguimiento_nota: nota.valor }, "Listo, te lo recuerdo ese día.");
 }
 
 export async function guardarNotas(f: FormData) {
@@ -150,21 +170,27 @@ export async function agregarCliente(f: FormData) {
 export async function moverEtapa(id: string, etapa: string): Promise<boolean> {
   if (!idValido(id) || !(ETAPAS as readonly string[]).includes(etapa)) return false;
   const { supabase, corredor } = await sesionConCorredor();
-  const { data: antes } = await supabase.from("contactos").select("etapa, cierre_at").eq("corredor_id", corredor.id).eq("id", id).maybeSingle();
+  // Con la sesión (RLS) se comprueba que es suyo; las columnas del cierre las escribe el backend (la sesión no puede).
+  const { data: propio } = await supabase.from("contactos").select("id").eq("corredor_id", corredor.id).eq("id", id).maybeSingle();
+  if (!propio) return false;
+  const db = createAdminClient();
+  const { data: antes } = await db
+    .from("contactos")
+    .select("etapa, cierre_at, cierre_precio, cierre_moneda")
+    .eq("corredor_id", corredor.id)
+    .eq("id", id)
+    .maybeSingle();
   if (!antes) return false;
   if (antes.etapa === etapa) return true; // soltó en la misma columna
-  const ahora = new Date().toISOString();
-  const { error } = await supabase
+  const { cambios, anulado } = cambiosDeEtapa(antes, etapa, new Date().toISOString());
+  const cierreAnterior = { precio: antes.cierre_precio, moneda: antes.cierre_moneda };
+  const { error } = await db
     .from("contactos")
-    .update({
-      etapa,
-      etapa_at: ahora,
-      ...(etapa === "perdido" ? {} : { motivo_perdida: null }),
-      ...(etapa === "cerrado" && !antes.cierre_at ? { cierre_at: ahora } : {}),
-    })
+    .update({ ...cambios, ...(etapa === "perdido" ? {} : { motivo_perdida: null }) })
     .eq("corredor_id", corredor.id)
     .eq("id", id);
-  if (!error) await anotar(createAdminClient(), corredor.id, id, "etapa", `Pasó a ${NOMBRE_ETAPA[etapa as Etapa]}`);
+  if (!error && anulado) await anotarAnulado(db, corredor.id, id, cierreAnterior);
+  if (!error) await anotar(db, corredor.id, id, "etapa", `Pasó a ${NOMBRE_ETAPA[etapa as Etapa]}`);
   revalidatePath("/panel/clientes");
   return !error;
 }
@@ -229,14 +255,23 @@ async function casaPropia(corredorId: string, casa: string) {
 export async function guardarOportunidad(f: FormData) {
   const id = texto(f, "id");
   const corredor = await clientePropio(id);
-  // Una oferta que no se entiende no guarda nada (antes la borraba); vacía, se quita.
-  const leida = validarOferta(texto(f, "oferta"));
-  if (!leida.ok) volverA(id, leida.motivo);
-  const oferta = leida.valor;
   const casa = texto(f, "casa") ? await casaPropia(corredor.id, texto(f, "casa")) : null;
   const moneda = monedaDe(texto(f, "oferta_moneda"));
   const db = createAdminClient();
-  const { data: antes } = await db.from("contactos").select("etapa, oferta_monto, oferta_moneda").eq("corredor_id", corredor.id).eq("id", id).single();
+  const { data: antes } = await db
+    .from("contactos")
+    .select("etapa, oferta_monto, oferta_moneda, busca")
+    .eq("corredor_id", corredor.id)
+    .eq("id", id)
+    .single();
+  // Una oferta que no se entiende no guarda nada (antes la borraba); vacía, se quita. Con el mismo criterio que el
+  // cierre: «1,180» se pregunta y una cifra que no se cree frente a la casa (menos del 20 % de la lista) se explica.
+  const leida = validarOfertaCon(texto(f, "oferta"), moneda, {
+    operacion: casa?.operacion ?? (antes?.busca as { operacion?: string } | null)?.operacion ?? null,
+    lista: casa ? { precio: casa.precio, moneda: casa.moneda } : null,
+  });
+  if (!leida.ok) volverA(id, leida.motivo);
+  const oferta = leida.valor;
   const pasa = !!oferta && ["nuevo", "interesado", "visita"].includes(antes?.etapa as string);
   const { error } = await db
     .from("contactos")
@@ -305,11 +340,23 @@ async function registrarCierre(
   moneda: Moneda,
   comisionEscrita: number | null,
   pct: number | null,
-): Promise<false | "nuevo" | "corregido"> {
+): Promise<false | "nuevo" | "corregido" | "igual"> {
   const db = createAdminClient();
   const { casa, cliente, operacion, correccion, antes } = ctx;
   const comision =
     comisionEscrita ?? (antes ? comisionAlCorregir(antes, { precio, moneda, operacion }) : null) ?? comisionEstimada(precio, corredor.comision_pct, operacion);
+  // El mismo cierre otra vez (doble toque en Guardar, o "Cambiar el cierre" sin cambiar nada): no se escribe ni se anota
+  // un "Cierre corregido" que no corrigió nada.
+  if (
+    correccion &&
+    antes &&
+    antes.precio === precio &&
+    antes.moneda === moneda &&
+    antes.comision === comision &&
+    ((cliente?.cierre_propiedad_id as string | null) ?? null) === (casa?.id ?? null)
+  ) {
+    return "igual";
+  }
   const ahora = new Date().toISOString();
   // Corregir un cierre ya anotado ("Cambiar el cierre") no lo vuelve a fechar: se quedan el día del cierre y el de la etapa.
   const { error } = await db
@@ -337,16 +384,37 @@ async function registrarCierre(
   return correccion ? "corregido" : "nuevo";
 }
 
-/** "Cerró" desde la ficha: qué casa, a qué precio y cuánto se ganó. También corrige un cierre ya anotado. */
-export async function guardarCierre(f: FormData) {
+const AVISO_CIERRE = { nuevo: "¡Felicidades! Cierre guardado.", corregido: "Listo, cierre corregido.", igual: "Listo, el cierre ya estaba así." };
+
+/**
+ * "Cerró" desde la ficha: qué casa, a qué precio y cuánto se ganó. También corrige un cierre ya anotado. Devuelve el
+ * resultado sin redirigir: con un aviso de la validación, el formulario se queda abierto y con lo que se escribió (una
+ * redirección con ?aviso= volvía a montar la página y el campo mostraba otra cifra).
+ */
+export async function anotarCierre(f: FormData): Promise<{ ok: true; aviso: string } | { ok: false; motivo: string }> {
   const id = texto(f, "id");
-  const corredor = await clientePropio(id);
+  if (!idValido(id)) return { ok: false, motivo: "No se encontró el cliente." };
+  const { supabase, corredor } = await sesionConCorredor();
+  const { data: propio } = await supabase.from("contactos").select("id").eq("corredor_id", corredor.id).eq("id", id).maybeSingle();
+  if (!propio) return { ok: false, motivo: "No se encontró el cliente." };
   const moneda = monedaDe(texto(f, "moneda"));
   const ctx = await contextoCierre(corredor.id, id, texto(f, "casa") || null);
   const cierre = validarCon(ctx, texto(f, "precio"), texto(f, "comision"), moneda);
-  if (!cierre.ok) volverA(id, cierre.motivo);
+  if (!cierre.ok) return { ok: false, motivo: cierre.motivo };
   const r = await registrarCierre(corredor, id, ctx, cierre.precio, moneda, cierre.comision, cierre.porcentaje);
-  volverA(id, !r ? "No se pudo guardar. Vuelve a intentarlo." : r === "corregido" ? "Listo, cierre corregido." : "¡Felicidades! Cierre guardado.");
+  if (!r) return { ok: false, motivo: "No se pudo guardar. Vuelve a intentarlo." };
+  revalidatePath(`/panel/clientes/${id}`);
+  revalidatePath("/panel/clientes");
+  revalidatePath("/panel");
+  return { ok: true, aviso: AVISO_CIERRE[r] };
+}
+
+/** Lo mismo con redirección (formularios sin JavaScript): el aviso vuelve en ?aviso=. */
+export async function guardarCierre(f: FormData) {
+  const id = texto(f, "id");
+  await clientePropio(id);
+  const r = await anotarCierre(f);
+  volverA(id, r.ok ? r.aviso : r.motivo);
 }
 
 /**

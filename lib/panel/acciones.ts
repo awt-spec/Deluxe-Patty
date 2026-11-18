@@ -6,7 +6,16 @@ import { LIMITES, textoLibre } from "./texto-libre";
 // Acciones del corredor desde el panel. Quien llama ya verificó con la sesión del corredor (RLS)
 // que el mensaje o la conversación son suyos; aquí todo filtra además por corredor_id.
 
-export type Resultado = { ok: true } | { ok: false; motivo: string };
+/** `aviso`: lo que se le dice al corredor cuando no es el "Enviado." de siempre (un segundo toque, por ejemplo). */
+export type Resultado = { ok: true; aviso?: string } | { ok: false; motivo: string };
+
+const YA_RESUELTO = "Este borrador ya se resolvió.";
+/** Un segundo toque en Enviar o No enviar: lo pedido ya está hecho, se responde como hecho (no como error). */
+const YA_ENVIADO: Resultado = { ok: true, aviso: "Enviado." };
+const YA_DESCARTADO: Resultado = { ok: true, aviso: "Listo, no se envió." };
+/** Aprobado y no fallido (enviado o enviándose por el primer toque). */
+const yaSalio = (b: { estado_borrador: string | null; estado_entrega?: string | null }) =>
+  (b.estado_borrador === "aprobado" || b.estado_borrador === "corregido") && b.estado_entrega !== "fallido";
 
 const VENTANA_MS = 24 * 60 * 60_000;
 
@@ -38,7 +47,8 @@ export async function aprobarBorrador(
   const { repo } = deps;
   const ahora = deps.ahora?.() ?? new Date();
   const b = await repo.borrador(corredor.id, mensajeId);
-  if (!b || b.estado_borrador !== "pendiente") return { ok: false, motivo: "Este borrador ya se resolvió." };
+  if (b && yaSalio(b)) return YA_ENVIADO;
+  if (!b || b.estado_borrador !== "pendiente") return { ok: false, motivo: YA_RESUELTO };
   if (!ventanaAbierta(b.ultimo_mensaje_cliente_at, ahora)) return { ok: false, motivo: VENTANA_CERRADA };
 
   // Lo que corrige el corredor se limpia (sin caracteres de dirección o control) y no se corta: si pasa del tope, se le dice.
@@ -53,7 +63,9 @@ export async function aprobarBorrador(
   // Se reclama el borrador antes de actuar: un segundo toque encuentra que ya no está pendiente.
   const estado = corregido ? "corregido" : "aprobado";
   if (!(await repo.resolverBorrador(corredor.id, mensajeId, { estado_borrador: estado, contenido: final }))) {
-    return { ok: false, motivo: "Este borrador ya se resolvió." };
+    // Dos toques a la vez: el otro lo reclamó primero y es el que lo manda.
+    const ahoraEs = await repo.borrador(corredor.id, mensajeId);
+    return ahoraEs && yaSalio(ahoraEs) ? YA_ENVIADO : { ok: false, motivo: YA_RESUELTO };
   }
   const devolver = async (motivo: string): Promise<Resultado> => {
     await repo.resolverBorrador(corredor.id, mensajeId, { estado_borrador: "pendiente", contenido: b.contenido }, estado);
@@ -82,7 +94,8 @@ export async function aprobarBorrador(
 
   try {
     const waId = await deps.whatsapp.texto(corredor.whatsapp_phone_number_id!, b.telefono, final);
-    await repo.actualizarMensaje(corredor.id, mensajeId, { wa_message_id: waId, estado_entrega: "enviado" });
+    // En el chat se ve la hora en que salió, no la de cuando la asistente lo propuso (podía ser de madrugada).
+    await repo.actualizarMensaje(corredor.id, mensajeId, { wa_message_id: waId, estado_entrega: "enviado", created_at: (deps.ahora?.() ?? new Date()).toISOString() });
   } catch {
     await repo.actualizarMensaje(corredor.id, mensajeId, { estado_entrega: "fallido" });
     const cita = accion?.tipo === "crear_cita" ? "La cita quedó agendada, pero " : "";
@@ -98,7 +111,10 @@ export async function aprobarBorrador(
 
 export async function descartarBorrador(deps: Dependencias, corredor: Corredor, mensajeId: string): Promise<Resultado> {
   const ok = await deps.repo.resolverBorrador(corredor.id, mensajeId, { estado_borrador: "descartado" });
-  return ok ? { ok: true } : { ok: false, motivo: "Este borrador ya se resolvió." };
+  if (ok) return { ok: true };
+  // Un segundo toque en "No enviar": ya estaba descartado, no es un error.
+  const b = await deps.repo.borrador(corredor.id, mensajeId);
+  return b?.estado_borrador === "descartado" ? YA_DESCARTADO : { ok: false, motivo: YA_RESUELTO };
 }
 
 /** El corredor toma la conversación: la asistente deja de contestar en ella. */

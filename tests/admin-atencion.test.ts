@@ -48,7 +48,7 @@ describe("/admin: pausado y umbral ámbar", () => {
 
   it("el ámbar empieza donde la energía dice «queda poca» (85 % usado), en la barra y en Atención", () => {
     expect(PCT_CERCA).toBe(85);
-    for (const [gasto, nivel] of [[84, "bien"], [84.99, "bien"], [85, "poco"], [99.99, "poco"], [100, "agotado"]] as const) {
+    for (const [gasto, nivel] of [[84, "bien"], [84.99, "poco"], [85, "poco"], [99.99, "poco"], [100, "agotado"]] as const) {
       expect(nivelUso(gasto, 100)).toBe(nivel);
       expect(estadoEnergia({ gastoMesUsd: gasto, topeMesUsd: 100 }).nivel).toBe(nivel);
       const tonos = listaAtencion([fila({}, { gastoMes: gasto, topeMes: 100 })], llaves).map((x) => x.tono);

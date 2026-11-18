@@ -3900,11 +3900,14 @@ fieldset.opciones label {
   flex: 1;
   display: flex;
 }
-.visita-botones button {
+.visita-botones button,
+.visita-botones .boton {
   flex: 1;
   min-height: 52px;
+  justify-content: center;
 }
-button.peligro {
+button.peligro,
+.boton.peligro {
   color: #b42318;
   border-color: #f3c3bd;
 }

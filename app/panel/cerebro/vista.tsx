@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { fechaCorta } from "@/lib/formato";
+import { fechaCortaEn } from "@/lib/formato";
+import { BotonEnviar } from "../boton-enviar";
 import { Aviso } from "../aviso";
 import { ConservarBorrador } from "../conservar-borrador";
 import {
@@ -91,6 +92,8 @@ export type DatosCerebro = {
   temas: string[];
   /** Google conectado (cuenta como un paso de la puesta en marcha). */
   google: boolean;
+  /** Zona horaria del corredor: las fechas se muestran en su día, no en UTC. */
+  zona?: string;
 };
 
 /** Lo que la vista calcula una vez y comparten las secciones. */
@@ -340,7 +343,7 @@ function Grupo({
 // --- 1. Lo que necesita de ti ----------------------------------------------------------------------------
 
 /** Una pregunta que no supo contestar, con su formulario de siempre. */
-function FormDuda({ d, destacada }: { d: Duda; destacada?: boolean }) {
+function FormDuda({ d, destacada, zona }: { d: Duda; destacada?: boolean; zona?: string }) {
   return (
     <form
       action={responderDuda}
@@ -352,7 +355,7 @@ function FormDuda({ d, destacada }: { d: Duda; destacada?: boolean }) {
       <p className="cer-duda-tema">{d.tema}</p>
       <p className="suave">
         {d.veces > 1 ? `Le preguntaron ${d.veces} veces · ` : ""}
-        {fechaCorta(d.updated_at.slice(0, 10))}
+        {fechaCortaEn(d.updated_at, zona)}
       </p>
       <label htmlFor={`r-${d.id}`} className="oculto">
         Respuesta
@@ -367,12 +370,8 @@ function FormDuda({ d, destacada }: { d: Duda; destacada?: boolean }) {
       />
       <ConservarBorrador nombre={`duda-${d.id}`} />
       <div className="botones">
-        <button type="submit" className="primario">
-          Enseñárselo
-        </button>
-        <button type="submit" formAction={archivar}>
-          No hace falta
-        </button>
+        <BotonEnviar texto="Enseñárselo" pendiente="Guardando…" className="primario" />
+        <BotonEnviar texto="No hace falta" pendiente="Un momento…" formAction={archivar} />
       </div>
     </form>
   );
@@ -463,9 +462,9 @@ function Necesita(d: Calculado) {
             <h3 id="dudas-titulo" className="cer-bloque-titulo">
               No supo contestar esto <span className="cer-grupo-n urgente">{d.dudas.length}</span>
             </h3>
-            <FormDuda d={primera} destacada />
+            <FormDuda d={primera} destacada zona={d.zona} />
             {resto.map((x) => (
-              <FormDuda key={x.id} d={x} />
+              <FormDuda key={x.id} d={x} zona={d.zona} />
             ))}
           </section>
         )}
@@ -613,7 +612,7 @@ function Sabe(d: Calculado) {
             dataPatty="cerebro-pestana-sabe"
           >
             {d.sabe.length ? (
-              <LoQueSabe grupos={grupos} />
+              <LoQueSabe grupos={grupos} zona={d.zona} />
             ) : (
               <Vacio Icono={IconoIdea} titulo="Todavía no le has enseñado nada." compacto accion={<a href="#ensenar">Enseñarle lo primero</a>}>
                 Empieza por lo que más te preguntan: mascotas, parqueo, formas de pago.
@@ -758,12 +757,12 @@ function Marcado({ partes, clase }: { partes: Parte[]; clase: "quitado" | "puest
   );
 }
 
-function TarjetaCorreccion({ c, enUso }: { c: Correccion; enUso: boolean }) {
+function TarjetaCorreccion({ c, enUso, zona }: { c: Correccion; enUso: boolean; zona?: string }) {
   const dif = diferenciaPalabras(c.original, c.corregido);
   return (
     <article className="cer-caja cer-correccion">
       <p className="cer-correccion-pie">
-        <span className="suave">{fechaCorta(c.created_at.slice(0, 10))}</span>
+        <span className="suave">{fechaCortaEn(c.created_at, zona)}</span>
         {enUso && <span className="cer-en-uso">La usa al contestar</span>}
       </p>
       <div className="cer-antes-despues">
@@ -797,7 +796,7 @@ function Correcciones(d: Calculado) {
       </h3>
       <p className="suave">Aprende tu manera de decir las cosas de tus últimas {CORRECCIONES_EN_USO} correcciones. Marcado, lo que cambiaste.</p>
       {d.correcciones.length ? (
-        d.correcciones.map((c, i) => <TarjetaCorreccion key={c.id} c={c} enUso={i < CORRECCIONES_EN_USO} />)
+        d.correcciones.map((c, i) => <TarjetaCorreccion key={c.id} c={c} enUso={i < CORRECCIONES_EN_USO} zona={d.zona} />)
       ) : (
         <Vacio Icono={IconoLapiz} titulo="Todavía no has corregido ninguna respuesta." compacto>
           Cuando cambies una respuesta antes de enviarla (en Revisar o al probarla), aparece aquí. Así aprende tu forma de escribir.

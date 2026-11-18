@@ -26,7 +26,7 @@ function nota(t: TurnoSimulado): string {
   const partes = [t.intencion ? `Intención: ${INTENCION[t.intencion] ?? t.intencion}` : null];
   if (t.resultado === "escalado") partes.push("te la pasó a ti");
   if (t.accionAgenda) partes.push(AGENDA[t.accionAgenda] ?? t.accionAgenda);
-  if (t.error) partes.push("hubo un error y te la pasó a ti");
+  if (t.error) partes.push(t.motivoError ?? "hubo un error y te la pasó a ti");
   return partes.filter(Boolean).join(" · ");
 }
 

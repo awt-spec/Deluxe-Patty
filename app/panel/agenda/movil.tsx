@@ -110,6 +110,7 @@ export function MesCalendario({ celdas, mes, hoy, pedido }: { celdas: CeldaMes[]
             <Link
               key={c.iso}
               href={c.hrefDia}
+              prefetch={false}
               onClick={(e) => elegir(e, c)}
               className={`cal-mes-celda${c.otroMes ? " otro-mes" : ""}${c.hoy ? " hoy" : ""}${c.iso === elegido ? " elegido" : ""}`}
               aria-label={`${c.titulo}${c.visitas.length ? `, ${c.visitas.length} ${c.visitas.length === 1 ? "visita" : "visitas"}` : ""}${c.bloqueo ? ", apartado" : ""}`}
@@ -153,7 +154,7 @@ export function MesCalendario({ celdas, mes, hoy, pedido }: { celdas: CeldaMes[]
             <ul className="mes-dia-lista">
               {dia.visitas.map((v) => (
                 <li key={v.id} style={{ ["--zona" as string]: v.color }}>
-                  <Link href={`/panel/agenda/visita/${v.id}`}>
+                  <Link href={`/panel/agenda/visita/${v.id}`} prefetch={false}>
                     <span className="mes-dia-hora">{v.hora}</span>
                     <span className="mes-dia-texto">
                       <strong>{v.nombre}</strong>
@@ -169,7 +170,7 @@ export function MesCalendario({ celdas, mes, hoy, pedido }: { celdas: CeldaMes[]
           )}
           <div className="mes-dia-botones">
             {dia.hrefAgendar && (
-              <Link href={dia.hrefAgendar} className="boton primario">
+              <Link href={dia.hrefAgendar} prefetch={false} className="boton primario">
                 + Agendar
               </Link>
             )}

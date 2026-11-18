@@ -70,7 +70,7 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
                   </a>
                 ) : null}
                 <form action={desconectarGoogle}>
-                  <button type="submit">Desconectar</button>
+                  <BotonEnviar texto="Desconectar" pendiente="Un momento…" />
                 </form>
               </div>
             </>

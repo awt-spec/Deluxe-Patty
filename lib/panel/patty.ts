@@ -8,7 +8,8 @@ import { apartarConPatty } from "../agenda/patty-apartar";
 import { etiquetaHorario } from "../agenda/formato";
 import { fechaIso, fechaLocal } from "../agenda/tiempo";
 import { fichaPropiedades, RechazoModelo, type Adjunto } from "../asistente/cerebro";
-import { hayPresupuestoHoy } from "../asistente/limites";
+import { dentroDelTope, motivoSinPresupuesto } from "../asistente/limites";
+import { mensajeFallaIA, registrarFallaIA } from "../asistente/falla-ia";
 import { armarPlan, datosDelPlan } from "../asistente/plan";
 import type { Dependencias } from "../asistente/procesar";
 import { monedaDe, montoExacto } from "../crm/dinero";
@@ -239,9 +240,8 @@ export async function hablarConPatty(
       return { ok: false, motivo: "No pude apartar ese tiempo. Inténtalo de nuevo o hazlo en la Agenda." };
     }
   }
-  if (!(await hayPresupuestoHoy(deps.repo, corredor))) {
-    return { ok: false, motivo: "Por hoy se llegó al tope de uso de la asistente. Mañana sigue." };
-  }
+  const presupuesto = await deps.repo.presupuestoIA(corredor.id);
+  if (!dentroDelTope(presupuesto)) return { ok: false, motivo: motivoSinPresupuesto(presupuesto, corredor.nombre_asistente) };
   const registrarCosto = (c: { tokensEntrada: number; tokensSalida: number; costoUsd: number }) =>
     deps.repo.registrarUso(corredor.id, { llamadasClaude: 1, tokensEntrada: c.tokensEntrada, tokensSalida: c.tokensSalida, costoClaudeUsd: c.costoUsd });
   try {
@@ -252,7 +252,9 @@ export async function hablarConPatty(
     return { ok: true, texto: r.texto };
   } catch (e) {
     if (e instanceof RechazoModelo) await registrarCosto(e.consumo);
-    console.error(JSON.stringify({ evento: "error_patty", corredorId: corredor.id, error: errorSeguro(e) }));
-    return { ok: false, motivo: "No pude contestar ahora. Inténtalo de nuevo en un momento." };
+    // La causa (llave, saldo, modelo, red) decide qué se le dice al corredor; lo de configuración se alerta a soporte.
+    const causa = registrarFallaIA(deps.registrar, { corredorId: corredor.id, donde: "patty" }, e);
+    console.error(JSON.stringify({ evento: "error_patty", corredorId: corredor.id, causa, error: errorSeguro(e) }));
+    return { ok: false, motivo: mensajeFallaIA(causa, corredor.nombre_asistente) };
   }
 }

@@ -1,5 +1,6 @@
 "use server";
 
+import { mensajeFallaIA, registrarFallaIA } from "@/lib/asistente/falla-ia";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prepararAnuncio } from "@/lib/anuncios/preparar";
@@ -307,8 +308,9 @@ export async function conversarCasa(mensajesNavegador: unknown, fichaNavegador: 
     });
     return { ficha: r.ficha, mensaje: r.mensaje, lista: r.lista, resumen: resumenFicha(r.ficha) };
   } catch (error) {
-    console.error(JSON.stringify({ evento: "error_ficha_conversada", corredorId: corredor.id, error: error instanceof Error ? error.name : "desconocido" }));
-    return { error: "No te entendí bien esta vez. ¿Me lo repites?" };
+    const causa = registrarFallaIA(deps.registrar, { corredorId: corredor.id, donde: "agregar_casa" }, error);
+    console.error(JSON.stringify({ evento: "error_ficha_conversada", corredorId: corredor.id, causa, error: error instanceof Error ? error.name : "desconocido" }));
+    return { error: causa === "otra" ? "No te entendí bien esta vez. ¿Me lo repites?" : mensajeFallaIA(causa, corredor.nombre_asistente) };
   }
 }
 

@@ -19,6 +19,7 @@ export function estadoEnergia({ gastoMesUsd, topeMesUsd }: { gastoMesUsd: number
   if (e.nivel === "sin_tope") return { restante: 100, usado: 0, nivel: "sin_tope" };
   if (e.nivel === "agotado" || e.total <= 0) return { restante: 0, usado: 100, nivel: "agotado" };
   const restante = Math.max(0, Math.min(100, Math.floor((e.restantes / e.total) * 100 + 1e-9)));
+  // El color sale del mismo porcentaje que se muestra (lib/ia/tokens.ts): "15 %" va en ámbar.
   return { restante, usado: Math.max(0, Math.min(100, e.pct)), nivel: e.nivel };
 }
 

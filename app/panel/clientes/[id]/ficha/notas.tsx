@@ -2,6 +2,7 @@ import { ConservarBorrador } from "../../../conservar-borrador";
 import { guardarNotas } from "../../acciones";
 import { SeccionPlegable } from "../movil";
 import { resumenNotas } from "./reglas";
+import { BotonEnviar } from "../../../boton-enviar";
 
 /** Notas (#fc-notas) y el nombre del cliente; lo escrito se conserva con ConservarBorrador. */
 export function Notas({ id, nombre, notas }: { id: string; nombre: string | null; notas: string | null }) {
@@ -20,9 +21,7 @@ export function Notas({ id, nombre, notas }: { id: string; nombre: string | null
           <label htmlFor="notas">Lo que quieras recordar</label>
           <textarea id="notas" name="notas" maxLength={4000} defaultValue={notas ?? ""} placeholder="Tiene dos hijos, busca colegio cerca, viene de Estados Unidos…" />
           <ConservarBorrador nombre={`notas-${id}`} />
-          <button type="submit" className="primario">
-            Guardar
-          </button>
+          <BotonEnviar texto="Guardar" pendiente="Guardando…" className="primario" />
         </form>
       </details>
     </SeccionPlegable>

@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useRef, useState, useTransition } from "react";
 import { etiquetaComision, previaComision } from "@/lib/crm/cierre";
 import { montoContable } from "@/lib/crm/contable";
 import { monedaDe, type Moneda } from "@/lib/crm/dinero";
-import { guardarCierre } from "../../acciones";
+import { anotarCierre } from "../../acciones";
 
-// Casa, precio, moneda y comisión del cierre (guardarCierre): para anotarlo o, ya cerrado, corregirlo. Los campos son
-// del estado de React y el formulario se manda a mano (no con `action`), así un aviso de la validación no borra lo que
-// el corredor escribió (React vacía los formularios con `action` al terminar). Debajo de la comisión se ve lo que se
+// Casa, precio, moneda y comisión del cierre (anotarCierre): para anotarlo o, ya cerrado, corregirlo. Los campos son
+// del estado de React y el formulario se manda a mano (no con `action`). El servidor devuelve el resultado sin
+// redirigir: un aviso de la validación se muestra aquí mismo y lo escrito se queda (antes la redirección con ?aviso=
+// volvía a montar la página y el campo mostraba la oferta o el cierre anterior). Debajo de la comisión se ve lo que se
 // va a guardar ("= $59.000,00 (5 % del precio)"), con las mismas reglas que el servidor (lib/crm/cierre.ts).
 
 export interface CasaDelCierre {
@@ -38,6 +40,10 @@ export function FormularioCierre(p: {
   const [moneda, setMoneda] = useState<Moneda>(monedaDe(p.moneda));
   const [comision, setComision] = useState("");
   const [guardando, empezar] = useTransition();
+  const [motivo, setMotivo] = useState<string | null>(null);
+  // Un segundo toque mientras guarda no manda otra vez (el servidor tampoco duplica un cierre igual).
+  const enCurso = useRef(false);
+  const router = useRouter();
   const id = (k: string) => `${p.prefijo}-${k}`;
   const operacion = p.todas.find((c) => c.id === casa)?.operacion ?? p.operacionCliente;
   const alquiler = operacion === "alquiler";
@@ -46,9 +52,24 @@ export function FormularioCierre(p: {
 
   const enviar = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (enCurso.current) return;
+    enCurso.current = true;
     const datos = new FormData(e.currentTarget);
+    setMotivo(null);
     empezar(async () => {
-      await guardarCierre(datos);
+      try {
+        const r = await anotarCierre(datos);
+        if (!r.ok) {
+          setMotivo(r.motivo);
+          return;
+        }
+        // Guardado: la ficha se vuelve a leer con el aviso (replace: "Atrás" no vuelve a este aviso).
+        router.replace(`/panel/clientes/${p.clienteId}?aviso=${encodeURIComponent(r.aviso)}`, { scroll: false });
+      } catch {
+        setMotivo("No se pudo guardar. Revisa tu conexión y vuelve a intentarlo.");
+      } finally {
+        enCurso.current = false;
+      }
     });
   };
 
@@ -90,7 +111,12 @@ export function FormularioCierre(p: {
       <small id={id("comision-previa")} className={`fc-comision-previa${previa?.error ? " error" : ""}`} aria-live="polite">
         {previa?.texto ?? ""}
       </small>
-      <button type="submit" className="primario" disabled={guardando}>
+      {motivo && (
+        <p className="aviso error" role="alert">
+          {motivo}
+        </p>
+      )}
+      <button type="submit" className="primario" disabled={guardando} aria-busy={guardando}>
         {guardando ? "Guardando…" : p.boton}
       </button>
     </form>

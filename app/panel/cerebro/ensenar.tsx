@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import { ensenar } from "./acciones";
 import { ConservarBorrador } from "../conservar-borrador";
+import { BotonEnviar } from "../boton-enviar";
+import { LIMITES } from "@/lib/panel/texto-libre";
 
 // "Enséñale algo": la pregunta y lo que debe contestar, con ideas tocables que llenan la pregunta. Comisiones no
 // llena nada: avisa que ese tema la asistente no lo contesta, te lo pasa a ti. Guarda con la acción de siempre.
@@ -51,7 +53,7 @@ export function EnsenaleAlgo({ nombre }: { nombre: string }) {
       ) : null}
       <form action={ensenar} className="cer-ensenar-form">
         <label htmlFor="tema">¿Qué te preguntan?</label>
-        <input ref={tema} data-patty="cerebro-ensenar" id="tema" name="tema" type="text" maxLength={300} placeholder="¿Aceptan mascotas en los alquileres?" required />
+        <input ref={tema} data-patty="cerebro-ensenar" id="tema" name="tema" type="text" maxLength={LIMITES.tema} placeholder="¿Aceptan mascotas en los alquileres?" required />
         <label htmlFor="respuesta">¿Qué quieres que conteste?</label>
         <textarea
           ref={respuesta}
@@ -59,14 +61,12 @@ export function EnsenaleAlgo({ nombre }: { nombre: string }) {
           id="respuesta"
           name="respuesta"
           rows={4}
-          maxLength={2000}
+          maxLength={LIMITES.respuesta}
           placeholder={ejemplo?.respuesta || "Sí, perros pequeños, con un depósito extra de un mes."}
           required
         />
         <ConservarBorrador nombre="ensenar" />
-        <button type="submit" className="primario">
-          Guardar
-        </button>
+        <BotonEnviar texto="Guardar" pendiente="Guardando…" className="primario" />
       </form>
     </section>
   );

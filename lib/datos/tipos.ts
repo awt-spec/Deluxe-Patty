@@ -134,6 +134,8 @@ export interface BorradorPendiente {
   id: string;
   contenido: string;
   estado_borrador: Mensaje["estado_borrador"];
+  /** "enviado", "fallido"…: un borrador aprobado cuyo envío falló no se da por enviado en un segundo toque. */
+  estado_entrega?: string | null;
   accion: AccionPendiente | null;
   conversacion_id: string;
   contacto_id: string;

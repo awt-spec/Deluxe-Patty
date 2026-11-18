@@ -196,6 +196,23 @@ export const estado: {
   superadmin: string | null;
 } = { sesion: null, admin: supabaseFalso(), superadmin: null };
 
+/**
+ * `reclamar_alerta` como en Postgres, guardando las marcas en la tabla `alertas` de la base en memoria: la primera vez
+ * que se reclama una clave da true y las siguientes false, hasta que alguien borra su fila (soltar el envío).
+ */
+export function conAlertasReales(db: SupabaseFalso): SupabaseFalso {
+  db.rpc = async (nombre, args) => {
+    db.rpcs.push({ nombre, args });
+    if (nombre !== "reclamar_alerta") return { data: db.respuestasRpc[nombre] ?? null, error: null };
+    const clave = (args as { p_clave: string }).p_clave;
+    const alertas = (db.tablas.alertas ??= []);
+    if (alertas.some((a) => a.clave === clave)) return { data: false, error: null };
+    alertas.push({ clave });
+    return { data: true, error: null };
+  };
+  return db;
+}
+
 export function formulario(campos: Record<string, string>): FormData {
   const f = new FormData();
   for (const [k, v] of Object.entries(campos)) f.set(k, v);

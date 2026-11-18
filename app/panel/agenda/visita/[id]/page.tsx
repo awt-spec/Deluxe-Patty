@@ -4,7 +4,9 @@ import { etiquetaHorario } from "@/lib/agenda/formato";
 import { fechaIso, fechaLocal, minutosLocales } from "@/lib/agenda/tiempo";
 import { telefonoBonito } from "@/lib/crm/perfil";
 import { sesionConCorredor } from "@/lib/panel/sesion";
+import { nuevoEnvio } from "@/lib/panel/una-vez";
 import { Aviso } from "../../../aviso";
+import { BotonEnviar } from "../../../boton-enviar";
 import { PreguntarPatty } from "../../../preguntar-patty";
 import { ComoLlegar } from "../../../como-llegar";
 import { Volver } from "../../../volver";
@@ -21,9 +23,9 @@ const ESTADO: Record<string, string> = {
   no_asistio: "No llegó",
 };
 
-export default async function Visita({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ aviso?: string; fecha?: string; hora?: string; avisar?: string; confirmar?: string }> }) {
+export default async function Visita({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ aviso?: string; fecha?: string; hora?: string; avisar?: string; confirmar?: string; cancelar?: string }> }) {
   const { id } = await params;
-  const { aviso, fecha: fechaPedida, hora: horaPedida, avisar, confirmar } = await searchParams;
+  const { aviso, fecha: fechaPedida, hora: horaPedida, avisar, confirmar, cancelar } = await searchParams;
   // Moverla fuera del horario o a un rato apartado: el servidor pregunta y la confirmación vale para ese día y hora.
   const porConfirmar = typeof confirmar === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(confirmar) ? confirmar : null;
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
@@ -46,16 +48,17 @@ export default async function Visita({ params, searchParams }: { params: Promise
   const nombre = contacto?.nombre ?? (contacto ? telefonoBonito(contacto.telefono) : "Cliente");
   const dia = fechaIso(fechaLocal(inicio, zona));
 
-  const boton = (estado: string, texto: string, clase = "") => (
+  // Cada botón se apaga mientras trabaja (un doble toque no le escribe dos veces al cliente) y el servidor no confirma
+  // ni avisa de nuevo una visita que ya está en ese estado (lib/panel/visitas.ts).
+  const boton = (estado: string, texto: string, clase = "", pendiente = "Un momento…") => (
     <form action={cambiarLaVisita}>
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="estado" value={estado} />
       {(estado === "confirmada" || estado === "cancelada") && <input type="hidden" name="avisar" value="1" />}
-      <button type="submit" className={clase}>
-        {texto}
-      </button>
+      <BotonEnviar texto={texto} pendiente={pendiente} className={clase} />
     </form>
   );
+  const pideCancelar = cancelar === "1";
 
   return (
     <>
@@ -99,13 +102,31 @@ export default async function Visita({ params, searchParams }: { params: Promise
 
       {activa && !paso && (
         <>
-          <div className="botones visita-botones">
-            {v.estado === "agendada" && boton("confirmada", "Confirmar y avisarle", "primario")}
-            {boton("cancelada", "Cancelar y avisarle", "peligro")}
-          </div>
+          {pideCancelar ? (
+            // Cancelar le escribe al cliente: se pregunta antes, con un segundo toque a propósito.
+            <div className="tarjeta pila" role="alertdialog" aria-labelledby="cancelar-titulo">
+              <p id="cancelar-titulo">
+                <strong>¿Cancelar la visita con {nombre}?</strong> Le aviso por WhatsApp que queda cancelada.
+              </p>
+              <div className="botones visita-botones">
+                {boton("cancelada", "Sí, cancelar y avisarle", "peligro", "Cancelando…")}
+                <Link href={`/panel/agenda/visita/${id}`} className="boton" replace>
+                  No, dejarla
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="botones visita-botones">
+              {v.estado === "agendada" && boton("confirmada", "Confirmar y avisarle", "primario", "Confirmando…")}
+              <Link href={`/panel/agenda/visita/${id}?cancelar=1`} className="boton peligro" replace>
+                Cancelar y avisarle
+              </Link>
+            </div>
+          )}
           <h2>Moverla a otra hora</h2>
           <form action={moverLaVisita} className="tarjeta pila">
             <input type="hidden" name="id" value={id} />
+            <input type="hidden" name="envio" value={nuevoEnvio()} />
             <div className="fila campos">
               <div className="pila" style={{ flex: 1 }}>
                 <label htmlFor="fecha">Día</label>
@@ -120,9 +141,7 @@ export default async function Visita({ params, searchParams }: { params: Promise
               <input type="checkbox" name="avisar" defaultChecked={avisar !== "0"} /> Avisarle al cliente por WhatsApp
             </label>
             {porConfirmar && <input type="hidden" name="confirmar" value={porConfirmar} />}
-            <button type="submit" className="primario">
-              {porConfirmar ? "Sí, moverla igual" : "Mover la visita"}
-            </button>
+            <BotonEnviar texto={porConfirmar ? "Sí, moverla igual" : "Mover la visita"} pendiente="Moviendo…" className="primario" />
           </form>
         </>
       )}
@@ -130,7 +149,7 @@ export default async function Visita({ params, searchParams }: { params: Promise
         <>
           <h2>¿Cómo salió?</h2>
           <div className="botones visita-botones">
-            {boton("realizada", "Se hizo", "primario")}
+            {boton("realizada", "Se hizo", "primario", "Guardando…")}
             {boton("no_asistio", "No llegó")}
           </div>
         </>
