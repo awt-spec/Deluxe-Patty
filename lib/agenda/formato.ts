@@ -51,3 +51,17 @@ export function rangoBloqueo(b: { inicio: string; fin: string }, zona: string): 
   if (diaLargo(inicio, zona) === diaLargo(fin, zona)) return `${diaLargo(inicio, zona)}, de ${horaCorta(inicio, zona)} a ${horaCorta(fin, zona)}`;
   return `del ${etiquetaHorario(inicio, zona)} al ${etiquetaHorario(fin, zona)}`;
 }
+
+/** Momento del día según la hora local: madrugada (0–6), mañana (6–12), tarde (12–18) o noche (18–24). */
+export function momentoDelDia(fecha: Date, zona: string): "madrugada" | "mañana" | "tarde" | "noche" {
+  const h = Math.floor(minutosLocales(fecha, zona) / 60);
+  return h < 6 ? "madrugada" : h < 12 ? "mañana" : h < 18 ? "tarde" : "noche";
+}
+
+const NOMBRES_ZONA: Record<string, string> = { "America/Costa_Rica": "Costa Rica" };
+
+/** "Ahora: martes 18 de noviembre de 2026, 5:34 a. m. (madrugada), hora de Costa Rica": armada por el código para el modelo. */
+export function lineaAhora(fecha: Date, zona: string): string {
+  const dia = formatear(fecha, zona, "ahora-dia", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).replace(/^(\p{L}+),/u, "$1");
+  return `Ahora: ${dia}, ${horaCorta(fecha, zona)} (${momentoDelDia(fecha, zona)}), hora de ${NOMBRES_ZONA[zona] ?? zona}.`;
+}

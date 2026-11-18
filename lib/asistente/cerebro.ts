@@ -4,6 +4,7 @@ import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
 import type { Correccion, Corredor, FichaParcial, Intencion, Mensaje, Propiedad, PropiedadConFotos , Conocimiento } from "../datos/tipos";
 import type { AnuncioE24 } from "../encuentra24/parsear";
+import { lineaAhora } from "../agenda/formato";
 import type { OperacionApartarCruda } from "../agenda/apartar-ia";
 import { OPS_IMAGEN, OPS_VIDEO, type OperacionCruda, type TurnoChat } from "../redes/chat";
 import { MODOS_TEXTO, type ModoTexto } from "../redes/texto-ia";
@@ -647,7 +648,7 @@ export function crearCerebroClaude(client: Anthropic = crearClienteClaude()): Ce
     async analizar(corredor, propiedades, historial, mensaje, adjuntos = []) {
       const system = [
         instruccion("analizar"),
-        `<corredor>\nNombre: ${corredor.nombre_contacto}, de ${corredor.nombre}.\n</corredor>`,
+        `<corredor>\nNombre: ${corredor.nombre_contacto}, de ${corredor.nombre}.\n${lineaAhora(new Date(), corredor.zona_horaria)}\n</corredor>`,
         `<propiedades_del_corredor>\n${fichaPropiedades(propiedades)}\n</propiedades_del_corredor>`,
       ].join("\n\n");
       const tools: Anthropic.Beta.BetaToolUnion[] = [
