@@ -37,6 +37,7 @@
       version: chrome.runtime.getManifest().version,
       conectada: estado?.conectada === true,
       corredor: typeof estado?.corredor === "string" ? estado.corredor.slice(0, 120) : "",
+      semanal: estado?.semanal !== false,
     });
   }
 

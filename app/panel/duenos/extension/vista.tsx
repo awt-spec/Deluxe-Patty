@@ -251,6 +251,17 @@ export function Asistente(p: PropsAsistente) {
   const { numero } = numeroDePaso(paso);
   return (
     <div className="ext-asistente" data-paso={paso}>
+      {paso === "descargar" && !p.demo && (
+        <div className="ext-ya-la-tenia">
+          <p>
+            <strong>¿Ya la tenías instalada?</strong> No hace falta empezar de cero: se actualiza en tres pasos, desde cualquier versión.
+          </p>
+          <button type="button" onClick={a.actualizar} data-patty="extension-actualizar">
+            Actualizarla
+            <IconoFlecha tamano={18} />
+          </button>
+        </div>
+      )}
       <Progreso paso={paso} alElegir={a.elegir} />
       <div className="ext-tarjeta">
         {paso === "descargar" && (
@@ -570,6 +581,11 @@ export function Actualizar(p: PropsActualizar) {
   return (
     <div className="ext-asistente ext-actualizar" data-paso={paso}>
       <div className="ext-actualizar-cabeza">
+        <p className="ext-salto" aria-label={`De la versión ${p.instalada ?? "anterior"} a la ${p.version}`}>
+          <span>{p.instalada ? `Tienes la ${p.instalada}` : "Tienes una anterior"}</span>
+          <IconoFlecha tamano={16} />
+          <strong>Nueva: {p.version}</strong>
+        </p>
         <h2>{p.estado.tipo === "nueva_version" ? "Actualízala en tres pasos" : "Tienes una versión anterior"}</h2>
         {novedadesDesde(p.instalada ?? null, p.asistente ?? "Patty").map((t) => (
           <p key={t}>{t}</p>

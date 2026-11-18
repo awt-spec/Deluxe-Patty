@@ -6,7 +6,7 @@
 // corre solo en las páginas /panel/duenos* del panel. La página y ese script se hablan con window.postMessage:
 //  - página → extensión: "hola" (¿estás?), "conectar" con un código de un solo uso (el mismo del método a mano) y
 //    "busqueda" con una orden sin parámetros (estado, pausar, seguir, detener, buscar; desde la versión 1.3.0);
-//  - extensión → página: "presente" (versión, si está conectada y a quién), "resultado" de la conexión y "busqueda"
+//  - extensión → página: "presente" (versión, si está conectada y a quién y, desde la 1.5.2, si busca sola cada semana), "resultado" de la conexión y "busqueda"
 //    (cómo va la búsqueda de dueños: fase, página, total, tiempo que falta).
 // El permiso que la extensión canjea con el código nunca vuelve a la página.
 
@@ -100,7 +100,8 @@ export type Deteccion =
   | { estado: "no" }
   /** La página llegó por navegación interna desde otra pantalla: el content script no se cargó y no se puede saber. */
   | { estado: "no_se_sabe" }
-  | { estado: "si"; version: string; conectada: boolean; corredor: string };
+  /** `semanal`: si la búsqueda sola de cada semana está encendida (desde la 1.5.2; null si la versión no lo dice). */
+  | { estado: "si"; version: string; conectada: boolean; corredor: string; semanal?: boolean | null };
 
 /** Lo que sabe el servidor (extension_conexiones y la última búsqueda). */
 export interface DelServidor {
@@ -210,7 +211,7 @@ export interface EstadoBusquedaExt {
 }
 
 export type MensajeDeExtension =
-  | { tipo: "presente"; version: string; conectada: boolean; corredor: string }
+  | { tipo: "presente"; version: string; conectada: boolean; corredor: string; semanal: boolean | null }
   | { tipo: "resultado"; pedido: string; ok: boolean; corredor: string; mensaje: string }
   | { tipo: "busqueda"; pedido: string; ok: boolean; estado: EstadoBusquedaExt };
 
@@ -234,7 +235,13 @@ export function leerMensajeDeExtension(e: Evento, ventana: unknown, origen: stri
   if (!d || typeof d !== "object" || Array.isArray(d) || d.fuente !== CANAL.extension) return null;
   if (d.tipo === "presente") {
     if (typeof d.version !== "string" || !VERSION.test(d.version)) return null;
-    return { tipo: "presente", version: d.version, conectada: d.conectada === true, corredor: texto(d.corredor, 120) };
+    return {
+      tipo: "presente",
+      version: d.version,
+      conectada: d.conectada === true,
+      corredor: texto(d.corredor, 120),
+      semanal: typeof d.semanal === "boolean" ? d.semanal : null,
+    };
   }
   if (d.tipo === "resultado") {
     if (typeof d.pedido !== "string" || !/^[a-z0-9-]{1,40}$/.test(d.pedido)) return null;

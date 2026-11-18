@@ -158,17 +158,18 @@ describe("asistente para actualizar: qué trae la versión nueva", () => {
   it("desde la 1.3.0 nombra el panel con el nombre de la asistente (lo más nuevo primero)", () => {
     const t = novedadesDesde("1.3.0", "Patty");
     expect(t).toHaveLength(2);
-    expect(t[0]).toMatch(/energía de Patty/);
-    expect(t[1]).toMatch(/El panel de Patty se ve más claro/);
+    expect(t[0]).toMatch(/Patty busca sola cada semana/);
+    expect(t[1]).toMatch(/energía de Patty/);
     expect(t.join(" ")).not.toMatch(/popup/i);
   });
 
-  it("desde la 1.4.0, lo de la 1.5.1 y la 1.5.0; desde la 1.5.0, solo la 1.5.1; sin saber la instalada, lo más reciente; nombre vacío = Patty", () => {
-    expect(novedadesDesde("1.4.0", "Ana")).toEqual([expect.stringMatching(/energía de Ana como una batería/), expect.stringMatching(/El panel de Ana se ve más claro/)]);
-    expect(novedadesDesde("1.4.1", "Ana")).toEqual([expect.stringMatching(/energía de Ana/), expect.stringMatching(/El panel de Ana se ve más claro/)]);
-    expect(novedadesDesde("1.5.0", "Ana")).toEqual([expect.stringMatching(/energía de Ana/)]);
-    expect(novedadesDesde("1.5.1", "Ana")).toEqual([]);
+  it("desde la 1.4.0, lo de la 1.5.2 y la 1.5.1; desde la 1.5.1, solo la 1.5.2; sin saber la instalada, lo más reciente; nombre vacío = Patty", () => {
+    expect(novedadesDesde("1.4.0", "Ana")).toEqual([expect.stringMatching(/Ana busca sola cada semana/), expect.stringMatching(/energía de Ana como una batería/)]);
+    expect(novedadesDesde("1.5.0", "Ana")).toEqual([expect.stringMatching(/próxima búsqueda/), expect.stringMatching(/energía de Ana/)]);
+    expect(novedadesDesde("1.5.1", "Ana")).toEqual([expect.stringMatching(/Ana busca sola cada semana/)]);
+    expect(novedadesDesde("1.5.2", "Ana")).toEqual([]);
     expect(novedadesDesde(null, " ")).toHaveLength(2);
     expect(novedadesDesde(null, " ").join(" ")).toContain("Patty");
   });
+
 });

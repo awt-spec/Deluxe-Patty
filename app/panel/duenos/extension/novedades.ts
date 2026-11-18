@@ -6,6 +6,10 @@ import { compararVersiones } from "@/lib/panel/extension-instalar";
 
 const NOVEDADES: { version: string; texto: (asistente: string) => string }[] = [
   {
+    version: "1.5.2",
+    texto: (a) => `Tu panel ve si ${a} busca sola cada semana y te dice cuándo toca la próxima búsqueda.`,
+  },
+  {
     version: "1.5.1",
     texto: (a) => `El panel lateral muestra la energía de ${a} como una batería: así ves cuánto le queda este mes.`,
   },
