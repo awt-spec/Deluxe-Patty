@@ -321,7 +321,17 @@ cron nocturno `/api/cron/demo`, que la deja como nueva cada día), con
 una banda que lo dice; la demo no abre si ese usuario fuera miembro de un corredor activo. Un corredor
 inactivo nunca manda nada por WhatsApp (`dependenciasPara`, envíos simulados), no presta su marca a la
 entrada y en él no se suben ni mejoran fotos. Sin `WHATSAPP_ACCESS_TOKEN` el panel funciona igual y lo
-que tenga que salir por WhatsApp falla con su mensaje. `proxy.ts` renueva la sesión; con la sesión vencida manda a `/entrar?aviso=sesion&volver=<ruta del panel>` (a una acción del servidor le contesta 401 con `x-action-redirect`; `esRutaInterna` solo acepta `/panel/...`). Los formularios largos conservan lo escrito (`ConservarBorrador`, `sessionStorage`) y no envían sin conexión; el estado leído del navegador se valida (`lib/panel/almacen.ts`); la pantalla de error nunca muestra el mensaje técnico. Las páginas leen con la sesión del corredor (`lib/panel/sesion.ts`, RLS). Las acciones
+que tenga que salir por WhatsApp falla con su mensaje. `proxy.ts` renueva la sesión; con la sesión vencida manda a `/entrar?aviso=sesion&volver=<ruta del panel>` (a una acción del servidor le contesta 401 con `x-action-redirect`; `esRutaInterna` solo acepta `/panel/...`). **Un toque, un envío:** todo botón que escribe o envía es `BotonEnviar` (`useFormStatus`, se apaga mientras trabaja) y
+el servidor es la garantía: lo que le escribe a un cliente o crea algo (Enviar del chat, Agendar, Mover la visita) lleva un
+campo oculto `envio` (código nuevo en cada pantalla, `nuevoEnvio`) que la acción reclama con `reclamar_alerta`
+(`lib/panel/una-vez.ts`, clave con una huella de lo pedido, nunca el texto; se suelta si falla); confirmar o cambiar una
+visita no pasa a un estado igual (`cambiarEstadoCita` con `.neq`), y un segundo Enviar/No enviar en Revisar, un cierre
+igual o mover a la misma hora responden como hechos, no como error. `?aviso=` se quita de la dirección al mostrarse
+(`AvisoDeUnaVez`), así "Atrás" no repite avisos viejos. El cierre de la ficha usa `anotarCierre` (devuelve el motivo
+sin redirigir: lo escrito se queda); entrar o salir de Cerró (`cambiosDeEtapa`) borra el cierre anterior ("Cierre
+anulado" en la Historia) y el nuevo lleva la fecha de hoy; "Cambiar el cierre" no vuelve a fechar. La oferta usa el
+criterio del cierre (`validarOfertaCon`). Fechas de lo guardado se muestran en la zona del corredor (`fechaCortaEn`).
+Los formularios largos conservan lo escrito (`ConservarBorrador`, `sessionStorage`) y no envían sin conexión; el estado leído del navegador se valida (`lib/panel/almacen.ts`); la pantalla de error nunca muestra el mensaje técnico. Las páginas leen con la sesión del corredor (`lib/panel/sesion.ts`, RLS). Las acciones
 (`app/panel/acciones.ts`) primero comprueban con esa sesión que el mensaje o la conversación son suyos y
 luego actúan con el backend (`lib/panel/acciones.ts`): aprobar, corregir o descartar borradores (con su
 acción de cita), tomar y devolver control, escribir como el corredor. Cada corrección se guarda en

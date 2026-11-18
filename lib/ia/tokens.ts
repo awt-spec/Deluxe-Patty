@@ -46,8 +46,11 @@ export function estadoTokens({ gastoMesUsd, topeMesUsd }: { gastoMesUsd: number;
   const restantes = total - usados;
   // El freno real compara el gasto en dólares: si ya lo alcanzó, está agotado aunque el redondeo diga otra cosa.
   const agotado = restantes <= 0 || Number(gastoMesUsd) >= Number(topeMesUsd);
-  const pct = agotado ? 100 : Math.min(100, Math.floor((usados / total) * 100));
-  const nivel: NivelTokens = agotado ? "agotado" : restantes <= total * UMBRAL_POCO ? "poco" : "bien";
+  // Lo que queda, entero hacia abajo, es lo que se ve ("Energía de Patty: 15 %"); el color y el % usado salen de esa
+  // misma cifra: "15 %" siempre va en ámbar (antes, con 15,05 % exacto, salía en verde) y usado + restante = 100.
+  const pctRestante = Math.max(0, Math.min(100, Math.floor((restantes / total) * 100 + 1e-9)));
+  const pct = agotado ? 100 : 100 - pctRestante;
+  const nivel: NivelTokens = agotado ? "agotado" : pctRestante <= UMBRAL_POCO * 100 ? "poco" : "bien";
   return { total, usados, restantes: agotado ? 0 : restantes, pct, nivel };
 }
 

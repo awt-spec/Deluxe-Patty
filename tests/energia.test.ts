@@ -13,7 +13,10 @@ describe("energía de la asistente (lo que ve el corredor)", () => {
 
   it("mismos umbrales que antes: poco con 15 % o menos, agotado al tope", () => {
     expect(estadoEnergia({ gastoMesUsd: 17, topeMesUsd: 20 })).toMatchObject({ restante: 15, nivel: "poco" });
-    expect(estadoEnergia({ gastoMesUsd: 16.99, topeMesUsd: 20 }).nivel).toBe("bien");
+    // 15,05 % se ve «15 %»: ámbar, como dice la regla (antes salía «15 %» en verde).
+    expect(estadoEnergia({ gastoMesUsd: 16.99, topeMesUsd: 20 })).toMatchObject({ restante: 15, nivel: "poco" });
+    expect(estadoEnergia({ gastoMesUsd: 127.4, topeMesUsd: 150 })).toMatchObject({ restante: 15, nivel: "poco" });
+    expect(estadoEnergia({ gastoMesUsd: 16.8, topeMesUsd: 20 })).toMatchObject({ restante: 16, nivel: "bien" });
     expect(estadoEnergia({ gastoMesUsd: 19.99, topeMesUsd: 20 })).toMatchObject({ restante: 0, nivel: "poco" });
     expect(estadoEnergia({ gastoMesUsd: 20, topeMesUsd: 20 })).toEqual({ restante: 0, usado: 100, nivel: "agotado" });
     expect(estadoEnergia({ gastoMesUsd: 50, topeMesUsd: 20 })).toEqual({ restante: 0, usado: 100, nivel: "agotado" });

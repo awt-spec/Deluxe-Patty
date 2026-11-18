@@ -9,6 +9,7 @@ import {
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Aviso } from "../../aviso";
 import "../agenda-movil.css";
+import { BotonEnviar } from "../../boton-enviar";
 import {
   agregarBloqueo,
   agregarFranja,
@@ -107,9 +108,7 @@ export default async function Horario({
           );
         })}
         <p className="suave">Mañana es de 8 a 12 y tarde de 1 a 5.</p>
-        <button type="submit" className="primario grande">
-          Guardar mi horario
-        </button>
+        <BotonEnviar texto="Guardar mi horario" pendiente="Guardando…" className="primario grande" />
       </form>
 
       <form action={agregarBloqueo} className="pila tarjeta">
@@ -117,9 +116,7 @@ export default async function Horario({
         <label htmlFor="dia_libre">Ese día no se agendan visitas</label>
         <input id="dia_libre" name="fecha_desde" type="date" required />
         <input type="hidden" name="motivo" value="No disponible" />
-        <button type="submit" className="grande">
-          No puedo ese día
-        </button>
+        <BotonEnviar texto="No puedo ese día" pendiente="Un momento…" className="grande" />
       </form>
       {((bloqueos ?? []) as Bloqueo[]).length > 0 && (
         <h3>Días que no puedes</h3>
@@ -133,9 +130,7 @@ export default async function Horario({
             )}
           </div>
           <input type="hidden" name="id" value={b.id} />
-          <button type="submit" className="chico">
-            Sí puedo
-          </button>
+          <BotonEnviar texto="Sí puedo" pendiente="Un momento…" className="chico" />
         </form>
       ))}
 
@@ -201,9 +196,7 @@ export default async function Horario({
               />
             </div>
           </div>
-          <button type="submit" className="primario">
-            Agregar
-          </button>
+          <BotonEnviar texto="Agregar" pendiente="Guardando…" className="primario" />
         </form>
       </details>
 
@@ -242,9 +235,7 @@ export default async function Horario({
             maxLength={120}
             placeholder="Vacaciones"
           />
-          <button type="submit" className="primario">
-            Bloquear
-          </button>
+          <BotonEnviar texto="Bloquear" pendiente="Un momento…" className="primario" />
         </form>
       </details>
 
@@ -300,7 +291,7 @@ export default async function Horario({
               />
             </div>
           </div>
-          <button type="submit">Guardar</button>
+          <BotonEnviar texto="Guardar" pendiente="Guardando…" />
         </form>
       </details>
     </>

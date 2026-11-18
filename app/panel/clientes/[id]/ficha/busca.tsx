@@ -4,6 +4,7 @@ import { resumenBusca } from "@/lib/panel/movil";
 import { guardarBusca } from "../../acciones";
 import { SeccionPlegable } from "../movil";
 import type { DatoBusca } from "./reglas";
+import { BotonEnviar } from "../../../boton-enviar";
 
 /** Qué busca (#busca): lo que la asistente anotó del chat y "Corregirlo". */
 export function QueBusca({ id, busca, datos, asistente }: { id: string; busca: Busca; datos: DatoBusca[]; asistente: string }) {
@@ -67,9 +68,7 @@ function FormularioBusca({ id, busca }: { id: string; busca: Busca }) {
       </div>
       <label htmlFor="habitaciones">Cuartos</label>
       <input id="habitaciones" name="habitaciones" type="number" min={0} defaultValue={busca.habitaciones ?? ""} />
-      <button type="submit" className="primario">
-        Guardar
-      </button>
+      <BotonEnviar texto="Guardar" pendiente="Guardando…" className="primario" />
     </form>
   );
 }

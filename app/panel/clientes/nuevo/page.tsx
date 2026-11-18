@@ -2,6 +2,7 @@ import { Aviso } from "../../aviso";
 import { Volver } from "../../volver";
 import { agregarCliente } from "../acciones";
 import "../../propiedades/formulario-movil.css";
+import { BotonEnviar } from "../../boton-enviar";
 
 // Agregar a mano un cliente que no llegó por WhatsApp: un referido, alguien que llamó o que conoció en
 // persona. Solo lo necesario: teléfono, nombre y de dónde viene.
@@ -34,9 +35,7 @@ export default async function NuevoCliente({ searchParams }: { searchParams: Pro
         </fieldset>
         <label htmlFor="notas">Lo que quieras recordar (opcional)</label>
         <textarea id="notas" name="notas" maxLength={4000} placeholder="Busca casa en Escazú para su familia" />
-        <button type="submit" className="primario">
-          Guardar cliente
-        </button>
+        <BotonEnviar texto="Guardar cliente" pendiente="Guardando…" className="primario" />
       </form>
     </>
   );

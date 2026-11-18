@@ -119,9 +119,7 @@ export default async function Bloquear({ searchParams }: { searchParams: Promise
               </span>
               <input type="hidden" name="id" value={b.id} />
               <input type="hidden" name="volver" value="/panel/agenda/bloquear" />
-              <button type="submit" className="chico">
-                Quitar
-              </button>
+              <BotonEnviar texto="Quitar" pendiente="Un momento…" className="chico" />
             </form>
           ))
         )}

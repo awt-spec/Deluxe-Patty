@@ -18,6 +18,7 @@ import { textoDiaVacio } from "@/lib/panel/movil";
 import "../agenda-movil.css";
 import { IconoAgenda } from "../../iconos";
 import { Vacio } from "../../piezas";
+import { BotonEnviar } from "../../boton-enviar";
 
 type Cita = {
   id: string;
@@ -640,9 +641,7 @@ export default async function Agenda({
                 </div>
                 <input type="hidden" name="id" value={b.id} />
                 <input type="hidden" name="volver" value={enlaceA(vista, base)} />
-                <button type="submit" className="chico">
-                  Quitar
-                </button>
+                <BotonEnviar texto="Quitar" pendiente="Un momento…" className="chico" />
               </form>
             ))}
         </section>
@@ -677,9 +676,7 @@ export default async function Agenda({
           <input type="text" readOnly value={`${protocolo}://${enlace}`} aria-label="Enlace del calendario" />
           <form action={cambiarEnlaceCalendario}>
             <p className="suave">¿Lo compartiste sin querer? Cámbialo y el anterior deja de funcionar.</p>
-            <button type="submit" className="chico">
-              Cambiar el enlace
-            </button>
+            <BotonEnviar texto="Cambiar el enlace" pendiente="Un momento…" className="chico" />
           </form>
         </details>
       )}

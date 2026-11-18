@@ -4,6 +4,7 @@ import { ZONAS_CONOCIDAS } from "@/lib/agenda/zonas";
 import { PREFIJO_UBICACION, leerTemaUbicacion, type PreguntaUbicacion } from "@/lib/sitio/ubicacion";
 import { confirmarUbicacion } from "./acciones";
 import "./ubicacion.css";
+import { BotonEnviar } from "../boton-enviar";
 
 // "¿Dónde queda esta casa?": las casas del sitio cuya zona no quedó clara (el título y el distrito no coinciden,
 // un nombre que existe en dos lugares, una zona muy general). Un toque elige la zona; "Otra zona" abre la lista.
@@ -51,9 +52,7 @@ export function PreguntaUbicacion({
       <input type="hidden" name="id" value={casa.id} />
       <input type="hidden" name="zona" value={zona} />
       <input type="hidden" name="volver_a" value={volverA} />
-      <button type="submit" className="chico">
-        {zona}
-      </button>
+      <BotonEnviar texto={zona} pendiente="Un momento…" className="chico" />
     </form>
   );
   return (
@@ -88,9 +87,7 @@ export function PreguntaUbicacion({
                 ))}
               </select>
             </label>
-            <button type="submit" className="chico primario">
-              Guardar
-            </button>
+            <BotonEnviar texto="Guardar" pendiente="Guardando…" className="chico primario" />
           </form>
         </details>
         {siguiente && resto > 0 && (

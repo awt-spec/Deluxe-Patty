@@ -1,7 +1,7 @@
 // "Energía" de la asistente: lo que ve el corredor del tope de gasto de IA del MES (presupuesto_ia(), definido por el
 // superadministrador en /admin → IA y topes), como la batería de un teléfono: un porcentaje que baja. El monto del mes
 // es el 100 % de la energía. Sin dinero ni cifras de tokens para el corredor. Funciones puras: sin base ni red.
-import { estadoTokens, UMBRAL_POCO, type NivelTokens } from "./tokens";
+import { estadoTokens, type NivelTokens } from "./tokens";
 
 export type NivelEnergia = NivelTokens;
 
@@ -19,9 +19,8 @@ export function estadoEnergia({ gastoMesUsd, topeMesUsd }: { gastoMesUsd: number
   if (e.nivel === "sin_tope") return { restante: 100, usado: 0, nivel: "sin_tope" };
   if (e.nivel === "agotado" || e.total <= 0) return { restante: 0, usado: 100, nivel: "agotado" };
   const restante = Math.max(0, Math.min(100, Math.floor((e.restantes / e.total) * 100 + 1e-9)));
-  // El color sale del mismo porcentaje que se muestra: "15 %" va en ámbar (antes, con 15,07 % exacto, salía verde).
-  const nivel: NivelEnergia = e.nivel === "bien" && restante <= UMBRAL_POCO * 100 ? "poco" : e.nivel;
-  return { restante, usado: Math.max(0, Math.min(100, e.pct)), nivel };
+  // El color sale del mismo porcentaje que se muestra (lib/ia/tokens.ts): "15 %" va en ámbar.
+  return { restante, usado: Math.max(0, Math.min(100, e.pct)), nivel: e.nivel };
 }
 
 /** Desde lo que devuelve `presupuesto_ia()` (repositorio.presupuestoIA). */

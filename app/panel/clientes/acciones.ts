@@ -57,13 +57,14 @@ export async function cambiarEtapa(f: FormData) {
     volverA(id, error ? "No se pudo guardar. Vuelve a intentarlo." : "Listo, guardado.");
   }
   const { cambios, anulado } = cambiosDeEtapa(antes ?? {}, etapa, new Date().toISOString());
+  const cierreAnterior = { precio: antes?.cierre_precio, moneda: antes?.cierre_moneda };
   const { error } = await db
     .from("contactos")
     .update({ ...cambios, motivo_perdida })
     .eq("corredor_id", corredor.id)
     .eq("id", id);
   if (error) volverA(id, "No se pudo guardar. Vuelve a intentarlo.");
-  if (anulado) await anotarAnulado(db, corredor.id, id, antes);
+  if (anulado) await anotarAnulado(db, corredor.id, id, cierreAnterior);
   await anotar(db, corredor.id, id, "etapa", `Pasó a ${NOMBRE_ETAPA[etapa]}${motivo_perdida ? `: ${motivo_perdida}` : ""}`);
   volverA(
     id,
@@ -80,10 +81,10 @@ async function anotarAnulado(
   db: ReturnType<typeof createAdminClient>,
   corredorId: string,
   id: string,
-  antes: { cierre_precio?: unknown; cierre_moneda?: unknown } | null,
+  antes: { precio: unknown; moneda: unknown },
 ) {
-  const precio = Number(antes?.cierre_precio);
-  await anotar(db, corredorId, id, "cierre", `Cierre anulado${Number.isFinite(precio) ? `: era ${montoContable(precio, monedaDe(antes?.cierre_moneda))}` : ""}`);
+  const precio = antes.precio === null || antes.precio === undefined ? NaN : Number(antes.precio);
+  await anotar(db, corredorId, id, "cierre", `Cierre anulado${Number.isFinite(precio) ? `: era ${montoContable(precio, monedaDe(antes.moneda))}` : ""}`);
 }
 
 export async function guardarBusca(f: FormData) {
@@ -182,12 +183,13 @@ export async function moverEtapa(id: string, etapa: string): Promise<boolean> {
   if (!antes) return false;
   if (antes.etapa === etapa) return true; // soltó en la misma columna
   const { cambios, anulado } = cambiosDeEtapa(antes, etapa, new Date().toISOString());
+  const cierreAnterior = { precio: antes.cierre_precio, moneda: antes.cierre_moneda };
   const { error } = await db
     .from("contactos")
     .update({ ...cambios, ...(etapa === "perdido" ? {} : { motivo_perdida: null }) })
     .eq("corredor_id", corredor.id)
     .eq("id", id);
-  if (!error && anulado) await anotarAnulado(db, corredor.id, id, antes);
+  if (!error && anulado) await anotarAnulado(db, corredor.id, id, cierreAnterior);
   if (!error) await anotar(db, corredor.id, id, "etapa", `Pasó a ${NOMBRE_ETAPA[etapa as Etapa]}`);
   revalidatePath("/panel/clientes");
   return !error;

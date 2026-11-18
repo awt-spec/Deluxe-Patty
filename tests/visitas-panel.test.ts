@@ -24,3 +24,33 @@ describe("visitas del panel: mensajes de una visita que ya cambió", () => {
     expect(ajena.escrituras).toEqual([]);
   });
 });
+
+describe("visitas del panel: un doble toque no le escribe dos veces al cliente", () => {
+  const conCita = (estado: string, inicio = "2026-12-01T16:00:00Z") =>
+    supabaseFalso({
+      citas: [{ id: ID.cita, corredor_id: ID.deluxe, contacto_id: ID.cliente, estado, inicio, fin: "2026-12-01T17:00:00Z" }],
+      conversaciones: [{ id: ID.conversacion, corredor_id: ID.deluxe, contacto_id: ID.cliente }],
+    });
+
+  it("confirmar una visita ya confirmada (el segundo toque) dice que ya estaba y no manda otro WhatsApp", async () => {
+    const texto = vi.fn(async () => "wamid");
+    // El repositorio real filtra .neq("estado", estado): confirmar una confirmada no cambia nada y devuelve false.
+    const d = { repo: { cambiarEstadoCita: vi.fn(async () => false), conversacionConContacto: vi.fn() }, whatsapp: { texto } } as never;
+    const db = conCita("confirmada");
+    expect(await cambiarVisita(d, db as never, corredor, ID.cita, "confirmada", true)).toEqual({ ok: true, aviso: "Visita confirmada. Ya le habías avisado." });
+    expect(texto).not.toHaveBeenCalled();
+    expect(db.escrituras).toEqual([]);
+  });
+
+  it("si cambió a otro estado mientras tanto, lo dice como antes", async () => {
+    const d = { repo: { cambiarEstadoCita: vi.fn(async () => false) } } as never;
+    expect(await cambiarVisita(d, conCita("agendada") as never, corredor, ID.cita, "confirmada", true)).toEqual({ ok: false, motivo: "La visita ya cambió." });
+  });
+
+  it("moverla a la hora que ya tiene no la toca ni avisa", async () => {
+    const db = conCita("agendada");
+    const d = { repo: {}, whatsapp: { texto: vi.fn() } } as never;
+    expect(await moverVisita(d, db as never, corredor, ID.cita, new Date("2026-12-01T16:00:00Z"), true)).toEqual({ ok: true, aviso: "La visita ya está a esa hora." });
+    expect(db.escrituras).toEqual([]);
+  });
+});
