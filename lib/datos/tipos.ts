@@ -249,6 +249,8 @@ export interface Foto {
   variantes?: VarianteFoto[];
   /** Si vino del sitio web del corredor: la dirección original (para no copiarla dos veces y quitarla si allá la quitan). */
   fuente?: string;
+  /** Cuándo se subió al sitio desde el chat de Patty (ISO). La exportación del sitio tarda unos minutos en mostrarla. */
+  al_sitio?: string;
 }
 
 export interface VarianteFoto {

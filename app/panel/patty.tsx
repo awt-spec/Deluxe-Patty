@@ -8,11 +8,13 @@ import { createPortal } from "react-dom";
 import { separarPasos, useGuia, type Paso } from "./guia";
 import type { FichaParcial } from "@/lib/datos/tipos";
 import { pideCargarCasa } from "@/lib/panel/casa-patty";
+import { pideSubirAlSitio } from "@/lib/panel/sitio-fotos";
 import { almacenLocal, casaGuardada, leerAlmacen, turnosGuardados } from "@/lib/panel/almacen";
 import { MAX_ARCHIVOS_PATTY, MAX_BASE64_PATTY, MAX_BYTES_PATTY, TEXTO_MAX_PATTY } from "@/lib/panel/adjuntos-limites";
 import { clasificarFalla, mensajeDeFalla } from "@/lib/panel/fallas";
 import { inicialDe } from "@/lib/panel/inicial";
 import { anotarFotos, fotosAnotadas, olvidarFotos, subirFotosAnotadas } from "./patty-casa";
+import { ResultadoSitio, SubirAlSitio, type FinEnvioSitio } from "./patty-sitio";
 import { conversarCasa, guardarCasaConversada } from "./propiedades/acciones";
 import { IconoCamara, IconoClip, IconoDobleCheck, IconoDocumento, IconoEnviar, IconoMicrofono } from "./iconos";
 import { separarPedido } from "@/lib/panel/markdown";
@@ -36,6 +38,8 @@ type Turno = {
   png?: string | null;
   casa?: string[];
   id?: string;
+  /** Fotos que se subieron al sitio web (como se ven allá) y el enlace de la casa en el sitio. */
+  sitio?: { fotos: string[]; url: string | null };
 };
 
 /**
@@ -246,6 +250,8 @@ export function ChatPatty({
   const [casa, setCasaEstado] = useState<CasaEnCurso | null>(null);
   const casaViva = useRef<CasaEnCurso | null>(null);
   const guardandoCasa = useRef(false);
+  /** Fotos que se están subiendo al sitio web (la tarjeta del chat; los archivos, solo en memoria). */
+  const [alSitio, setAlSitio] = useState<{ id: number; texto: string; archivos: File[] } | null>(null);
   const cajaTexto = useRef<HTMLTextAreaElement>(null);
   const [texto, setTexto] = useState("");
   const [archivos, setArchivos] = useState<ArchivoListo[]>([]);
@@ -477,6 +483,12 @@ export function ChatPatty({
     // Una casa que se está cargando sigue con este mensaje; «agrega esta casa: …» empieza una (solo con fotos:
     // un PDF, un Word o un video se los lee Patty como siempre).
     const soloFotos = adjuntos.every((a) => a.tipo === "imagen" && !a.grupo);
+    // «Sube estas fotos al sitio / a la casa de Escazú / a DP-…» con fotos: la tarjeta para subirlas al sitio web.
+    const originales = adjuntos.filter((a) => a.tipo === "imagen" && !a.grupo && a.original).map((a) => a.original!);
+    if (!casaViva.current && !alSitio && soloFotos && originales.length > 0 && pideSubirAlSitio(limpio) && !pideCargarCasa(limpio)) {
+      setAlSitio({ id: Date.now(), texto: limpio, archivos: originales });
+      return;
+    }
     if (casaViva.current || (soloFotos && pideCargarCasa(limpio))) {
       seguirCasa(limpio, adjuntos);
       return;
@@ -600,6 +612,13 @@ export function ChatPatty({
   function dejarCasa() {
     ponerCasa(null);
     agregarTurno({ autor: "asistente", texto: "Listo, no la guardé. Cuando quieras, escríbeme «agrega esta casa: …».", hora: new Date().toISOString() });
+  }
+
+  /** La tarjeta de subir al sitio terminó (o se canceló): su respuesta queda en el chat. */
+  function terminarAlSitio(f: FinEnvioSitio) {
+    setAlSitio(null);
+    agregarTurno({ autor: "asistente", texto: f.texto, hora: new Date().toISOString(), ...(f.sitio ? { sitio: f.sitio } : {}) });
+    if (f.sitio) router.refresh();
   }
 
   /** Arma el PDF de una respuesta (con sus diagramas) y lo abre en el visor. */
@@ -811,6 +830,7 @@ export function ChatPatty({
                 )}
               </div>
             )}
+            {t.autor === "asistente" && t.sitio && <ResultadoSitio fotos={t.sitio.fotos} url={t.sitio.url} />}
             {t.autor === "asistente" && t.texto.length > 40 && (
               <span className="patty-acciones-mensaje">
                 <button type="button" className="patty-mini" onClick={() => void copiar(i)}>
@@ -834,6 +854,7 @@ export function ChatPatty({
             </span>
           </div>
         ))}
+        {alSitio && <SubirAlSitio key={alSitio.id} texto={alSitio.texto} archivos={alSitio.archivos} nombre={nombre} alTerminar={terminarAlSitio} />}
         {pensando && (
           <div className="patty-burbuja suya pensando" aria-label={`${nombre} está escribiendo`}>
             <span className="puntos">

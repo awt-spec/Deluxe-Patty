@@ -23,6 +23,17 @@ const FUENTES_POR_DEFECTO: Record<string, string> = {
   "deluxe-properties": "https://gaogmucqywqhybaezzpo.supabase.co/functions/v1/exportar-propiedades",
 };
 
+/**
+ * Una foto subida desde el portal al sitio (`Foto.al_sitio`) se conserva este tiempo aunque la exportación aún no la
+ * liste: la exportación está en caché unos 5 minutos, y sin esto se borraría y se copiaría de vuelta en la vuelta siguiente.
+ */
+export const MS_FOTO_RECIENTE = 30 * 60_000;
+
+function subidaReciente(f: Foto): boolean {
+  const t = f.al_sitio ? Date.parse(f.al_sitio) : NaN;
+  return Number.isFinite(t) && Date.now() - t < MS_FOTO_RECIENTE;
+}
+
 export function fuentesSitio(): Record<string, string> {
   try {
     const extra = JSON.parse(process.env.SITIO_FUENTES ?? "{}") as Record<string, unknown>;
@@ -52,7 +63,8 @@ export type CasaSitio = {
   m2_construccion?: number | null;
   m2_terreno?: number | null;
   amenidades?: string[];
-  imagenes?: string[];
+  /** Fotos en su orden: direcciones públicas del Storage del sitio (o transformadas, o `bucket/llave`). */
+  imagenes?: unknown[];
   url_e24?: string | null;
   estado?: string;
   oculta?: boolean;
@@ -155,14 +167,71 @@ export async function leerExportacion(url: string): Promise<CasaSitio[]> {
   return json.propiedades as CasaSitio[];
 }
 
-/** Solo se copian fotos públicas del mismo servidor que la exportación (nada de pedir otras direcciones: SSRF). */
+const PUBLICA = "/storage/v1/object/public/";
+const TRANSFORMADA = "/storage/v1/render/image/public/";
+/** Fotos por casa que se traen del sitio (la que más tiene hoy trae 35; antes el tope de 30 cortaba las últimas). */
+export const MAX_FOTOS_CASA = 60;
+
+/**
+ * Servidores de los que se aceptan fotos: el de la exportación y, si es un proyecto de Supabase (<ref>.supabase.co),
+ * también su dirección de Storage (<ref>.storage.supabase.co). Nombres exactos, nunca comodines.
+ */
+export function hostsDeFotos(hostExportacion: string): string[] {
+  const ref = hostExportacion.match(/^([a-z0-9]{10,40})\.supabase\.co$/)?.[1];
+  return ref ? [hostExportacion, `${ref}.storage.supabase.co`] : [hostExportacion];
+}
+
+/** Solo se copian fotos públicas del Storage del mismo proyecto que la exportación (nada de pedir otras direcciones: SSRF). */
 export function esFotoDelSitio(url: string, hostPermitido: string): boolean {
   try {
     const u = new URL(url);
-    return u.protocol === "https:" && u.host === hostPermitido && u.pathname.startsWith("/storage/v1/object/public/") && !u.pathname.includes("..");
+    return (
+      u.protocol === "https:" &&
+      !u.username &&
+      !u.password &&
+      !u.port &&
+      hostsDeFotos(hostPermitido).includes(u.host) &&
+      u.pathname.startsWith(PUBLICA) &&
+      !u.pathname.includes("..") &&
+      !/%2e%2e/i.test(u.pathname)
+    );
   } catch {
     return false;
   }
+}
+
+/**
+ * Las fotos de una casa del sitio, en su orden, sin repetidas y listas para copiar. Acepta lo que el sitio usa para
+ * mostrarlas: la dirección pública del Storage, la transformada (`/render/image/public/…?width=…`, que se pasa a la
+ * original) y, por si la exportación manda solo la llave, `bucket/carpeta/archivo.jpg` (se arma la dirección pública
+ * del mismo proyecto). Cualquier otra cosa (otro servidor, http, otra ruta) se descarta.
+ */
+export function fotosDeCasa(lista: unknown, hostExportacion: string): string[] {
+  const salida: string[] = [];
+  const vistas = new Set<string>();
+  for (const item of Array.isArray(lista) ? lista : []) {
+    const crudo = typeof item === "string" ? item.trim() : null;
+    // Nada de subir carpetas, ni a la vista ni codificado (el lector de direcciones las resuelve en silencio).
+    if (!crudo || crudo.length > 1000 || crudo.includes("..") || /%2e/i.test(crudo) || crudo.includes("\\")) continue;
+    let url: string | null = null;
+    if (/^https:\/\//i.test(crudo)) {
+      try {
+        const u = new URL(crudo);
+        if (u.username || u.password || u.port) continue;
+        const camino = u.pathname.startsWith(TRANSFORMADA) ? PUBLICA + u.pathname.slice(TRANSFORMADA.length) : u.pathname;
+        url = `https://${u.host}${camino}`;
+      } catch {
+        url = null;
+      }
+    } else if (/^[a-z0-9_-]+\/[^?#\s]+$/i.test(crudo) && !crudo.includes("://")) {
+      url = `https://${hostExportacion}${PUBLICA}${crudo.replace(/^\/+/, "")}`;
+    }
+    if (!url || !esFotoDelSitio(url, hostExportacion) || vistas.has(url)) continue;
+    vistas.add(url);
+    salida.push(url);
+    if (salida.length >= MAX_FOTOS_CASA) break;
+  }
+  return salida;
 }
 
 /** Copia una foto del sitio al bucket del corredor. */
@@ -180,6 +249,12 @@ export type ResultadoSincronizacion = {
   fallidos: number;
   /** Casas con la ubicación por confirmar que se le preguntaron al corredor en esta vuelta. */
   ubicacionesPorConfirmar: number;
+  /** Avance de las fotos (solo cuentas): casas del sitio con y sin fotos, fotos que el sitio muestra y las que ya están en el portal. */
+  casasConFotos: number;
+  casasSinFotos: number;
+  fotosEnSitio: number;
+  fotosEnPortal: number;
+  fotosDescartadas: number;
 };
 
 type Pregunta = { id: string; tema: string; respuesta: string | null; estado: string };
@@ -205,7 +280,7 @@ export async function sincronizarSitio(
   host: string,
   opciones: { maxFotos?: number; hasta?: number } = {},
 ): Promise<ResultadoSincronizacion> {
-  const res: ResultadoSincronizacion = { creadas: 0, actualizadas: 0, pausadas: 0, ejemplosBorrados: 0, fotosCopiadas: 0, fotosPendientes: 0, fallidos: 0, ubicacionesPorConfirmar: 0 };
+  const res: ResultadoSincronizacion = { creadas: 0, actualizadas: 0, pausadas: 0, ejemplosBorrados: 0, fotosCopiadas: 0, fotosPendientes: 0, fallidos: 0, ubicacionesPorConfirmar: 0, casasConFotos: 0, casasSinFotos: 0, fotosEnSitio: 0, fotosEnPortal: 0, fotosDescartadas: 0 };
   let presupuesto = opciones.maxFotos ?? 80;
   const hasta = opciones.hasta ?? Date.now() + 240_000;
 
@@ -264,7 +339,11 @@ export async function sincronizarSitio(
       }
 
       // Fotos: las del sitio en su orden; se copian las nuevas (con presupuesto) y se quitan las que allá ya no están.
-      const imagenes = (casa.imagenes ?? []).filter((u) => typeof u === "string" && esFotoDelSitio(u, host)).slice(0, 30);
+      const imagenes = fotosDeCasa(casa.imagenes, host);
+      res.fotosDescartadas += Math.max(0, (Array.isArray(casa.imagenes) ? casa.imagenes.length : 0) - imagenes.length);
+      res.fotosEnSitio += imagenes.length;
+      if (imagenes.length) res.casasConFotos++;
+      else res.casasSinFotos++;
       const actuales = (propiedad.fotos ?? []) as Foto[];
       const porFuente = new Map(actuales.filter((f) => f.fuente).map((f) => [f.fuente!, f]));
       const propias = actuales.filter((f) => !f.fuente);
@@ -286,7 +365,11 @@ export async function sincronizarSitio(
           res.fotosCopiadas++;
         }
       }
-      const fotos = ordenarFotos([...delSitio, ...propias].map((f, i) => ({ ...f, orden: i + 1 })));
+      // Subidas al sitio desde el portal hace poco: la exportación (en caché) aún no las lista, no se quitan.
+      const enExportacion = new Set(imagenes);
+      const recientes = actuales.filter((f) => f.fuente && !enExportacion.has(f.fuente) && subidaReciente(f));
+      res.fotosEnPortal += delSitio.length;
+      const fotos = ordenarFotos([...delSitio, ...recientes, ...propias].map((f, i) => ({ ...f, orden: i + 1 })));
       const cambiaron = JSON.stringify(fotos.map((f) => f.url)) !== JSON.stringify(ordenarFotos(actuales).map((f) => f.url));
       if (cambiaron) await db.from("propiedades").update({ fotos }).eq("corredor_id", corredor.id).eq("id", propiedad.id);
     } catch (e) {
@@ -340,6 +423,21 @@ export async function sincronizarSitios(db: SupabaseClient): Promise<{ resultado
       const r = await sincronizarSitio(db, corredor as { id: string }, casas, new URL(url).host);
       fallidos += r.fallidos;
       salida[slug] = r;
+      // Avance visible en los registros: solo cuentas (nada de direcciones ni datos de la casa).
+      console.log(
+        JSON.stringify({
+          evento: "importar_sitio_fotos",
+          slug,
+          casas: casas.length,
+          casasConFotos: r.casasConFotos,
+          casasSinFotos: r.casasSinFotos,
+          fotosEnSitio: r.fotosEnSitio,
+          fotosEnPortal: r.fotosEnPortal,
+          fotosCopiadas: r.fotosCopiadas,
+          fotosPendientes: r.fotosPendientes,
+          fotosDescartadas: r.fotosDescartadas,
+        }),
+      );
     } catch (e) {
       fallidos++;
       salida[slug] = { error: errorSeguro(e) };

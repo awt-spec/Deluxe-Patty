@@ -4873,6 +4873,197 @@ body:has(.marco.tema) {
   font-weight: 600;
 }
 
+/* Subir fotos al sitio web desde el chat de Patty (app/panel/patty-sitio.tsx): teléfono primero */
+.patty-sitio {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(100%, 460px);
+}
+.patty-sitio-titulo {
+  font-size: 1rem;
+}
+.patty-sitio-demo,
+.patty-sitio-pie {
+  color: #667781;
+  font-size: 0.8rem;
+}
+.patty-sitio-nota {
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #fff4e5;
+  color: #5c3b00;
+}
+.patty-sitio-trabajando {
+  font-weight: 600;
+  color: #008069;
+}
+.patty-sitio-casa {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  text-align: left;
+}
+.patty-sitio-casa img,
+.patty-sitio-sinfoto {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #e9edef;
+}
+.patty-sitio-casa > span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.patty-sitio-casa b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.patty-sitio-casa small {
+  color: #667781;
+}
+.patty-sitio-buscar {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid #c8d1d6;
+  border-radius: 999px;
+  font-size: 1rem;
+  background: #fff;
+}
+.patty-sitio-casas ul,
+.patty-sitio-fotos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.patty-sitio-casas li button {
+  width: 100%;
+  padding: 4px;
+  border: 1px solid #e2e6e9;
+  border-radius: 10px;
+  background: #fff;
+  color: inherit;
+}
+.patty-sitio-vacio {
+  color: #667781;
+}
+.patty-sitio-fotos li {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 4px 10px;
+  padding: 6px;
+  border-radius: 10px;
+  background: #f0f2f5;
+}
+.patty-sitio-fotos img {
+  grid-row: span 2;
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+.patty-sitio-foto-datos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.patty-sitio-etiqueta {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #00a884;
+  color: #fff;
+  font-size: 0.75rem;
+  font-style: normal;
+  font-weight: 650;
+}
+.patty-sitio-etiqueta.ia {
+  background: #5b3fa6;
+}
+.patty-sitio-version {
+  display: inline-flex;
+  border: 1px solid #c8d1d6;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.patty-sitio-version button {
+  min-height: 32px;
+  padding: 2px 10px;
+  border: 0;
+  background: #fff;
+  color: #111b21;
+}
+.patty-sitio-version button[aria-pressed="true"] {
+  background: #111b21;
+  color: #fff;
+}
+.patty-sitio-mover {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.patty-sitio-mover button {
+  min-width: 40px;
+  min-height: 40px;
+  padding: 4px 10px;
+  border: 1px solid #c8d1d6;
+  border-radius: 999px;
+  background: #fff;
+  color: #111b21;
+  font-weight: 600;
+}
+.patty-sitio-mover button:disabled {
+  opacity: 0.4;
+}
+.patty-sitio-tira {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.patty-sitio-tira img {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+.patty-sitio-tira img.portada {
+  outline: 3px solid #00a884;
+  outline-offset: -3px;
+}
+.patty-sitio-resultado {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+.patty-sitio-resultado .patty-sitio-tira img {
+  width: 96px;
+  height: 96px;
+}
+.patty-sitio-enlace {
+  align-self: flex-start;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #00a884;
+  color: #fff !important;
+  font-weight: 650;
+  text-decoration: none;
+}
+
 /* Inicio: clientes que esperan, a todo lo ancho y con quiénes son */
 .tema .esperan {
   border-radius: 14px;
