@@ -124,6 +124,32 @@ describe("medios por WhatsApp", () => {
       expect(db.mensajes.find((m) => m.direccion === "entrante")?.contenido).toBe("Nota de voz: Hola, busco una casa en Escazú");
     });
 
+    it.each([
+      ["escalada", { estado: "escalada" }],
+      ["tomado por el corredor", { control: "corredor" }],
+    ] as const)("en un chat %s la nota de voz igual se pasa a texto (el corredor la lee) y la IA no contesta", async (_, cambio) => {
+      await procesarMensaje(deps, cliente({ texto: "Hola", waMessageId: "wamid.1" }));
+      Object.assign(db.conversaciones[0], cambio);
+      cerebro.clasificar.mockClear();
+      medios.transcribir.mockResolvedValueOnce({ texto: "Quiero ver la casa el sábado", segundos: 4, costoUsd: 0.0004 });
+      const r = await procesarMensaje(deps, cliente({ tipo: "audio", media: media("audio", "audio/ogg"), waMessageId: "wamid.2" }));
+      expect(r.tipo).toBe("sin_respuesta");
+      expect(medios.transcribir).toHaveBeenCalledTimes(1);
+      expect(db.mensajes.filter((m) => m.direccion === "entrante").at(-1)?.contenido).toBe("Nota de voz: Quiero ver la casa el sábado");
+      expect(cerebro.clasificar).not.toHaveBeenCalled();
+    });
+
+    it("en un chat escalado, el aviso al corredor trae lo que dijo la nota de voz", async () => {
+      await procesarMensaje(deps, cliente({ texto: "Hola", waMessageId: "wamid.1" }));
+      db.conversaciones[0].estado = "escalada";
+      whatsapp.plantilla.mockClear();
+      whatsapp.texto.mockClear();
+      medios.transcribir.mockResolvedValueOnce({ texto: "Llámeme por favor", segundos: 3, costoUsd: 0.0003 });
+      await procesarMensaje(deps, cliente({ tipo: "audio", media: media("audio", "audio/ogg"), waMessageId: "wamid.2" }));
+      const enviados = [...whatsapp.plantilla.mock.calls.map((c) => String(c[3][0])), ...whatsapp.texto.mock.calls.map((c) => String(c[2]))];
+      expect(enviados.some((t) => t.includes("Nota de voz: Llámeme por favor"))).toBe(true);
+    });
+
     it("una foto se describe y la descripción entra al flujo como texto del cliente", async () => {
       medios.descargar.mockResolvedValueOnce({ datos: Buffer.from("jpg"), mime: "image/jpeg" });
       await procesarMensaje(deps, cliente({ tipo: "imagen", texto: "¿Esta sigue disponible?", media: media("imagen", "image/jpeg") }));
