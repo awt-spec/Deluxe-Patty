@@ -138,7 +138,7 @@ export function resumenEnvio(e: EnvioSitio): string[] {
 
 /** Para el chat, al terminar. */
 export function textoResultado(e: EnvioSitio): string {
-  const n = e.resultado?.fotos.length ?? e.fotos.length;
+  const n = e.resultado?.fotos.length || e.fotos.length;
   const casa = e.casa ? `**${e.casa.titulo}** (${e.casa.codigo})` : "la casa";
   if (e.demo) return `Demostración: así quedarían ${plural(n, "foto", "fotos")} en ${casa}. En la demo no se manda nada al sitio.`;
   // El enlace al sitio va en la tarjeta del resultado (el chat solo convierte en botón las rutas del panel).

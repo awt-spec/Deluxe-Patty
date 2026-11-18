@@ -23,6 +23,17 @@ const FUENTES_POR_DEFECTO: Record<string, string> = {
   "deluxe-properties": "https://gaogmucqywqhybaezzpo.supabase.co/functions/v1/exportar-propiedades",
 };
 
+/**
+ * Una foto subida desde el portal al sitio (`Foto.al_sitio`) se conserva este tiempo aunque la exportación aún no la
+ * liste: la exportación está en caché unos 5 minutos, y sin esto se borraría y se copiaría de vuelta en la vuelta siguiente.
+ */
+export const MS_FOTO_RECIENTE = 30 * 60_000;
+
+function subidaReciente(f: Foto): boolean {
+  const t = f.al_sitio ? Date.parse(f.al_sitio) : NaN;
+  return Number.isFinite(t) && Date.now() - t < MS_FOTO_RECIENTE;
+}
+
 export function fuentesSitio(): Record<string, string> {
   try {
     const extra = JSON.parse(process.env.SITIO_FUENTES ?? "{}") as Record<string, unknown>;
@@ -354,8 +365,11 @@ export async function sincronizarSitio(
           res.fotosCopiadas++;
         }
       }
+      // Subidas al sitio desde el portal hace poco: la exportación (en caché) aún no las lista, no se quitan.
+      const enExportacion = new Set(imagenes);
+      const recientes = actuales.filter((f) => f.fuente && !enExportacion.has(f.fuente) && subidaReciente(f));
       res.fotosEnPortal += delSitio.length;
-      const fotos = ordenarFotos([...delSitio, ...propias].map((f, i) => ({ ...f, orden: i + 1 })));
+      const fotos = ordenarFotos([...delSitio, ...recientes, ...propias].map((f, i) => ({ ...f, orden: i + 1 })));
       const cambiaron = JSON.stringify(fotos.map((f) => f.url)) !== JSON.stringify(ordenarFotos(actuales).map((f) => f.url));
       if (cambiaron) await db.from("propiedades").update({ fotos }).eq("corredor_id", corredor.id).eq("id", propiedad.id);
     } catch (e) {

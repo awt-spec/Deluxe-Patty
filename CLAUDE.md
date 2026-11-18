@@ -449,6 +449,18 @@ direcciones públicas con CORS abierto (los datos son públicos) y el corredor i
 - **Modo corredor** (`lib/sitio/modo-corredor.ts`, botón en la ficha de la casa): enlace `<sitio>/share/<slug>` de la casa sin los
   datos de contacto del corredor, para pasarlo a otro corredor. Solo en casas del sitio (`DP-XXXXXX`, activas); el slug se lee de
   la exportación (caché de 5 min) y la dirección del sitio sale de `sitiosWeb()` (`SITIO_URLS`).
+- **Subir fotos al sitio desde el chat de Patty** (fotos adjuntas + «sube estas fotos al sitio / a la casa de Escazú / a DP-…»,
+  `pideSubirAlSitio`; tarjeta `app/panel/patty-sitio.tsx`, reglas puras `lib/panel/sitio-fotos.ts`, acciones
+  `app/panel/patty-sitio-acciones.ts`): casa del sitio (DP-, activa; `proponerCasa` por código, título o zona, o buscador) →
+  las fotos suben del teléfono a `fotos/<corredor>/<casa>/al-sitio/` (2400 px) → "¿Las mejoro con IA?" (una por una, permiso de
+  imágenes y Energía; la mejorada va aparte, `-mejorada.jpg`, y se elige Original/Mejorada) → orden y portada → tarjeta y **solo con
+  "Sí, subir al sitio"** sale un POST firmado (`lib/sitio/fotos.ts`: `x-firma` = HMAC-SHA256 del cuerpo `{codigo, fotos:[{url,
+  orden}], portada_url?, ts, nonce}`, `SITIO_FOTOS_URL` / `SITIO_FOTOS_SECRETO`, valor o JSON por slug) a la función
+  `recibir-fotos` del sitio, que baja las fotos solo del Storage del portal, las suma a `properties.images` (bucket
+  `property-media`) y nunca borra. Resultado en el chat: las fotos como quedaron allá y "Ver la casa en el sitio" (solo del
+  origen de `sitiosWeb()`). Las fotos se anotan en la casa del portal con `fuente` (normalizada con `fotosDeCasa`) y `al_sitio`,
+  así la importación no las copia otra vez. Frenos: 6 preparaciones, 12 mejoras y 3 envíos por minuto; doble toque con
+  `reclamarEnvio`; firma rechazada → soporte (`error_sitio_fotos`). Demo: simulado, nunca llama al sitio ni sube nada.
 
 ## Monitoreo (`lib/monitoreo/`)
 Cada llamada a Claude deja una traza `llamada_claude` (modelo, ms, tokens, caché leída y escrita, motivo de parada;

@@ -22,8 +22,8 @@ export function anotarFotos(clave: string, archivos: File[]): number {
 export const fotosAnotadas = (clave: string) => fotosEnCurso.get(clave)?.length ?? 0;
 export const olvidarFotos = (clave: string) => void fotosEnCurso.delete(clave);
 
-// Al volver a dibujarla se le quitan los datos ocultos (como la ubicación GPS).
-async function achicar(archivo: File): Promise<Blob | null> {
+// Al volver a dibujarla se le quitan los datos ocultos (como la ubicación GPS). La usa también el envío al sitio.
+export async function achicar(archivo: File): Promise<Blob | null> {
   try {
     const imagen = await createImageBitmap(archivo);
     const escala = Math.min(1, LADO_MAXIMO / Math.max(imagen.width, imagen.height));
