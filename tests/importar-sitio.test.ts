@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { amenidadesDelSitio, CODIGO_SITIO, filaDesdeSitio, sincronizarSitio, type CasaSitio } from "@/lib/sitio/importar";
+import { amenidadesDelSitio, CODIGO_SITIO, filaDesdeSitio, fotosDeCasa, hostsDeFotos, sincronizarSitio, type CasaSitio } from "@/lib/sitio/importar";
+import { exportacionReal, fotoCarpeta, fotoSemilla, HOST_EXPORTACION } from "./fixtures/sitio-exportacion";
 import { ID, supabaseFalso } from "./acciones/entorno";
 
 const HOST = "sitio.supabase.co";
@@ -150,5 +151,103 @@ describe("Casas del sitio web → portal", () => {
     expect(r.ubicacionesPorConfirmar).toBe(0);
     expect(db.tablas.propiedades[0].zona).toBe("Lindora");
     expect(db.tablas.conocimiento[0].estado).toBe("archivado");
+  });
+});
+
+describe("Fotos del sitio con la forma real de la exportación", () => {
+  const H = HOST_EXPORTACION;
+  const pub = (llave: string) => `https://${H}/storage/v1/object/public/${llave}`;
+
+  it("TC-01: trae TODAS las fotos que el sitio muestra (35 y 25), en su orden y con la llave codificada (%2F)", async () => {
+    fetchFotos();
+    const db = supabaseFalso({ propiedades: [] });
+    const exp = exportacionReal();
+    const r = await sincronizarSitio(db as never, { id: ID.deluxe }, exp.propiedades, H);
+    expect(r).toMatchObject({ creadas: 4, fotosCopiadas: 60, fotosPendientes: 0, casasConFotos: 2, casasSinFotos: 2, fotosEnSitio: 60, fotosEnPortal: 60, fallidos: 0 });
+    const lindora = db.tablas.propiedades.find((p) => p.codigo === "DP-AAAAA1")!;
+    // Antes el importador cortaba en 30: las fotos 31 a 35 nunca llegaban.
+    expect((lindora.fotos as { fuente: string }[]).map((f) => f.fuente)).toEqual(exp.propiedades[0].imagenes);
+    const malinches = db.tablas.propiedades.find((p) => p.codigo === "DP-AAAAA2")!;
+    expect((malinches.fotos as { fuente: string; orden: number }[]).map((f) => f.fuente)).toEqual(exp.propiedades[1].imagenes);
+    expect((malinches.fotos as { orden: number }[]).map((f) => f.orden)).toEqual(Array.from({ length: 25 }, (_, i) => i + 1));
+  });
+
+  it("TC-02: una casa con `imagenes: []` queda sin fotos (no pide nada) y, cuando el sitio le suba fotos, se traen", async () => {
+    fetchFotos();
+    const db = supabaseFalso({ propiedades: [] });
+    const exp = exportacionReal();
+    const sinFotos = exp.propiedades.filter((c) => !(c.imagenes ?? []).length);
+    await sincronizarSitio(db as never, { id: ID.deluxe }, sinFotos, H);
+    expect(vi.mocked(fetch)).not.toHaveBeenCalled();
+    const conFotos = sinFotos.map((c, i) => ({ ...c, imagenes: [fotoCarpeta(`e24-${i}`, 1), fotoCarpeta(`e24-${i}`, 2)] }));
+    const r = await sincronizarSitio(db as never, { id: ID.deluxe }, conFotos, H);
+    expect(r).toMatchObject({ fotosCopiadas: 4, casasConFotos: 2, casasSinFotos: 0 });
+  });
+
+  it("TC-03: acepta la dirección transformada que usa el sitio (/render/image/…?width=) y la llave sola del bucket", () => {
+    const lista = [
+      `https://${H}/storage/v1/render/image/public/property-media/images/a.jpg?width=480&quality=70`,
+      "property-media/los-reyes%2Fg1.jpeg",
+      pub("property-media/images/a.jpg"), // la misma que la transformada: no se repite
+      `https://abcdefghijklmnopqrst.storage.supabase.co/storage/v1/object/public/property-media/images/b.jpg`,
+    ];
+    expect(fotosDeCasa(lista, H)).toEqual([
+      pub("property-media/images/a.jpg"),
+      pub("property-media/los-reyes%2Fg1.jpeg"),
+      `https://abcdefghijklmnopqrst.storage.supabase.co/storage/v1/object/public/property-media/images/b.jpg`,
+    ]);
+    expect(hostsDeFotos(H)).toEqual([H, "abcdefghijklmnopqrst.storage.supabase.co"]);
+    expect(hostsDeFotos("sitio.example.com")).toEqual(["sitio.example.com"]);
+  });
+
+  it("TC-04: rechaza cualquier otro servidor o ruta (SSRF) y no gasta presupuesto en ellas", async () => {
+    const malas = [
+      "https://otroproyectoxxxxxxxx.supabase.co/storage/v1/object/public/property-media/x.jpg",
+      `https://${H}.evil.com/storage/v1/object/public/x.jpg`,
+      `http://${H}/storage/v1/object/public/property-media/x.jpg`,
+      `https://${H}:8443/storage/v1/object/public/property-media/x.jpg`,
+      `https://user:pw@${H}/storage/v1/object/public/property-media/x.jpg`,
+      `https://${H}/storage/v1/object/sign/property-media/x.jpg?token=t`,
+      `https://${H}/rest/v1/properties`,
+      `https://${H}/storage/v1/object/public/property-media/%2e%2e/secreto.jpg`,
+      "https://images.unsplash.com/photo-1.jpg",
+      "https://img.encuentra24.com/foto.jpg",
+      "//abcdefghijklmnopqrst.supabase.co/storage/v1/object/public/x.jpg",
+      "data:image/jpeg;base64,AAAA",
+      "../../etc/passwd",
+      42,
+      null,
+    ];
+    expect(fotosDeCasa(malas, H)).toEqual([]);
+    fetchFotos();
+    const db = supabaseFalso({ propiedades: [] });
+    const c = exportacionReal().propiedades[0];
+    const r = await sincronizarSitio(db as never, { id: ID.deluxe }, [{ ...c, imagenes: [...malas, fotoSemilla("lindora", 1)] as unknown[] }], H, { maxFotos: 1 });
+    expect(r).toMatchObject({ fotosCopiadas: 1, fotosPendientes: 0, fotosDescartadas: malas.length });
+    expect(vi.mocked(fetch).mock.calls.map(([u]) => String(u))).toEqual([fotoSemilla("lindora", 1)]);
+  });
+
+  it("TC-05: con tope por vuelta avanza en varias vueltas, sin repetir, y deja las cuentas a la vista", async () => {
+    fetchFotos();
+    const db = supabaseFalso({ propiedades: [] });
+    const casas = exportacionReal().propiedades;
+    const v1 = await sincronizarSitio(db as never, { id: ID.deluxe }, casas, H, { maxFotos: 40 });
+    expect(v1).toMatchObject({ fotosCopiadas: 40, fotosPendientes: 20, fotosEnPortal: 40 });
+    const v2 = await sincronizarSitio(db as never, { id: ID.deluxe }, casas, H, { maxFotos: 40 });
+    expect(v2).toMatchObject({ fotosCopiadas: 20, fotosPendientes: 0, fotosEnPortal: 60 });
+    const v3 = await sincronizarSitio(db as never, { id: ID.deluxe }, casas, H, { maxFotos: 40 });
+    expect(v3).toMatchObject({ fotosCopiadas: 0, fotosPendientes: 0, fotosEnPortal: 60 });
+    expect(new Set(db.subidas).size).toBe(60);
+  });
+
+  it("TC-06: una foto que el sitio quita sale del portal y el orden sigue al del sitio", async () => {
+    fetchFotos();
+    const db = supabaseFalso({ propiedades: [] });
+    const c = exportacionReal().propiedades[1];
+    await sincronizarSitio(db as never, { id: ID.deluxe }, [c], H);
+    const nuevas = [c.imagenes![2], c.imagenes![0]] as string[];
+    const r = await sincronizarSitio(db as never, { id: ID.deluxe }, [{ ...c, imagenes: nuevas }], H);
+    expect(r.fotosCopiadas).toBe(0);
+    expect((db.tablas.propiedades[0].fotos as { fuente: string }[]).map((f) => f.fuente)).toEqual(nuevas);
   });
 });
