@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { dependenciasPara } from "@/lib/asistente/dependencias";
 import type { Corredor } from "@/lib/datos/tipos";
-import { enviarAdjuntosComoCorredor, type AdjuntoListo } from "@/lib/panel/acciones";
+import { MAX_NOTA_VOZ_BYTES, enviarAdjuntosComoCorredor, enviarNotaDeVozComoCorredor, type AdjuntoListo } from "@/lib/panel/acciones";
 import {
   BUCKET_ADJUNTO,
   MAX_ADJUNTOS_CHAT,
@@ -109,4 +109,36 @@ export async function enviarAdjuntos(pedido: {
   }
   revalidatePath(`/panel/conversaciones/${chat.conversacionId}`);
   return { ok: true, aviso: r.aviso ?? "Enviado." };
+}
+
+/** Nota de voz grabada en el chat: viaja aquí (es chica) y sale directo a WhatsApp, sin guardar copia propia. */
+export async function enviarNotaDeVoz(f: FormData): Promise<{ ok: true; aviso: string } | Fallo> {
+  const chat = await chatPropio(f.get("conversacion"));
+  if (!chat) return NO_ES_TUYO;
+  if (chat.corredor.activo === false) return { ok: false, motivo: "En la demostración no se mandan notas de voz a clientes." };
+  const archivo = f.get("audio");
+  if (!(archivo instanceof File) || archivo.size === 0) return { ok: false, motivo: "No llegó el audio. Vuelve a grabarlo." };
+  if (archivo.size > MAX_NOTA_VOZ_BYTES) return { ok: false, motivo: "La nota de voz es muy larga. Graba menos de 5 minutos." };
+  if (!(await hayTurnoPorMinuto("chat_adjuntos", chat.corredor.id, 6))) {
+    return { ok: false, motivo: "Muchos envíos seguidos. Espera un minuto." };
+  }
+  const envio = String(f.get("envio") ?? "");
+  const codigo = ES_CODIGO.test(envio) ? envio : null;
+  const turno = await reclamarEnvio(createAdminClient(), "nota_voz", chat.corredor.id, codigo, `${chat.conversacionId}\n${archivo.size}`);
+  if (!turno.primero) return { ok: true, aviso: "Nota de voz enviada." };
+  const mime = (archivo.type || "").split(";")[0].trim().toLowerCase();
+  const r = await enviarNotaDeVozComoCorredor(
+    dependenciasPara(chat.corredor),
+    chat.corredor,
+    chat.conversacionId,
+    new Uint8Array(await archivo.arrayBuffer()),
+    mime,
+    Number(f.get("segundos")),
+  );
+  if (!r.ok) {
+    await turno.soltar();
+    return r;
+  }
+  revalidatePath(`/panel/conversaciones/${chat.conversacionId}`);
+  return { ok: true, aviso: r.aviso ?? "Nota de voz enviada." };
 }

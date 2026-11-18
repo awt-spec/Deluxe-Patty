@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
@@ -16,6 +16,7 @@ import {
   type ClaseAdjunto,
 } from "@/lib/panel/adjuntos-chat";
 import { enviarAdjuntos, prepararAdjuntos } from "./adjuntos-acciones";
+import { NotaDeVoz } from "./nota-voz";
 
 // Caja para escribir, como en WhatsApp: respuestas rápidas (un toque las pone en la caja y se pueden cambiar antes
 // de enviar) y el clip para mandarle fotos o PDF al cliente. Con archivos, lo escrito va como pie del primero.
@@ -69,6 +70,10 @@ export function Escribir({
   const [subiendo, setSubiendo] = useState<string | null>(null);
   const [, empezar] = useTransition();
   const router = useRouter();
+  // Con la caja vacía y sin archivos, el botón redondo es el micrófono (como en WhatsApp).
+  const [hayTexto, setHayTexto] = useState(false);
+  const [grabando, setGrabando] = useState(false);
+  const alCambiarVoz = useCallback((activo: boolean) => setGrabando(activo), []);
 
   // Las miniaturas viven en memoria del navegador: se sueltan al quitarlas o al salir.
   const vistas = useRef<string[]>([]);
@@ -148,6 +153,7 @@ export function Escribir({
       elegidos.forEach((e) => e.vista && URL.revokeObjectURL(e.vista));
       setElegidos([]);
       if (caja.current) caja.current.value = "";
+      setHayTexto(false);
       setNota({ texto: r.aviso, error: false });
       empezar(() => router.refresh());
     } catch {
@@ -168,7 +174,7 @@ export function Escribir({
         if (!subiendo) void mandarArchivos();
       }}
     >
-      {rapidas && !conArchivos && (
+      {rapidas && !conArchivos && !grabando && (
         <div className="rapidas" role="group" aria-label="Respuestas rápidas">
           {RAPIDAS.map(([corto, t]) => (
             <button
@@ -179,6 +185,7 @@ export function Escribir({
               onClick={() => {
                 if (!caja.current) return;
                 caja.current.value = caja.current.value ? `${caja.current.value} ${t}` : t;
+                setHayTexto(true);
                 caja.current.focus();
               }}
             >
@@ -229,7 +236,7 @@ export function Escribir({
             e.target.value = "";
           }}
         />
-        <div className="escribir-caja">
+        <div className="escribir-caja" hidden={grabando}>
           <button
             type="button"
             className="adjuntar"
@@ -250,6 +257,7 @@ export function Escribir({
             rows={1}
             required={!conArchivos}
             placeholder={conArchivos ? "Agrega un mensaje (opcional)" : "Escribe un mensaje"}
+            onInput={(e) => setHayTexto(e.currentTarget.value.trim().length > 0)}
             onKeyDown={(e) => {
               // En computadora, Enter envía y Shift+Enter baja de línea (como WhatsApp Web).
               if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && window.matchMedia("(pointer: fine)").matches) {
@@ -265,7 +273,18 @@ export function Escribir({
             }}
           />
         </div>
-        <BotonMandar ocupado={!!subiendo} />
+        {hayTexto || conArchivos ? (
+          <BotonMandar ocupado={!!subiendo} />
+        ) : (
+          <NotaDeVoz
+            conversacion={conversacion}
+            alCambiar={alCambiarVoz}
+            alTerminar={(r) => {
+              setNota(r);
+              if (!r.error) empezar(() => router.refresh());
+            }}
+          />
+        )}
       </div>
     </form>
   );

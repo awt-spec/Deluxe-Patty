@@ -48,6 +48,14 @@ const esFoto = (m: Mensaje) => m.direccion === "saliente" && m.tipo === "imagen"
 
 /** Lo de adentro de cada burbuja: texto, nota de voz, foto o documento. */
 function Contenido({ m }: { m: Mensaje }) {
+  if (m.tipo === "audio" && m.direccion === "saliente") {
+    const dur = /\((\d+:\d{2})\)/.exec(m.contenido ?? "")?.[1];
+    return (
+      <span className="etiqueta-medio">
+        <IconoMicrofono tamano={16} /> Nota de voz enviada{dur ? ` · ${dur}` : ""}
+      </span>
+    );
+  }
   if (m.tipo === "audio") {
     const dicho = leerNotaDeVoz(m.contenido);
     return (
