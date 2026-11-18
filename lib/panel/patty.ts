@@ -5,7 +5,7 @@ import { imagenParaPatty, pideImagen } from "./imagenes-patty";
 import { codigoLoEntiende, pideApartarLibre } from "../agenda/apartar-ia";
 import { pideBloqueo } from "../agenda/bloquear";
 import { apartarConPatty } from "../agenda/patty-apartar";
-import { etiquetaHorario } from "../agenda/formato";
+import { etiquetaHorario, lineaAhora } from "../agenda/formato";
 import { fechaIso, fechaLocal } from "../agenda/tiempo";
 import { fichaPropiedades, RechazoModelo, type Adjunto } from "../asistente/cerebro";
 import { dentroDelTope, motivoSinPresupuesto } from "../asistente/limites";
@@ -116,7 +116,7 @@ export async function contextoPatty(deps: Dependencias, db: SupabaseClient, corr
   const temasDudas = ((dudas ?? []) as { tema: string }[]).map((d) => d.tema);
   const porUbicar = temasDudas.filter((t) => t.startsWith(PREFIJO_UBICACION)).slice(0, 10);
   return [
-    `Ahora: ${etiquetaHorario(ahora, zona)}.`,
+    lineaAhora(ahora, zona),
     corredor.zona_base ? `${corredor.nombre_contacto} sale cada día desde ${corredor.zona_base}.` : null,
     `Plan de hoy:\n${armarPlan(corredor, plan, ahora)}`,
     `Visitas de los próximos 7 días:\n${lineasCitas.join("\n") || "- ninguna"}`,

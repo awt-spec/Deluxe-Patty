@@ -37,6 +37,18 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   de llamar a Claude o a OpenAI lo que cambia la casa o tapa daños. Texto: solo se aceptan las cifras que el corredor escribió
   en su pedido (`conCifrasDichas`). Hasta 6 pedidos por minuto, pedido de máximo 500 caracteres tratado como dato; en la demo
   lo entiende el código (`interpretarDemo`) sin gastar.
+- **Redes sociales** (`/panel/redes`, en Más, menú "Tu negocio" y "Estrategia de redes" en cada casa con `?casa=&ver=`): la
+  estratega comercial (CCO) del corredor, cuatro pestañas: Mejorar un post (crítica y 2–3 versiones; WhatsApp y hashtags los
+  pone el código), Pautas (calculadora `calcularPauta`: diario × días, alcance/impresiones/mensajes como rangos estimados;
+  presupuesto sugerido `presupuestoSugerido` y pasos para Instagram «Promocionar» o Ads Manager, todo del código; la IA solo
+  da objetivo, público, ubicaciones y creativo; no hay API de Meta ni se paga nada), Estrategia por casa (markdown con
+  `estrategiaMarkdown`, métricas `KPIS` del código, PDF con `generarPdfPatty`) y Analizar fotos (Sonnet con visión sobre hasta 12
+  fotos bajadas del bucket propio, 3,5 MB c/u y 16 MB en total; puntaje, portadas 4:5 y 9:16 por proporción real, mejorar con IA,
+  espacios que faltan y orden del carrusel en `lib/redes/analisis-fotos.ts`). Lógica en `lib/redes/estratega.ts`, acciones en
+  `app/panel/redes/acciones.ts` (casa con `corredor_id`, 6 pedidos por minuto con `hayTurnoPorMinuto`, Energía, costo, fallas con
+  `falla-ia`, demo simulada sin gasto), instrucciones `prompts/redes-estratega.md` y `redes-fotos.md`. Toda cifra fuera de la
+  ficha o del texto del corredor se descarta (`cifrasDeLaCasa`). Sin tabla: lo armado se guarda en el navegador por casa
+  (`lib/redes/guardado-estratega.ts`, validado).
 - Ficha de propiedad en PDF con `@react-pdf/renderer` (`lib/fichas/`; A4 tipo folleto: portada, datos, galería y contacto con QR;
   piezas en `piezas-pdf.tsx` y reglas en `diseno.ts` —`reticulaGaleria`, `anchosColumnas`, `cifrasClave`—; sin marca sale
   `marcaNeutra`; el PDF de Patty usa las mismas piezas, con portada completa si pasa de 2 páginas y tablas que repiten su cabecera;
@@ -108,7 +120,16 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   Instalar, Actualizar a X, Conectar, Buscar dueños ahora o Abrir Encuentra24); con una búsqueda viva muestra anillo, paso,
   tiempo, Pausar/Seguir/Detener y los últimos pasos (`useBusquedaEnVivo`, `sumarPaso`). Debajo, el embudo con conversión
   (`lib/panel/duenos.ts`: `embudoDuenos`, `accionesDueno`) y tarjetas con una acción por etapa; en Encontrados,
-  "Escribirle por WhatsApp" abre wa.me con un primer mensaje amable (`mensajeParaDueno`) que manda el corredor. Corredores
+  "Escribirle por WhatsApp" abre wa.me con un primer mensaje amable (`mensajeParaDueno`) que manda el corredor. Cada tarjeta
+  trae las fotos del anuncio (directo de Encuentra24, `referrerpolicy=no-referrer`, con respaldo al dibujo; sin fotos: "Las fotos
+  llegan en la próxima búsqueda"), **Por qué creemos que es el dueño** (medidor `medidorConfianza` y razones A favor / En contra con
+  `ladoDeSenal`/`razonesDueno`) y la jerarquía: **Crear mensaje con Patty** (`crearMensajesDueno`, `prompts/mensaje-dueno.md`,
+  `lib/panel/mensaje-dueno.ts`: 3 textos —WhatsApp, formulario de E24, seguimiento— con solo título, zona y precio; cifras ajenas se
+  cambian por la versión del código; demo sin gasto, tope de energía, 6 por minuto; editables, Copiar / Abrir WhatsApp, nunca se
+  envían solos), luego **Ver en Encuentra24** y, chicos, "Ya le escribí" / "No es para mí"; plegado, "Así se vería en tu Instagram"
+  (HTML sobre la foto con la marca, ilustrativo, sin canvas). `leads_duenos.senales` (jsonb, sin migración) mezcla textos sueltos
+  (viejos), `{"tipo":"pro"|"contra","texto"}` (Haiku ya devuelve `a_favor`) y hasta 4 `{"tipo":"foto","url"}` (solo https de
+  `*.encuentra24.com`, `lib/encuentra24/senales.ts`); se lee siempre con `leerSenales`/`textosDeSenales`. Corredores
   conocidos tiene buscador (`filtrarConocidos`). El asistente de instalación ofrece "¿Ya la tenías? Actualizarla" y muestra
   "Tienes la X → Nueva: Y". La píldora, la ficha de pausa y la etiqueta del cursor de `control.js` van como vidrio.
   El worker con Playwright (`worker/busqueda-duenos.ts`, `npm run duenos` con Chrome visible) usa el mismo

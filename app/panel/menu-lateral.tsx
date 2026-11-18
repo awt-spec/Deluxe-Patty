@@ -16,6 +16,7 @@ import {
   IconoInicio,
   IconoLlave,
   IconoMas,
+  IconoMegafono,
   IconoPantalla,
   IconoPersonas,
   IconoProbar,
@@ -53,6 +54,7 @@ const grupos = (asistente: string): { titulo: string; enlaces: Enlace[] }[] => [
     enlaces: [
       { ruta: "/panel/clientes", nombre: "Clientes", Icono: IconoPersonas, lugar: "nav-clientes" },
       { ruta: "/panel/propiedades", nombre: "Mis casas", Icono: IconoCasa, lugar: "nav-propiedades" },
+      { ruta: "/panel/redes", nombre: "Redes sociales", Icono: IconoMegafono, lugar: "nav-redes" },
       { ruta: "/panel/duenos", nombre: "Dueños directos", Icono: IconoLlave, lugar: "nav-duenos" },
       { ruta: "/panel/anuncios", nombre: "Anuncios", Icono: IconoAnuncio, lugar: "nav-anuncios" },
       { ruta: "/panel/negocio", nombre: "Cómo va el negocio", Icono: IconoResumen, lugar: "nav-negocio" },

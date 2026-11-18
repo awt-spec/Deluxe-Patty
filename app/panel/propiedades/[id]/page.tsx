@@ -209,6 +209,11 @@ export default async function Propiedad({
                 Imagen para redes
               </Link>
             )}
+            {["activa", "reservada", "inactiva"].includes(p.estado) && (
+              <Link href={`/panel/redes?casa=${p.id}&ver=estrategia`} className="boton" data-patty="casa-estrategia">
+                Estrategia de redes
+              </Link>
+            )}
             {enlaceCorredor && <ModoCorredor enlace={enlaceCorredor} titulo={p.titulo} />}
             {p.url_e24 && (
               <a href={p.url_e24} target="_blank" rel="noreferrer" className="boton">

@@ -53,6 +53,51 @@ export function confianzaDueno(puntaje: number | null): { texto: string; tono: "
   return { texto: "Quizá sea el dueño", tono: "gris" };
 }
 
+// --- Por qué creemos que es el dueño ------------------------------------------------------------------------
+
+/** "Muy probable · 82 %": el medidor de la tarjeta, del puntaje de la revisión (0–100). */
+export function medidorConfianza(puntaje: number | null, esDueno = true): { pct: number | null; etiqueta: string; tono: "verde" | "azul" | "ambar" | "gris" } {
+  if (puntaje === null || !Number.isFinite(puntaje)) return { pct: null, etiqueta: "Sin revisar", tono: "gris" };
+  const pct = Math.max(0, Math.min(100, Math.round(puntaje)));
+  if (!esDueno) return { pct, etiqueta: "Poco probable", tono: "ambar" };
+  if (pct >= 80) return { pct, etiqueta: "Muy probable", tono: "verde" };
+  if (pct >= 60) return { pct, etiqueta: "Probable", tono: "azul" };
+  return { pct, etiqueta: "Hay dudas", tono: "ambar" };
+}
+
+const sinTildesMin = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+/** Frases que mencionan agencia o corredor pero cuentan a favor ("sin intermediarios", "no es agencia"). */
+const A_FAVOR_FUERTE = /sin (intermediari|corredor|comision|agencia)|trato directo|dueno directo|no (es|parece|menciona|habla de|usa) (una |un )?(agencia|corredor|inmobiliaria|comision|agente|empresa)|primera persona|una sola (propiedad|casa|publicacion)|un solo anuncio/;
+/** Señales de corredor o de duda. */
+const EN_CONTRA = /comercial|agencia|inmobiliari|empresa|corredor|agente|broker|realty|comision|colega|oficina|firma|codigo|tercera persona|varias|muchas|multiples|varios anuncios|destacad|pagad|verificad.*empresa|licencia|duda|no (dice|declara|se sabe|queda claro)|sin (nombre|precio|fotos|datos)|generic|poco claro|sospech|parece de/;
+/** Señales de dueño. */
+const A_FAVOR = /propietari|dueno|persona|particular|vendo mi|mi casa|familia|personal|detalle|una sola|primera persona|directo/;
+
+/**
+ * ¿La señal cuenta a favor o en contra de que sea el dueño? Para los textos sueltos de búsquedas viejas (las nuevas ya
+ * traen su lado). Primero lo que nombra al corredor pero a favor ("sin intermediarios"), después lo de corredor o duda.
+ * Lo que no se entiende queda a favor: la revisión ya decidió que es el dueño y las señales justifican esa decisión.
+ */
+export function ladoDeSenal(texto: string): "pro" | "contra" {
+  const t = sinTildesMin(texto);
+  if (A_FAVOR_FUERTE.test(t)) return "pro";
+  if (EN_CONTRA.test(t)) return "contra";
+  if (A_FAVOR.test(t)) return "pro";
+  return "pro";
+}
+
+/** Las razones de la tarjeta, separadas en A favor y En contra / dudas (hasta 3 de cada una, cortas). */
+export function razonesDueno(razones: readonly { texto: string; lado: "pro" | "contra" | null }[]): { aFavor: string[]; enContra: string[] } {
+  const aFavor: string[] = [];
+  const enContra: string[] = [];
+  for (const r of razones) {
+    const texto = r.texto.length > 90 ? `${r.texto.slice(0, 88).trimEnd()}…` : r.texto;
+    const corto = texto.charAt(0).toUpperCase() + texto.slice(1);
+    ((r.lado ?? ladoDeSenal(r.texto)) === "pro" ? aFavor : enContra).push(corto);
+  }
+  return { aFavor: aFavor.slice(0, 3), enContra: enContra.slice(0, 3) };
+}
+
 const DIA = 86_400_000;
 
 /** "hoy", "ayer", "hace 3 días", "hace 2 semanas", "hace 3 meses". */

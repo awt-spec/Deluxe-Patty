@@ -572,32 +572,90 @@
   gap: 14px;
 }
 .marco.tema main .dd-dueno {
-  display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
-  gap: 16px;
-  padding: 16px;
+  display: flex;
+  flex-direction: column;
   border-radius: 18px;
   background: #fff;
   border: 1px solid var(--dd-borde);
   box-shadow: 0 1px 2px rgb(17 27 33 / 4%);
+  overflow: hidden;
+  min-width: 0;
 }
+/* Las fotos del anuncio (directo de Encuentra24) o el dibujo de la casa. */
 .marco.tema main .dd-dueno-foto {
   position: relative;
-  display: grid;
-  place-items: center;
-  width: 96px;
-  height: 96px;
-  border-radius: 14px;
   color: var(--dd-verde-texto);
   background:
     radial-gradient(circle at 30% 20%, rgb(255 255 255 / 70%), transparent 55%),
     linear-gradient(145deg, #dff1e9, #c9e7da);
 }
+.marco.tema main .dd-dueno-foto[data-con-foto="si"] {
+  background: #e9edef;
+}
+.marco.tema main .dd-foto-principal {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+.marco.tema main .dd-foto-vacia {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 88px;
+  padding: 12px 16px;
+  text-align: center;
+}
+.marco.tema main .dd-foto-vacia span {
+  font-size: 0.86rem;
+  color: var(--dd-verde-texto);
+  font-weight: 600;
+}
+.marco.tema main .dd-fotos-tira {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  display: flex;
+  gap: 6px;
+}
+.marco.tema main .dd-fotos-tira button {
+  display: block;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 10px;
+  border: 2px solid rgb(255 255 255 / 85%);
+  overflow: hidden;
+  background: #e9edef;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 25%);
+  cursor: pointer;
+  min-height: 0;
+}
+.marco.tema main .dd-fotos-tira button[aria-pressed="true"] {
+  border-color: #fff;
+  outline: 3px solid var(--dd-verde);
+  outline-offset: -1px;
+}
+.marco.tema main .dd-fotos-tira button:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
+.marco.tema main .dd-fotos-tira img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 .marco.tema main .dd-dueno-cuerpo {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
+  padding: 14px 16px 12px;
 }
 .marco.tema main .dd-dueno-arriba {
   display: flex;
@@ -661,12 +719,119 @@
   font-weight: 600;
   color: var(--dd-ambar-texto);
 }
+/* Por qué creemos que es el dueño: medidor y razones a favor / en contra. */
+.marco.tema main .dd-porque {
+  --dd-tono: var(--dd-verde);
+  --dd-tono-texto: var(--dd-verde-texto);
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--dd-tarjeta-2);
+  border: 1px solid var(--dd-borde);
+}
+.marco.tema main .dd-porque[data-tono="azul"] {
+  --dd-tono: #2f6fc4;
+  --dd-tono-texto: var(--dd-azul-texto);
+}
+.marco.tema main .dd-porque[data-tono="ambar"] {
+  --dd-tono: var(--dd-ambar);
+  --dd-tono-texto: var(--dd-ambar-texto);
+}
+.marco.tema main .dd-porque[data-tono="gris"] {
+  --dd-tono: var(--dd-gris);
+  --dd-tono-texto: var(--dd-suave);
+}
+.marco.tema main .dd-porque-cabeza {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+}
+.marco.tema main .dd-porque h4 {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 650;
+  color: var(--dd-texto);
+}
+.marco.tema main .dd-porque-etiqueta {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--dd-tono-texto);
+  white-space: nowrap;
+}
+.marco.tema main .dd-porque-etiqueta b {
+  font-variant-numeric: tabular-nums;
+}
+.marco.tema main .dd-medidor {
+  height: 8px;
+  margin: 8px 0 2px;
+  border-radius: 999px;
+  background: #e3e8e6;
+  overflow: hidden;
+}
+.marco.tema main .dd-medidor i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--dd-tono);
+}
+.marco.tema main .dd-razones {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+  gap: 8px 16px;
+  margin-top: 10px;
+}
+.marco.tema main .dd-razones-titulo {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--dd-suave);
+}
+.marco.tema main .dd-razones ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.marco.tema main .dd-razones li {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  color: var(--dd-texto);
+  overflow-wrap: anywhere;
+}
+.marco.tema main .dd-razon-icono {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  margin-top: 1px;
+}
+.marco.tema main .dd-razones li[data-lado="pro"] .dd-razon-icono {
+  background: var(--dd-verde-claro);
+  color: var(--dd-verde-texto);
+}
+.marco.tema main .dd-razones li[data-lado="contra"] .dd-razon-icono {
+  background: var(--dd-ambar-claro);
+  color: var(--dd-ambar-texto);
+}
+
+/* Acciones: principal (Crear mensaje con Patty o el paso de la etapa), secundarias (Ver en Encuentra24, WhatsApp) y
+   terciarias chicas (Ya le escribí, No es para mí). */
 .marco.tema main .dd-dueno-acciones {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px 12px;
-  margin-top: 4px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  margin-top: 2px;
 }
 .marco.tema main .dd-dueno-acciones form {
   margin: 0;
@@ -679,23 +844,69 @@
   gap: 8px;
   min-height: 48px;
 }
+.marco.tema main .dd-dueno-acciones > .boton,
+.marco.tema main .dd-dueno-acciones > button,
+.marco.tema main .dd-dueno-acciones > form button {
+  width: 100%;
+}
+.marco.tema main .dd-dueno-secundarias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.marco.tema main .dd-dueno-secundarias > * {
+  flex: 1 1 180px;
+}
+/* "Ver en Encuentra24" usa el botón secundario del panel (gris con letra verde) con la marca E24 al lado. */
+.marco.tema main .dd-e24-marca {
+  display: inline-grid;
+  place-items: center;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 6px;
+  /* El naranja de Encuentra24, oscurecido para que la letra blanca chica pase AA. */
+  background: #b9520a;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.marco.tema main .dd-patty-boton svg {
+  flex: none;
+}
 .marco.tema main .dd-dueno-pie {
   display: flex;
   align-items: flex-start;
   flex-wrap: wrap;
-  gap: 0 20px;
-  margin-top: -4px;
+  gap: 0 18px;
+  margin-top: -2px;
 }
-.marco.tema main .dd-mas[open] {
-  flex-basis: 100%;
+.marco.tema main .dd-terciaria form {
+  margin: 0;
 }
+.marco.tema main .dd-terciaria button,
 .marco.tema main .dd-mas summary {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
+  padding: 0 2px;
+  border: 0;
+  background: none;
+  box-shadow: none;
   cursor: pointer;
   color: var(--dd-suave);
   font-size: 0.92rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--dd-borde-fuerte);
+}
+.marco.tema main .dd-terciaria button:hover,
+.marco.tema main .dd-mas summary:hover {
+  color: var(--dd-texto);
+}
+.marco.tema main .dd-mas[open] {
+  flex-basis: 100%;
 }
 .marco.tema main .dd-mas-botones {
   display: flex;
@@ -705,6 +916,197 @@
 }
 .marco.tema main .dd-mas-botones button {
   min-height: 44px;
+}
+
+/* Los mensajes que prepara Patty (los manda el corredor). */
+.marco.tema main .dd-mensajes {
+  order: 3;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--dd-verde-claro);
+  border: 1px solid var(--dd-verde-borde);
+}
+.marco.tema main .dd-mensajes-cabeza {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.marco.tema main .dd-mensajes-cabeza .dd-enlace {
+  min-height: 44px;
+  width: auto;
+}
+.marco.tema main .dd-mensajes-ayuda,
+.marco.tema main .dd-msj-aviso,
+.marco.tema main .dd-msj-error,
+.marco.tema main .dd-msj-nota {
+  margin: 4px 0 10px;
+  font-size: 0.9rem;
+  color: var(--dd-suave);
+}
+.marco.tema main .dd-msj-aviso {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--dd-ambar-claro);
+  color: var(--dd-ambar-texto);
+  font-weight: 600;
+}
+.marco.tema main .dd-msj-error {
+  color: var(--dd-alerta-texto);
+  font-weight: 600;
+}
+.marco.tema main .dd-msj-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.marco.tema main .dd-msj {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid var(--dd-borde);
+}
+.marco.tema main .dd-msj label {
+  display: grid;
+  gap: 1px;
+}
+.marco.tema main .dd-msj label span {
+  font-size: 0.86rem;
+  color: var(--dd-suave);
+}
+.marco.tema main .dd-msj textarea {
+  width: 100%;
+  min-height: 168px;
+  resize: vertical;
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1.45;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--dd-borde-fuerte);
+  color: var(--dd-texto);
+  background: #fff;
+}
+.marco.tema main .dd-msj-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.marco.tema main .dd-msj-botones > * {
+  flex: 1 1 110px;
+  min-height: 44px;
+}
+
+/* Así se vería en Instagram (ilustrativo, armado con HTML encima de la foto). */
+.marco.tema main .dd-insta-plegado {
+  border-top: 1px solid var(--dd-borde);
+  margin: 2px -16px -12px;
+  padding: 0 16px;
+}
+.marco.tema main .dd-insta-plegado summary {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--dd-texto);
+}
+.marco.tema main .dd-insta {
+  margin: 0 0 14px;
+  max-width: 360px;
+}
+.marco.tema main .dd-insta-post {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--dd-borde);
+  background: #fff;
+}
+.marco.tema main .dd-insta-cabeza {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+}
+.marco.tema main .dd-insta-avatar {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--ig-profundo);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px var(--ig-principal);
+}
+.marco.tema main .dd-insta-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.marco.tema main .dd-insta-nombre {
+  font-size: 0.88rem;
+  font-weight: 650;
+  color: var(--dd-texto);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.marco.tema main .dd-insta-foto {
+  position: relative;
+  aspect-ratio: 1;
+  background: #e9edef;
+}
+.marco.tema main .dd-insta-foto img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.marco.tema main .dd-insta-sello {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgb(17 27 33 / 72%);
+  color: #fff;
+  font-size: 0.74rem;
+  font-weight: 650;
+}
+.marco.tema main .dd-insta-banda {
+  position: absolute;
+  inset: auto 0 0;
+  display: grid;
+  gap: 1px;
+  padding: 28px 14px 12px;
+  color: #fff;
+  background: linear-gradient(to top, color-mix(in srgb, var(--ig-profundo) 92%, transparent), transparent);
+}
+.marco.tema main .dd-insta-banda strong {
+  font-size: 1.35rem;
+  line-height: 1.1;
+}
+.marco.tema main .dd-insta-banda span {
+  font-size: 0.86rem;
+}
+.marco.tema main .dd-insta-banda em {
+  margin-top: 4px;
+  font-style: normal;
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--ig-principal) 35%, #fff);
+}
+.marco.tema main .dd-insta figcaption,
+.marco.tema main .dd-insta-nota {
+  margin: 6px 0 14px;
+  font-size: 0.84rem;
+  color: var(--dd-suave);
 }
 
 .marco.tema main .dd-como {
@@ -781,50 +1183,19 @@
   .marco.tema main .dd-embudo-nombre {
     font-size: 0.88rem;
   }
-  /* En el teléfono la foto va chica a la izquierda del precio y los botones usan todo el ancho. */
-  .marco.tema main .dd-dueno {
-    display: block;
-    padding: 14px;
-  }
-  .marco.tema main .dd-dueno-foto {
-    float: left;
-    width: 52px;
-    height: 52px;
-    margin: 0 12px 6px 0;
-  }
   .marco.tema main .dd-dueno-cuerpo {
-    display: contents;
+    padding: 12px 14px 10px;
   }
-  .marco.tema main .dd-dueno h3,
-  .marco.tema main .dd-chips,
-  .marco.tema main .dd-quieto,
-  .marco.tema main .dd-dueno-acciones {
-    margin-top: 10px;
+  .marco.tema main .dd-insta-plegado {
+    margin: 2px -14px -10px;
+    padding: 0 14px;
   }
-  .marco.tema main .dd-dueno-pie {
-    margin-top: 4px;
-  }
-  .marco.tema main .dd-dueno-foto svg {
-    width: 24px;
-    height: 24px;
-  }
-  .marco.tema main .dd-dueno-arriba {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0;
-    min-height: 52px;
-  }
-  .marco.tema main .dd-chips,
-  .marco.tema main .dd-dueno-acciones {
-    clear: both;
+  .marco.tema main .dd-fotos-tira button {
+    width: 42px;
+    height: 42px;
   }
   .marco.tema main .dd-pasos li:nth-child(n + 4) {
     display: none;
-  }
-  .marco.tema main .dd-dueno-acciones > .boton.primario,
-  .marco.tema main .dd-dueno-acciones > form:first-child,
-  .marco.tema main .dd-dueno-acciones > form:first-child button {
-    width: 100%;
   }
 }
 @media (prefers-reduced-motion: reduce) {

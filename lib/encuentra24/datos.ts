@@ -3,6 +3,7 @@ import type { Corredor } from "../datos/tipos";
 import type { Bloqueado, LeadDueno } from "./busqueda";
 import { permisoVigente, type AlmacenExtension, type EstadoBusqueda } from "./extension";
 import type { AnuncioE24 } from "./parsear";
+import { fotosValidas, senalesParaGuardar } from "./senales";
 import { ErrorDatos } from "../monitoreo/errores";
 
 // Consultas de la búsqueda de dueños (worker y extensión de Chrome). Corre con service_role: todo
@@ -62,10 +63,11 @@ export async function guardarLeads(db: SupabaseClient, corredorId: string, seman
     descripcion: a.descripcion.slice(0, 4000),
     m2_construccion: a.m2Construccion,
     habitaciones: a.habitaciones,
-    foto_url: a.fotoPrincipal,
+    // Solo fotos https de *.encuentra24.com (los anuncios guardados antes no traen `fotos`).
+    foto_url: fotosValidas([a.fotoPrincipal])[0] ?? null,
     es_dueno: true,
     puntaje,
-    senales,
+    senales: senalesParaGuardar(senales, a.fotos ?? [a.fotoPrincipal]),
     semana,
   }));
   const { error } = await db

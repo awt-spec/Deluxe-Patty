@@ -39,10 +39,12 @@ export function respuestaPattyDemo(contexto: string, mensaje: string): string {
     const [, nombre, ruta] = pantalla;
     return `${MARCA_MUESTRA}\n\nLo encuentras en [${nombre}](${ruta}). Te llevo.\n\n<<ir ${ruta}>>`;
   }
-  const plan = seccion(contexto, "Plan de hoy:");
+  // La fecha sale de la línea «Ahora:» (hoy, armada por el código), no del encabezado del plan.
+  const hoy = /^Ahora: (.+?), \d{1,2}:\d{2}/m.exec(contexto)?.[1];
+  const plan = seccion(contexto, "Plan de hoy:")?.replace(/^\*Buenos días[^\n]*\n*/, "").trim();
   return [
     MARCA_MUESTRA,
-    plan ? `Esto es lo que tienes hoy:\n\n${plan}` : "Hoy no veo nada pendiente en tu agenda.",
+    plan ? `Esto es lo que tienes hoy${hoy ? ` (${hoy})` : ""}:\n\n${plan}` : `Hoy${hoy ? ` (${hoy})` : ""} no veo nada pendiente en tu agenda.`,
     "Pregúntame dónde está algo del panel (por ejemplo, «¿dónde cambio mi horario?») y te llevo.",
   ].join("\n\n");
 }

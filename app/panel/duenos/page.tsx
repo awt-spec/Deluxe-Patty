@@ -1,7 +1,8 @@
 import Link from "next/link";
 import manifiesto from "@/extension/manifest.json";
 import { precio } from "@/lib/formato";
-import { accionesDueno, diasQuieto, embudoDuenos, ETAPAS_DUENO, etapaElegida, haceCuanto, mensajeParaDueno } from "@/lib/panel/duenos";
+import { leerSenales } from "@/lib/encuentra24/senales";
+import { accionesDueno, diasQuieto, embudoDuenos, ETAPAS_DUENO, etapaElegida, haceCuanto, mensajeParaDueno, razonesDueno } from "@/lib/panel/duenos";
 import { duenosDeLaUltima } from "@/lib/panel/extension-hero";
 import { energiaDelCorredor } from "@/lib/panel/energia";
 import { sesionConCorredor } from "@/lib/panel/sesion";
@@ -9,9 +10,11 @@ import { Aviso } from "../aviso";
 import { IconoLlave } from "../iconos";
 import { EncabezadoPagina, Vacio } from "../piezas";
 import { marcarLead } from "../acciones";
-import { desconectarExtension, pasarAMisCasas } from "./acciones";
+import { crearMensajesDueno, desconectarExtension, pasarAMisCasas } from "./acciones";
 import { EstadoExtensionDuenos } from "./estado-extension";
 import { estadoDelServidor } from "./estado-servidor";
+import { InstagramDueno, type MarcaTarjeta } from "./fotos-dueno";
+import { MensajePatty } from "./mensaje-patty";
 import { EmbudoDuenos, TarjetaDueno, type DuenoVista, type FormulariosDueno } from "./vistas";
 import "./extension/extension.css";
 import "./duenos.css";
@@ -29,7 +32,10 @@ type Lead = {
   precio: number | null;
   moneda: string | null;
   puntaje: number | null;
-  senales: string[];
+  /** Razones y fotos (ver lib/encuentra24/senales.ts): se leen con leerSenales, nunca directo. */
+  senales: unknown;
+  foto_url: string | null;
+  es_dueno: boolean | null;
   estado_contacto: string;
   estado_at: string | null;
   created_at: string;
@@ -53,7 +59,7 @@ export default async function Duenos({ searchParams }: { searchParams: Promise<{
   const [{ data }, extension, energia] = await Promise.all([
     supabase
       .from("leads_duenos")
-      .select("id, url, titulo, zona, precio, moneda, puntaje, senales, estado_contacto, estado_at, created_at, propiedad_id, telefono, nombre_anunciante")
+      .select("id, url, titulo, zona, precio, moneda, puntaje, senales, foto_url, es_dueno, estado_contacto, estado_at, created_at, propiedad_id, telefono, nombre_anunciante")
       .eq("corredor_id", corredor.id)
       .eq("es_dueno", true)
       .neq("estado_contacto", "descartado")
@@ -68,6 +74,8 @@ export default async function Duenos({ searchParams }: { searchParams: Promise<{
   const etapa = ETAPAS_DUENO.find((e) => e.clave === elegida)!;
   const visibles = leads.filter((l) => l.estado_contacto === elegida);
   const ahora = Date.now();
+  const asistente = corredor.nombre_asistente || "Patty";
+  const marca = await marcaTarjeta(supabase, corredor);
 
   const formularios: FormulariosDueno = {
     etapa: (d, estado, texto, principal) => (
@@ -87,6 +95,10 @@ export default async function Duenos({ searchParams }: { searchParams: Promise<{
         </button>
       </form>
     ),
+    patty: (d, principal) => {
+      const l = leads.find((x) => x.id === d.id);
+      return <MensajePatty leadId={d.id} asistente={asistente} telefono={l?.telefono ?? null} url={d.url} principal={principal} pedir={crearMensajesDueno} />;
+    },
     descartar: (d) => (
       <form action={marcarLead} className="dd-mas-botones">
         <input type="hidden" name="lead" value={d.id} />
@@ -158,6 +170,7 @@ export default async function Duenos({ searchParams }: { searchParams: Promise<{
           ) : (
             <div className="dd-lista">
               {visibles.map((l) => {
+                const senales = leerSenales(l.senales, l.foto_url);
                 const d: DuenoVista = {
                   id: l.id,
                   url: l.url,
@@ -165,14 +178,17 @@ export default async function Duenos({ searchParams }: { searchParams: Promise<{
                   zona: l.zona,
                   precio: l.precio ? precio(l.precio, l.moneda) : null,
                   puntaje: l.puntaje,
-                  senales: Array.isArray(l.senales) ? l.senales.filter((s) => typeof s === "string") : [],
+                  esDueno: l.es_dueno !== false,
+                  razones: razonesDueno(senales.razones),
+                  fotos: senales.fotos,
                   cuando: elegida === "nuevo" ? `Encontrado ${haceCuanto(l.created_at, ahora) ?? ""}`.trim() : (haceCuanto(l.estado_at, ahora) ?? null),
                   quieto: diasQuieto(l.estado_at, ahora),
                   nombre: l.nombre_anunciante,
                 };
                 const mensaje = mensajeParaDueno({ nombre: l.nombre_anunciante, titulo: l.titulo, zona: l.zona, corredor: corredor.nombre });
                 const { principal, segunda } = accionesDueno(elegida, { url: l.url, telefono: l.telefono, propiedadId: l.propiedad_id, mensaje });
-                return <TarjetaDueno key={l.id} d={d} etapa={elegida} principal={principal} segunda={segunda} formularios={formularios} />;
+                const instagram = d.fotos[0] ? <InstagramDueno foto={d.fotos[0]} marca={marca} precio={d.precio} zona={d.zona} /> : null;
+                return <TarjetaDueno key={l.id} d={d} etapa={elegida} principal={principal} segunda={segunda} formularios={formularios} instagram={instagram} />;
               })}
             </div>
           )}
@@ -193,4 +209,24 @@ export default async function Duenos({ searchParams }: { searchParams: Promise<{
       </details>
     </div>
   );
+}
+
+/** Nombre, colores y logo del corredor para la vista de Instagram (como la lámina de Patty). */
+async function marcaTarjeta(
+  supabase: Awaited<ReturnType<typeof sesionConCorredor>>["supabase"],
+  corredor: Awaited<ReturnType<typeof sesionConCorredor>>["corredor"],
+): Promise<MarcaTarjeta> {
+  const marca = corredor.marca ?? null;
+  let logo: string | null = null;
+  const archivo = marca?.logoSobreProfundo ?? null;
+  if (archivo && /^https:\/\//.test(archivo)) logo = archivo;
+  else if (archivo) {
+    const { data } = await supabase.from("corredores").select("slug").eq("id", corredor.id).maybeSingle();
+    if (data?.slug) logo = `/marca/${data.slug as string}/logo`;
+  }
+  return {
+    nombre: marca?.nombre ?? corredor.nombre,
+    logo,
+    colores: marca?.colores ?? { principal: "#008069", profundo: "#111b21", base: "#ffffff" },
+  };
 }

@@ -15,5 +15,7 @@ y se combinan con los datos del corredor (`corredores.tono`, `reglas_escalamient
 | `redes-texto.md` | Sonnet | Reescribir el texto para redes (mejorar, más corto, más vendedor, en inglés) solo con la ficha; el código revisa las cifras | — |
 | `apartar.md` | Haiku | "Apartar tiempo" dicho con sus palabras: operaciones apartar/quitar/duda con fechas ISO; el código las revisa y arma los textos | — |
 | `redes-video.md` | Sonnet (con visión) | Guion del video para redes: orden de fotos y un texto corto por foto; precio y datos los pone el código | — |
+| `redes-estratega.md` | Sonnet | Redes sociales (/panel/redes): crítica y versiones de un post, pauta en Meta y estrategia por casa; sin cifras fuera de la ficha (montos, calculadora y métricas del código) | — |
+| `redes-fotos.md` | Sonnet (con visión) | Nota de cada foto real (luz, encuadre, orden, nitidez), espacio y consejo; portadas, faltantes y carrusel los arma el código | — |
 
 Ninguna instrucción es específica de Deluxe: lo propio de cada corredor vive en la base de datos.

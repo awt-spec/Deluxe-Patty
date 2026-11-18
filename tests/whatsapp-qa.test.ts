@@ -111,6 +111,8 @@ describe("H1: reacciones, stickers, ubicación, contactos, ediciones y tipos sin
   it("un tipo sin soporte: respuesta fija una vez al día, sin escalar, sin aviso de 'le escribe', y la IA sigue contestando", async () => {
     const t = armar();
     t.db.reloj.ahora = new Date("2026-11-17T15:00:00Z");
+    // El día del corredor sale de deps.ahora: se fija para que la prueba no dependa del día en que corre.
+    t.deps.ahora = () => new Date("2026-11-17T15:00:00Z");
     const sinSoporte = () => parsearWebhook(sobre({ ...base, id: `w${Math.random()}`, type: "unsupported", errors: [{ code: 131051 }] })).mensajes[0];
     expect(sinSoporte().texto).toBeNull();
 
