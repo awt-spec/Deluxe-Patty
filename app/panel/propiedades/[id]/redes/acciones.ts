@@ -12,6 +12,7 @@ import { fotosPropias } from "@/lib/fotos/origen";
 import { crearVariante, puedeUsarImagenes } from "@/lib/fotos/variantes";
 import { errorSeguro } from "@/lib/monitoreo/errores";
 import { sesionConCorredor } from "@/lib/panel/sesion";
+import { hayTurnoPorMinuto } from "@/lib/panel/turno-ia";
 import {
   aplicarVideo,
   esCostosa,
@@ -44,7 +45,6 @@ import {
   type FormatoVideo,
   type FotoParaGuion,
 } from "@/lib/redes/video";
-import { createAdminClient } from "@/lib/supabase/admin";
 
 // Lo que hace la IA en "Imagen para redes": mejorar una foto, reescribir el texto y proponer el guion del
 // video. Cada acción comprueba con la sesión que la casa es del corredor (corredor_id), respeta el tope de
@@ -182,21 +182,7 @@ const MUCHOS_PEDIDOS = "Vas muy rápido: espera un minuto y vuelve a pedírmelo.
 const SIN_ENTENDER = "No te entendí. Dímelo con otras palabras, por ejemplo con el número de la escena o de la foto.";
 
 /** Hasta 6 pedidos por minuto y corredor (con reclamar_alerta, atómico en la base). */
-async function hayTurnoChat(corredorId: string): Promise<boolean> {
-  try {
-    const db = createAdminClient();
-    for (let i = 0; i < PEDIDOS_POR_MINUTO; i++) {
-      const { data, error } = await db.rpc("reclamar_alerta", { p_clave: `redes_chat:${corredorId}:${i}`, p_minutos: 1 });
-      if (error) throw new Error(error.message);
-      if (data === true) return true;
-    }
-    return false;
-  } catch (e) {
-    // Si la base no responde, no se frena (los topes de gasto siguen frenando).
-    console.error(JSON.stringify({ evento: "error_freno_chat_redes", corredorId, error: errorSeguro(e) }));
-    return true;
-  }
-}
+const hayTurnoChat = (corredorId: string) => hayTurnoPorMinuto("redes_chat", corredorId, PEDIDOS_POR_MINUTO);
 
 const TIPOS_ESCENA = new Set<Escena["tipo"]>(["portada", "foto", "datos", "cierre"]);
 

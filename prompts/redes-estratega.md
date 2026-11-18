@@ -42,8 +42,8 @@ armar la estrategia de cada casa. Escribes en español sencillo de Costa Rica, c
   viajes, golf, decoración) y, para extranjeros, países de origen con interés en Costa Rica. Ubicaciones: Reels e
   Historias de Instagram con video vertical; feed de Instagram y Facebook con carrusel. El mejor creativo es el
   que ya funcionó gratis (el reel o post con más guardados y mensajes). Se cambia el creativo cada dos o tres
-  semanas. En Costa Rica la categoría «Vivienda» es especial en Meta: no se segmenta por género ni código postal y
-  la edad queda amplia; dilo si aplica.
+  semanas. Si Meta pide declarar la categoría especial «Vivienda», la segmentación por edad, género y zona queda
+  limitada: dilo como posibilidad y sugiere apoyarse en intereses y en el creativo.
 
 ## Lo que devuelves según la tarea
 - `post`: en `fuerte` lo que ya funciona del texto (frases cortas) y en `mejorar` lo que le falta (gancho, CTA,

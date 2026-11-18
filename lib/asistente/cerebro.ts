@@ -8,6 +8,8 @@ import { lineaAhora } from "../agenda/formato";
 import type { OperacionApartarCruda } from "../agenda/apartar-ia";
 import { OPS_IMAGEN, OPS_VIDEO, type OperacionCruda, type TurnoChat } from "../redes/chat";
 import { MODOS_TEXTO, type ModoTexto } from "../redes/texto-ia";
+import { ESPACIOS, type AnalisisCrudo } from "../redes/analisis-fotos";
+import { FORMATOS_CONTENIDO, OBJETIVOS, UBICACIONES, type EstrategiaCruda, type PautaCruda, type PostCrudo } from "../redes/estratega";
 import { crearClienteClaude } from "./cliente-claude";
 import { consumo, sumar as sumarConsumo, type Consumo } from "./costo";
 import { instruccion } from "./instrucciones";
@@ -175,6 +177,19 @@ export interface Cerebro {
    * (lib/agenda/apartar-ia.ts). El modelo nunca escribe la fecha que se muestra. Opcional para los dobles de prueba.
    */
   entenderApartado?(corredor: Corredor, pedido: { texto: string; contexto: string }): Promise<{ operaciones: OperacionApartarCruda[]; consumo: Consumo }>;
+  /**
+   * Redes sociales (/panel/redes), la estratega comercial: crítica y versiones de un post, pauta en Meta y estrategia
+   * de una casa. Devuelven datos crudos que el código revisa (lib/redes/estratega.ts): ninguna cifra fuera de la ficha
+   * o del texto del corredor, y los montos los pone el código. Opcionales para los dobles de prueba.
+   */
+  mejorarPostRedes?(corredor: Corredor, pedido: { ficha: string | null; texto: string }): Promise<{ post: PostCrudo; consumo: Consumo }>;
+  pautaRedes?(corredor: Corredor, pedido: { ficha: string }): Promise<{ pauta: PautaCruda; consumo: Consumo }>;
+  estrategiaRedes?(corredor: Corredor, pedido: { ficha: string }): Promise<{ estrategia: EstrategiaCruda; consumo: Consumo }>;
+  /** Fotos reales de la casa (ya bajadas del bucket propio, en base64) calificadas una por una (lib/redes/analisis-fotos.ts). */
+  analizarFotosRedes?(
+    corredor: Corredor,
+    pedido: { ficha: string; fotos: { id: string; mediaType: "image/jpeg" | "image/png" | "image/webp"; datos: string }[] },
+  ): Promise<{ fotos: AnalisisCrudo[]; comentario: string; consumo: Consumo }>;
 }
 
 export interface PedidoChatRedes {
@@ -305,6 +320,58 @@ const EsquemaChatRedes = z.object({
 
 const EsquemaTextoPedido = z.object({ texto: z.string(), respuesta: z.string() });
 
+const EsquemaPost = z.object({
+  fuerte: z.array(z.string()),
+  mejorar: z.array(z.string()),
+  versiones: z.array(z.object({ nombre: z.string(), gancho: z.string(), cuerpo: z.string(), cta: z.string(), hashtags: z.array(z.string()) })),
+});
+
+const EsquemaPauta = z.object({
+  objetivo: z.enum(Object.keys(OBJETIVOS) as [keyof typeof OBJETIVOS, ...(keyof typeof OBJETIVOS)[]]),
+  porque: z.string(),
+  publico: z.object({
+    zonas: z.array(z.string()),
+    paises: z.array(z.string()),
+    intereses: z.array(z.string()),
+    edad_min: z.number().int(),
+    edad_max: z.number().int(),
+    radio_km: z.number().int().nullable(),
+  }),
+  ubicaciones: z.array(z.enum(Object.keys(UBICACIONES) as [keyof typeof UBICACIONES, ...(keyof typeof UBICACIONES)[]])),
+  creativo: z.string(),
+  titular: z.string(),
+  texto_anuncio: z.string(),
+  consejos: z.array(z.string()),
+});
+
+const EsquemaEstrategia = z.object({
+  posicionamiento: z.string(),
+  comprador_ideal: z.string(),
+  puntos_clave: z.array(z.string()),
+  calendario: z.array(z.object({ dia: z.number().int(), formato: z.enum(FORMATOS_CONTENIDO), tema: z.string(), gancho: z.string() })),
+  plan_pagado: z.array(z.string()),
+  plan_organico: z.array(z.string()),
+  siguientes_pasos: z.array(z.string()),
+  por_confirmar: z.array(z.string()),
+});
+
+const EsquemaFotos = z.object({
+  fotos: z.array(
+    z.object({
+      foto: z.string(),
+      espacio: z.enum(ESPACIOS),
+      muestra: z.string(),
+      luz: z.number().int(),
+      encuadre: z.number().int(),
+      orden: z.number().int(),
+      nitidez: z.number().int(),
+      mejorar: z.boolean(),
+      consejo: z.string(),
+    }),
+  ),
+  comentario: z.string(),
+});
+
 const EsquemaApartar = z.object({
   operaciones: z.array(
     z.object({
@@ -390,6 +457,34 @@ function contextoCorredor(corredor: Corredor, propiedades: Propiedad[]): string[
 }
 
 export function crearCerebroClaude(client: Anthropic = crearClienteClaude()): Cerebro {
+  /** Una tarea de la estratega de redes (post, pauta o estrategia) con su esquema; el texto del corredor va como dato. */
+  async function estratega<T extends z.ZodType>(
+    corredor: Corredor,
+    tarea: "post" | "pauta" | "estrategia",
+    esquema: T,
+    datos: string[],
+    effort: "low" | "medium",
+    maxTokens: number,
+  ): Promise<{ salida: z.infer<T>; consumo: Consumo }> {
+    const res = await client.beta.messages.parse({
+      model: MODELO_REDACTAR,
+      max_tokens: maxTokens,
+      betas: ["server-side-fallback-2026-07-01"],
+      fallbacks: "default",
+      output_config: { effort, format: betaZodOutputFormat(esquema) },
+      system: [
+        instruccion("redes-estratega"),
+        `<corredor>\n${corredor.nombre_contacto}, de ${corredor.nombre}.\n</corredor>`,
+        `<tono>\n${corredor.tono || "Cordial, cercano y profesional."}\n</tono>`,
+      ].join("\n\n"),
+      messages: [{ role: "user", content: [`<tarea>${tarea}</tarea>`, ...datos].join("\n\n") }],
+    });
+    const c = consumo(res.model, res.usage);
+    if (res.stop_reason === "refusal") throw new RechazoModelo(c);
+    if (!res.parsed_output) throw new Error(`Estratega de redes sin salida (stop_reason ${res.stop_reason})`);
+    return { salida: res.parsed_output as z.infer<T>, consumo: c };
+  }
+
   return {
     async clasificar(corredor, historial, mensaje) {
       const reglas = corredor.reglas_escalamiento.length
@@ -897,6 +992,51 @@ export function crearCerebroClaude(client: Anthropic = crearClienteClaude()): Ce
       if (res.stop_reason === "refusal") throw new RechazoModelo(c);
       if (!res.parsed_output) throw new Error(`Texto pedido sin salida (stop_reason ${res.stop_reason})`);
       return { texto: res.parsed_output.texto, respuesta: res.parsed_output.respuesta.trim().slice(0, 600), consumo: c };
+    },
+
+    async mejorarPostRedes(corredor, p) {
+      const r = await estratega(
+        corredor,
+        "post",
+        EsquemaPost,
+        [p.ficha ? `<ficha>\n${comoDato(p.ficha)}\n</ficha>` : "<ficha>(No eligió casa: usa solo lo que dice su texto.)</ficha>", `<texto_del_corredor>\n${comoDato(p.texto)}\n</texto_del_corredor>`],
+        "low",
+        4000,
+      );
+      return { post: r.salida, consumo: r.consumo };
+    },
+
+    async pautaRedes(corredor, p) {
+      const zonaBase = corredor.zona_base ? `\n<zona_del_corredor>${comoDato(corredor.zona_base)}</zona_del_corredor>` : "";
+      const r = await estratega(corredor, "pauta", EsquemaPauta, [`<ficha>\n${comoDato(p.ficha)}\n</ficha>${zonaBase}`], "low", 3000);
+      return { pauta: r.salida, consumo: r.consumo };
+    },
+
+    async estrategiaRedes(corredor, p) {
+      const r = await estratega(corredor, "estrategia", EsquemaEstrategia, [`<ficha>\n${comoDato(p.ficha)}\n</ficha>`], "medium", 8000);
+      return { estrategia: r.salida, consumo: r.consumo };
+    },
+
+    async analizarFotosRedes(corredor, p) {
+      const contenido: Anthropic.Beta.BetaContentBlockParam[] = [{ type: "text", text: `<ficha>\n${comoDato(p.ficha)}\n</ficha>\n\n<fotos>` }];
+      for (const f of p.fotos) {
+        contenido.push({ type: "text", text: f.id });
+        contenido.push({ type: "image", source: { type: "base64", media_type: f.mediaType, data: f.datos } });
+      }
+      contenido.push({ type: "text", text: "</fotos>" });
+      const res = await client.beta.messages.parse({
+        model: MODELO_REDACTAR,
+        max_tokens: 6000,
+        betas: ["server-side-fallback-2026-07-01"],
+        fallbacks: "default",
+        output_config: { effort: "low", format: betaZodOutputFormat(EsquemaFotos) },
+        system: `${instruccion("redes-fotos")}\n\n<corredor>\n${corredor.nombre_contacto}, de ${corredor.nombre}.\n</corredor>`,
+        messages: [{ role: "user", content: contenido }],
+      });
+      const c = consumo(res.model, res.usage);
+      if (res.stop_reason === "refusal") throw new RechazoModelo(c);
+      if (!res.parsed_output) throw new Error(`Análisis de fotos sin salida (stop_reason ${res.stop_reason})`);
+      return { fotos: res.parsed_output.fotos, comentario: res.parsed_output.comentario.trim().slice(0, 400), consumo: c };
     },
 
     async entenderApartado(corredor, pedido) {
