@@ -2,7 +2,9 @@ import Link from "next/link";
 import { montoContable } from "@/lib/crm/contable";
 import { hayMonto, monedaDe, plataMontos, type Moneda, type Montos } from "@/lib/crm/dinero";
 import { comisiones, delAnio, delMes, ultimosMeses } from "@/lib/crm/ganado";
-import { fechaIso, fechaLocal } from "@/lib/agenda/tiempo";
+import { fechaLocal } from "@/lib/agenda/tiempo";
+import { diaLargo } from "@/lib/agenda/formato";
+import { textoPromedioDias } from "@/lib/crm/textos-negocio";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { PreguntarPatty } from "../preguntar-patty";
 import { IconoCheck, IconoEstrella, IconoPersonas, IconoReloj, IconoResumen } from "../iconos";
@@ -127,7 +129,7 @@ export default async function Negocio() {
           clientes nuevos este mes
         </Cifra>
         <Cifra Icono={IconoReloj} tono="ambar" numero={promedioDias ?? "—"}>
-          {promedioDias === null ? "días hasta cerrar (todavía sin cierres)" : "días en promedio hasta cerrar"}
+          {textoPromedioDias(promedioDias)}
         </Cifra>
       </div>
 
@@ -280,7 +282,7 @@ export default async function Negocio() {
           )}
         </section>
       </div>
-      <p className="suave">Actualizado al {fechaIso(hoy)}.</p>
+      <p className="suave">Actualizado el {diaLargo(new Date(), zona)}.</p>
     </>
   );
 }

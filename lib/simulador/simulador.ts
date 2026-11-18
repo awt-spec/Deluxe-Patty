@@ -1,5 +1,6 @@
 import type { Cerebro } from "../asistente/cerebro";
 import { procesarMensaje } from "../asistente/procesar";
+import { mensajeFallaIA, type CausaFallaIA } from "../asistente/falla-ia";
 import type { Repositorio } from "../datos/repositorio";
 import type { Corredor, EstadoCita } from "../datos/tipos";
 import type { EnviadorWhatsApp } from "../whatsapp/enviar";
@@ -168,6 +169,8 @@ export async function simularTurno(p: {
   estado: EstadoSimulacion;
   texto: string;
   ahora: Date;
+  /** Registro real para las fallas de configuración de la IA (alerta a soporte); el resto queda en la prueba. */
+  alertar?: (evento: string, datos: Record<string, unknown>) => void;
 }): Promise<{ turno: TurnoSimulado; estado: EstadoSimulacion }> {
   const estado = structuredClone(p.estado);
   const turno: TurnoSimulado = { respuestas: [], avisos: [], intencion: null, resultado: "", accionAgenda: null, error: false };
@@ -199,8 +202,13 @@ export async function simularTurno(p: {
       plantillaAviso: "simulacion",
       plantillaRecordatorio: "simulacion",
       ahora: () => p.ahora,
-      registrar: (evento) => {
+      registrar: (evento, datos) => {
         if (evento.startsWith("error_")) turno.error = true;
+        if (evento === "error_asistente" && typeof datos.causa === "string") {
+          turno.motivoError = mensajeFallaIA(datos.causa as CausaFallaIA, p.corredor.nombre_asistente);
+        }
+        // Lo que no se arregla reintentando (llave, saldo, modelo) le llega a soporte también desde la prueba.
+        if (evento === "error_ia_config") p.alertar?.(evento, datos);
       },
     },
     {

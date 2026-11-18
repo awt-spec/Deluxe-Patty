@@ -45,8 +45,11 @@ describe("panel: piloto en sombra y toma de control", () => {
     expect(await aprobarBorrador(deps, corredor, borrador().id)).toEqual({ ok: true });
     expect(whatsapp.texto).toHaveBeenCalledWith("PNID", "+50688880001", "Hola, sí está disponible.");
     expect(borrador()).toMatchObject({ estado_borrador: "aprobado", estado_entrega: "enviado" });
-    expect(await aprobarBorrador(deps, corredor, borrador().id)).toEqual({ ok: false, motivo: "Este borrador ya se resolvió." });
+    // El segundo toque no lo manda otra vez y responde como hecho (no como error).
+    expect(await aprobarBorrador(deps, corredor, borrador().id)).toEqual({ ok: true, aviso: "Enviado." });
     expect(whatsapp.texto).toHaveBeenCalledTimes(1);
+    // "No enviar" sobre uno ya enviado sí es un aviso: ya salió.
+    expect(await descartarBorrador(deps, corredor, borrador().id)).toEqual({ ok: false, motivo: "Este borrador ya se resolvió." });
   });
 
   it("aprobar un borrador viejo con markdown lo manda en formato de WhatsApp y no cuenta como corrección", async () => {
@@ -72,6 +75,8 @@ describe("panel: piloto en sombra y toma de control", () => {
     const r = await aprobarBorrador(sinToken, corredor, borrador().id);
     expect(r.ok).toBe(false);
     expect(borrador()).toMatchObject({ estado_entrega: "fallido" });
+    // Un segundo toque no dice "Enviado." de un mensaje que no salió.
+    expect(await aprobarBorrador(sinToken, corredor, borrador().id)).toMatchObject({ ok: false });
   });
 
   it("corregir envía la versión de Patricia y la usa como ejemplo de tono la próxima vez", async () => {
@@ -121,6 +126,11 @@ describe("panel: piloto en sombra y toma de control", () => {
     await llega("¿Sigue disponible?");
     expect(await descartarBorrador(deps, corredor, borrador().id)).toEqual({ ok: true });
     expect(borrador().estado_borrador).toBe("descartado");
+    expect(whatsapp.texto).not.toHaveBeenCalled();
+    // Doble toque en "No enviar": el segundo responde como hecho, no "ya se resolvió".
+    expect(await descartarBorrador(deps, corredor, borrador().id)).toEqual({ ok: true, aviso: "Listo, no se envió." });
+    // Y "Enviar" sobre uno ya descartado no lo manda.
+    expect(await aprobarBorrador(deps, corredor, borrador().id)).toEqual({ ok: false, motivo: "Este borrador ya se resolvió." });
     expect(whatsapp.texto).not.toHaveBeenCalled();
   });
 

@@ -1,7 +1,7 @@
 import { enlaceWhatsApp } from "@/lib/anuncios/atribucion";
 import { DIAS_REPORTE } from "@/lib/anuncios/reporte";
 import { crearRepositorioSupabase } from "@/lib/datos/repositorio";
-import { fechaCorta } from "@/lib/formato";
+import { diaEn, fechaCorta } from "@/lib/formato";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import Link from "next/link";
 import { Aviso } from "../../aviso";
@@ -28,7 +28,9 @@ export default async function Anuncios({ searchParams }: { searchParams: Promise
   const anuncios = (await crearRepositorioSupabase(supabase).reporteAnuncios(corredor.id, desde)).sort(
     (a, b) => b.contactos_periodo - a.contactos_periodo,
   );
-  const hoy = new Date().toISOString().slice(0, 10);
+  // En el día del corredor (de noche en Costa Rica, en UTC ya es mañana).
+  const hoy = diaEn(corredor.zona_horaria);
+  const enUnaSemana = diaEn(corredor.zona_horaria, 7);
   // Texto preparado de los que faltan por publicar, para copiarlo a Encuentra24.
   const { data: borradores } = await supabase
     .from("anuncios_e24")
@@ -66,7 +68,7 @@ export default async function Anuncios({ searchParams }: { searchParams: Promise
       )}
       {anuncios.map((a) => {
         const vence = a.vence_en && a.estado === "activo" ? a.vence_en : null;
-        const pronto = vence !== null && vence <= new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
+        const pronto = vence !== null && vence <= enUnaSemana;
         return (
           <article key={a.id} className="tarjeta pila">
             <div className="fila">

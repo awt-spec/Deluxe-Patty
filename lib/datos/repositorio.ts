@@ -43,7 +43,8 @@ export interface Repositorio {
   actualizarMensaje(
     corredorId: string,
     id: string,
-    cambios: Partial<Pick<NuevoMensaje, "wa_message_id" | "estado_entrega" | "intencion" | "contenido">>,
+    /** `created_at`: al enviar un borrador aprobado, la hora del envío (la que ve el corredor en el chat). */
+    cambios: Partial<Pick<NuevoMensaje, "wa_message_id" | "estado_entrega" | "intencion" | "contenido">> & { created_at?: string },
   ): Promise<void>;
   actualizarConversacion(
     corredorId: string,
@@ -579,12 +580,14 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
     },
 
     async cambiarEstadoCita(corredorId, citaId, estado) {
+      // Pasar al mismo estado que ya tiene no es un cambio (un doble toque en "Confirmar" no confirma ni avisa dos veces).
       const { data, error } = await db
         .from("citas")
         .update({ estado })
         .eq("corredor_id", corredorId)
         .eq("id", citaId)
         .in("estado", CITA_ACTIVA)
+        .neq("estado", estado)
         .select("id");
       verificar(error, "cambiarEstadoCita");
       return (data ?? []).length > 0;
@@ -1141,7 +1144,7 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
       const { data, error } = await db
         .from("mensajes")
         .select(
-          "id, contenido, estado_borrador, accion, conversacion_id, conversaciones!inner(contacto_id, ultimo_mensaje_cliente_at, contactos!inner(telefono))",
+          "id, contenido, estado_borrador, estado_entrega, accion, conversacion_id, conversaciones!inner(contacto_id, ultimo_mensaje_cliente_at, contactos!inner(telefono))",
         )
         .eq("corredor_id", corredorId)
         .eq("id", mensajeId)
@@ -1160,6 +1163,7 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
         id: data.id as string,
         contenido: (data.contenido as string | null) ?? "",
         estado_borrador: data.estado_borrador as BorradorPendiente["estado_borrador"],
+        estado_entrega: (data.estado_entrega as string | null) ?? null,
         accion: (data.accion as BorradorPendiente["accion"]) ?? null,
         conversacion_id: data.conversacion_id as string,
         contacto_id: conv.contacto_id,

@@ -61,6 +61,7 @@ export default async function Cerebro({ searchParams }: { searchParams: Promise<
     <VistaCerebro
       pedido={pedido}
       ahora={new Date().toISOString()}
+      zona={corredor.zona_horaria}
       automatica={corredor.respuesta_automatica}
       aviso={aviso}
       errorCodigo={errorCerebro ? (errorCerebro.code ?? "") : null}

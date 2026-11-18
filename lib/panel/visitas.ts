@@ -16,6 +16,13 @@ export type ResultadoVisita = { ok: true; aviso: string } | { ok: false; motivo:
 
 const OCUPADO = "A esa hora ya hay otra visita. Elige otra hora.";
 
+const YA_ESTABA: Record<"confirmada" | "cancelada" | "realizada" | "no_asistio", string> = {
+  confirmada: "Visita confirmada. Ya le habías avisado.",
+  cancelada: "Esa visita ya estaba cancelada.",
+  realizada: "Esa visita ya quedó como hecha.",
+  no_asistio: "Esa visita ya quedó como que no llegó.",
+};
+
 async function avisar(
   deps: Dependencias,
   db: SupabaseClient,
@@ -113,6 +120,8 @@ export async function moverVisita(
 ): Promise<ResultadoVisita> {
   const cita = await citaPropia(db, corredor, citaId);
   if (!cita) return { ok: false, motivo: await motivoSinVisita(db, corredor, citaId, "mover") };
+  // Moverla a la hora que ya tiene (un doble toque en "Mover la visita"): no hay cambio ni aviso nuevo al cliente.
+  if (cita.inicio.getTime() === inicio.getTime()) return { ok: true, aviso: "La visita ya está a esa hora." };
   const fin = new Date(inicio.getTime() + (cita.fin.getTime() - cita.inicio.getTime()));
   // La restricción de la base impide que quede encima de otra visita.
   const { error } = await db
@@ -146,7 +155,12 @@ export async function cambiarVisita(
 ): Promise<ResultadoVisita> {
   const cita = await citaPropia(db, corredor, citaId);
   if (!cita) return { ok: false, motivo: await motivoSinVisita(db, corredor, citaId, estado) };
-  if (!(await deps.repo.cambiarEstadoCita(corredor.id, citaId, estado))) return { ok: false, motivo: "La visita ya cambió." };
+  if (!(await deps.repo.cambiarEstadoCita(corredor.id, citaId, estado))) {
+    // Un doble toque en "Confirmar y avisarle": la primera ya la confirmó y le avisó; esta no vuelve a escribirle.
+    const { data: ahora } = await db.from("citas").select("estado").eq("corredor_id", corredor.id).eq("id", citaId).maybeSingle();
+    if (ahora?.estado === estado) return { ok: true, aviso: YA_ESTABA[estado] };
+    return { ok: false, motivo: "La visita ya cambió." };
+  }
   const cuando = etiquetaHorario(cita.inicio, corredor.zona_horaria);
   // Queda en la historia del cliente y, si la visita se hizo, un recordatorio para mañana: "¿Qué le
   // pareció la casa?" (si no tenía otro recordatorio puesto).

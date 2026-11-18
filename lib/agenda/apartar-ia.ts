@@ -89,6 +89,18 @@ export const textoLimpio = (t: unknown, max: number) =>
     .trim()
     .slice(0, max);
 
+/**
+ * Lo que escribió el corredor, para repetírselo en "Esto entendí": tal cual (React lo muestra escapado), solo sin
+ * caracteres de control. A diferencia de `textoLimpio` conserva «<» y «>» (antes «<b>urgente</b>» se veía «burgente/b»);
+ * al modelo sigue yendo la versión limpia.
+ */
+export const textoEco = (t: unknown, max: number) =>
+  String(t ?? "")
+    .replace(/[\u0000-\u001f\u007f]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, max);
+
 /** "2026-11-17" → fecha real (o null si no existe, como el 31 de noviembre). */
 export function fechaDeIso(s: unknown): FechaLocal | null {
   if (typeof s !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;

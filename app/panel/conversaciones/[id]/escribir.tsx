@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { useFormStatus } from "react-dom";
 import { IconoEnviar } from "../../iconos";
 
 // Caja para escribir, como en WhatsApp, con respuestas rápidas: un toque las pone en la caja y se pueden
@@ -18,15 +19,39 @@ const RAPIDAS = [
   ["Gracias", "Muchas gracias, quedo atenta a cualquier consulta."],
 ] as const;
 
-/** `rapidas`: sin respuestas rápidas cuando hay una respuesta propuesta esperando (no compiten con ella). */
+/** Enviar: se apaga mientras sale el mensaje (un doble toque no se lo manda dos veces al cliente). */
+function BotonMandar() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      className="enviar-redondo"
+      aria-label={pending ? "Enviando" : "Enviar"}
+      aria-busy={pending}
+      disabled={pending}
+      onClick={(e) => {
+        if (pending) e.preventDefault();
+      }}
+    >
+      <IconoEnviar tamano={26} />
+    </button>
+  );
+}
+
+/**
+ * `rapidas`: sin respuestas rápidas cuando hay una respuesta propuesta esperando (no compiten con ella).
+ * `envio`: código de un solo uso del formulario (lib/panel/una-vez.ts); el servidor lo renueva en cada pantalla.
+ */
 export function Escribir({
   conversacion,
   accion,
   rapidas = true,
+  envio,
 }: {
   conversacion: string;
   accion: (f: FormData) => void | Promise<void>;
   rapidas?: boolean;
+  envio?: string;
 }) {
   const caja = useRef<HTMLTextAreaElement>(null);
   return (
@@ -54,6 +79,7 @@ export function Escribir({
       )}
       <div className="escribir-fila">
         <input type="hidden" name="conversacion" value={conversacion} />
+        {envio && <input type="hidden" name="envio" value={envio} />}
         <label htmlFor="texto-nuevo" className="oculto">
           Escribirle
         </label>
@@ -65,9 +91,7 @@ export function Escribir({
           required
           placeholder="Escribe un mensaje"
         />
-        <button type="submit" className="enviar-redondo" aria-label="Enviar">
-          <IconoEnviar tamano={26} />
-        </button>
+        <BotonMandar />
       </div>
     </form>
   );

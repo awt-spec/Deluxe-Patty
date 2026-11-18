@@ -10,6 +10,8 @@ import type { AccionPendiente } from "@/lib/datos/tipos";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { aprobar, descartar, devolver, escribir, tomar } from "../../acciones";
 import { Aviso } from "../../aviso";
+import { BotonEnviar } from "../../boton-enviar";
+import { nuevoEnvio } from "@/lib/panel/una-vez";
 import { Avatar } from "../../avatar";
 import { IconoAtras, IconoTelefono } from "../../iconos";
 import "../../pasos/pasos.css";
@@ -138,18 +140,18 @@ export default async function Conversacion({
         {suya ? (
           <form action={devolver}>
             <input type="hidden" name="conversacion" value={id} />
-            <button type="submit">Que siga la asistente</button>
+            <BotonEnviar texto="Que siga la asistente" pendiente="Un momento…" />
           </form>
         ) : (
           <form action={tomar}>
             <input type="hidden" name="conversacion" value={id} />
-            <button type="submit">Le contesto yo</button>
+            <BotonEnviar texto="Le contesto yo" pendiente="Un momento…" />
           </form>
         )}
         {conv.estado === "escalada" && !suya && (
           <form action={devolver}>
             <input type="hidden" name="conversacion" value={id} />
-            <button type="submit">Ya lo atendí</button>
+            <BotonEnviar texto="Ya lo atendí" pendiente="Un momento…" />
           </form>
         )}
       </div>
@@ -199,12 +201,14 @@ export default async function Conversacion({
                   rows={Math.min(12, Math.max(3, Math.ceil((m.contenido ?? "").length / 36)))}
                 />
                 <div className="botones borrador-botones">
-                  <button type="submit" formAction={descartar} className="peligro">
-                    No enviar
-                  </button>
-                  <button type="submit" className="verde grande" disabled={!ventanaAbierta}>
-                    <IconoCheck tamano={22} /> Enviar
-                  </button>
+                  <BotonEnviar texto="No enviar" pendiente="Un momento…" formAction={descartar} className="peligro" />
+                  {ventanaAbierta ? (
+                    <BotonEnviar texto={<><IconoCheck tamano={22} /> Enviar</>} pendiente="Enviando…" className="verde grande" />
+                  ) : (
+                    <button type="button" className="verde grande" disabled>
+                      <IconoCheck tamano={22} /> Enviar
+                    </button>
+                  )}
                 </div>
                 <p className="borrador-ayuda suave">Puedes cambiar el texto antes de enviarlo.</p>
               </form>,
@@ -247,7 +251,7 @@ export default async function Conversacion({
       </section>
 
       {ventanaAbierta ? (
-        <Escribir conversacion={id} accion={escribir} rapidas={!hayBorrador} />
+        <Escribir conversacion={id} accion={escribir} rapidas={!hayBorrador} envio={nuevoEnvio()} />
       ) : (
         <div className="escribir-wa cerrado">
           <p>Pasó más de un día desde que te escribió: contéstale desde tu WhatsApp.</p>

@@ -181,13 +181,23 @@ function VentanaCierre({
     if (d && !d.open) d.showModal();
   }, []);
 
+  // Un segundo Enter o toque mientras guarda no manda el cierre otra vez.
+  const enCurso = useRef(false);
   const guardar = (e: React.FormEvent) => {
     e.preventDefault();
+    if (enCurso.current) return;
+    enCurso.current = true;
     setError(null);
     empezar(async () => {
-      const r = await cerrarDesdeTablero(tarjeta.id, { precio, moneda, comision, casa: tarjeta.cierre.casaId ?? "" });
-      if (r.ok) alGuardar();
-      else setError(r.motivo);
+      try {
+        const r = await cerrarDesdeTablero(tarjeta.id, { precio, moneda, comision, casa: tarjeta.cierre.casaId ?? "" });
+        if (r.ok) alGuardar();
+        else setError(r.motivo);
+      } catch {
+        setError("No se pudo guardar. Revisa tu conexión y vuelve a intentarlo.");
+      } finally {
+        enCurso.current = false;
+      }
     });
   };
 

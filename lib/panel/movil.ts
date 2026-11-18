@@ -80,3 +80,14 @@ export function desplazamientoParaVer(el: { top: number; alto: number }, arriba:
   if (el.alto >= espacio) return Math.round(el.top - arriba);
   return Math.round(el.top - (arriba + (espacio - el.alto) / 2));
 }
+
+/**
+ * Lo que dice "Tu día" cuando no hay nada que mostrar. Antes siempre decía que no había horario, aunque lo hubiera y
+ * solo se hubiera pasado la hora (de noche, hoy) o el día estuviera todo apartado.
+ */
+export function textoDiaVacio(d: { tieneHorario: boolean; esHoy: boolean; yaPaso: boolean }): string {
+  if (!d.tieneHorario) return "No tienes visitas ni horario de visitas este día.";
+  if (d.esHoy) return "Por hoy ya no quedan horas libres.";
+  if (d.yaPaso) return "Ese día no tuviste visitas.";
+  return "Ese día ya no quedan horas libres.";
+}

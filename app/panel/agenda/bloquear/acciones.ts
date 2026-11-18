@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { choquesConVisitas, desempacarPropuesta, operacionEnManana, resumenGuardado, revisarOperaciones, textoLimpio, type Apartado, type Duda } from "@/lib/agenda/apartar-ia";
+import { choquesConVisitas, desempacarPropuesta, operacionEnManana, resumenGuardado, revisarOperaciones, textoEco, textoLimpio, type Apartado, type Duda } from "@/lib/agenda/apartar-ia";
 import { entenderPedidoApartado, type FuenteApartado } from "@/lib/agenda/entender-apartado";
 import { conPunto, horaCorta, rangoBloqueo } from "@/lib/agenda/formato";
 import { guardarBloqueos } from "@/lib/agenda/guardar-bloqueos";
@@ -106,7 +106,8 @@ export async function entenderApartadoPanel(textoCrudo: unknown, p?: unknown): P
         horarios: (horarios ?? []) as { dia_semana: number; hora_inicio: string; hora_fin: string }[],
       });
       if (!r.ok) return r;
-      base = { texto: r.texto, fuente: r.fuente, aviso: r.aviso, revisado: r.revisado };
+      // Se le repite lo que escribió tal cual (con sus «<» y «>»); al modelo fue la versión limpia.
+      base = { texto: textoEco(textoCrudo, 500) || r.texto, fuente: r.fuente, aviso: r.aviso, revisado: r.revisado };
     }
     const { apartados, quitar, notas } = await completar(s, base.revisado);
     return { ok: true, propuesta: { texto: base.texto, fuente: base.fuente, aviso: base.aviso, apartados, quitar, dudas: base.revisado.dudas, notas } };

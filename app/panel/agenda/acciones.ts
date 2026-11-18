@@ -13,6 +13,7 @@ import { leerBloqueo } from "@/lib/panel/formularios";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { cambiarVisita, crearVisita, moverVisita } from "@/lib/panel/visitas";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { leerEnvio, reclamarEnvio } from "@/lib/panel/una-vez";
 
 /**
  * Cambia el enlace privado del calendario (por si se compartió sin querer). El enlace viejo deja de
@@ -103,14 +104,20 @@ export async function agendarVisita(f: FormData) {
   const inicio = instante(fecha, campo(f, "hora"), corredor.zona_horaria);
   const minutos = Number(campo(f, "minutos")) || corredor.duracion_visita_min;
   const volver = `/panel/agenda/nueva?fecha=${encodeURIComponent(fecha)}&hora=${encodeURIComponent(campo(f, "hora"))}`;
-  if (!esId(contactoId)) irA(volver, "Elige el cliente.");
-  if (!inicio) irA(volver, "Revisa el día y la hora.");
-  if (propiedadId && !esId(propiedadId)) irA(volver, "Elige la casa de la lista.");
+  const duracion = Math.min(240, Math.max(15, minutos));
+  // Ante un aviso, el formulario vuelve con lo elegido (cliente, casa, duración y si se le avisa), no vacío.
+  const conDatos = `${volver}${esId(contactoId) ? `&cliente=${contactoId}` : ""}${propiedadId && esId(propiedadId) ? `&casa=${propiedadId}` : ""}&minutos=${duracion}${f.get("avisar") !== null ? "" : "&avisar=0"}`;
+  if (!esId(contactoId)) irA(conDatos, "Elige el cliente.");
+  if (!inicio) irA(conDatos, "Revisa el día y la hora.");
+  if (propiedadId && !esId(propiedadId)) irA(conDatos, "Elige la casa de la lista.");
   const { data: propio } = await supabase.from("contactos").select("id").eq("corredor_id", corredor.id).eq("id", contactoId).maybeSingle();
   if (!propio) irA(volver, "No encontré ese cliente.");
-  const duracion = Math.min(240, Math.max(15, minutos));
-  const conDatos = `${volver}&cliente=${contactoId}${propiedadId ? `&casa=${propiedadId}` : ""}&minutos=${duracion}${f.get("avisar") !== null ? "" : "&avisar=0"}`;
   await revisarHora(sesion, f, inicio!, duracion, conDatos, conDatos, "agendar");
+  const agenda = `/panel/agenda?vista=dia&fecha=${fecha}`;
+  // Doble toque en "Agendar": el segundo envío del mismo formulario no choca con la visita que creó el primero ("ya
+  // hay otra visita") ni le avisa dos veces al cliente; va a la agenda como si hubiera salido bien.
+  const turno = await reclamarEnvio(createAdminClient(), "agendar", corredor.id, leerEnvio(f), `${contactoId}|${inicio!.toISOString()}`);
+  if (!turno.primero) irA(agenda, "Visita agendada.");
   const r = await crearVisita(dependenciasPara(corredor), createAdminClient(), corredor, {
     contactoId,
     propiedadId,
@@ -118,9 +125,12 @@ export async function agendarVisita(f: FormData) {
     minutos: duracion,
     avisarCliente: f.get("avisar") !== null,
   });
-  if (!r.ok) irA(volver, r.motivo);
+  if (!r.ok) {
+    await turno.soltar();
+    irA(conDatos, r.motivo);
+  }
   alCalendario(corredor);
-  irA(`/panel/agenda?vista=dia&fecha=${fecha}`, r.aviso);
+  irA(agenda, r.aviso);
 }
 
 async function visitaPropia(citaId: string) {
@@ -149,8 +159,12 @@ export async function moverLaVisita(f: FormData) {
     `${volver}?fecha=${encodeURIComponent(campo(f, "fecha"))}&hora=${encodeURIComponent(campo(f, "hora"))}${f.get("avisar") !== null ? "" : "&avisar=0"}`,
     "mover",
   );
+  // Doble toque en "Mover la visita": un solo aviso al cliente.
+  const turno = await reclamarEnvio(createAdminClient(), "mover", corredor.id, leerEnvio(f), `${id}|${inicio!.toISOString()}`);
+  if (!turno.primero) irA(`/panel/agenda/visita/${id}`, "Visita movida.");
   const r = await moverVisita(dependenciasPara(corredor), createAdminClient(), corredor, id, inicio!, f.get("avisar") !== null);
   if (r.ok) alCalendario(corredor);
+  else await turno.soltar();
   irA(`/panel/agenda/visita/${id}`, r.ok ? r.aviso : r.motivo);
 }
 

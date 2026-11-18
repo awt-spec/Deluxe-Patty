@@ -96,14 +96,10 @@ export default async function Revisar({ searchParams }: { searchParams: Promise<
             {p.accion && <p className="suave">{queHace(p.accion, corredor.zona_horaria)}</p>}
             {!p.abierta && <p className="aviso">Pasó más de un día: contéstale desde tu WhatsApp.</p>}
             <div className="revisar-botones">
-              <button type="submit" formAction={descartar} className="peligro">
-                No enviar
-              </button>
+              <BotonEnviar texto="No enviar" pendiente="Un momento…" formAction={descartar} className="peligro" />
               {p.abierta && <BotonEnviar texto={<><IconoCheck tamano={22} /> Enviar</>} pendiente="Enviando…" className="verde grande" />}
             </div>
-            <button type="submit" formAction={yoLeEscribo} name="conversacion" value={p.conversacionId} className="enlace revisar-yo">
-              Prefiero escribirle yo
-            </button>
+            <BotonEnviar texto="Prefiero escribirle yo" pendiente="Abriendo WhatsApp…" formAction={yoLeEscribo} name="conversacion" value={p.conversacionId} className="enlace revisar-yo" />
             <p className="suave revisar-ayuda">Puedes cambiar el texto antes de enviarlo.</p>
           </form>
         ) : (
