@@ -364,9 +364,24 @@
 }
 
 .nota-voz-oir {
-  flex: 1;
+  flex: 1 1 0;
+  width: 0;
   min-width: 0;
   height: 48px;
+}
+
+.nota-voz-barra {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.tema .nota-voz-barra .enviar-redondo,
+.tema .nota-voz-barra .enviar-redondo:hover,
+.tema .nota-voz-barra .enviar-redondo:focus {
+  flex: none;
+  background: var(--principal);
+  color: #fff;
+  border: none;
 }
 
 .tema .nota-voz-barra button.nota-voz-cancelar {
