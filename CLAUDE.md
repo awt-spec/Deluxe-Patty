@@ -272,6 +272,11 @@ una por frase; si no nombra ninguna o no se separa limpio, pregunta cuál (hora 
   acepta caminos de ese chat y los manda por WhatsApp por enlace (`enviarAdjuntosComoCorredor`, el texto va de pie del primero,
   ventana de 24 h, doble toque con `reclamarEnvio`, 6 por minuto, demo no manda). Word/Excel/video no (los buckets solo aceptan
   imágenes y PDF). Las burbujas muestran "Nota de voz", la foto enviada y la tarjeta del PDF (`chat.css`).
+  **Nota de voz al cliente**: con la caja vacía el botón redondo es el micrófono (`nota-voz.tsx`): se graba (hasta 5 min), se
+  escucha y se manda. El WebM/Opus de Chrome se pasa a Ogg/Opus en el navegador sin recodificar (`lib/medios/ogg-opus.ts`,
+  `webmAOgg`) para que llegue como nota de voz; Safari manda MP4. Viaja por la acción `enviarNotaDeVoz` (4 MB, firma del
+  archivo revisada con `esNotaDeVozValida`) y se sube directo a WhatsApp (`/media`, `EnviadorWhatsApp.audio`): no se guarda
+  copia; en el chat queda "Nota de voz enviada (0:12)".
 - **Gasto:** la transcripción suma en `uso_diario` / `uso_mensual` (`segundos_audio`, `costo_audio_usd`,
   `registrar_audio`) y cuenta para el tope de IA (`presupuesto_ia()`). El corredor inactivo (demo) no transcribe de verdad.
 

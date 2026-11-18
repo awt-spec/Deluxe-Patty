@@ -316,3 +316,83 @@
   word-break: normal;
   overflow-wrap: anywhere;
 }
+
+/* Nota de voz: el botón redondo es el micrófono con la caja vacía; al grabar, la fila es la barra de la nota. */
+.nota-voz-barra {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+}
+
+.nota-voz-grabando {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0 18px;
+  min-height: 52px;
+  border-radius: 26px;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  font-size: 1rem;
+}
+
+.nota-voz-grabando strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.punto-rojo {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--peligro);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .punto-rojo {
+    animation: latido-voz 1.2s ease-in-out infinite;
+  }
+}
+
+@keyframes latido-voz {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.nota-voz-oir {
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+}
+
+.tema .nota-voz-barra button.nota-voz-cancelar {
+  flex: none;
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: 1px solid var(--borde);
+  color: var(--peligro);
+  box-shadow: none;
+}
+
+.cuadro-parar {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: currentColor;
+}
+
+.escribir-caja[hidden] {
+  display: none;
+}

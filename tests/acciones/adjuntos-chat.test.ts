@@ -11,7 +11,12 @@ vi.mock("@/lib/panel/sesion", () => import("./mocks/sesion"));
 vi.mock("@/lib/supabase/admin", () => import("./mocks/admin"));
 vi.mock("@/lib/asistente/dependencias", () => ({ dependenciasPara: () => ({}) }));
 const enviar = vi.fn(async (..._a: unknown[]) => ({ ok: true as const, aviso: "Enviado." }));
-vi.mock("@/lib/panel/acciones", () => ({ enviarAdjuntosComoCorredor: (...a: unknown[]) => enviar(...a) }));
+const enviarVoz = vi.fn(async (..._a: unknown[]) => ({ ok: true as const, aviso: "Nota de voz enviada." }));
+vi.mock("@/lib/panel/acciones", () => ({
+  MAX_NOTA_VOZ_BYTES: 4 * 1024 * 1024,
+  enviarAdjuntosComoCorredor: (...a: unknown[]) => enviar(...a),
+  enviarNotaDeVozComoCorredor: (...a: unknown[]) => enviarVoz(...a),
+}));
 
 const acciones = await import("@/app/panel/conversaciones/[id]/adjuntos-acciones");
 
@@ -100,5 +105,38 @@ describe("enviarAdjuntos", () => {
     const r = await acciones.enviarAdjuntos({ conversacion: ID.conversacion, caminos: [caminoFoto()], texto: "", envio: ENVIO });
     expect(r.ok).toBe(false);
     expect(enviar).not.toHaveBeenCalled();
+  });
+});
+
+describe("enviarNotaDeVoz", () => {
+  const form = (conv: string) => {
+    const f = new FormData();
+    f.set("conversacion", conv);
+    f.set("envio", ENVIO);
+    f.set("segundos", "4");
+    f.set("audio", new File([new Uint8Array(300)], "nota.ogg", { type: "audio/ogg" }));
+    return f;
+  };
+
+  it("manda la nota del chat propio", async () => {
+    const r = await acciones.enviarNotaDeVoz(form(ID.conversacion));
+    expect(r).toEqual({ ok: true, aviso: "Nota de voz enviada." });
+    expect(enviarVoz.mock.calls[0][2]).toBe(ID.conversacion);
+    expect(enviarVoz.mock.calls[0][4]).toBe("audio/ogg");
+  });
+
+  it("con un chat de otro corredor no manda nada", async () => {
+    const r = await acciones.enviarNotaDeVoz(form(ID.conversacionAjena));
+    expect(r.ok).toBe(false);
+    expect(enviarVoz).not.toHaveBeenCalled();
+  });
+
+  it("en la demo no manda nada y un doble toque no la repite", async () => {
+    await acciones.enviarNotaDeVoz(form(ID.conversacion));
+    await acciones.enviarNotaDeVoz(form(ID.conversacion));
+    expect(enviarVoz).toHaveBeenCalledTimes(1);
+    preparar(false);
+    expect((await acciones.enviarNotaDeVoz(form(ID.conversacion))).ok).toBe(false);
+    expect(enviarVoz).toHaveBeenCalledTimes(1);
   });
 });

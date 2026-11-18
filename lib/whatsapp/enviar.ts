@@ -7,6 +7,11 @@ export interface EnviadorWhatsApp {
   imagen(phoneNumberId: string, para: string, url: string, leyenda: string): Promise<string>;
   /** Documento (PDF) por enlace público. Solo dentro de la ventana de 24 horas. */
   documento(phoneNumberId: string, para: string, url: string, nombreArchivo: string, leyenda: string): Promise<string>;
+  /**
+   * Nota de voz: el archivo se sube a WhatsApp (no queda copia propia) y se manda por su id. En Ogg/Opus el cliente la
+   * ve como nota de voz; en otro formato, como audio. Solo dentro de la ventana de 24 horas.
+   */
+  audio?(phoneNumberId: string, para: string, datos: Uint8Array, mime: string): Promise<string>;
   /** Plantilla aprobada por Meta: sirve fuera de la ventana de 24 horas. */
   plantilla(phoneNumberId: string, para: string, nombre: string, parametros: string[], idioma?: string): Promise<string>;
 }
@@ -191,7 +196,34 @@ export function crearEnviadorWhatsApp(accessToken: string, opciones: OpcionesEnv
     }
   }
 
+  /** Sube un archivo a WhatsApp y devuelve su id (sirve 30 días; aquí se usa al momento). */
+  async function subirMedio(phoneNumberId: string, datos: Uint8Array, mime: string): Promise<string> {
+    const form = new FormData();
+    form.append("messaging_product", "whatsapp");
+    form.append("type", mime);
+    const ext = mime.includes("ogg") ? "ogg" : mime.includes("mp4") ? "m4a" : mime.includes("aac") ? "aac" : "mp3";
+    form.append("file", new Blob([datos as BlobPart], { type: mime }), `nota-de-voz.${ext}`);
+    const res = await fetch(`${BASE_GRAPH}/${VERSION_GRAPH}/${phoneNumberId}/media`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body: form,
+      signal: AbortSignal.timeout(TIEMPO_MAXIMO_ENVIO_MS),
+    });
+    const json = (await res.json().catch(() => ({}))) as { id?: string; error?: { code?: number } };
+    if (!res.ok || !json.id) throw new ErrorWhatsApp(res.status, json.error?.code);
+    return json.id;
+  }
+
   return {
+    audio: async (phoneNumberId, para, datos, mime) => {
+      const id = await subirMedio(phoneNumberId, datos, mime);
+      return enviar(phoneNumberId, {
+        recipient_type: "individual",
+        to: para.replace(/^\+/, ""),
+        type: "audio",
+        audio: { id },
+      });
+    },
     texto: (phoneNumberId, para, cuerpo) =>
       enviar(phoneNumberId, {
         recipient_type: "individual",
@@ -234,11 +266,11 @@ export function enviadorSinConfigurar(): EnviadorWhatsApp {
   const fallar = async (): Promise<string> => {
     throw new ErrorWhatsApp(0, undefined);
   };
-  return { texto: fallar, imagen: fallar, documento: fallar, plantilla: fallar };
+  return { texto: fallar, imagen: fallar, documento: fallar, audio: fallar, plantilla: fallar };
 }
 
 /** Cuenta de demo (corredor inactivo): nada sale de verdad; cada envío devuelve un id inventado. */
 export function enviadorDemo(): EnviadorWhatsApp {
   const simular = async () => `demo-${crypto.randomUUID()}`;
-  return { texto: simular, imagen: simular, documento: simular, plantilla: simular };
+  return { texto: simular, imagen: simular, documento: simular, audio: simular, plantilla: simular };
 }
