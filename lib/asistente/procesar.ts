@@ -122,6 +122,20 @@ export async function procesarMensaje(deps: Dependencias, entrante: MensajeEntra
       telefono,
     });
 
+  // Topes primero (solo lee): con un freno no se gasta IA en nada, ni en pasar un audio a texto.
+  const freno = await frenoCliente(repo, corredor, uso, conversacion.id, ahora());
+
+  // Una nota de voz se pasa a texto antes de todo corte: aunque el chat sea del corredor o espere al corredor, él la lee
+  // en el panel (y el aviso la trae), y una solicitud de privacidad dicha por voz también pasa directo.
+  let lecturaAudio: Awaited<ReturnType<typeof leerMedio>> | null = null;
+  if (entrante.media?.clase === "audio" && !entrante.texto && !freno) {
+    lecturaAudio = await leerMedio(deps, corredor, entrante);
+    if (lecturaAudio.ok && lecturaAudio.clase === "audio") {
+      await repo.actualizarMensaje(corredor.id, mensajeId, { contenido: `Nota de voz: ${lecturaAudio.texto}` });
+      entrante = { ...entrante, texto: lecturaAudio.texto };
+    }
+  }
+
   // Derechos de privacidad (Ley 8968): pasa directo al corredor, que tiene cinco días hábiles para responder. No lo
   // contesta el modelo y va antes de todo corte (chat tomado, escalado o con tope): el plazo corre igual.
   if (entrante.texto && esSolicitudPrivacidad(entrante.texto)) {
@@ -141,7 +155,7 @@ export async function procesarMensaje(deps: Dependencias, entrante: MensajeEntra
       await ctx.avisarCorredor(
         armarAviso({
           titulo: `${quien} te volvió a escribir y espera tu respuesta`,
-          mensaje: entrante.texto ?? null,
+          mensaje: entrante.texto ? (lecturaAudio?.ok ? `Nota de voz: ${entrante.texto}` : entrante.texto) : null,
           detalles: [entrante.texto ? null : `Mandó: ${entrante.media ? NOMBRE_CLASE[entrante.media.clase] : DESCRIPCION_TIPO[entrante.tipo]}`],
           queHacer: "contéstale desde el chat en el panel o desde tu WhatsApp",
           telefono,
@@ -154,7 +168,6 @@ export async function procesarMensaje(deps: Dependencias, entrante: MensajeEntra
   // Topes: sin llamar a la IA ni gastar mensajes. La conversación NO pasa a "escalada" (eso es "quiere hablar con el
   // corredor" y no se levanta solo): sigue abierta y, cuando el tope se renueva o baja la ráfaga, la asistente vuelve a
   // contestar. Al cliente no se le manda nada; al corredor, un aviso por chat y día ("el chat queda para ti").
-  const freno = await frenoCliente(repo, corredor, uso, conversacion.id, ahora());
   if (freno) {
     log(freno === "rafaga" ? "rafaga_cliente" : `error_${freno === "tope_mes" ? "tope_mensual" : "tope_diario"}`, {
       corredorId: corredor.id,
@@ -176,11 +189,11 @@ export async function procesarMensaje(deps: Dependencias, entrante: MensajeEntra
 
   // Notas de voz, fotos y PDF: se pasan a texto y siguen el flujo de siempre.
   if (entrante.media) {
-    const lectura = await leerMedio(deps, corredor, entrante);
+    const lectura = lecturaAudio ?? (await leerMedio(deps, corredor, entrante));
     let leido: string | null = null;
     if (lectura.ok && lectura.clase === "audio") {
       leido = lectura.texto;
-      await repo.actualizarMensaje(corredor.id, mensajeId, { contenido: `Nota de voz: ${lectura.texto}` });
+      if (!lecturaAudio) await repo.actualizarMensaje(corredor.id, mensajeId, { contenido: `Nota de voz: ${lectura.texto}` });
     } else if (lectura.ok) {
       try {
         const d = await deps.cerebro.describirMedio(corredor, lectura.adjunto);

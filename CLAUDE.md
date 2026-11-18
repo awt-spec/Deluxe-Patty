@@ -254,7 +254,7 @@ una por frase; si no nombra ninguna o no se separa limpio, pregunta cuál (hora 
 - **Por WhatsApp** (`lib/asistente/medios.ts`, `lib/whatsapp/media.ts`): el webhook trae el id del archivo
   (`MensajeEntrante.media`); se baja de Meta solo de sus dominios y con la llave (nunca se guarda en disco). La **nota
   de voz** se transcribe con OpenAI (`lib/medios/transcribir.ts`, `whisper-1`, `OPENAI_API_KEY`) y sigue el flujo como
-  si fuera texto, también la de un **cliente** ("Nota de voz: …" queda en el mensaje). Una **foto o PDF de Patricia**
+  si fuera texto, también la de un **cliente** ("Nota de voz: …" queda en el mensaje), y se transcribe antes de los cortes: en un chat escalado o tomado por el corredor la IA no contesta, pero el corredor la lee en el panel y en el aviso (con un freno de tope o ráfaga, no se transcribe). Una **foto o PDF de Patricia**
   se analiza con Claude (`cerebro.analizar` con `adjuntos`); la de un **cliente** la describe Haiku
   (`cerebro.describirMedio`, `prompts/describir-medio.md`) y la descripción entra como texto. Video, Word y Excel por
   WhatsApp no se leen (se le dice a Patricia que los suba al panel; del cliente, aviso al corredor y respuesta fija, sin escalar). Sin la llave de
