@@ -154,6 +154,42 @@ describe("Casas del sitio web → portal", () => {
   });
 });
 
+describe("Fotos subidas desde el portal al sitio (al_sitio)", () => {
+  const hace = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
+  const urlPropia = (n: number) => `https://${HOST}/storage/v1/object/public/fotos/${ID.deluxe}/p1/${n}.jpg`;
+  const db0 = (fotos: unknown[]) =>
+    supabaseFalso({ propiedades: [{ id: "p1", corredor_id: ID.deluxe, codigo: "DP-1A2B3C", fotos, estado: "activa" }] });
+  const fuentes = (db: ReturnType<typeof db0>) => (db.tablas.propiedades[0].fotos as { fuente?: string }[]).map((f) => f.fuente);
+
+  it("una foto de menos de 30 min se conserva aunque la exportación aún no la liste", async () => {
+    fetchFotos();
+    const db = db0([
+      { url: urlPropia(1), fuente: foto(1), orden: 1 },
+      { url: urlPropia(9), fuente: foto(9), al_sitio: hace(5), orden: 2 },
+    ]);
+    await sincronizarSitio(db as never, { id: ID.deluxe }, [casa({ imagenes: [foto(1)] })], HOST);
+    expect(fuentes(db)).toEqual([foto(1), foto(9)]);
+  });
+
+  it("una de más de 30 min que la exportación no lista se quita", async () => {
+    fetchFotos();
+    const db = db0([
+      { url: urlPropia(1), fuente: foto(1), orden: 1 },
+      { url: urlPropia(9), fuente: foto(9), al_sitio: hace(45), orden: 2 },
+    ]);
+    await sincronizarSitio(db as never, { id: ID.deluxe }, [casa({ imagenes: [foto(1)] })], HOST);
+    expect(fuentes(db)).toEqual([foto(1)]);
+  });
+
+  it("cuando la exportación ya la lista no se duplica", async () => {
+    fetchFotos();
+    const db = db0([{ url: urlPropia(9), fuente: foto(9), al_sitio: hace(5), orden: 1 }]);
+    const r = await sincronizarSitio(db as never, { id: ID.deluxe }, [casa({ imagenes: [foto(9)] })], HOST);
+    expect(r.fotosCopiadas).toBe(0);
+    expect(fuentes(db)).toEqual([foto(9)]);
+  });
+});
+
 describe("Fotos del sitio con la forma real de la exportación", () => {
   const H = HOST_EXPORTACION;
   const pub = (llave: string) => `https://${H}/storage/v1/object/public/${llave}`;
