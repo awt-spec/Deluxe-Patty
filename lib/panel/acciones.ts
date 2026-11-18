@@ -2,6 +2,7 @@ import { ordenarParaWhatsApp } from "../whatsapp/formato";
 import type { Dependencias } from "../asistente/contexto";
 import type { Corredor } from "../datos/tipos";
 import { LIMITES, textoLibre } from "./texto-libre";
+import { contenidoAdjunto } from "./adjuntos-chat";
 
 // Acciones del corredor desde el panel. Quien llama ya verificó con la sesión del corredor (RLS)
 // que el mensaje o la conversación son suyos; aquí todo filtra además por corredor_id.
@@ -32,6 +33,67 @@ function mensajeParaCliente(texto: string): { ok: true; texto: string } | { ok: 
   const r = textoLibre(texto, LIMITES.mensajeCliente, "El mensaje");
   if (!r.ok) return { ok: false, motivo: `${r.motivo} WhatsApp no deja más; divídelo en dos mensajes.` };
   return r.valor ? { ok: true, texto: r.valor } : { ok: false, motivo: "El mensaje está vacío." };
+}
+
+/** Un archivo ya subido al Storage propio, listo para mandarlo al cliente. */
+export type AdjuntoListo = { clase: "imagen" | "pdf"; url: string; nombre: string };
+/** WhatsApp corta el pie de foto o de documento en 1.024 caracteres. */
+const LIMITE_LEYENDA = 1024;
+
+/**
+ * Fotos y PDF que el corredor le manda al cliente desde el chat. El texto que escribió va como pie del primero.
+ * Se mandan en orden; si uno falla, los anteriores ya salieron y se dice cuántos llegaron.
+ */
+export async function enviarAdjuntosComoCorredor(
+  deps: Dependencias,
+  corredor: Corredor,
+  conversacionId: string,
+  adjuntos: AdjuntoListo[],
+  texto: string,
+): Promise<Resultado> {
+  if (adjuntos.length === 0) return { ok: false, motivo: "No llegó ningún archivo." };
+  let leyenda: string | null = null;
+  if (texto.trim()) {
+    const r = textoLibre(texto, LIMITE_LEYENDA, "El texto que acompaña al archivo");
+    if (!r.ok) return { ok: false, motivo: `${r.motivo} Mándalo como mensaje aparte.` };
+    leyenda = r.valor || null;
+  }
+  const ahora = deps.ahora?.() ?? new Date();
+  const conv = await deps.repo.conversacionConContacto(corredor.id, conversacionId);
+  if (!conv) return { ok: false, motivo: "No encontré la conversación." };
+  if (!ventanaAbierta(conv.ultimo_mensaje_cliente_at, ahora)) return { ok: false, motivo: VENTANA_CERRADA };
+
+  let enviados = 0;
+  for (const [i, a] of adjuntos.entries()) {
+    const pie = i === 0 ? leyenda : null;
+    let waId: string;
+    try {
+      waId =
+        a.clase === "imagen"
+          ? await deps.whatsapp.imagen(corredor.whatsapp_phone_number_id!, conv.telefono, a.url, pie ?? "")
+          : await deps.whatsapp.documento(corredor.whatsapp_phone_number_id!, conv.telefono, a.url, a.nombre, pie ?? "");
+    } catch {
+      break;
+    }
+    await deps.repo.guardarMensaje({
+      corredor_id: corredor.id,
+      conversacion_id: conversacionId,
+      direccion: "saliente",
+      autor: "corredor",
+      tipo: a.clase === "imagen" ? "imagen" : "documento",
+      contenido: contenidoAdjunto(a.url, pie),
+      wa_message_id: waId,
+      estado_entrega: "enviado",
+    });
+    enviados++;
+  }
+  if (enviados > 0) {
+    await deps.repo.registrarUso(corredor.id, { mensajesSalientes: enviados });
+    if (conv.control !== "corredor") await deps.repo.actualizarConversacion(corredor.id, conversacionId, { control: "corredor" });
+  }
+  if (enviados === adjuntos.length) return { ok: true, aviso: enviados === 1 ? "Enviado." : `Enviados los ${enviados} archivos.` };
+  if (enviados === 0) return { ok: false, motivo: "WhatsApp no aceptó el archivo. Inténtalo de nuevo." };
+  return { ok: false, motivo: `Salieron ${enviados} de ${adjuntos.length}; WhatsApp no aceptó el resto. Inténtalo de nuevo con los que faltan.` };
 }
 
 /**

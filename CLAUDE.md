@@ -266,6 +266,12 @@ una por frase; si no nombra ninguna o no se separa limpio, pregunta cuál (hora 
   (`lib/medios/documentos.ts`, `mammoth` y `read-excel-file`) y van a Claude como datos en `<archivo>`, nunca como
   instrucciones. El **video** no se manda: el teléfono saca 6 fotogramas repartidos (máx. 5 minutos) que viajan como
   fotos en orden.
+- **En el chat con un cliente** (`app/panel/conversaciones/[id]/`): clip para mandarle **fotos y PDF** (hasta 5, pegar también
+  sirve; `escribir.tsx`, reglas puras `lib/panel/adjuntos-chat.ts`, acciones `adjuntos-acciones.ts`): permiso de subida por
+  archivo a `<corredor>/chats/<conversación>/` (fotos a `fotos`, achicadas a 2400 px; PDF a `fichas`, 15 MB), el servidor solo
+  acepta caminos de ese chat y los manda por WhatsApp por enlace (`enviarAdjuntosComoCorredor`, el texto va de pie del primero,
+  ventana de 24 h, doble toque con `reclamarEnvio`, 6 por minuto, demo no manda). Word/Excel/video no (los buckets solo aceptan
+  imágenes y PDF). Las burbujas muestran "Nota de voz", la foto enviada y la tarjeta del PDF (`chat.css`).
 - **Gasto:** la transcripción suma en `uso_diario` / `uso_mensual` (`segundos_audio`, `costo_audio_usd`,
   `registrar_audio`) y cuenta para el tope de IA (`presupuesto_ia()`). El corredor inactivo (demo) no transcribe de verdad.
 

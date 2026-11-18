@@ -1,6 +1,8 @@
 import { NOMBRE_ETAPA, resumenBusca, type Busca, type Etapa } from "@/lib/crm/perfil";
 import { Escribir } from "./escribir";
-import { IconoCamara, IconoCheck, IconoDocumento, IconoDobleCheck } from "../../iconos";
+import { IconoCamara, IconoCheck, IconoDocumento, IconoDobleCheck, IconoMicrofono } from "../../iconos";
+import { leerContenidoAdjunto, leerMedioCliente, leerNotaDeVoz } from "@/lib/panel/adjuntos-chat";
+import "./chat.css";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { inicialDe } from "@/lib/panel/inicial";
@@ -40,6 +42,67 @@ function describirAccion(a: AccionPendiente, zona: string): string {
   if (a.tipo === "crear_cita") return conPunto(`Al enviarla queda agendada la visita del ${etiquetaHorario(new Date(a.inicio), zona)}`);
   if (a.tipo === "cancelar_cita") return "Al enviarla se cancela la visita.";
   return "Al enviarla la visita queda confirmada.";
+}
+
+const esFoto = (m: Mensaje) => m.direccion === "saliente" && m.tipo === "imagen" && !!leerContenidoAdjunto(m.contenido);
+
+/** Lo de adentro de cada burbuja: texto, nota de voz, foto o documento. */
+function Contenido({ m }: { m: Mensaje }) {
+  if (m.tipo === "audio") {
+    const dicho = leerNotaDeVoz(m.contenido);
+    return (
+      <>
+        <span className="etiqueta-medio">
+          <IconoMicrofono tamano={16} /> Nota de voz
+        </span>
+        {dicho ? <span className="nota-voz">{dicho}</span> : <span className="sin-leer">No se pudo escuchar. Óyela en tu WhatsApp.</span>}
+      </>
+    );
+  }
+  if ((m.tipo === "documento" || m.tipo === "imagen") && m.direccion === "entrante") {
+    // Lo que manda el cliente con una foto es su pie de foto: se muestra como texto, nunca como enlace (podría ser una
+    // página falsa). La foto se ve en el WhatsApp del corredor.
+    const foto = m.tipo === "imagen";
+    const { pie, visto } = leerMedioCliente(m.contenido);
+    return (
+      <>
+        <span className="etiqueta-medio">
+          {foto ? <IconoCamara tamano={16} /> : <IconoDocumento tamano={16} />} {foto ? "Foto" : "Documento"} · ábrela en tu WhatsApp
+        </span>
+        {pie && <span>{pie}</span>}
+        {visto && <span className="sin-leer">Se ve: {visto}</span>}
+      </>
+    );
+  }
+  if ((m.tipo === "documento" || m.tipo === "imagen") && m.direccion === "saliente") {
+    const a = leerContenidoAdjunto(m.contenido);
+    if (a && m.tipo === "imagen") {
+      return (
+        <>
+          <a href={a.url} target="_blank" rel="noreferrer" className="foto-enviada" aria-label="Ver la foto completa">
+            {/* eslint-disable-next-line @next/next/no-img-element -- foto del Storage propio, tamaño libre */}
+            <img src={a.url} alt="Foto enviada" loading="lazy" />
+          </a>
+          {a.leyenda && <span className="pie">{a.leyenda}</span>}
+        </>
+      );
+    }
+    if (a) {
+      return (
+        <>
+          <a href={a.url} target="_blank" rel="noreferrer" className="doc-enviado">
+            <IconoDocumento tamano={28} />
+            <span>
+              <strong>{a.nombre}</strong>
+              <small>PDF · toca para abrirlo</small>
+            </span>
+          </a>
+          {a.leyenda && <span className="pie">{a.leyenda}</span>}
+        </>
+      );
+    }
+  }
+  return <>{m.contenido ?? `(${m.tipo})`}</>;
 }
 
 export default async function Conversacion({
@@ -218,23 +281,9 @@ export default async function Conversacion({
             m.direccion === "entrante" ? "cliente" : `saliente ${m.estado_borrador === "descartado" ? "descartado" : ""}`;
           return [
             separador,
-            <div key={m.id} className={`burbuja ${clase}`}>
-              {m.direccion === "saliente" && m.autor === "asistente" && <span className="autor">Asistente</span>}
-              {(m.tipo === "documento" || m.tipo === "imagen") && m.direccion === "entrante" ? (
-                // Lo que manda el cliente con una foto es su pie de foto: se muestra como texto, nunca
-                // como enlace (podría ser una página falsa). La foto se ve en el WhatsApp del corredor.
-                <>
-                  {m.tipo === "documento" ? <IconoDocumento tamano={20} /> : <IconoCamara tamano={20} />}{" "}
-                  {m.tipo === "documento" ? "Mandó un documento" : "Mandó una foto"}
-                  {m.contenido ? `: ${m.contenido}` : ""}
-                </>
-              ) : (m.tipo === "documento" || m.tipo === "imagen") && m.contenido?.startsWith("https://") ? (
-                <a href={m.contenido} target="_blank" rel="noreferrer">
-                  {m.tipo === "documento" ? "Documento" : "Imagen"}
-                </a>
-              ) : (
-                m.contenido ?? `(${m.tipo})`
-              )}
+            <div key={m.id} className={`burbuja ${clase}${esFoto(m) ? " con-foto" : ""}`}>
+              {m.direccion === "saliente" && m.autor === "asistente" && <span className="autor">{corredor.nombre_asistente ?? "Asistente"}</span>}
+              <Contenido m={m} />
               <span className="meta">
                 {m.estado_borrador === "corregido" && "corregido por ti · "}
                 {m.estado_entrega === "fallido" && "no se entregó · "}
