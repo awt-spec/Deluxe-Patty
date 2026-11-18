@@ -30,13 +30,8 @@ import { AvisoDemo, DocumentoEstrategia, Pasos, ResultadoCalculo, ResultadoDelPo
 // Redes sociales: la estratega comercial del corredor en cuatro pestañas. Lo que arma se guarda en este navegador
 // (por casa) para volver a verlo; nada se publica ni se paga desde aquí.
 
-export type PestanaEstratega = "post" | "pautas" | "estrategia" | "fotos";
-export const PESTANAS_ESTRATEGA: { id: PestanaEstratega; nombre: string; corto: string }[] = [
-  { id: "post", nombre: "Mejorar un post", corto: "Post" },
-  { id: "pautas", nombre: "Pautas", corto: "Pautas" },
-  { id: "estrategia", nombre: "Estrategia por casa", corto: "Estrategia" },
-  { id: "fotos", nombre: "Analizar fotos", corto: "Fotos" },
-];
+import { PESTANAS_ESTRATEGA, type PestanaEstratega } from "./pestanas";
+export { PESTANAS_ESTRATEGA, type PestanaEstratega };
 
 export interface CasaRedes extends CasaEstratega {
   etiqueta: string;

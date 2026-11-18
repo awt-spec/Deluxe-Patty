@@ -5,7 +5,8 @@ import { MAX_FOTOS_ANALISIS } from "@/lib/redes/analisis-fotos";
 import { fotosParaRedes, mejoresReales, opcionesDeFoto } from "@/lib/redes/fotos";
 import { etiquetaCasa, precioCasa } from "@/lib/redes/texto";
 import { EncabezadoPagina } from "../piezas";
-import { Estratega, PESTANAS_ESTRATEGA, type CasaRedes, type PestanaEstratega } from "./estratega";
+import { Estratega, type CasaRedes } from "./estratega";
+import { PESTANAS_ESTRATEGA, type PestanaEstratega } from "./pestanas";
 import "./redes-sociales.css";
 
 // Redes sociales: la estratega comercial del corredor (posts, pautas en Meta, estrategia por casa y análisis de
