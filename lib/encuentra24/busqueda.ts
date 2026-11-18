@@ -3,6 +3,7 @@ import { precio as formatoPrecio } from "../formato";
 import { SIN_CONSUMO, sumar, type Consumo } from "../asistente/costo";
 import { fechaIso, fechaLocal, sumarDias } from "../agenda/tiempo";
 import { anunciosDePagina, esDesafio, urlListado, type AnuncioE24 } from "./parsear";
+import { textoSenal, type SenalCruda } from "./senales";
 
 export interface Bloqueado {
   nombre: string | null;
@@ -24,7 +25,8 @@ export interface ParametrosBusqueda {
 export interface LeadDueno {
   anuncio: AnuncioE24;
   puntaje: number;
-  senales: string[];
+  /** Razones de la revisión: con su lado (a favor / en contra) o texto suelto. Ver lib/encuentra24/senales.ts. */
+  senales: SenalCruda[];
 }
 
 export interface ResultadoBusqueda {
@@ -231,7 +233,9 @@ export function armarListaDuenos(leads: LeadDueno[], maxEnMensaje = 15): string 
     const precio = a.precio ? ` · ${formatoPrecio(a.precio, a.moneda)}` : "";
     const zona = a.zona ? ` · ${a.zona.split(",").slice(-2).join(",").trim()}` : "";
     l.push(`${i + 1}. ${a.titulo}${precio}${zona} (${lead.puntaje}/100)`);
-    if (lead.senales.length) l.push(`   ${lead.senales.slice(0, 2).join("; ")}`);
+    // Solo razones a favor (o sueltas) y nunca otra cosa que texto.
+    const razones = lead.senales.filter((s) => typeof s === "string" || s.tipo === "pro").map(textoSenal).filter((t): t is string => !!t);
+    if (razones.length) l.push(`   ${razones.slice(0, 2).join("; ")}`);
     l.push(`   ${a.url}`);
   });
   if (leads.length > maxEnMensaje) l.push("", `Y ${leads.length - maxEnMensaje} más en el panel.`);

@@ -4,6 +4,8 @@ import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
 import type { Correccion, Corredor, FichaParcial, Intencion, Mensaje, Propiedad, PropiedadConFotos , Conocimiento } from "../datos/tipos";
 import type { AnuncioE24 } from "../encuentra24/parsear";
+import type { SenalCruda } from "../encuentra24/senales";
+import type { CanalMensaje, DatosMensajeDueno } from "../panel/mensaje-dueno";
 import { lineaAhora } from "../agenda/formato";
 import type { OperacionApartarCruda } from "../agenda/apartar-ia";
 import { OPS_IMAGEN, OPS_VIDEO, type OperacionCruda, type TurnoChat } from "../redes/chat";
@@ -65,7 +67,8 @@ export interface AnuncioPreparado {
 export interface ClasificacionAnuncio {
   esDueno: boolean;
   puntaje: number;
-  senales: string[];
+  /** Con su lado (a favor / en contra); los dobles de prueba y lo viejo pueden traer texto suelto. */
+  senales: SenalCruda[];
   consumo: Consumo;
 }
 
@@ -121,6 +124,11 @@ export interface Cerebro {
   clasificarCorreo(corredor: Corredor, correo: { de: string; asunto: string; texto: string }): Promise<ClasificacionCorreo>;
   /** Dueño directo o corredor, para la búsqueda semanal. */
   clasificarAnuncio(anuncio: AnuncioE24, publicacionesDelAnunciante: number): Promise<ClasificacionAnuncio>;
+  /**
+   * "Crear mensaje con Patty" (Dueños directos): tres primeros mensajes para un dueño, con solo título, zona y precio
+   * del anuncio. El código los revisa (lib/panel/mensaje-dueno.ts) y los manda el corredor, a mano.
+   */
+  mensajesDueno?(corredor: Corredor, datos: DatosMensajeDueno): Promise<{ mensajes: Partial<Record<CanalMensaje, string>>; consumo: Consumo }>;
   /** Análisis a pedido del corredor: propiedad u oferta (enlace o datos). */
   analizar(corredor: Corredor, propiedades: Propiedad[], historial: Mensaje[], mensaje: string, adjuntos?: Adjunto[]): Promise<Respuesta>;
   /**
@@ -257,8 +265,10 @@ const EsquemaAnuncio = z.object({
 const EsquemaDueno = z.object({
   es_dueno: z.boolean(),
   puntaje: z.number().int(),
-  senales: z.array(z.string()),
+  senales: z.array(z.object({ a_favor: z.boolean(), texto: z.string() })),
 });
+
+const EsquemaMensajesDueno = z.object({ whatsapp: z.string(), formulario: z.string(), seguimiento: z.string() });
 
 /** Máximo de fotos que se le muestran al modelo para sugerir el orden. */
 export const MAX_FOTOS_ANUNCIO = 20;
@@ -661,7 +671,34 @@ export function crearCerebroClaude(client: Anthropic = crearClienteClaude()): Ce
       if (res.stop_reason === "refusal") throw new RechazoModelo(c);
       if (!res.parsed_output) throw new Error(`Clasificación de anuncio sin salida (stop_reason ${res.stop_reason})`);
       const o = res.parsed_output;
-      return { esDueno: o.es_dueno, puntaje: Math.max(0, Math.min(100, o.puntaje)), senales: o.senales.slice(0, 4), consumo: c };
+      return { esDueno: o.es_dueno, puntaje: Math.max(0, Math.min(100, o.puntaje)), senales: o.senales.slice(0, 5).map((x) => ({ tipo: x.a_favor ? "pro" : "contra", texto: x.texto })), consumo: c };
+    },
+
+    async mensajesDueno(corredor, d) {
+      const anuncio = [
+        `Título: ${d.titulo ?? "(no dice)"}`,
+        `Zona: ${d.zona ?? "(no dice)"}`,
+        `Precio: ${d.precio ?? "(no publicado)"}`,
+        `Nombre del dueño: ${d.nombreDueno ?? "(no se sabe)"}`,
+      ].join("\n");
+      const res = await client.beta.messages.parse({
+        model: MODELO_REDACTAR,
+        max_tokens: 2000,
+        betas: ["server-side-fallback-2026-07-01"],
+        fallbacks: "default",
+        output_config: { effort: "low", format: betaZodOutputFormat(EsquemaMensajesDueno) },
+        system: [
+          instruccion("mensaje-dueno"),
+          `<corredor>\n${comoDato(d.corredor)}${d.empresa ? `, de ${comoDato(d.empresa)}` : ""}.\n</corredor>`,
+          `<tono>\n${corredor.tono || "Cordial, cercano y profesional."}\n</tono>`,
+        ].join("\n\n"),
+        // Lo del anuncio lo escribió un tercero: va como dato y sin etiquetas que puedan cerrar la nuestra.
+        messages: [{ role: "user", content: `<anuncio>\n${comoDato(quitarEtiquetas(anuncio, ["anuncio"]))}\n</anuncio>` }],
+      });
+      const c = consumo(res.model, res.usage);
+      if (res.stop_reason === "refusal") throw new RechazoModelo(c);
+      if (!res.parsed_output) throw new Error(`Mensajes para el dueño sin salida (stop_reason ${res.stop_reason})`);
+      return { mensajes: res.parsed_output, consumo: c };
     },
 
     async fichaConversada(corredor, mensajes, actual) {

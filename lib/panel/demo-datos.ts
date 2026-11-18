@@ -309,8 +309,8 @@ export async function rehacerDemo(db: SupabaseClient, correo: string, ahora = Da
     "dueños",
     (
       await db.from("leads_duenos").insert([
-        { corredor_id: ID, e24_id: "demo-1", url: "https://www.encuentra24.com/costa-rica-es", titulo: "Vendo casa en Escazú, trato directo", zona: "Escazú", precio: 780000, moneda: "USD", es_dueno: true, puntaje: 86, senales: ["publica una sola propiedad", "texto en primera persona"], semana: lunesCR },
-        { corredor_id: ID, e24_id: "demo-2", url: "https://www.encuentra24.com/costa-rica-es", titulo: "Casa en Santa Ana con piscina, dueño", zona: "Santa Ana", precio: 540000, moneda: "USD", es_dueno: true, puntaje: 72, senales: ["dice que es el dueño"], semana: lunesCR },
+        { corredor_id: ID, e24_id: "demo-1", url: "https://www.encuentra24.com/costa-rica-es", titulo: "Vendo casa en Escazú, trato directo", zona: "Escazú", precio: 780000, moneda: "USD", es_dueno: true, puntaje: 86, senales: ["publica una sola propiedad", "texto en primera persona", { tipo: "contra", texto: "La descripción es corta y no dice cuántos cuartos" }], semana: lunesCR },
+        { corredor_id: ID, e24_id: "demo-2", url: "https://www.encuentra24.com/costa-rica-es", titulo: "Casa en Santa Ana con piscina, dueño", zona: "Santa Ana", precio: 540000, moneda: "USD", es_dueno: true, puntaje: 72, senales: [{ tipo: "pro", texto: "Dice que es el dueño" }, { tipo: "contra", texto: "Tono algo comercial en el título" }], semana: lunesCR },
       ])
     ).error,
   );

@@ -10,6 +10,7 @@ import {
   IconoFlecha,
   IconoIdea,
   IconoLlave,
+  IconoMegafono,
   IconoChats,
   IconoProbar,
   IconoResumen,
@@ -28,6 +29,7 @@ const GRUPOS = [
     { ruta: "/panel/cerebro", Icono: IconoIdea, nombre: NOMBRE_CEREBRO, detalle: "Lo que sabe, cómo contesta y lo que necesita de ti" },
   ],
   [
+    { ruta: "/panel/redes", Icono: IconoMegafono, nombre: "Redes sociales", detalle: "Mejora tus posts, planea pautas y la estrategia de cada casa" },
     { ruta: "/panel/duenos", Icono: IconoLlave, nombre: "Dueños directos", detalle: "Casas que venden sus dueños" },
     { ruta: "/panel/anuncios", Icono: IconoAnuncio, nombre: "Anuncios", detalle: "Tus anuncios de Encuentra24" },
   ],

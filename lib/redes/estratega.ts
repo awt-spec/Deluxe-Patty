@@ -24,7 +24,6 @@ export const PEDIDOS_POR_MINUTO = 6;
 export function limpiarCaption(t: unknown): string {
   return String(t ?? "")
     .replace(/\r\n?/g, "\n")
-    // eslint-disable-next-line no-control-regex -- se quitan a propósito los caracteres de control del texto pegado
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
@@ -579,7 +578,7 @@ export function estrategiaDemo(casa: CasaEstratega): Estrategia {
       { dia: 12, formato: "historia", tema: "Caja de preguntas", gancho: "Pregúntame lo que quieras de esta casa" },
       { dia: 14, formato: "reel", tema: "Detalles que no se ven en fotos", gancho: "Lo que solo vas a notar en persona" },
     ],
-    planPagado: ["Impulsa el reel del día 1 cuando tenga sus primeros guardados.", "Con los mensajes de la primera semana, repite con el carrusel."],
+    planPagado: ["Impulsa el primer reel cuando tenga sus primeros guardados.", "Con los mensajes de la primera semana, repite con el carrusel."],
     planOrganico: ["Comparte la casa con tu red de corredores (Modo corredor).", "Publícala en Encuentra24 y en tu sitio con el mismo código.", "Historias seguidas mientras dure la campaña."],
     siguientesPasos: ["Revisa las fotos en «Analizar fotos» y elige la portada.", "Graba el reel de recorrido de día, con luz natural.", "Deja listo el mensaje de bienvenida de WhatsApp."],
     porConfirmar: ["Si tiene vista, orientación o algo único del vecindario, agrégalo a la ficha para usarlo."],

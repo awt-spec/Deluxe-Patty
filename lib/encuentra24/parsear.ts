@@ -2,6 +2,8 @@
 // JSON dentro del payload de React Server Components (self.__next_f.push([1, "..."])). Se lee ese
 // JSON, que es más estable que las clases CSS del HTML.
 
+import { fotosValidas } from "./senales";
+
 export interface AnuncioE24 {
   id: string;
   titulo: string;
@@ -19,6 +21,8 @@ export interface AnuncioE24 {
   anunciante: { id: string | null; nombre: string | null; verificado: boolean; empresa: string | null; licencia: string | null };
   destacado: string | null;
   fotoPrincipal: string | null;
+  /** Hasta 4 fotos del anuncio (la principal primero), solo https de *.encuentra24.com. Falta en anuncios guardados antes. */
+  fotos?: string[];
   fechaActualizacion: string | null;
 }
 
@@ -104,6 +108,18 @@ function limpiarHtml(html: string): string {
     .trim();
 }
 
+/** Direcciones de fotos de un campo del anuncio: texto, o lista de textos u objetos con `url`/`src`/`original`. */
+function direccionesDe(v: unknown): unknown[] {
+  if (typeof v === "string") return [v];
+  if (!Array.isArray(v)) return [];
+  return v.slice(0, 40).map((x) => (x && typeof x === "object" ? ((x as Record<string, unknown>).url ?? (x as Record<string, unknown>).src ?? (x as Record<string, unknown>).original) : x));
+}
+
+/** Hasta 4 fotos del anuncio: la principal y las de la galería (`images`/`photos`), solo de Encuentra24. */
+export function fotosDeAnuncio(o: Record<string, unknown>): string[] {
+  return fotosValidas([...direccionesDe(o.principalImage), ...direccionesDe(o.images), ...direccionesDe(o.photos)]);
+}
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function anuncio(o: any): AnuncioE24 | null {
   const id = texto(o.id);
@@ -132,6 +148,7 @@ function anuncio(o: any): AnuncioE24 | null {
     },
     destacado: texto(o.featured),
     fotoPrincipal: texto(o.principalImage),
+    fotos: fotosDeAnuncio(o),
     fechaActualizacion: texto(String(o.dateUpdated ?? "").replace(/^\$D/, "")),
   };
 }

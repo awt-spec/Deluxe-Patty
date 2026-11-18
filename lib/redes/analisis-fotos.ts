@@ -181,7 +181,7 @@ export function puntajePortada(f: FotoAnalizada, formato: "feed" | "historia"): 
   let p = f.puntaje + (HEROE.has(f.espacio) ? 12 : 0);
   const r = proporcion(f);
   if (r !== null) {
-    if (formato === "historia") p += r <= 0.8 ? 15 : r > 1.6 ? -10 : 0;
+    if (formato === "historia") p += r <= 0.8 ? 15 : r >= 1.3 ? -10 : 0;
     else p += r <= 1.0 ? 6 : r > 1.8 ? -8 : 0;
   }
   return p;

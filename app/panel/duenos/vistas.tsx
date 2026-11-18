@@ -6,10 +6,11 @@
 import Link from "next/link";
 import type { EstadoEnergia } from "@/lib/ia/energia";
 import { subtextoEnergia, tituloEnergia } from "@/lib/ia/energia";
-import { confianzaDueno, type AccionDueno, type EtapaDueno, type PasoEmbudo } from "@/lib/panel/duenos";
+import { medidorConfianza, type AccionDueno, type EtapaDueno, type PasoEmbudo } from "@/lib/panel/duenos";
 import { avanceBusqueda, type AccionHero, type PasoHero, type PasoVivo, type TonoHero } from "@/lib/panel/extension-hero";
 import { textoBusqueda, textoRestante, type EstadoBusquedaExt, type OrdenBusqueda } from "@/lib/panel/extension-instalar";
-import { IconoBateria, IconoCasa, IconoCheck, IconoReloj } from "../iconos";
+import { IconoBateria, IconoCheck, IconoReloj } from "../iconos";
+import { FotosDueno } from "./fotos-dueno";
 
 // --- Íconos propios de esta pantalla ---------------------------------------------------------------------
 
@@ -292,7 +293,11 @@ export interface DuenoVista {
   zona: string | null;
   precio: string | null;
   puntaje: number | null;
-  senales: string[];
+  esDueno: boolean;
+  /** Las razones ya separadas (razonesDueno en lib/panel/duenos.ts). */
+  razones: { aFavor: string[]; enContra: string[] };
+  /** Hasta 4 fotos del anuncio (https de *.encuentra24.com, validadas al leer). */
+  fotos: string[];
   cuando: string | null;
   quieto: number | null;
   nombre: string | null;
@@ -304,7 +309,17 @@ export interface FormulariosDueno {
   etapa: (d: DuenoVista, estado: string, texto: string, principal: boolean) => React.ReactNode;
   misCasas: (d: DuenoVista) => React.ReactNode;
   descartar: (d: DuenoVista) => React.ReactNode;
+  /** "Crear mensaje con Patty" (componente del navegador con su acción). */
+  patty: (d: DuenoVista, principal: boolean) => React.ReactNode;
 }
+
+const IconoAviso = () => (
+  <Svg tamano={16}>
+    <path d="M12 4.5 20.5 19h-17Z" />
+    <path d="M12 10v4" strokeWidth={2} />
+    <circle cx="12" cy="16.6" r=".6" fill="currentColor" />
+  </Svg>
+);
 
 function Accion({ a, d, f, principal }: { a: AccionDueno; d: DuenoVista; f: FormulariosDueno; principal: boolean }) {
   if (!a) return null;
@@ -312,18 +327,13 @@ function Accion({ a, d, f, principal }: { a: AccionDueno; d: DuenoVista; f: Form
   switch (a.tipo) {
     case "whatsapp":
       return (
-        <a href={a.href} target="_blank" rel="noreferrer" className={`${clase} dd-wa`} data-patty="duenos-whatsapp">
+        <a href={a.href} target="_blank" rel="noopener noreferrer" className={`${clase} dd-wa`} data-patty="duenos-whatsapp">
           <IconoWhatsApp />
           {a.texto}
         </a>
       );
     case "anuncio":
-      return (
-        <a href={a.href} target="_blank" rel="noreferrer" className={clase}>
-          <IconoExterno />
-          {a.texto}
-        </a>
-      );
+      return <BotonE24 url={a.href} />;
     case "etapa":
       return f.etapa(d, a.estado, a.texto, principal);
     case "mis_casas":
@@ -337,53 +347,129 @@ function Accion({ a, d, f, principal }: { a: AccionDueno; d: DuenoVista; f: Form
   }
 }
 
+/** "Ver en Encuentra24": el anuncio en otra pestaña, con el nombre del sitio y el ícono de enlace externo. */
+export function BotonE24({ url }: { url: string }) {
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer" className="boton dd-e24" data-patty="duenos-ver-e24">
+      <span className="dd-e24-marca" aria-hidden>
+        E24
+      </span>
+      Ver en Encuentra24
+      <IconoExterno />
+      <span className="solo-lector"> (se abre en otra pestaña)</span>
+    </a>
+  );
+}
+
+/** "Por qué creemos que es el dueño": el medidor con su etiqueta y las razones a favor y en contra. */
+export function PorQueDueno({ d, id }: { d: DuenoVista; id: string }) {
+  const m = medidorConfianza(d.puntaje, d.esDueno);
+  const { aFavor, enContra } = d.razones;
+  return (
+    <section className="dd-porque" data-tono={m.tono} aria-labelledby={id}>
+      <div className="dd-porque-cabeza">
+        <h4 id={id}>Por qué creemos que es el dueño</h4>
+        <span className="dd-porque-etiqueta">
+          {m.etiqueta}
+          {m.pct !== null && <b> {m.pct} %</b>}
+        </span>
+      </div>
+      {m.pct !== null && (
+        <div className="dd-medidor" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={m.pct} aria-valuetext={`${m.etiqueta}, ${m.pct} %`} aria-labelledby={id}>
+          <i style={{ width: `${Math.max(3, m.pct)}%` }} />
+        </div>
+      )}
+      {(aFavor.length > 0 || enContra.length > 0) && (
+        <div className="dd-razones">
+          {aFavor.length > 0 && (
+            <div>
+              <span className="dd-razones-titulo">A favor</span>
+              <ul>
+                {aFavor.map((r) => (
+                  <li key={r} data-lado="pro">
+                    <span className="dd-razon-icono" aria-hidden>
+                      <IconoCheck tamano={14} />
+                    </span>
+                    {r}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {enContra.length > 0 && (
+            <div>
+              <span className="dd-razones-titulo">En contra / dudas</span>
+              <ul>
+                {enContra.map((r) => (
+                  <li key={r} data-lado="contra">
+                    <span className="dd-razon-icono" aria-hidden>
+                      <IconoAviso />
+                    </span>
+                    {r}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/**
+ * La tarjeta de un dueño. Jerarquía en Encontrados: lo principal es "Crear mensaje con Patty"; después "Ver en
+ * Encuentra24" (y WhatsApp si hay número); al final, chicos, "Ya le escribí" y "No es para mí". En las demás etapas lo
+ * principal es el paso de la etapa y Patty queda para escribirle otra vez.
+ */
 export function TarjetaDueno({
   d,
   etapa,
   principal,
   segunda,
   formularios,
+  instagram,
 }: {
   d: DuenoVista;
   etapa: EtapaDueno;
   principal: AccionDueno;
   segunda: AccionDueno;
   formularios: FormulariosDueno;
+  /** "Así se vería en tu Instagram" (con la foto y la marca), si hay foto. */
+  instagram?: React.ReactNode;
 }) {
-  const c = confianzaDueno(d.puntaje);
+  const nuevo = etapa === "nuevo";
+  const conPatty = nuevo || etapa === "contactado" || etapa === "respondio";
+  // En Encontrados, WhatsApp (si hay número) va como secundario y "Escribirle desde el anuncio" es "Ver en Encuentra24".
+  const whatsapp = nuevo && principal?.tipo === "whatsapp" ? principal : etapa === "contactado" && segunda?.tipo === "whatsapp" ? segunda : null;
+  const primera = nuevo ? null : principal;
+  const terciaria = nuevo ? segunda : null;
   return (
     <article className="dd-dueno" aria-labelledby={`dd-${d.id}`}>
-      <div className="dd-dueno-foto" aria-hidden>
-        <IconoCasa tamano={30} />
-      </div>
+      <FotosDueno fotos={d.fotos} titulo={d.titulo ?? "Casa"} />
       <div className="dd-dueno-cuerpo">
         <div className="dd-dueno-arriba">
           {d.precio ? <strong className="dd-dueno-precio">{d.precio}</strong> : <strong className="dd-dueno-precio suave">Sin precio</strong>}
           {d.cuando && <span className="dd-dueno-cuando">{d.cuando}</span>}
         </div>
         <h3 id={`dd-${d.id}`}>{d.titulo ?? "Casa"}</h3>
-        <ul className="dd-chips" aria-label="Por qué parece el dueño">
-          {d.zona && <li className="dd-chip zona">{d.zona}</li>}
-          <li className="dd-chip" data-tono={c.tono} title={d.puntaje !== null ? `${d.puntaje} de 100` : undefined}>
-            {c.texto}
-          </li>
-          {d.senales.slice(0, 3).map((s) => (
-            <li key={s} className="dd-chip senal">
-              {s}
-            </li>
-          ))}
-        </ul>
+        {d.zona && (
+          <ul className="dd-chips" aria-label="Zona">
+            <li className="dd-chip zona">{d.zona}</li>
+          </ul>
+        )}
+        <PorQueDueno d={d} id={`dd-pq-${d.id}`} />
         {d.quieto !== null && d.quieto >= 5 && etapa !== "publicada" && <p className="dd-quieto">Sin movimiento hace {d.quieto} días</p>}
         <div className="dd-dueno-acciones">
-          <Accion a={principal} d={d} f={formularios} principal />
-          <Accion a={segunda} d={d} f={formularios} principal={false} />
+          {nuevo ? formularios.patty(d, true) : <Accion a={primera} d={d} f={formularios} principal />}
+          <div className="dd-dueno-secundarias">
+            {!nuevo && conPatty && formularios.patty(d, false)}
+            <BotonE24 url={d.url} />
+            {whatsapp && <Accion a={whatsapp} d={d} f={formularios} principal={false} />}
+          </div>
         </div>
         <div className="dd-dueno-pie">
-          {principal?.tipo !== "anuncio" && (
-            <a href={d.url} target="_blank" rel="noreferrer" className="dd-enlace">
-              Ver anuncio
-            </a>
-          )}
+          {terciaria?.tipo === "etapa" && <div className="dd-terciaria">{formularios.etapa(d, terciaria.estado, terciaria.texto, false)}</div>}
           {etapa !== "publicada" && (
             <details className="dd-mas">
               <summary>No es para mí</summary>
@@ -391,6 +477,12 @@ export function TarjetaDueno({
             </details>
           )}
         </div>
+        {instagram && d.fotos.length > 0 && (
+          <details className="dd-insta-plegado">
+            <summary>Así se vería en tu Instagram</summary>
+            {instagram}
+          </details>
+        )}
       </div>
     </article>
   );

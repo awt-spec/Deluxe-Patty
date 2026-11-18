@@ -11,7 +11,8 @@ export type TipoGuardado = "estrategia" | "pauta" | "fotos";
 export const claveEstratega = (corredorId: string, casaId: string, tipo: TipoGuardado) => `redes-estratega:${corredorId}:${casaId}:${tipo}`;
 
 const MAX_MARKDOWN = 40_000;
-const fechaValida = (x: unknown): x is string => esTexto(x) && !Number.isNaN(Date.parse(x));
+const medida = (x: unknown) => (typeof x === "number" && Number.isInteger(x) && x > 0 && x < 50_000 ? x : null);
+const fechaValida =(x: unknown): x is string => esTexto(x) && !Number.isNaN(Date.parse(x));
 
 export interface EstrategiaGuardada {
   fecha: string;
@@ -55,8 +56,12 @@ export function fotosGuardadas(v: unknown, fotosDeHoy: FotoParaAnalisis[]): Foto
     .filter(esObjeto)
     .map((a) => ({ a, f: esTexto(a.url) ? porUrl.get(a.url) : undefined }))
     .filter((x): x is { a: Record<string, unknown>; f: FotoParaAnalisis } => !!x.f)
-    .map(({ a, f }) => ({ ...a, foto: f.id, notas: undefined, ...(esObjeto(a.notas) ? a.notas : {}) }));
-  const analisis = revisarAnalisis(crudo, fotosDeHoy);
+    .map(({ a, f }) => ({ a, f: { ...f, ancho: medida(a.ancho), alto: medida(a.alto) } }));
+  const analisis = revisarAnalisis(
+    crudo.map(({ a, f }) => ({ ...a, foto: f.id, ...(esObjeto(a.notas) ? a.notas : {}) })),
+    // El tamaño lo midió el servidor al analizar (la página no lo sabe): se conserva para elegir las portadas.
+    crudo.map(({ f }) => f),
+  );
   if (!analisis.length) return null;
   return { fecha: v.fecha, analisis, comentario: esTexto(v.comentario) ? v.comentario.slice(0, 400) : "", demo: v.demo === true };
 }
