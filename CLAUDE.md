@@ -101,7 +101,16 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   por qué, `accionLeer`), la semanal como interruptor y el último resultado en tarjeta chica; ilustraciones SVG del paquete
   (`ilustra-*.svg`). Tarjeta **Energía de Patty** (`vistaEnergia`): batería y %, desde el campo `tokens` de `GET /api/extension/estado`
   (con `pct_restante`; pedido `ver_tokens` al abrir el panel y de nuevo al terminar cada búsqueda), verde, ámbar con ≤ 15 % o rojo
-  "se quedó sin energía"; sin datos o sin tope no se muestra (1.5.1). La píldora, la ficha de pausa y la etiqueta del cursor de `control.js` van como vidrio.
+  "se quedó sin energía"; sin datos o sin tope no se muestra (1.5.1). La 1.5.2 suma `semanal` al mensaje "presente" del canal (si busca sola cada semana).
+  **En el panel**, Dueños directos (`app/panel/duenos/`, forma en `vistas.tsx`, estilos `duenos.css`) abre con la tarjeta de la
+  extensión (`estado-extension.tsx`; reglas puras en `lib/panel/extension-hero.ts`): palabra de estado, instalada / al día /
+  conectada / semanal, última búsqueda con los dueños que trajo, la próxima, Energía de Patty y UNA acción (`accionHero`:
+  Instalar, Actualizar a X, Conectar, Buscar dueños ahora o Abrir Encuentra24); con una búsqueda viva muestra anillo, paso,
+  tiempo, Pausar/Seguir/Detener y los últimos pasos (`useBusquedaEnVivo`, `sumarPaso`). Debajo, el embudo con conversión
+  (`lib/panel/duenos.ts`: `embudoDuenos`, `accionesDueno`) y tarjetas con una acción por etapa; en Encontrados,
+  "Escribirle por WhatsApp" abre wa.me con un primer mensaje amable (`mensajeParaDueno`) que manda el corredor. Corredores
+  conocidos tiene buscador (`filtrarConocidos`). El asistente de instalación ofrece "¿Ya la tenías? Actualizarla" y muestra
+  "Tienes la X → Nueva: Y". La píldora, la ficha de pausa y la etiqueta del cursor de `control.js` van como vidrio.
   El worker con Playwright (`worker/busqueda-duenos.ts`, `npm run duenos` con Chrome visible) usa el mismo
   recorrido y evaluación (`lib/encuentra24/busqueda.ts`) y queda para soporte;
   `.github/workflows/busqueda-duenos.yml` solo para pruebas a mano.

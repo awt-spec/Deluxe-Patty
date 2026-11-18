@@ -146,7 +146,7 @@ export function useExtension(o: OpcionesExtension) {
       }
       // El estado de la búsqueda lo lee BusquedaEnVivo.
       if (m.tipo !== "presente") return;
-      setDeteccion({ estado: "si", version: m.version, conectada: m.conectada, corredor: m.corredor });
+      setDeteccion({ estado: "si", version: m.version, conectada: m.conectada, corredor: m.corredor, semanal: m.semanal });
       const op = opciones.current;
       const falta = !m.conectada || !op.servidor.conectada;
       if (op.autoconectar && !op.demo && falta && !intentoAuto.current) {
@@ -184,5 +184,7 @@ export function useExtension(o: OpcionesExtension) {
 
   /** La versión que tiene instalada este navegador (para contar qué trae la nueva), o null si no se ve. */
   const instalada = deteccion.estado === "si" ? deteccion.version : null;
-  return { estado, conexion, conectar, instalada };
+  /** Si busca sola cada semana (desde la 1.5.2; null si no se sabe). */
+  const semanal = deteccion.estado === "si" ? (deteccion.semanal ?? null) : null;
+  return { estado, conexion, conectar, instalada, vista: deteccion.estado === "si", semanal };
 }

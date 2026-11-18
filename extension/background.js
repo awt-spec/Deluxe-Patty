@@ -774,9 +774,11 @@ chrome.runtime.onMessage.addListener((mensaje, remitente, responder) => {
   if (de === "panel") {
     if (m.tipo === "panel_estado") {
       return conRespuesta(
-        chrome.storage.local.get(["token", "corredor"]).then(({ token, corredor }) => ({
+        chrome.storage.local.get(["token", "corredor", "buscarSola"]).then(({ token, corredor, buscarSola }) => ({
           conectada: !!token,
           corredor: token && typeof corredor === "string" ? corredor : "",
+          // Desde la 1.5.2: el panel muestra si la búsqueda sola de cada semana está encendida.
+          semanal: buscarSola !== false,
         })),
       );
     }

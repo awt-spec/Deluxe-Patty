@@ -1,15 +1,13 @@
-import { Volver } from "../../volver";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { Aviso } from "../../aviso";
+import { IconoPersonas } from "../../iconos";
+import { EncabezadoPagina, Vacio } from "../../piezas";
 import { agregarCorredores, quitarCorredor } from "./acciones";
+import { ListaConocidos, type Conocido } from "./lista";
+import "../duenos.css";
 
-type Conocido = {
-  id: string;
-  nombre: string | null;
-  telefono: string | null;
-  empresa: string | null;
-  anunciante_e24_id: string | null;
-};
+// Corredores conocidos: sus anuncios no salen como dueños directos. Arriba la lista con su buscador; agregar va
+// plegado (abierto si todavía no hay ninguno). Se lee y se guarda con la sesión del corredor (RLS).
 
 export default async function CorredoresConocidos({ searchParams }: { searchParams: Promise<{ aviso?: string }> }) {
   const { aviso } = await searchParams;
@@ -23,44 +21,35 @@ export default async function CorredoresConocidos({ searchParams }: { searchPara
   const lista = (data ?? []) as Conocido[];
 
   return (
-    <>
-      <Volver href="/panel/duenos" texto="Dueños" />
-      <header className="encabezado">
-        <h1>Corredores conocidos</h1>
-      </header>
+    <div className="dd-pagina cc-pagina">
+      <EncabezadoPagina
+        titulo="Corredores conocidos"
+        apoyo="Sus anuncios no aparecen en Dueños directos. Se agregan solos cuando marcas un anuncio como «Es corredor»."
+        atras={{ href: "/panel/duenos", texto: "Dueños directos" }}
+      />
       <Aviso texto={aviso} />
-      <p className="suave">
-        Sus anuncios no aparecen en la lista semanal de dueños directos. También se agregan solos cuando marcas un anuncio
-        como “Es corredor”.
-      </p>
 
-      <form action={agregarCorredores} className="pila tarjeta">
-        <label htmlFor="lista">Pega la lista: uno por línea, con nombre, teléfono o ambos</label>
-        <textarea id="lista" name="lista" rows={6} placeholder={"María Solís, 8888-1234, RE/MAX\n7000-1111\nInmobiliaria del Oeste"} />
-        <button type="submit" className="primario">
-          Agregar
-        </button>
-      </form>
-
-      <h2>
-        {lista.length} {lista.length === 1 ? "corredor" : "corredores"}
-      </h2>
-      {lista.map((c) => (
-        <form key={c.id} action={quitarCorredor} className="tarjeta fila">
-          <div style={{ minWidth: 0 }}>
-            <strong>{c.nombre ?? c.telefono ?? "Cuenta de Encuentra24"}</strong>
-            <p className="suave">
-              {[c.nombre ? c.telefono : null, c.empresa, c.anunciante_e24_id ? "marcado desde un anuncio" : null]
-                .filter(Boolean)
-                .join(" · ")}
-            </p>
-          </div>
-          <input type="hidden" name="id" value={c.id} />
-          <button type="submit" className="chico peligro">
-            Quitar
+      <details className="cc-agregar" open={lista.length === 0}>
+        <summary>Agregar corredores</summary>
+        <form action={agregarCorredores} className="pila">
+          <label htmlFor="lista">Pega la lista: uno por línea, con nombre, teléfono o ambos</label>
+          <textarea id="lista" name="lista" rows={5} placeholder={"María Solís, 8888-1234, RE/MAX\n7000-1111\nInmobiliaria del Oeste"} />
+          <button type="submit" className="primario">
+            Agregar
           </button>
         </form>
-      ))}
-    </>
+      </details>
+
+      {lista.length === 0 ? (
+        <Vacio Icono={IconoPersonas} titulo="Todavía no hay corredores conocidos">
+          Agrega los que conoces, o toca «Es corredor» en un anuncio de Dueños directos: así no vuelven a salir.
+        </Vacio>
+      ) : (
+        <ListaConocidos
+          lista={lista}
+          quitar={quitarCorredor}
+        />
+      )}
+    </div>
   );
 }

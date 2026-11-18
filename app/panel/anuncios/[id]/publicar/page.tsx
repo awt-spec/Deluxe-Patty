@@ -1,4 +1,5 @@
 import Link from "next/link";
+import manifiesto from "@/extension/manifest.json";
 import { notFound } from "next/navigation";
 import { enlaceWhatsApp } from "@/lib/anuncios/atribucion";
 import type { Foto } from "@/lib/datos/tipos";
@@ -146,22 +147,31 @@ export default async function Publicar({ params }: { params: Promise<{ id: strin
         <>
           <ol className="pap-subpasos">
             <li>
-              En Chrome de tu computadora, abre <strong>tu anuncio ya publicado</strong>.
+              En Chrome de tu computadora, abre <strong>tu anuncio ya publicado</strong> en Encuentra24.
             </li>
             <li>
-              Toca la <strong>pieza de rompecabezas</strong> de arriba a la derecha, luego <strong>Buscador de dueños</strong> y{" "}
-              <strong>Leer este anuncio</strong>.
+              Toca el ícono de <strong>Buscador de dueños</strong> arriba a la derecha (si no lo ves, está en la <strong>pieza de rompecabezas</strong>):
+              se abre el panel de {asistente} al lado de la página.
+            </li>
+            <li>
+              Ahí toca <strong>Leer este anuncio</strong>. {asistente} encuentra la referencia {a.referencia} y lo marca como publicado.
             </li>
           </ol>
           {extension ? (
-            <p className="pap-nota pap-nota-verde">Tu extensión está conectada.</p>
+            <p className="pap-nota pap-nota-verde">
+              Tu extensión está conectada. Si no ves el panel al lado, actualízala a la versión {manifiesto.version}:{" "}
+              <a href="/panel/duenos/extension" data-patty="anuncio-instalar-extension">
+                cómo actualizarla
+              </a>
+              .
+            </p>
           ) : (
             <p className="pap-nota pap-nota-ambar">
               {demo ? "En la demo no hay extensión conectada." : "Todavía no tienes la extensión conectada."}{" "}
-              <Link href="/panel/duenos/extension" data-patty="anuncio-instalar-extension">
+              <a href="/panel/duenos/extension" data-patty="anuncio-instalar-extension">
                 Instálala paso a paso
-              </Link>
-              .
+              </a>{" "}
+              (una sola vez, en tu computadora).
             </p>
           )}
           <p className="pap-instruccion">Cuando la leas, esta página se da cuenta sola y sigue.</p>
@@ -171,6 +181,7 @@ export default async function Publicar({ params }: { params: Promise<{ id: strin
       ayuda: [
         { p: "La extensión dice que no es un anuncio tuyo", r: <>Revisa que la descripción publicada tenga el enlace de WhatsApp con la referencia {a.referencia}.</> },
         { p: "Lo publiqué desde el teléfono", r: <>Está bien: después ábrelo en Chrome de tu computadora para leerlo.</> },
+        { p: "No veo «Leer este anuncio»", r: <>Aparece solo en la página de un anuncio. Si la extensión abre una ventanita en vez del panel al lado, es una versión anterior: actualízala.</> },
       ],
     },
   ];

@@ -1,26 +1,30 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { sumarPaso, type PasoVivo } from "@/lib/panel/extension-hero";
 import {
   busquedaEnCurso,
   CANAL,
+  ORDENES_BUSQUEDA,
   leerMensajeDeExtension,
-  textoBusqueda,
   type EstadoBusquedaExt,
   type OrdenBusqueda,
 } from "@/lib/panel/extension-instalar";
-import "./busqueda.css";
 
-// La búsqueda de dueños en vivo, desde el panel: "Buscando ahora · página 3 de 12" con Pausar/Seguir y Detener, o
-// "Buscar ahora" cuando no está corriendo. Habla con la extensión por el mismo canal de la instalación (window.postMessage
-// a esta misma ventana y origen; el content script extension/panel.js valida y pasa la orden). La página solo puede
-// pedir estado, pausar, seguir, detener o buscar, sin parámetros.
+// La búsqueda de dueños en vivo, desde el panel, como en el panel lateral de la extensión: anillo de avance, lo que
+// está haciendo, el tiempo que falta, Pausar / Seguir / Detener y una línea con los últimos pasos (la arma la página
+// con lo que la extensión dice en cada consulta). Habla con la extensión por el mismo canal de la instalación
+// (window.postMessage a esta misma ventana y origen; el content script extension/panel.js valida y pasa la orden). La
+// página solo puede pedir estado, pausar, seguir, detener o buscar, sin parámetros; lo que vuelve se valida en
+// leerMensajeDeExtension. La forma está en vistas.tsx (VistaEnVivo).
 
 const CADA_MS = 2500;
 /** Un resultado (terminada, detenida, error) se sigue mostrando un rato. */
 const RESULTADO_MS = 30 * 60_000;
 
 function pedir(orden: OrdenBusqueda): Promise<EstadoBusquedaExt | null> {
+  // Solo las órdenes conocidas (la extensión las vuelve a validar).
+  if (!ORDENES_BUSQUEDA.includes(orden)) return Promise.resolve(null);
   const origen = window.location.origin;
   const pedido = `b${Math.random().toString(36).slice(2, 10)}`;
   return new Promise((resolver) => {
@@ -40,98 +44,67 @@ function pedir(orden: OrdenBusqueda): Promise<EstadoBusquedaExt | null> {
   });
 }
 
-export function BusquedaEnVivo({ asistente }: { asistente: string }) {
+export interface BusquedaViva {
+  estado: EstadoBusquedaExt | null;
+  /** Hay una búsqueda corriendo (o en pausa) en este navegador. */
+  enCurso: boolean;
+  /** Lo que terminó hace poco (terminada, detenida o error), para mostrarlo un rato. */
+  resultado: { texto: string; error: boolean } | null;
+  pasos: PasoVivo[];
+  ocupado: OrdenBusqueda | null;
+  ordenar: (o: OrdenBusqueda) => Promise<void>;
+}
+
+/** Consulta la búsqueda cada 2,5 s con la pestaña a la vista. Sin `activo` (no conectada o sin extensión) no pregunta. */
+export function useBusquedaEnVivo(activo: boolean): BusquedaViva {
   const [estado, setEstado] = useState<EstadoBusquedaExt | null>(null);
   const [ocupado, setOcupado] = useState<OrdenBusqueda | null>(null);
   const [ahora, setAhora] = useState(0);
+  const [pasos, setPasos] = useState<PasoVivo[]>([]);
   const vivo = useRef(true);
 
-  const mirar = useCallback(async () => {
-    const e = await pedir("estado");
+  const recibir = useCallback((e: EstadoBusquedaExt | null) => {
     if (!vivo.current) return;
+    const t = Date.now();
     setEstado(e);
-    setAhora(Date.now());
+    setAhora(t);
+    if (e && busquedaEnCurso(e, t)) setPasos((p) => sumarPaso(p, e.fase === "buscando" ? e.haciendo : "", t));
   }, []);
 
   useEffect(() => {
+    if (!activo) return;
     vivo.current = true;
-    const primera = setTimeout(() => void mirar(), 0);
+    const primera = setTimeout(() => void pedir("estado").then(recibir), 0);
     const t = setInterval(() => {
-      if (document.visibilityState === "visible") void mirar();
+      if (document.visibilityState === "visible") void pedir("estado").then(recibir);
     }, CADA_MS);
     return () => {
       vivo.current = false;
       clearTimeout(primera);
       clearInterval(t);
     };
-  }, [mirar]);
+  }, [activo, recibir]);
 
-  async function ordenar(orden: OrdenBusqueda) {
-    setOcupado(orden);
-    const e = await pedir(orden);
-    if (e) {
-      setEstado(e);
-      setAhora(Date.now());
-    }
-    setOcupado(null);
-  }
-
-  // Sin respuesta (versión anterior o la extensión se recargó): no se muestra nada.
-  if (!estado || !ahora) return null;
-  const enCurso = busquedaEnCurso(estado, ahora);
-
-  if (enCurso) {
-    const t = textoBusqueda(estado);
-    const avance = estado.total ? Math.min(100, Math.round((estado.pagina / estado.total) * 100)) : 0;
-    return (
-      <div className="busq-vivo" data-fase={estado.fase} role="status" aria-live="polite" data-patty="duenos-busqueda">
-        <span className="busq-vivo-punto" aria-hidden />
-        <div className="busq-vivo-texto">
-          <strong>{t.titulo}</strong>
-          {t.detalle && <span>{t.detalle}</span>}
-          {estado.total > 0 && (
-            <span className="busq-vivo-barra" aria-hidden>
-              <span style={{ width: `${avance}%` }} />
-            </span>
-          )}
-        </div>
-        <div className="busq-vivo-acciones">
-          {estado.fase === "buscando" && (
-            <button type="button" onClick={() => void ordenar("pausar")} disabled={!!ocupado} data-patty="duenos-pausar">
-              Pausar
-            </button>
-          )}
-          {(estado.fase === "pausada" || estado.fase === "verificacion") && (
-            <button type="button" className="primario" onClick={() => void ordenar("seguir")} disabled={!!ocupado} data-patty="duenos-seguir">
-              Seguir
-            </button>
-          )}
-          {estado.fase !== "revisando" && (
-            <button type="button" className="peligro" onClick={() => void ordenar("detener")} disabled={!!ocupado} data-patty="duenos-detener">
-              {ocupado === "detener" ? "Deteniendo…" : "Detener"}
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  const reciente = ["terminada", "detenida", "error"].includes(estado.fase) && estado.mensaje && ahora - estado.latido < RESULTADO_MS;
-  return (
-    <div className="busq-vivo busq-vivo-lista">
-      {reciente && (
-        <p className={estado.fase === "error" ? "aviso" : "suave"} role="status">
-          {estado.mensaje}
-        </p>
-      )}
-      <div className="busq-vivo-fila">
-        <button type="button" className="primario" onClick={() => void ordenar("buscar")} disabled={!!ocupado} data-patty="duenos-buscar-ahora">
-          {ocupado === "buscar" ? "Abriendo Encuentra24…" : "Buscar ahora"}
-        </button>
-        <span className="suave">
-          Se abre una pestaña de Encuentra24 y verás a {asistente} trabajar. La puedes pausar o detener cuando quieras.
-        </span>
-      </div>
-    </div>
+  const ordenar = useCallback(
+    async (orden: OrdenBusqueda) => {
+      setOcupado(orden);
+      if (orden === "buscar") setPasos([]);
+      const e = await pedir(orden);
+      if (e) recibir(e);
+      setOcupado(null);
+    },
+    [recibir],
   );
+
+  const enCurso = !!estado && !!ahora && busquedaEnCurso(estado, ahora);
+  const reciente =
+    !!estado && !enCurso && ["terminada", "detenida", "error"].includes(estado.fase) && !!estado.mensaje && ahora - estado.latido < RESULTADO_MS;
+  return {
+    estado,
+    enCurso,
+    resultado: reciente && estado ? { texto: estado.mensaje, error: estado.fase === "error" } : null,
+    pasos,
+    ocupado,
+    ordenar,
+  };
 }

@@ -11,6 +11,8 @@ const DIA = 24 * 60 * 60_000;
 export async function estadoDelServidor({ supabase, corredor }: Sesion): Promise<{
   conectada: boolean;
   ultimaBusquedaDias: number | null;
+  /** Fecha (ISO) de la última búsqueda terminada, o null. */
+  ultimaBusqueda: string | null;
   demo: boolean;
   corredor: string;
   /** Nombre de la asistente (el que se ve en la barra sobre Encuentra24). */
@@ -26,12 +28,16 @@ export async function estadoDelServidor({ supabase, corredor }: Sesion): Promise
     .limit(1);
   const conectada = !demo && (conexiones?.length ?? 0) > 0;
   let ultimaBusquedaDias: number | null = null;
-  if (conectada) {
+  let ultimaBusqueda: string | null = null;
+  if (!demo) {
     // La última búsqueda vive en alertas (solo el backend la lee): se consulta filtrando por el corredor de la sesión.
     const ultima = await crearAlmacenExtension(createAdminClient())
       .ultimaBusqueda(corredor.id)
       .catch(() => null);
-    if (ultima) ultimaBusquedaDias = Math.max(0, Math.floor((Date.now() - ultima.getTime()) / DIA));
+    if (ultima) {
+      ultimaBusquedaDias = Math.max(0, Math.floor((Date.now() - ultima.getTime()) / DIA));
+      ultimaBusqueda = ultima.toISOString();
+    }
   }
-  return { conectada, ultimaBusquedaDias, demo, corredor: corredor.nombre ?? "", asistente: corredor.nombre_asistente?.trim() || "Patty" };
+  return { conectada, ultimaBusquedaDias, ultimaBusqueda, demo, corredor: corredor.nombre ?? "", asistente: corredor.nombre_asistente?.trim() || "Patty" };
 }
