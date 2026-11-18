@@ -13,7 +13,7 @@ export const fotoCarpeta = (carpeta: string, n: number) => `${base}/${carpeta}%2
 
 type CasaExportada = CasaSitio & { id: string; slug: string; parqueos: number | null; video_url: string | null };
 
-const comun = {
+const comun = () => ({
   descripcion: { es: "Casa de prueba.", en: "Test home." },
   destacados: null,
   operacion: "sale",
@@ -28,19 +28,19 @@ const comun = {
   parqueos: 2,
   m2_construccion: 500,
   m2_terreno: 800,
-  amenidades: ["pool"],
+  amenidades: ["pool"] as string[],
   video_url: null,
   url_e24: null,
   estado: "available",
   oculta: false,
-} as const;
+});
 
 export function exportacionReal(): { generado: string; propiedades: CasaExportada[] } {
   return {
     generado: "2026-11-18T00:00:00.000Z",
     propiedades: [
       {
-        ...comun,
+        ...comun(),
         codigo: "DP-AAAAA1",
         id: "lindora-prueba-2200k",
         slug: "casa-prueba-lindora",
@@ -50,7 +50,7 @@ export function exportacionReal(): { generado: string; propiedades: CasaExportad
         imagenes: Array.from({ length: 35 }, (_, i) => fotoSemilla("lindora", i + 1)),
       },
       {
-        ...comun,
+        ...comun(),
         codigo: "DP-AAAAA2",
         id: "00000000-0000-4000-8000-0000000000a2",
         slug: "casa-prueba-malinches",
@@ -60,7 +60,7 @@ export function exportacionReal(): { generado: string; propiedades: CasaExportad
         imagenes: Array.from({ length: 25 }, (_, i) => fotoCarpeta("malinches", i + 1)),
       },
       {
-        ...comun,
+        ...comun(),
         codigo: "DP-AAAAA3",
         id: "00000000-0000-4000-8000-0000000000a3",
         slug: "31000000-venta-prueba-santa-ana",
@@ -71,7 +71,7 @@ export function exportacionReal(): { generado: string; propiedades: CasaExportad
         imagenes: [],
       },
       {
-        ...comun,
+        ...comun(),
         codigo: "DP-AAAAA4",
         id: "00000000-0000-4000-8000-0000000000a4",
         slug: "32000000-alquiler-prueba-escazu",

@@ -440,8 +440,11 @@ direcciones públicas con CORS abierto (los datos son públicos) y el corredor i
 - **Importación cada 10 minutos** (`lib/sitio/importar.ts`, cron `/api/cron/sitio`; solo escribe lo que cambió): lee la exportación JSON del sitio
   (`fuentesSitio()`: Deluxe → función `exportar-propiedades` de su Supabase; otras con `SITIO_FUENTES`) y crea o pone al
   día cada casa por su código del sitio (`DP-XXXXXX`, el sitio manda en esas casas: los destacados van en la descripción),
-  copia las fotos al bucket propio (solo del servidor de la exportación, 80 por vuelta, `fotos[i].fuente`) y quita las que
-  allá ya no están; vendida allá → vendida/alquilada; oculta o desaparecida → pausada; borra las de ejemplo (`EJEMPLO-*`).
+  copia las fotos al bucket propio y quita las que allá ya no están (`fotosDeCasa`: solo Storage público del mismo proyecto
+  —`<ref>.supabase.co` o `<ref>.storage.supabase.co`, https, sin puerto ni `..`—; acepta la dirección transformada
+  `/render/image/` y la llave `bucket/archivo`; hasta 60 por casa en su orden, 80 por vuelta, `fotos[i].fuente`; el registro
+  `importar_sitio_fotos` deja solo cuentas). Las casas que el sitio trae de Encuentra24 llegan con `imagenes: []` porque en
+  su base no tienen fotos, y el sitio tampoco las muestra (filtra las que no tienen): se arregla subiéndoles fotos allá; vendida allá → vendida/alquilada; oculta o desaparecida → pausada; borra las de ejemplo (`EJEMPLO-*`).
   Las casas hechas en el portal no se tocan, y las importadas no se devuelven al sitio en `GET casas`.
 - **Modo corredor** (`lib/sitio/modo-corredor.ts`, botón en la ficha de la casa): enlace `<sitio>/share/<slug>` de la casa sin los
   datos de contacto del corredor, para pasarlo a otro corredor. Solo en casas del sitio (`DP-XXXXXX`, activas); el slug se lee de

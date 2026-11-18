@@ -200,11 +200,13 @@ export function fotosDeCasa(lista: unknown, hostExportacion: string): string[] {
   const vistas = new Set<string>();
   for (const item of Array.isArray(lista) ? lista : []) {
     const crudo = typeof item === "string" ? item.trim() : null;
-    if (!crudo || crudo.length > 1000) continue;
+    // Nada de subir carpetas, ni a la vista ni codificado (el lector de direcciones las resuelve en silencio).
+    if (!crudo || crudo.length > 1000 || crudo.includes("..") || /%2e/i.test(crudo) || crudo.includes("\\")) continue;
     let url: string | null = null;
     if (/^https:\/\//i.test(crudo)) {
       try {
         const u = new URL(crudo);
+        if (u.username || u.password || u.port) continue;
         const camino = u.pathname.startsWith(TRANSFORMADA) ? PUBLICA + u.pathname.slice(TRANSFORMADA.length) : u.pathname;
         url = `https://${u.host}${camino}`;
       } catch {

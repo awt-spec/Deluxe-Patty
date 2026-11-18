@@ -73,7 +73,18 @@ export type TurnoGuardado = {
   png?: string | null;
   casa?: string[];
   id?: string;
+  /** Fotos que se subieron al sitio web desde el chat (direcciones del sitio) y el enlace de la casa allá. */
+  sitio?: { fotos: string[]; url: string | null };
 };
+
+const esHttps = (x: unknown): x is string => typeof x === "string" && x.length <= 1000 && /^https:\/\/[^\s"'<>]+$/.test(x);
+
+/** El resultado de un envío al sitio: solo direcciones https (se muestran como imagen y enlace). */
+function sitioValido(s: unknown): TurnoGuardado["sitio"] | null {
+  if (!esObjeto(s) || !Array.isArray(s.fotos) || s.fotos.length > 12 || !s.fotos.every(esHttps)) return null;
+  if (!(s.url === null || s.url === undefined || esHttps(s.url))) return null;
+  return { fotos: s.fotos as string[], url: (s.url ?? null) as string | null };
+}
 
 function adjuntoValido(a: unknown): AdjuntoGuardado | null {
   if (!esObjeto(a) || !["imagen", "pdf", "texto"].includes(a.tipo as string) || !esTexto(a.nombre)) return null;
@@ -89,6 +100,8 @@ export function turnoValido(t: unknown): TurnoGuardado | null {
   if (!opcional(t.adjuntos, Array.isArray) || !opcional(t.casa, (c) => Array.isArray(c) && c.every(esTexto))) return null;
   const adjuntos = Array.isArray(t.adjuntos) ? t.adjuntos.map(adjuntoValido) : undefined;
   if (adjuntos?.some((a) => a === null)) return null;
+  const sitio = t.sitio === undefined ? undefined : sitioValido(t.sitio);
+  if (sitio === null) return null;
   const hora = esTexto(t.hora) && !Number.isNaN(Date.parse(t.hora)) ? t.hora : undefined;
   return {
     autor: t.autor,
@@ -99,6 +112,7 @@ export function turnoValido(t: unknown): TurnoGuardado | null {
     ...(t.png !== undefined ? { png: t.png as string | null } : {}),
     ...(t.casa ? { casa: t.casa as string[] } : {}),
     ...(esTexto(t.id) ? { id: t.id } : {}),
+    ...(sitio ? { sitio } : {}),
   };
 }
 
