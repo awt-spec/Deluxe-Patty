@@ -39,6 +39,12 @@ beforeEach(() => {
       },
       { id: ID.casaAjena, corredor_id: ID.otro, codigo: "X-1", titulo: "Ajena", zona: null, estado: "activa", created_at: "2026-11-01", fotos: [] },
     ],
+    corredores: [{ id: ID.deluxe, slug: "deluxe-properties" }],
+    leads_duenos: [
+      { id: "l1", corredor_id: ID.deluxe, es_dueno: true, titulo: "Casa en Santa Ana", zona: "Santa Ana", precio: 300000, moneda: "USD", url: "https://www.encuentra24.com/x", foto_url: "https://img.encuentra24.com/1.jpg", estado_contacto: "nuevo", created_at: new Date().toISOString() },
+      { id: "l2", corredor_id: ID.deluxe, es_dueno: true, titulo: "Lote", zona: null, precio: null, moneda: null, url: "https://malo.com/x", foto_url: null, estado_contacto: "contactado", created_at: "2026-01-01T00:00:00Z" },
+      { id: "l3", corredor_id: ID.otro, es_dueno: true, titulo: "Ajeno", zona: null, precio: null, moneda: null, url: null, foto_url: null, estado_contacto: "nuevo", created_at: new Date().toISOString() },
+    ],
   });
   estado.sesion = {
     corredor: { id: ID.deluxe, activo: true, nombre: "Deluxe" },
@@ -70,5 +76,19 @@ describe("herramientas del chat de Patty", () => {
     const r = await acciones.fichaDeCasaPatty(ID.casa);
     expect(r).toEqual({ ok: true, url: "https://x/ficha.pdf", nombre: "Ficha.pdf" });
     expect(ficha.mock.calls[0][2]).toBe("P-001");
+  });
+});
+
+describe("revisar casas y dueños", () => {
+  it("revisa solo las casas propias", async () => {
+    const r = await acciones.revisarCasasPatty();
+    expect(r.ok && r.pendientes.map((p) => p.casa.id)).toEqual([ID.casa]);
+  });
+
+  it("los dueños son solo los propios, sin escribirles primero, y enlaces solo de Encuentra24", async () => {
+    const r = await acciones.duenosPatty();
+    expect(r).toMatchObject({ ok: true, sinEscribir: 1, ultimaSemana: 1 });
+    expect(r.ok && r.recientes.map((d) => d.id)).toEqual(["l1"]);
+    expect(r.ok && r.recientes[0].url).toBe("https://www.encuentra24.com/x");
   });
 });

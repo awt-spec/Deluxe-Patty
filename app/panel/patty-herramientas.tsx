@@ -12,6 +12,7 @@ import {
   type Herramienta,
 } from "@/lib/panel/herramientas-patty";
 import { casasParaPatty, fichaDeCasaPatty, fotosDeCasaPatty } from "./patty-herramientas-acciones";
+import { mejorarFotoRedes } from "./propiedades/[id]/redes/acciones";
 import { IconoCasa, IconoDocumento } from "./iconos";
 import "./patty-herramientas.css";
 
@@ -22,6 +23,7 @@ type Resultado =
   | { tipo: "fotos"; fotos: string[] }
   | { tipo: "ficha"; url: string; nombre: string }
   | { tipo: "diseno" }
+  | { tipo: "mejorar"; fotos: string[] }
   | null;
 
 export type FinHerramienta = { texto: string };
@@ -43,6 +45,8 @@ export function TarjetaHerramienta({
   const [resultado, setResultado] = useState<Resultado>(null);
   const [trabajando, setTrabajando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
+  // Mejorar con IA, foto por foto: la original → la mejorada (o "trabajando").
+  const [mejoradas, setMejoradas] = useState<Record<string, string | "trabajando">>({});
 
   /** Elige casa y herramienta: lo de diseño se ve en el acto; fotos y ficha se piden al servidor. */
   function elegir(c: CasaHerramienta | null, q: Herramienta) {
@@ -60,7 +64,7 @@ export function TarjetaHerramienta({
     pedido
       .then((r) => {
         if (!r.ok) return setAviso(r.motivo);
-        if ("fotos" in r) setResultado({ tipo: "fotos", fotos: r.fotos });
+        if ("fotos" in r) setResultado(q === "mejorar" ? { tipo: "mejorar", fotos: r.fotos } : { tipo: "fotos", fotos: r.fotos });
         else setResultado({ tipo: "ficha", url: r.url, nombre: r.nombre });
       })
       .catch(() => setAviso("No se pudo. Revisa la conexión e inténtalo de nuevo."))
@@ -93,12 +97,32 @@ export function TarjetaHerramienta({
     const hecho =
       que === "fotos"
         ? `Te mostré las fotos de **${casa.titulo}** (${casa.codigo}).`
-        : que === "ficha"
+        : que === "mejorar"
+          ? `Mejoré ${Object.values(mejoradas).filter((m) => m !== "trabajando").length} fotos de **${casa.titulo}**. Quedan junto a las originales: revísalas en la casa antes de publicarlas.`
+          : que === "ficha"
           ? `Armé la ficha PDF de **${casa.titulo}** (${casa.codigo}).`
           : que === "video"
             ? `El video de **${casa.titulo}** está en el estudio. [Abrir el video](${rutaEstudio(casa.id, "video")})`
             : `Armé ${que === "post" ? "el post" : "la historia"} de **${casa.titulo}** (${casa.codigo}). [Abrir el estudio](${rutaEstudio(casa.id, "imagen")})`;
     alTerminar({ texto: `${hecho} ${ver}` });
+  }
+
+  /** La misma mejora de la casa (la original nunca se reemplaza); cada foto se paga una vez. */
+  async function mejorarUna(url: string) {
+    if (!casa || mejoradas[url]) return;
+    setAviso(null);
+    setMejoradas((m) => ({ ...m, [url]: "trabajando" }));
+    try {
+      const r = await mejorarFotoRedes(casa.id, url);
+      if (r.ok) setMejoradas((m) => ({ ...m, [url]: r.url }));
+      else {
+        setAviso(r.motivo);
+        setMejoradas(({ [url]: _, ...resto }) => resto);
+      }
+    } catch {
+      setAviso("No pude mejorar la foto ahora. Inténtalo de nuevo en un rato.");
+      setMejoradas(({ [url]: _, ...resto }) => resto);
+    }
   }
 
   async function compartirFotos(urls: string[]) {
@@ -192,6 +216,38 @@ export function TarjetaHerramienta({
                   <button type="button" className="ph-principal" onClick={() => void compartirFotos(resultado.fotos)}>
                     Compartir o descargar las {resultado.fotos.length}
                   </button>
+                </div>
+              </>
+            ))}
+
+          {resultado?.tipo === "mejorar" &&
+            (resultado.fotos.length === 0 ? (
+              <p className="ph-suave">Esta casa no tiene fotos todavía. Súbelas en la casa.</p>
+            ) : (
+              <>
+                <p className="ph-suave">Toca «Mejorar» en las que quieras: más luz y color, sin cambiar nada de la casa. Revisa cada una antes de publicarla.</p>
+                <div className="ph-mejorar">
+                  {resultado.fotos.map((u, i) => {
+                    const m = mejoradas[u];
+                    const lista = m && m !== "trabajando" ? m : null;
+                    return (
+                      <figure key={u} className={lista ? "lista" : ""}>
+                        <a href={lista ?? u} target="_blank" rel="noreferrer" aria-label={`Abrir la foto ${i + 1}`}>
+                          {/* eslint-disable-next-line @next/next/no-img-element -- foto del Storage propio */}
+                          <img src={lista ?? u} alt="" loading="lazy" />
+                        </a>
+                        <figcaption>
+                          {lista ? (
+                            <span className="ph-lista">Mejorada · revísala</span>
+                          ) : (
+                            <button type="button" onClick={() => void mejorarUna(u)} disabled={m === "trabajando"}>
+                              {m === "trabajando" ? "Mejorando…" : "Mejorar"}
+                            </button>
+                          )}
+                        </figcaption>
+                      </figure>
+                    );
+                  })}
                 </div>
               </>
             ))}

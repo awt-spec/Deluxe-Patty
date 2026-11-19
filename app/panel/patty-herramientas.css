@@ -329,3 +329,245 @@
 .patty-casa-en-curso > span {
   flex: 1 1 100%;
 }
+
+/* Menú de herramientas del chat de Patty: grupos con teselas (ícono, nombre y ayuda), sin filas cortadas. */
+.ph-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 4px 0 8px;
+}
+
+.ph-grupo h3 {
+  margin: 0 0 6px 2px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--suave);
+}
+
+.ph-teselas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tema .ph-tesela {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 60px;
+  padding: 10px;
+  text-align: left;
+  border-radius: 14px;
+  border: 1px solid #e3e8ea;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
+  color: inherit;
+}
+
+.tema .ph-tesela:hover:not(:disabled) {
+  border-color: var(--principal);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--principal) 18%, transparent);
+}
+
+.tema .ph-tesela:focus-visible {
+  outline: 2px solid var(--principal);
+  outline-offset: 2px;
+}
+
+.ph-icono {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--principal) 12%, #fff);
+  color: var(--principal-oscuro, var(--principal));
+}
+
+.ph-tesela-texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ph-tesela-texto strong {
+  font-size: 0.92rem;
+  line-height: 1.2;
+}
+
+.ph-tesela-texto small {
+  margin-top: 2px;
+  font-size: 0.74rem;
+  line-height: 1.25;
+  color: var(--suave);
+}
+
+@media (min-width: 700px) {
+  .patty-chat.pantalla .ph-teselas {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* En la conversación: el menú sube sobre la caja como una hoja, con su propio scroll. */
+.ph-menu-flotante {
+  max-height: 55vh;
+  overflow-y: auto;
+  padding: 10px 12px 2px;
+  background: #f7f9fa;
+  border-top: 1px solid #e3e8ea;
+  box-shadow: 0 -6px 16px rgb(0 0 0 / 6%);
+}
+
+.tema .patty-atajos .ph-abrir {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-color: color-mix(in srgb, var(--principal) 40%, #c8d1d6);
+  color: var(--principal-oscuro, var(--principal));
+  font-weight: 700;
+  background: color-mix(in srgb, var(--principal) 8%, #fff);
+}
+
+.tema .patty-atajos .ph-abrir.abierto {
+  background: var(--principal);
+  border-color: var(--principal);
+  color: #fff;
+}
+
+/* Revisar mis casas y dueños. */
+.ph-revisar,
+.ph-duenos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.ph-revisar li {
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid #e3e8ea;
+}
+
+.ph-revisar a {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.ph-revisar small {
+  color: var(--suave);
+}
+
+.ph-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.ph-chip {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  background: #fff4e5;
+  color: #8a4b00;
+}
+
+.ph-duenos li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ph-duenos img,
+.ph-duenos .ph-sin-foto {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #eef1f2;
+}
+
+.ph-duenos li > span {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ph-duenos strong {
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ph-duenos small {
+  color: var(--suave);
+  font-size: 0.78rem;
+}
+
+.ph-duenos a {
+  font-weight: 600;
+  color: var(--principal-oscuro, var(--principal));
+}
+
+/* Mejorar fotos con IA: cuadrícula con el botón debajo de cada foto. */
+.ph-mejorar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ph-mejorar figure {
+  margin: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #e3e8ea;
+}
+
+.ph-mejorar figure.lista {
+  border-color: var(--principal);
+}
+
+.ph-mejorar img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.ph-mejorar figcaption {
+  padding: 6px;
+  display: flex;
+  justify-content: center;
+}
+
+.tema .ph-mejorar figcaption button {
+  width: 100%;
+  min-height: 36px;
+  border-radius: 999px;
+  border: 1px solid var(--principal);
+  background: #fff;
+  color: var(--principal-oscuro, var(--principal));
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.ph-lista {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--principal-oscuro, var(--principal));
+}

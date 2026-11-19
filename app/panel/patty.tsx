@@ -10,6 +10,8 @@ import type { FichaParcial } from "@/lib/datos/tipos";
 import { pideCargarCasa } from "@/lib/panel/casa-patty";
 import { pideSubirAlSitio } from "@/lib/panel/sitio-fotos";
 import { HERRAMIENTAS, pideHerramienta, type Herramienta } from "@/lib/panel/herramientas-patty";
+
+const HERR = Object.fromEntries(HERRAMIENTAS.map((h) => [h.id, h])) as Record<Herramienta, (typeof HERRAMIENTAS)[number]>;
 import { TarjetaHerramienta, type FinHerramienta } from "./patty-herramientas";
 import { armarCasaDesdeTexto, publicarCasaEnSitio } from "./patty-casa-sitio-acciones";
 import type { CasaTextoGuardada } from "@/lib/panel/almacen";
@@ -20,7 +22,27 @@ import { inicialDe } from "@/lib/panel/inicial";
 import { anotarFotos, fotosAnotadas, olvidarFotos, subirFotosAnotadas } from "./patty-casa";
 import { ResultadoSitio, SubirAlSitio, type FinEnvioSitio } from "./patty-sitio";
 import { conversarCasa, guardarCasaConversada } from "./propiedades/acciones";
-import { IconoCamara, IconoClip, IconoDobleCheck, IconoDocumento, IconoEnviar, IconoMicrofono } from "./iconos";
+import {
+  IconoAgenda,
+  IconoAgregar,
+  IconoArriba,
+  IconoBuscar,
+  IconoCamara,
+  IconoCheck,
+  IconoClip,
+  IconoDobleCheck,
+  IconoDocumento,
+  IconoEnviar,
+  IconoEstrella,
+  IconoLlave,
+  IconoMegafono,
+  IconoMicrofono,
+  IconoPantalla,
+  IconoProbar,
+  IconoResumen,
+  IconoTablero,
+} from "./iconos";
+import { TarjetaDuenos, TarjetaRevisar } from "./patty-paneles";
 import { separarPedido } from "@/lib/panel/markdown";
 import { leerDocumento, marcaParaLamina, pdfDePatty, preguntarAPatty, transcribirNota } from "./patty-acciones";
 import { Contenido, diagramasComoPng, laminaPng, type MarcaLamina } from "./patty-contenido";
@@ -266,6 +288,7 @@ export function ChatPatty({
   const [herramienta, setHerramienta] = useState<{ id: number; tipo: Herramienta; texto: string } | null>(null);
   // Fotos mandadas sin decir para qué: Patty pregunta qué hace con ellas.
   const [fotosSueltas, setFotosSueltas] = useState<ArchivoListo[] | null>(null);
+  const [menuAbierto, setMenuAbierto] = useState(false);
   const cajaTexto = useRef<HTMLTextAreaElement>(null);
   const [texto, setTexto] = useState("");
   const [archivos, setArchivos] = useState<ArchivoListo[]>([]);
@@ -873,16 +896,70 @@ export function ChatPatty({
     if (modo === "flotante" && window.innerWidth < 900) alCerrar?.();
   };
 
-  // Botones de lo que Patty hace sin vueltas: subir fotos al sitio y las herramientas de una casa.
-  const barra = (
-    <div className="ph-barra" role="group" aria-label="Lo que hago al toque">
-      <button type="button" onClick={empezarAlSitio} disabled={pensando || preparando} title="Elige las fotos y te ayudo a subirlas al sitio web">
-        Subir fotos al sitio
-      </button>
-      {HERRAMIENTAS.map((h) => (
-        <button key={h.id} type="button" onClick={() => abrirHerramienta(h.id)} disabled={pensando} title={h.ayuda}>
-          {h.nombre}
-        </button>
+  // Todo lo que Patty hace desde el chat, en grupos con ícono: lo que arma el código (casas, redes, dueños) y lo que
+  // le pregunta a ella (negocio, internet). En la bienvenida se ve abierto; en la conversación, detrás de "Herramientas".
+  const usar = (f: () => void) => () => {
+    setMenuAbierto(false);
+    f();
+  };
+  const preguntarYa = (t: string) => usar(() => enviar(t));
+  const GRUPOS: { titulo: string; items: { nombre: string; ayuda: string; icono: React.ReactNode; hacer: () => void }[] }[] = [
+    {
+      titulo: "Tus casas",
+      items: [
+        { nombre: "Casa nueva", ayuda: "Elige las fotos y toca enviar", icono: <IconoAgregar tamano={20} />, hacer: usar(() => entradaArchivo.current?.click()) },
+        { nombre: HERR.revisar.nombre, ayuda: HERR.revisar.ayuda, icono: <IconoCheck tamano={20} />, hacer: usar(() => abrirHerramienta("revisar")) },
+        { nombre: HERR.mejorar.nombre, ayuda: HERR.mejorar.ayuda, icono: <IconoEstrella tamano={20} />, hacer: usar(() => abrirHerramienta("mejorar")) },
+        { nombre: "Subir fotos al sitio", ayuda: "A una casa que ya está en el sitio", icono: <IconoArriba tamano={20} />, hacer: usar(empezarAlSitio) },
+        { nombre: HERR.fotos.nombre, ayuda: HERR.fotos.ayuda, icono: <IconoCamara tamano={20} />, hacer: usar(() => abrirHerramienta("fotos")) },
+        { nombre: HERR.ficha.nombre, ayuda: HERR.ficha.ayuda, icono: <IconoDocumento tamano={20} />, hacer: usar(() => abrirHerramienta("ficha")) },
+      ],
+    },
+    {
+      titulo: "Redes sociales",
+      items: [
+        { nombre: HERR.post.nombre, ayuda: HERR.post.ayuda, icono: <IconoMegafono tamano={20} />, hacer: usar(() => abrirHerramienta("post")) },
+        { nombre: HERR.historia.nombre, ayuda: HERR.historia.ayuda, icono: <IconoPantalla tamano={20} />, hacer: usar(() => abrirHerramienta("historia")) },
+        { nombre: HERR.video.nombre, ayuda: HERR.video.ayuda, icono: <IconoProbar tamano={20} />, hacer: usar(() => abrirHerramienta("video")) },
+      ],
+    },
+    {
+      titulo: "Tu negocio",
+      items: [
+        { nombre: "¿Cómo va el mes?", ayuda: "Lo ganado, clientes y ofertas", icono: <IconoResumen tamano={20} />, hacer: preguntarYa("¿Cómo va el mes? Dame las cifras del negocio.") },
+        { nombre: "¿Qué tengo hoy?", ayuda: "Visitas, pendientes y a quién llamar", icono: <IconoAgenda tamano={20} />, hacer: preguntarYa("¿Qué tengo hoy?") },
+        { nombre: HERR.duenos.nombre, ayuda: HERR.duenos.ayuda, icono: <IconoLlave tamano={20} />, hacer: usar(() => abrirHerramienta("duenos")) },
+        {
+          nombre: "Buscar en internet",
+          ayuda: "Precios de la zona, noticias, trámites",
+          icono: <IconoBuscar tamano={20} />,
+          hacer: usar(() => {
+            setTexto("Busca en internet: ");
+            setTimeout(() => cajaTexto.current?.focus(), 0);
+          }),
+        },
+      ],
+    },
+  ];
+  const menu = (
+    <div className="ph-menu" role="group" aria-label="Lo que hago por ti">
+      {GRUPOS.map((g) => (
+        <section key={g.titulo} className="ph-grupo">
+          <h3>{g.titulo}</h3>
+          <div className="ph-teselas">
+            {g.items.map((it) => (
+              <button key={it.nombre} type="button" className="ph-tesela" onClick={it.hacer} disabled={pensando || preparando}>
+                <span className="ph-icono" aria-hidden>
+                  {it.icono}
+                </span>
+                <span className="ph-tesela-texto">
+                  <strong>{it.nombre}</strong>
+                  <small>{it.ayuda}</small>
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
       ))}
     </div>
   );
@@ -954,8 +1031,7 @@ export function ChatPatty({
                 corto, un PDF, un Word o un Excel de una casa para analizarla. Si no sabes dónde está algo en el panel, te llevo.
               </span>
             </p>
-            <p className="ph-bienvenida-titulo">Lo que hago al toque:</p>
-            {barra}
+            {menu}
             <div className="patty-sugerencias">
               {sugerencias.map((s) => (
                 <button key={s} type="button" onClick={() => (s.includes("adjunta") ? entradaArchivo.current?.click() : enviar(s))}>
@@ -1087,7 +1163,11 @@ export function ChatPatty({
             </button>
           </div>
         )}
-        {herramienta && <TarjetaHerramienta key={herramienta.id} herramienta={herramienta.tipo} texto={herramienta.texto} alTerminar={terminarHerramienta} />}
+        {herramienta?.tipo === "revisar" && <TarjetaRevisar key={herramienta.id} alTerminar={terminarHerramienta} />}
+        {herramienta?.tipo === "duenos" && <TarjetaDuenos key={herramienta.id} alTerminar={terminarHerramienta} />}
+        {herramienta && herramienta.tipo !== "revisar" && herramienta.tipo !== "duenos" && (
+          <TarjetaHerramienta key={herramienta.id} herramienta={herramienta.tipo} texto={herramienta.texto} alTerminar={terminarHerramienta} />
+        )}
         {alSitio && <SubirAlSitio key={alSitio.id} texto={alSitio.texto} archivos={alSitio.archivos} nombre={nombre} alTerminar={terminarAlSitio} />}
         {pensando && (
           <div className="patty-burbuja suya pensando" aria-label={`${nombre} está escribiendo`}>
@@ -1142,10 +1222,13 @@ export function ChatPatty({
         </div>
       )}
 
-      {turnos.length > 0 && !pensando && archivos.length === 0 && !casa && !herramienta && !alSitio && barra}
+      {turnos.length > 0 && menuAbierto && <div className="ph-menu-flotante">{menu}</div>}
       {turnos.length > 0 && !pensando && archivos.length === 0 && !casa && (
         <div className="patty-atajos">
-          {sugerencias.slice(0, 3).map((s) => (
+          <button type="button" className={`ph-abrir${menuAbierto ? " abierto" : ""}`} onClick={() => setMenuAbierto((v) => !v)} aria-expanded={menuAbierto}>
+            <IconoTablero tamano={18} /> Herramientas
+          </button>
+          {sugerencias.slice(0, 2).map((s) => (
             <button key={s} type="button" onClick={() => (s.includes("adjunta") ? entradaArchivo.current?.click() : enviar(s))}>
               {s}
             </button>
