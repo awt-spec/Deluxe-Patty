@@ -92,7 +92,7 @@ function masComun(pendientes: { problemas: string[] }[]): string {
   return [...cuenta.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, 2)
-    .map(([p, n]) => `${p.toLowerCase()} (${n})`)
+    .map(([p, n]) => `${p.charAt(0).toLowerCase()}${p.slice(1)} (${n})`)
     .join(" y ");
 }
 
