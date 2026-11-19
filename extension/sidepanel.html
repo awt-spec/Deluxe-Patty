@@ -104,6 +104,36 @@
             <a id="abrir-casa" class="enlace-flecha" href="#" hidden>Abrir en el panel</a>
           </div>
 
+          <section id="publicar" class="tarjeta publicar" aria-labelledby="publicar-titulo">
+            <h3 id="publicar-titulo">Publicar con Patty</h3>
+            <p id="publicar-ayuda" class="suave"></p>
+            <div id="publicar-fuera">
+              <button id="abrir-e24" type="button" class="grande">Abrir Encuentra24 para publicar</button>
+            </div>
+            <div id="publicar-form" hidden>
+              <fieldset class="elegir">
+                <legend>Anuncio listo para publicar</legend>
+                <div id="lista-anuncios" class="lista-elegir"></div>
+                <p id="sin-anuncios" class="suave" hidden>Todavía no tienes anuncios listos. Prepara uno aquí abajo.</p>
+              </fieldset>
+              <button id="llenar" type="button" class="primario grande" disabled>Llenar el formulario</button>
+            </div>
+            <div id="llenando" class="llenando" hidden>
+              <p id="llenando-texto" role="status" aria-live="polite"></p>
+              <button id="detener-llenado" type="button" class="grande parar">Detener</button>
+            </div>
+            <p id="informe" class="aviso" role="status" aria-live="polite" hidden></p>
+            <details id="preparar" class="plegable">
+              <summary>Preparar un anuncio</summary>
+              <p class="suave">Elige una casa y escribo el título y la descripción, con tu enlace de WhatsApp al final.</p>
+              <div id="lista-casas" class="lista-elegir"></div>
+              <p id="sin-casas" class="suave" hidden>No tienes casas activas. Agrégalas en tu panel.</p>
+              <button id="preparar-boton" type="button" class="grande" disabled>Preparar el anuncio</button>
+              <p id="preparar-mensaje" class="aviso" role="status" aria-live="polite" hidden></p>
+            </details>
+            <p class="suave chica">¿Ya lo publicaste? Abre tu anuncio publicado y toca «Leer este anuncio».</p>
+          </section>
+
           <section id="resultado-tarjeta" class="tarjeta mini" data-error="no" aria-labelledby="resultado-titulo" hidden>
             <span class="mini-icono" aria-hidden="true"><svg class="si-bien" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg><svg class="si-error" viewBox="0 0 24 24"><path d="M12 7v6" /><path d="M12 16.8v.2" /></svg></span>
             <div class="mini-textos">

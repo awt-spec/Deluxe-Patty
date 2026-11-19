@@ -4,7 +4,7 @@
 //
 // Cada paso es { icono, texto, t } y solo lleva palabras para la persona: nada del permiso, ni ids, ni direcciones.
 
-export const ICONOS = ["inicio", "abrir", "leer", "espera", "descanso", "pausa", "seguir", "verificacion", "revisar", "listo", "detenida", "error"];
+export const ICONOS = ["inicio", "abrir", "leer", "espera", "descanso", "pausa", "seguir", "verificacion", "revisar", "listo", "detenida", "error", "llenar"];
 export const MAX_PASOS = 40;
 const MAX_TEXTO = 160;
 

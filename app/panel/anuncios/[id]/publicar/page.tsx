@@ -1,7 +1,7 @@
 import Link from "next/link";
 import manifiesto from "@/extension/manifest.json";
 import { notFound } from "next/navigation";
-import { enlaceWhatsApp } from "@/lib/anuncios/atribucion";
+import { descripcionConEnlace, enlaceWhatsApp } from "@/lib/anuncios/atribucion";
 import type { Foto } from "@/lib/datos/tipos";
 import { clavePasos } from "@/lib/panel/pasos";
 import { sesionConCorredor } from "@/lib/panel/sesion";
@@ -52,10 +52,10 @@ export default async function Publicar({ params }: { params: Promise<{ id: strin
   const asistente = corredor.nombre_asistente ?? "Patty";
 
   const enlace = corredor.whatsapp_numero ? enlaceWhatsApp(corredor.whatsapp_numero, a.referencia) : null;
-  const partes = (t: { titulo: string; descripcion: string } | undefined, invitacion: string): Partes | null =>
-    t ? { titulo: t.titulo, descripcion: `${t.descripcion}${enlace ? `\n\n${invitacion}: ${enlace}` : ""}` } : null;
-  const es = partes(texto.es, "Escríbeme por WhatsApp");
-  const en = partes(texto.en, "Message me on WhatsApp");
+  const partes = (t: { titulo: string; descripcion: string } | undefined, idioma: "es" | "en"): Partes | null =>
+    t ? { titulo: t.titulo, descripcion: descripcionConEnlace(t.descripcion, enlace, idioma) } : null;
+  const es = partes(texto.es, "es");
+  const en = partes(texto.en, "en");
   // Las fotos en el mismo orden en que se las mostró a Claude al preparar el anuncio (lib/asistente/cerebro.ts).
   const fotosCasa = [...(((casa as { fotos?: Foto[] } | null)?.fotos ?? []) as Foto[])].sort((x, y) => (x.orden ?? 0) - (y.orden ?? 0));
   const orden = (texto.orden_fotos ?? []).map((o) => ({ ...o, url: fotosCasa[o.foto - 1]?.url ?? null }));
@@ -115,13 +115,19 @@ export default async function Publicar({ params }: { params: Promise<{ id: strin
         <>
           <ol className="pap-subpasos">
             <li>
-              Abre Encuentra24, entra con tu cuenta y toca <strong>Publicar anuncio</strong>.
+              Abre Encuentra24 en Chrome de tu computadora, entra con tu cuenta y ve a <strong>Publicar anuncio</strong>.
             </li>
             <li>
-              Pega el <strong>título</strong> y la <strong>descripción</strong> donde corresponden.
+              En el panel de la extensión toca <strong>Llenar con Patty</strong>, elige este anuncio y toca <strong>Llenar el formulario</strong>:{" "}
+              {asistente} pone el título, la descripción, el precio, los datos de la casa y las fotos en orden.
             </li>
-            <li>Sube las fotos en el orden sugerido, completa precio y datos, y publica.</li>
+            <li>
+              Revisa todo, completa lo que te diga que falta y toca <strong>Publicar</strong> tú en Encuentra24 ({asistente} nunca lo publica sola).
+            </li>
           </ol>
+          <p className="pap-nota">
+            ¿Sin la extensión o desde el teléfono? Usa los botones de Copiar del paso anterior y pega cada parte donde corresponde.
+          </p>
           <p className="pap-nota pap-nota-ambar">
             <strong>No borres el enlace de WhatsApp</strong> del final de la descripción: trae la referencia {a.referencia}, que dice de cuál anuncio viene
             cada cliente.
@@ -133,6 +139,10 @@ export default async function Publicar({ params }: { params: Promise<{ id: strin
         </>
       ),
       ayuda: [
+        {
+          p: "La extensión no encontró un campo",
+          r: <>Te dice cuáles: llénalos a mano. Encuentra24 a veces cambia su formulario; lo demás queda puesto.</>,
+        },
         { p: "Encuentra24 no deja poner enlaces", r: <>Si lo quita al publicar, edita el anuncio y pégalo otra vez al final de la descripción.</> },
         { p: "¿Español o inglés?", r: <>Si Encuentra24 deja un solo texto, usa el español. El inglés sirve para un segundo anuncio o para redes.</> },
       ],

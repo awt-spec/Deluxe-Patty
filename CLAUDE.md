@@ -114,6 +114,17 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   (`ilustra-*.svg`). Tarjeta **Energía de Patty** (`vistaEnergia`): batería y %, desde el campo `tokens` de `GET /api/extension/estado`
   (con `pct_restante`; pedido `ver_tokens` al abrir el panel y de nuevo al terminar cada búsqueda), verde, ámbar con ≤ 15 % o rojo
   "se quedó sin energía"; sin datos o sin tope no se muestra (1.5.1). La 1.5.2 suma `semanal` al mensaje "presente" del canal (si busca sola cada semana).
+  La 1.6.0 trae **Llenar con Patty** (tarjeta "Publicar con …" del panel lateral): en el formulario de publicar de Encuentra24
+  (dirección con publicar/post/insertar, o la página dice tener título y descripción: `ver_formulario`) lista los anuncios por
+  publicar (`GET /api/extension/anuncios-listos`), y "Llenar el formulario" trae `GET /api/extension/anuncio-listo?id=`
+  (`lib/encuentra24/llenar.ts`: textos con `descripcionConEnlace` —la misma de `preparar.ts`—, datos de la casa y hasta 20
+  originales propias en el orden de `orden_fotos`), inyecta `campos.js` (reglas puras: campos por etiqueta/aria/placeholder/name
+  sin tildes y con sinónimos, opciones por su texto; nunca botones, archivos, búsqueda ni contacto) y `llenar.js` (setter nativo +
+  input/change/blur, `insertText` en contenteditable, no pisa lo escrito) y adjunta las fotos bajadas en el fondo por
+  `DataTransfer` al `input[type=file]`. Nunca toca un botón ni envía: el informe (`textoInforme`, `llenado.js`) dice qué llenó,
+  qué falta llenar a mano y que publique la persona y luego "Leer este anuncio". Avance "Llenando… 3 de 8 fotos" con Detener
+  (`AbortController`). "Preparar un anuncio" (`GET casas-para-anuncio`, `POST preparar-anuncio`): `prepararAnuncio` con Energía,
+  4 por minuto y demo sin gasto. Sin permisos nuevos (el Storage público responde con CORS abierto).
   **En el panel**, Dueños directos (`app/panel/duenos/`, forma en `vistas.tsx`, estilos `duenos.css`) abre con la tarjeta de la
   extensión (`estado-extension.tsx`; reglas puras en `lib/panel/extension-hero.ts`): palabra de estado, instalada / al día /
   conectada / semanal, última búsqueda con los dueños que trajo, la próxima, Energía de Patty y UNA acción (`accionHero`:
@@ -525,7 +536,7 @@ Encuentra24 no tiene API: la asistente prepara y vigila, el corredor publica. Ca
 `atribuirContacto` enlaza el contacto al anuncio. Un anuncio nace como `borrador` (sin `e24_id` ni `url`)
 y pasa a `activo` cuando el corredor abre el anuncio ya publicado en su Chrome y toca **Leer este anuncio** en la
 extensión: la página trae la referencia (en el enlace wa.me) y el servidor le pone `url`, `e24_id` y `publicado_en`.
-`vence_en` no se calcula todavía. Con un anuncio que no es suyo preparado, el mismo botón trae la casa a Mis casas, pausada.
+`vence_en` no se calcula todavía. Desde la 1.6.0 la extensión además llena el formulario de publicar con el anuncio preparado ("Llenar con Patty"); publicar lo toca el corredor. Con un anuncio que no es suyo preparado, el mismo botón trae la casa a Mis casas, pausada.
 
 Lectura del sitio: las páginas son una app Next.js y cada anuncio viene como JSON en el payload de
 React Server Components; `lib/encuentra24/parsear.ts` lee ese JSON (no clases CSS). El campo

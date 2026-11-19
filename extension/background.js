@@ -3,7 +3,8 @@ import { esPaginaDeAnuncio, esVerificacion } from "./comun.js";
 import { activa, mensajeInterrumpida, textoFase, transicion } from "./maquina.js";
 import { agregarPaso, contarEnPagina, leerBitacora, pasoDeEvento, textoPaso } from "./bitacora.js";
 import { deQuien, esUrlDeE24, estadoPublico, leerPedido } from "./mensajes.js";
-import { limpiarTokens } from "./vista-panel.js";
+import { limpiarTokens, nombreAsistente } from "./vista-panel.js";
+import { esFotoParaLlenar, limpiarCasas, limpiarDatosLlenar, limpiarListos, MAX_FOTO_BYTES, textoInforme } from "./llenado.js";
 import {
   azar,
   estimarRestanteMs,
@@ -37,6 +38,8 @@ import {
 //  - "Leer este anuncio": manda al servidor lo que muestra la página del anuncio abierto (texto, JSON-LD, fotos).
 //  - Panel lateral (sidepanel.html, desde la 1.4.0): el botón de la extensión lo abre junto a la página. Muestra cada
 //    paso de la búsqueda (bitacora.js, guardado en chrome.storage) y tiene los mismos Pausar, Seguir y Detener.
+//  - "Llenar con Patty" (desde la 1.6.0): llena el formulario de publicar de Encuentra24 con un anuncio preparado y
+//    adjunta sus fotos; la persona revisa y publica. "Preparar un anuncio" pide uno nuevo al panel.
 
 const ESPERA_RESULTADO_MS = 6 * 60_000;
 const ESPERA_VERIFICACION_MS = 15 * 60_000;
@@ -738,6 +741,169 @@ async function leerAnuncio(tabId) {
   return fin(r?.ok ? "listo" : "error", r?.mensaje || "No se pudo leer el anuncio. Vuelve a intentarlo.", ruta);
 }
 
+// --- Llenar con Patty y Preparar un anuncio (desde la 1.6.0) -------------------------------------------------
+//
+// El corredor abre el formulario de publicar de Encuentra24 y, desde el panel lateral, elige un anuncio que preparó la
+// asistente: se inyectan campos.js y llenar.js en esa pestaña (mundo aislado), se llenan los campos que se reconocen y
+// se adjuntan las fotos (bajadas aquí, del Storage público del portal). Nunca se toca un botón ni se envía el
+// formulario: publica la persona. "Detener" corta lo que falta (AbortController) y deja el informe de lo hecho.
+
+/** El llenado en curso (uno a la vez): { control: AbortController, tabId }. */
+let LL = null;
+
+/** Un paso en la lista del panel lateral, haya o no búsqueda en curso. */
+async function anotarAfuera(paso) {
+  if (S) {
+    anotar(paso);
+    await publicar();
+    return;
+  }
+  const { bitacora } = await chrome.storage.local.get("bitacora");
+  await chrome.storage.local.set({ bitacora: agregarPaso(bitacora, paso) });
+}
+
+/** ArrayBuffer a base64, por tramos (una foto de varios MB no cabe en un solo String.fromCharCode). */
+function aBase64(buf) {
+  const bytes = new Uint8Array(buf);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+
+/** Baja una foto del Storage público del portal (sin cookies ni referer). null si no es una imagen o es muy grande. */
+async function bajarFoto(url, i, signal) {
+  if (!esFotoParaLlenar(url)) return null;
+  const r = await fetch(url, { signal, credentials: "omit", referrerPolicy: "no-referrer", cache: "no-store" });
+  if (!r.ok) return null;
+  const tipo = (r.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase();
+  if (!/^image\/(jpeg|png|webp)$/.test(tipo)) return null;
+  if (Number(r.headers.get("content-length") ?? 0) > MAX_FOTO_BYTES) return null;
+  const buf = await r.arrayBuffer();
+  if (buf.byteLength === 0 || buf.byteLength > MAX_FOTO_BYTES) return null;
+  const ext = tipo === "image/png" ? "png" : tipo === "image/webp" ? "webp" : "jpg";
+  return { nombre: `foto-${String(i + 1).padStart(2, "0")}.${ext}`, tipo, b64: aBase64(buf) };
+}
+
+async function enPestana(tabId, func, args = []) {
+  const [r] = await chrome.scripting.executeScript({ target: { tabId, frameIds: [0] }, func, args });
+  return r?.result;
+}
+
+async function llenarFormulario(tabId, anuncioId) {
+  const tabUrl = await chrome.tabs.get(tabId).then((t) => t.url ?? "", () => "");
+  const { asistente } = await chrome.storage.local.get("asistente");
+  const nombre = nombreAsistente(asistente);
+  const estado = (e) => chrome.storage.local.set({ llenado: { ...e, url: tabUrl, fecha: Date.now() } });
+  if (LL) return { ok: false, mensaje: "Ya estoy llenando un formulario. Espera a que termine o detenlo." };
+  if (!esUrlDeE24(tabUrl)) return estado({ fase: "error", mensaje: "Abre el formulario de publicar de Encuentra24 en esta pestaña." });
+  if (S?.tabId === tabId) return estado({ fase: "error", mensaje: "En esta pestaña estoy buscando dueños. Abre el formulario en otra pestaña." });
+  const { token } = await chrome.storage.local.get("token");
+  if (!token) return estado({ fase: "error", mensaje: "Primero conecta la extensión con tu panel." });
+
+  const control = new AbortController();
+  LL = { control, tabId };
+  const informe = { llenados: [], faltan: [], yaTenian: [], amenidades: 0, fotos: { total: 0, adjuntadas: 0, fallidas: 0, sinCampo: false, unaSola: false }, detenido: false, conEnlace: true };
+  const terminar = async (fase, mensaje) => {
+    await estado({ fase, mensaje });
+    await anotarAfuera({ icono: fase === "error" ? "error" : "llenar", texto: mensaje.split(". ")[0] });
+  };
+  try {
+    await estado({ fase: "llenando", paso: "campos", hechas: 0, total: 0 });
+    const r = await api(`/api/extension/anuncio-listo?id=${encodeURIComponent(anuncioId)}`, null, token, "GET");
+    const datos = r?.ok ? limpiarDatosLlenar(r.anuncio) : null;
+    if (!datos) return await terminar("error", r?.mensaje || "No pude traer ese anuncio. Vuelve a intentarlo.");
+    informe.conEnlace = datos.conEnlace;
+    await anotarAfuera({ icono: "llenar", texto: `Lleno el formulario con el anuncio ref. ${datos.referencia}` });
+    // La pestaña pudo cambiar de página mientras tanto.
+    const ahora = await chrome.tabs.get(tabId).then((t) => t.url ?? "", () => "");
+    if (!esUrlDeE24(ahora)) return await terminar("error", "La pestaña ya no está en Encuentra24. Vuelve al formulario y tócalo otra vez.");
+    await chrome.scripting.executeScript({ target: { tabId, frameIds: [0] }, files: ["campos.js", "llenar.js"] });
+    const { fotos, ...campos } = datos;
+    const hecho = await enPestana(tabId, (d) => self.LlenarPatty.llenar(d), [campos]);
+    if (!hecho || hecho.desafio) {
+      return await terminar("error", "Encuentra24 pide verificar que eres una persona. Resuélvelo en la página y vuelve a tocar «Llenar el formulario».");
+    }
+    Object.assign(informe, { llenados: hecho.llenados ?? [], faltan: hecho.faltan ?? [], yaTenian: hecho.yaTenian ?? [], amenidades: hecho.amenidades ?? 0 });
+    informe.fotos.total = fotos.length;
+
+    // Las fotos, una por una (se pueden detener entre una y otra).
+    await enPestana(tabId, () => self.LlenarPatty.olvidarFotos());
+    let bajadas = 0;
+    for (let i = 0; i < fotos.length; i++) {
+      if (control.signal.aborted) break;
+      await estado({ fase: "llenando", paso: "fotos", hechas: i, total: fotos.length });
+      let foto = null;
+      try {
+        foto = await bajarFoto(fotos[i], i, control.signal);
+      } catch {
+        foto = null;
+      }
+      if (control.signal.aborted) break;
+      if (!foto) {
+        informe.fotos.fallidas++;
+        continue;
+      }
+      await enPestana(tabId, (f) => self.LlenarPatty.agregarFoto(f), [foto]);
+      bajadas++;
+    }
+    if (control.signal.aborted) {
+      informe.detenido = true;
+      await enPestana(tabId, () => self.LlenarPatty.olvidarFotos()).catch(() => {});
+    } else if (bajadas > 0) {
+      await estado({ fase: "llenando", paso: "fotos", hechas: fotos.length, total: fotos.length });
+      const adj = await enPestana(tabId, () => self.LlenarPatty.adjuntarFotos());
+      Object.assign(informe.fotos, { adjuntadas: adj?.adjuntadas ?? 0, sinCampo: !!adj?.sinCampo, unaSola: !!adj?.unaSola });
+    }
+    return await terminar(informe.detenido ? "detenido" : "listo", textoInforme(informe, nombre));
+  } catch {
+    informe.detenido = control.signal.aborted;
+    return await terminar("error", informe.llenados.length ? textoInforme(informe, nombre) : "No pude llenar esta página. Recárgala y vuelve a intentarlo.");
+  } finally {
+    LL = null;
+  }
+}
+
+/** ¿La página tiene un formulario con un campo de texto y uno largo (título y descripción)? Corre en la pestaña. */
+function pareceFormulario() {
+  const largo = document.querySelector('textarea, [contenteditable="true"], [contenteditable=""]');
+  const corto = document.querySelector('input[type="text"], input:not([type])');
+  return !!largo && !!corto;
+}
+
+async function verFormulario(tabId) {
+  const url = await chrome.tabs.get(tabId).then((t) => t.url ?? "", () => "");
+  if (!esUrlDeE24(url) || esPaginaDeAnuncio(url)) return { formulario: false };
+  try {
+    return { formulario: (await enPestana(tabId, pareceFormulario)) === true };
+  } catch {
+    return { formulario: false };
+  }
+}
+
+async function anunciosListos() {
+  const { token } = await chrome.storage.local.get("token");
+  if (!token) return { ok: false, anuncios: [] };
+  const r = await api("/api/extension/anuncios-listos", null, token, "GET");
+  return r?.ok ? { ok: true, anuncios: limpiarListos(r.anuncios) } : { ok: false, anuncios: [], mensaje: r?.mensaje ?? "" };
+}
+
+async function casasParaAnuncio() {
+  const { token } = await chrome.storage.local.get("token");
+  if (!token) return { ok: false, casas: [] };
+  const r = await api("/api/extension/casas-para-anuncio", null, token, "GET");
+  return r?.ok ? { ok: true, casas: limpiarCasas(r.casas) } : { ok: false, casas: [], mensaje: r?.mensaje ?? "" };
+}
+
+async function prepararAnuncio(casaId) {
+  const { token } = await chrome.storage.local.get("token");
+  if (!token) return { ok: false, mensaje: "Primero conecta la extensión con tu panel." };
+  const r = await api("/api/extension/preparar-anuncio", { casaId }, token);
+  const mensaje = typeof r?.mensaje === "string" ? r.mensaje.slice(0, 300) : "No pude preparar el anuncio. Vuelve a intentarlo.";
+  if (r?.ok) await anotarAfuera({ icono: "llenar", texto: r.demo ? "Preparé un anuncio de muestra (demo)" : "Preparé un anuncio nuevo" });
+  const [anuncio] = r?.ok && r.anuncio ? limpiarListos([r.anuncio]) : [];
+  return { ok: r?.ok === true, mensaje, anuncio: anuncio ?? null };
+}
+
 // --- Mensajes: cada remitente con su lista de pedidos (mensajes.js) -----------------------------------------
 
 /** Pausar, seguir, detener o empezar, venga de donde venga (popup, panel o la barra). */
@@ -828,6 +994,29 @@ chrome.runtime.onMessage.addListener((mensaje, remitente, responder) => {
       );
     case "modo_semanal":
       return conRespuesta(chrome.storage.local.set({ modoSemanal: m.modo }).then(() => ({ ok: true })));
+    case "anuncios_listos":
+      return conRespuesta(anunciosListos());
+    case "casas_para_anuncio":
+      return conRespuesta(casasParaAnuncio());
+    case "preparar_anuncio":
+      return conRespuesta(prepararAnuncio(m.casaId));
+    case "ver_formulario":
+      return conRespuesta(verFormulario(m.tabId));
+    case "llenar_formulario":
+      // Puede tardar (las fotos): el avance y el informe van por chrome.storage (llenado).
+      if (LL) {
+        responder({ ok: false, mensaje: "Ya estoy llenando un formulario." });
+        return false;
+      }
+      llenarFormulario(m.tabId, m.anuncio).catch(() =>
+        chrome.storage.local.set({ llenado: { fase: "error", mensaje: "No pude llenar esta página. Recárgala y vuelve a intentarlo.", fecha: Date.now() } }),
+      );
+      responder({ ok: true });
+      return false;
+    case "detener_llenado":
+      LL?.control.abort();
+      responder({ ok: !!LL });
+      return false;
     default:
       return false;
   }
@@ -837,6 +1026,8 @@ chrome.runtime.onMessage.addListener((mensaje, remitente, responder) => {
 chrome.runtime.onStartup.addListener(async () => {
   const { lectura } = await chrome.storage.local.get("lectura");
   if (lectura?.fase === "leyendo") await chrome.storage.local.remove("lectura");
+  const { llenado } = await chrome.storage.local.get("llenado");
+  if (llenado?.fase === "llenando") await chrome.storage.local.remove("llenado");
   // El estado de antes de la 1.3.0.
   await chrome.storage.local.remove("progreso");
 });

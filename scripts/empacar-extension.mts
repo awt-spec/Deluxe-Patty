@@ -17,6 +17,7 @@ import { deflateRawSync } from "node:zlib";
 export const ARCHIVOS_EXTENSION = [
   "background.js",
   "bitacora.js",
+  "campos.js",
   "canal.js",
   "comun.js",
   "config.js",
@@ -27,6 +28,8 @@ export const ARCHIVOS_EXTENSION = [
   "ilustra-conectar.svg",
   "ilustra-pasos.svg",
   "ilustra-quieta.svg",
+  "llenado.js",
+  "llenar.js",
   "manifest.json",
   "maquina.js",
   "mensajes.js",

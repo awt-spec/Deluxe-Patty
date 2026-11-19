@@ -1142,3 +1142,100 @@ footer {
     transition: none !important;
   }
 }
+
+/* Publicar con Patty (1.6.0): llenar el formulario de Encuentra24 y preparar un anuncio */
+.publicar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+.publicar h3 {
+  margin: 0;
+  font-size: 16px;
+}
+.publicar p {
+  margin: 0;
+}
+.publicar .chica {
+  font-size: 13px;
+}
+.elegir {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.elegir legend {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+.lista-elegir {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.opcion-elegir {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  background: var(--tarjeta-2);
+  cursor: pointer;
+}
+.opcion-elegir:has(input:checked) {
+  border-color: var(--verde);
+  background: var(--verde-claro);
+}
+.opcion-elegir:has(input:focus-visible) {
+  box-shadow: var(--anillo-foco);
+}
+.opcion-elegir input {
+  accent-color: var(--verde);
+  flex: none;
+}
+.opcion-elegir img,
+.opcion-elegir .sin-foto {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex: none;
+  background: var(--borde);
+}
+.opcion-textos {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.opcion-textos strong {
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.opcion-textos span {
+  font-size: 12px;
+  color: var(--suave);
+}
+.llenando {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.llenando p {
+  font-weight: 600;
+}
+#preparar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#preparar[open] > :not(summary) {
+  margin-top: 8px;
+}
