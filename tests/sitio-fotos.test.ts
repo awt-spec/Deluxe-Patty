@@ -259,3 +259,16 @@ describe("Lo guardado del chat: el resultado del sitio solo con direcciones http
     expect(turnoValido({ autor: "asistente", texto: "Listo", sitio: { fotos: [], url: "http://s/p" } })).toBeNull();
   });
 });
+
+describe("diagnosticoFotosSitio", async () => {
+  const { diagnosticoFotosSitio } = await import("../lib/sitio/fotos");
+  const URL_OK = "https://x.supabase.co/functions/v1/recibir-fotos";
+  it("dice qué falta sin mostrar la clave", () => {
+    expect(diagnosticoFotosSitio("deluxe-properties", {})).toBe("falta_url");
+    expect(diagnosticoFotosSitio("deluxe-properties", { SITIO_FOTOS_URL: URL_OK })).toBe("falta_secreto");
+    expect(diagnosticoFotosSitio("deluxe-properties", { SITIO_FOTOS_URL: URL_OK, SITIO_FOTOS_SECRETO: "corta" })).toBe("secreto_corto");
+    expect(diagnosticoFotosSitio("deluxe-properties", { SITIO_FOTOS_URL: "http://x", SITIO_FOTOS_SECRETO: "x".repeat(40) })).toBe("url_no_https");
+    expect(diagnosticoFotosSitio("deluxe-properties", { SITIO_FOTOS_URL: "{mal", SITIO_FOTOS_SECRETO: "x".repeat(40) })).toBe("json_invalido");
+    expect(diagnosticoFotosSitio("deluxe-properties", { SITIO_FOTOS_URL: ` ${URL_OK}\n`, SITIO_FOTOS_SECRETO: "x".repeat(40) })).toBe("conectado");
+  });
+});

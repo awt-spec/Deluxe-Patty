@@ -1,4 +1,5 @@
 import type { FilaAdmin, llavesWhatsApp } from "@/lib/admin/datos";
+import { EXPLICA_DIAGNOSTICO } from "@/lib/sitio/fotos";
 import type { Tono } from "@/lib/admin/atencion";
 import { ErrorWhatsApp, explicarErrorWhatsApp } from "@/lib/whatsapp/enviar";
 import type { EstadoNumero, RespuestaMeta } from "@/lib/whatsapp/graph";
@@ -89,6 +90,12 @@ export function VistaWhatsApp({ llaves, webhook, conectables, estados, wabaValid
     [llaves.urlApp, "NEXT_PUBLIC_URL_APP", "Dirección pública de la app.", true],
     [llaves.openai, "OPENAI_API_KEY", "Transcribe notas de voz y hace las imágenes con IA.", false],
     [llaves.soporte, "SOPORTE_WHATSAPP + SOPORTE_PHONE_NUMBER_ID", "Opcional: alertas de fallas por WhatsApp.", false],
+    [
+      llaves.sitioFotos === "conectado",
+      "SITIO_FOTOS_URL + SITIO_FOTOS_SECRETO",
+      `Subir fotos al sitio desde Patty. ${EXPLICA_DIAGNOSTICO[llaves.sitioFotos]}`,
+      false,
+    ],
   ];
   const tonoLlaves: Tono = LLAVES.some(([ok, , , req]) => req && !ok) ? "mal" : LLAVES.some(([ok]) => !ok) ? "poco" : "bien";
 
