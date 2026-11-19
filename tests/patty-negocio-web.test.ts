@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, onTestFinished } from "vitest";
 import type Anthropic from "@anthropic-ai/sdk";
 import { COSTO_BUSQUEDA_WEB_USD, consumo } from "../lib/asistente/costo";
 import { lineasFuentes, textoYFuentes } from "../lib/asistente/fuentes-web";
@@ -160,7 +160,11 @@ describe("búsqueda en internet de Patty", () => {
     expect(consumo("claude-sonnet-5-5", { input_tokens: 0, output_tokens: 0, server_tool_use: null }).costoUsd).toBe(0);
   });
 
-  it("conversarConCorredor declara web_search con tope, devuelve el texto con sus fuentes y cuenta las búsquedas", async () => {
+  it("conversarConCorredor declara web_search con tope (con PATTY_BUSCAR_WEB=1), devuelve el texto con sus fuentes y cuenta las búsquedas", async () => {
+    process.env.PATTY_BUSCAR_WEB = "1";
+    onTestFinished(() => {
+      delete process.env.PATTY_BUSCAR_WEB;
+    });
     const pedidos: Anthropic.Beta.MessageCreateParams[] = [];
     const client = {
       beta: {
