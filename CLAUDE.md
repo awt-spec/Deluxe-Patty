@@ -318,6 +318,12 @@ y aparece la tarjeta del PDF. El PDF lo arma el servidor sin IA (`pdfDePatty`, `
 descarga, y no se guarda. También en **PNG**: "Hacer imagen" (o `<<png Título>>` cuando la pide) arma en el navegador una
 lámina con la marca del corredor (`laminaPng`, `html-to-image`, `marcaParaLamina`), y cada diagrama se baja en PNG. Un pedido
 de imagen con sus datos (resumen, tabla, diagrama, infografía, PNG) no va a la IA de imágenes (`pideImagen`).
+**Botones que hace el código** (barra `ph-barra` en la bienvenida y sobre la caja): "Subir fotos al sitio" (escribe el pedido y
+abre la galería) y las **herramientas de una casa** (`lib/panel/herramientas-patty.ts`, tarjeta `app/panel/patty-herramientas.tsx`,
+acciones `patty-herramientas-acciones.ts`): Fotos de una casa (originales propias, compartir o descargar), Post e Historia (la
+imagen de `redes/imagen` con descarga y "Cambiar foto o texto" en el estudio), Ficha PDF (`fichaDePropiedad`, 4 por minuto) y Video
+(lleva al estudio `?ver=video`). También con palabras (`pideHerramienta`: «hazme un post de la casa de Escazú»; las preguntas de
+cómo se hace van a Patty) y la casa sale de `casaNombrada` (código, título o zona; si hay duda, la elige el corredor). Sin IA.
 Favicon: `app/icon.svg` y `app/apple-icon.tsx`.
 Patty sabe en qué pantalla está el corredor (`contextoPantalla`: en la ficha de un cliente, una visita o una casa
 lee sus datos y el chat), sugiere preguntas según la pantalla, trae una guía del panel en `prompts/patty.md` y

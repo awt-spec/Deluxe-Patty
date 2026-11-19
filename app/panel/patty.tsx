@@ -9,6 +9,8 @@ import { separarPasos, useGuia, type Paso } from "./guia";
 import type { FichaParcial } from "@/lib/datos/tipos";
 import { pideCargarCasa } from "@/lib/panel/casa-patty";
 import { pideSubirAlSitio } from "@/lib/panel/sitio-fotos";
+import { HERRAMIENTAS, pideHerramienta, type Herramienta } from "@/lib/panel/herramientas-patty";
+import { TarjetaHerramienta, type FinHerramienta } from "./patty-herramientas";
 import { almacenLocal, casaGuardada, leerAlmacen, turnosGuardados } from "@/lib/panel/almacen";
 import { MAX_ARCHIVOS_PATTY, MAX_BASE64_PATTY, MAX_BYTES_PATTY, TEXTO_MAX_PATTY } from "@/lib/panel/adjuntos-limites";
 import { clasificarFalla, mensajeDeFalla } from "@/lib/panel/fallas";
@@ -252,6 +254,8 @@ export function ChatPatty({
   const guardandoCasa = useRef(false);
   /** Fotos que se están subiendo al sitio web (la tarjeta del chat; los archivos, solo en memoria). */
   const [alSitio, setAlSitio] = useState<{ id: number; texto: string; archivos: File[] } | null>(null);
+  // Fotos, post, historia, ficha o video de una casa: lo arma el código en una tarjeta del chat.
+  const [herramienta, setHerramienta] = useState<{ id: number; tipo: Herramienta; texto: string } | null>(null);
   const cajaTexto = useRef<HTMLTextAreaElement>(null);
   const [texto, setTexto] = useState("");
   const [archivos, setArchivos] = useState<ArchivoListo[]>([]);
@@ -493,6 +497,12 @@ export function ChatPatty({
       seguirCasa(limpio, adjuntos);
       return;
     }
+    // «Hazme un post / la ficha / el video / pásame las fotos de la casa de Escazú»: la tarjeta de herramientas.
+    const pedida = adjuntos.length === 0 ? pideHerramienta(limpio) : null;
+    if (pedida) {
+      setHerramienta({ id: Date.now(), tipo: pedida, texto: limpio });
+      return;
+    }
     const dondeEsta = `${ruta}${busqueda.toString() ? `?${busqueda}` : ""}`;
     empezar(async () => {
       try {
@@ -614,6 +624,25 @@ export function ChatPatty({
     agregarTurno({ autor: "asistente", texto: "Listo, no la guardé. Cuando quieras, escríbeme «agrega esta casa: …».", hora: new Date().toISOString() });
   }
 
+  /** Abre una herramienta desde su botón (sin escribir nada). */
+  function abrirHerramienta(tipo: Herramienta) {
+    if (pensando) return;
+    setError(null);
+    setHerramienta({ id: Date.now(), tipo, texto: "" });
+  }
+
+  /** "Subir fotos al sitio": deja el pedido escrito y abre la galería; al elegir las fotos, se manda. */
+  function empezarAlSitio() {
+    setTexto("Sube estas fotos al sitio");
+    setError(null);
+    entradaArchivo.current?.click();
+  }
+
+  function terminarHerramienta(f: FinHerramienta) {
+    setHerramienta(null);
+    agregarTurno({ autor: "asistente", texto: f.texto, hora: new Date().toISOString() });
+  }
+
   /** La tarjeta de subir al sitio terminó (o se canceló): su respuesta queda en el chat. */
   function terminarAlSitio(f: FinEnvioSitio) {
     setAlSitio(null);
@@ -688,6 +717,20 @@ export function ChatPatty({
     if (modo === "flotante" && window.innerWidth < 900) alCerrar?.();
   };
 
+  // Botones de lo que Patty hace sin vueltas: subir fotos al sitio y las herramientas de una casa.
+  const barra = (
+    <div className="ph-barra" role="group" aria-label="Lo que hago al toque">
+      <button type="button" onClick={empezarAlSitio} disabled={pensando || preparando} title="Elige las fotos y te ayudo a subirlas al sitio web">
+        Subir fotos al sitio
+      </button>
+      {HERRAMIENTAS.map((h) => (
+        <button key={h.id} type="button" onClick={() => abrirHerramienta(h.id)} disabled={pensando} title={h.ayuda}>
+          {h.nombre}
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <section
       className={`patty-chat ${modo}${arrastrando ? " arrastrando" : ""}`}
@@ -755,6 +798,8 @@ export function ChatPatty({
                 corto, un PDF, un Word o un Excel de una casa para analizarla. Si no sabes dónde está algo en el panel, te llevo.
               </span>
             </p>
+            <p className="ph-bienvenida-titulo">Lo que hago al toque:</p>
+            {barra}
             <div className="patty-sugerencias">
               {sugerencias.map((s) => (
                 <button key={s} type="button" onClick={() => (s.includes("adjunta") ? entradaArchivo.current?.click() : enviar(s))}>
@@ -854,6 +899,7 @@ export function ChatPatty({
             </span>
           </div>
         ))}
+        {herramienta && <TarjetaHerramienta key={herramienta.id} herramienta={herramienta.tipo} texto={herramienta.texto} alTerminar={terminarHerramienta} />}
         {alSitio && <SubirAlSitio key={alSitio.id} texto={alSitio.texto} archivos={alSitio.archivos} nombre={nombre} alTerminar={terminarAlSitio} />}
         {pensando && (
           <div className="patty-burbuja suya pensando" aria-label={`${nombre} está escribiendo`}>
@@ -887,6 +933,7 @@ export function ChatPatty({
         </div>
       )}
 
+      {turnos.length > 0 && !pensando && archivos.length === 0 && !casa && !herramienta && !alSitio && barra}
       {turnos.length > 0 && !pensando && archivos.length === 0 && !casa && (
         <div className="patty-atajos">
           {sugerencias.slice(0, 3).map((s) => (

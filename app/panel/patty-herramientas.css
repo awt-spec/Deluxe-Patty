@@ -1,0 +1,283 @@
+/* Herramientas del chat de Patty: barra de botones y tarjeta de resultado. */
+
+.ph-barra {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 2px 2px 4px;
+}
+
+.ph-barra::-webkit-scrollbar {
+  display: none;
+}
+
+.tema .ph-barra button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--principal) 35%, var(--borde));
+  background: color-mix(in srgb, var(--principal) 8%, var(--superficie));
+  color: var(--principal-oscuro, var(--principal));
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: none;
+}
+
+.tema .ph-barra button:hover {
+  background: color-mix(in srgb, var(--principal) 16%, var(--superficie));
+}
+
+.ph-bienvenida-titulo {
+  margin: 4px 0 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--suave);
+}
+
+.ph-tarjeta {
+  align-self: stretch;
+  margin: 6px 0;
+  padding: 12px;
+  border-radius: 16px;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 6%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ph-cabeza {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.ph-cabeza span {
+  flex: 1;
+  min-width: 0;
+  color: var(--suave);
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ph-cabeza strong {
+  flex: none;
+}
+
+.tema .ph-tarjeta .ph-cerrar {
+  margin-left: auto;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  font-size: 1.4rem;
+  line-height: 1;
+  box-shadow: none;
+}
+
+.ph-elegir p {
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+
+.ph-elegir input {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.ph-casas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.tema .ph-casas button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px;
+  text-align: left;
+  border-radius: 12px;
+  border: 1px solid var(--borde);
+  background: var(--superficie);
+  box-shadow: none;
+}
+
+.tema .ph-casas button:hover {
+  border-color: var(--principal);
+}
+
+.ph-casas img,
+.ph-sin-foto {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 9px;
+  object-fit: cover;
+  display: grid;
+  place-items: center;
+  background: var(--superficie-alta);
+  color: var(--suave);
+}
+
+.ph-casas span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ph-casas strong {
+  font-size: 0.95rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ph-casas small {
+  color: var(--suave);
+  font-size: 0.8rem;
+}
+
+.ph-resultado {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ph-galeria {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.ph-galeria a {
+  display: block;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.ph-galeria img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ph-diseno {
+  display: block;
+  width: 100%;
+  max-width: 340px;
+  margin: 0 auto;
+  border-radius: 10px;
+  background: var(--superficie-alta);
+}
+
+.ph-diseno.post {
+  aspect-ratio: 1;
+}
+
+.ph-diseno.historia {
+  max-width: 220px;
+  aspect-ratio: 9 / 16;
+}
+
+.ph-botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tema .ph-botones > a,
+.tema .ph-botones > button,
+.tema .ph-ficha > a,
+.tema .ph-video > a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--borde);
+  background: var(--superficie);
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: none;
+}
+
+.tema .ph-tarjeta .ph-principal {
+  background: var(--principal);
+  border-color: var(--principal);
+  color: #fff;
+}
+
+.ph-ficha,
+.ph-video {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.ph-ficha svg {
+  color: var(--peligro);
+}
+
+.ph-ficha span {
+  flex: 1;
+  min-width: 140px;
+  font-weight: 600;
+}
+
+.ph-video img {
+  width: 96px;
+  height: 96px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.ph-video p {
+  flex: 1;
+  min-width: 180px;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.tema .ph-tarjeta .ph-otra {
+  align-self: flex-start;
+  min-height: 0;
+  padding: 2px 0;
+  border: none;
+  background: none;
+  color: var(--principal-oscuro, var(--principal));
+  text-decoration: underline;
+  box-shadow: none;
+}
+
+.ph-suave {
+  margin: 0;
+  color: var(--suave);
+}
+
+.ph-aviso {
+  margin: 0;
+  color: var(--peligro);
+}
