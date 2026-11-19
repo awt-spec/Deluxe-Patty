@@ -78,6 +78,23 @@ export interface ClasificacionAnuncio {
   consumo: Consumo;
 }
 
+/** Casa armada desde el texto que pegó el corredor: ficha, textos para el sitio (es/en) y lo que no quedó claro. */
+export interface CasaDesdeTexto {
+  ficha: FichaParcial;
+  parqueos: number | null;
+  textos: {
+    titulo_es: string;
+    titulo_en: string;
+    descripcion_es: string;
+    descripcion_en: string;
+    destacados_es: string[];
+    destacados_en: string[];
+  };
+  /** Preguntas sobre lo que quedó ambiguo o contradictorio (hasta 3, la más útil primero). */
+  dudas: string[];
+  consumo: Consumo;
+}
+
 export interface FichaConversada {
   ficha: FichaParcial;
   /** Lo que la asistente le pregunta al corredor si falta algo esencial; null si ya se puede guardar. */
@@ -157,6 +174,16 @@ export interface Cerebro {
     mensajes: { autor: "corredor" | "asistente"; texto: string }[],
     actual: FichaParcial | null,
   ): Promise<FichaConversada>;
+  /** Lee el texto pegado de una casa (y las respuestas del corredor): ficha, textos es/en y dudas. */
+  casaDesdeTexto(
+    corredor: Corredor,
+    entrada: {
+      texto: string;
+      modo: "mejorar" | "tal_cual";
+      mensajes: { autor: "corredor" | "asistente"; texto: string }[];
+      actual: FichaParcial | null;
+    },
+  ): Promise<CasaDesdeTexto>;
   agendar(
     corredor: Corredor,
     propiedades: Propiedad[],
@@ -299,6 +326,17 @@ const EsquemaFicha = z.object({
   descripcion: textoNulo,
   amenidades: z.array(z.string()),
   pregunta: textoNulo,
+});
+
+const EsquemaCasaTexto = EsquemaFicha.omit({ pregunta: true }).extend({
+  parqueos: numeroNulo,
+  titulo_es: z.string(),
+  titulo_en: z.string(),
+  descripcion_es: z.string(),
+  descripcion_en: z.string(),
+  destacados_es: z.array(z.string()),
+  destacados_en: z.array(z.string()),
+  dudas: z.array(z.string()),
 });
 
 const EsquemaAgenda = z.object({
@@ -739,6 +777,44 @@ export function crearCerebroClaude(client: Anthropic = crearClienteClaude()): Ce
       if (!res.parsed_output) throw new Error(`Ficha sin salida (stop_reason ${res.stop_reason})`);
       const { pregunta, ...ficha } = res.parsed_output;
       return { ficha, pregunta: pregunta?.trim() || null, consumo: c };
+    },
+
+    async casaDesdeTexto(corredor, { texto, modo, mensajes, actual }) {
+      const conversacion = mensajes
+        .map((m) => `${m.autor === "corredor" ? corredor.nombre_contacto : "Asistente"}: ${m.texto}`)
+        .join("\n");
+      const res = await client.beta.messages.parse({
+        model: MODELO_REDACTAR,
+        max_tokens: 8000,
+        betas: ["server-side-fallback-2026-07-01"],
+        fallbacks: "default",
+        output_config: { effort: "low", format: betaZodOutputFormat(EsquemaCasaTexto) },
+        system: instruccion("casa-texto"),
+        messages: [
+          {
+            role: "user",
+            content: [
+              `<modo>${modo}</modo>`,
+              `<texto_de_la_casa>\n${texto}\n</texto_de_la_casa>`,
+              actual ? `<ficha_actual>\n${JSON.stringify(actual)}\n</ficha_actual>` : null,
+              conversacion ? `<conversacion>\n${conversacion}\n</conversacion>` : null,
+            ]
+              .filter(Boolean)
+              .join("\n\n"),
+          },
+        ],
+      });
+      const c = consumo(res.model, res.usage);
+      if (res.stop_reason === "refusal") throw new RechazoModelo(c);
+      if (!res.parsed_output) throw new Error(`Casa sin salida (stop_reason ${res.stop_reason})`);
+      const { parqueos, titulo_es, titulo_en, descripcion_es, descripcion_en, destacados_es, destacados_en, dudas, ...ficha } = res.parsed_output;
+      return {
+        ficha,
+        parqueos,
+        textos: { titulo_es, titulo_en, descripcion_es, descripcion_en, destacados_es, destacados_en },
+        dudas: dudas.map((d) => d.trim()).filter(Boolean).slice(0, 3),
+        consumo: c,
+      };
     },
 
     async conversarConCorredor(corredor, contexto, historial, mensaje, adjuntos = []) {

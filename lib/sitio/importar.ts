@@ -381,6 +381,8 @@ export async function sincronizarSitio(
   // Las que vinieron del sitio y allá ya no están: pausadas (no se borran: pueden tener clientes y visitas).
   for (const [codigo, p] of existentes) {
     if (!CODIGO_SITIO.test(codigo) || enSitio.has(codigo) || p.estado !== "activa") continue;
+    // Recién publicada desde el chat de Patty: la exportación (en caché) todavía no la lista; no se pausa.
+    if ((p.fotos ?? []).some(subidaReciente)) continue;
     await db.from("propiedades").update({ estado: "inactiva" }).eq("corredor_id", corredor.id).eq("id", p.id);
     res.pausadas++;
   }
