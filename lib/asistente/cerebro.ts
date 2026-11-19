@@ -829,13 +829,18 @@ export function crearCerebroClaude(client: Anthropic = crearClienteClaude()): Ce
       ].join("\n\n");
       // Internet: buscar (precios de mercado, noticias, leyes, una zona, la competencia) y leer páginas. Cada búsqueda
       // se cobra aparte (consumo() la suma) y hay pocas por pregunta; la ubicación aproximada es Costa Rica.
+      // La búsqueda se prende con PATTY_BUSCAR_WEB=1 (apagada por defecto hasta confirmarla en producción).
       const tools: Anthropic.Beta.BetaToolUnion[] = [
-        {
-          type: "web_search_20260209",
-          name: "web_search",
-          max_uses: MAX_BUSQUEDAS_PATTY,
-          user_location: { type: "approximate", country: "CR", timezone: corredor.zona_horaria || "America/Costa_Rica" },
-        },
+        ...(process.env.PATTY_BUSCAR_WEB === "1"
+          ? [
+              {
+                type: "web_search_20260209" as const,
+                name: "web_search" as const,
+                max_uses: MAX_BUSQUEDAS_PATTY,
+                user_location: { type: "approximate" as const, country: "CR", timezone: corredor.zona_horaria || "America/Costa_Rica" },
+              },
+            ]
+          : []),
         { type: "web_fetch_20260209", name: "web_fetch", max_uses: 2, max_content_tokens: 15_000 },
       ];
       const messages: Anthropic.Beta.BetaMessageParam[] = [
