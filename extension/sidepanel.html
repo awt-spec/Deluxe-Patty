@@ -24,6 +24,10 @@
     </header>
 
     <main>
+      <nav id="pestanas" class="pestanas" role="tablist" aria-label="Qué quieres ver" hidden>
+        <button id="tab-trabajo" type="button" role="tab" aria-controls="conectada" aria-selected="true">Buscar y publicar</button>
+        <button id="tab-patty" type="button" role="tab" aria-controls="vista-patty" aria-selected="false"><span id="tab-patty-texto">Patty</span></button>
+      </nav>
       <section id="sin-conectar" hidden>
         <div class="vacio">
           <img src="ilustra-conectar.svg" alt="" width="176" height="120" />
@@ -48,7 +52,7 @@
         </details>
       </section>
 
-      <section id="conectada" hidden>
+      <section id="conectada" role="tabpanel" aria-labelledby="tab-trabajo" hidden>
         <article id="en-curso" class="tarjeta hero" data-fase="buscando" aria-labelledby="en-curso-titulo" hidden>
           <div class="hero-arriba">
             <div class="anillo" id="anillo" aria-hidden="true">
@@ -187,6 +191,52 @@
             <img src="ilustra-pasos.svg" alt="" width="120" height="72" />
             <p class="suave">Cuando busque dueños, aquí verás cada paso.</p>
           </div>
+        </section>
+      </section>
+
+      <section id="vista-patty" class="vista-patty" role="tabpanel" aria-labelledby="tab-patty" hidden>
+        <section id="trabajos" class="tarjeta trabajos" aria-labelledby="trabajos-titulo" hidden>
+          <p class="etiqueta"><span class="punto" aria-hidden="true"></span><span id="trabajos-titulo">En curso</span></p>
+          <div id="trabajo-busqueda" class="trabajo" hidden>
+            <strong id="tb-titulo"></strong>
+            <p id="tb-detalle" class="suave" role="status" aria-live="polite"></p>
+            <div class="botones">
+              <button id="tb-pausar" type="button" class="grande"><span>Pausar</span></button>
+              <button id="tb-seguir" type="button" class="grande primario" hidden><span>Seguir</span></button>
+              <button id="tb-detener" type="button" class="grande parar"><span id="tb-detener-texto">Detener</span></button>
+            </div>
+          </div>
+          <div id="trabajo-llenado" class="trabajo" hidden>
+            <p id="tl-texto" role="status" aria-live="polite"></p>
+            <button id="tl-detener" type="button" class="grande parar">Detener el llenado</button>
+          </div>
+        </section>
+
+        <section class="tarjeta herramientas" aria-labelledby="herramientas-titulo">
+          <h3 id="herramientas-titulo">Herramientas</h3>
+          <div class="herramientas-grilla">
+            <button type="button" class="herramienta" data-herramienta="revisar">Revisar mis casas</button>
+            <button type="button" class="herramienta" data-herramienta="duenos">Dueños directos</button>
+            <button type="button" class="herramienta" data-herramienta="mes">¿Cómo va el mes?</button>
+            <button type="button" class="herramienta" data-herramienta="anuncio">Preparar un anuncio</button>
+            <button type="button" class="herramienta ancha" data-herramienta="portal">Fotos, post, historia, ficha o video de una casa</button>
+          </div>
+          <p id="herramientas-aviso" class="aviso" role="status" aria-live="polite" hidden></p>
+        </section>
+
+        <section class="tarjeta chat" aria-labelledby="chat-titulo">
+          <div class="chat-cabeza">
+            <h3 id="chat-titulo">Pregúntale a Patty</h3>
+            <button id="chat-nueva" type="button" class="enlace">Nueva</button>
+          </div>
+          <p id="chat-vacio" class="suave">Pregúntame por tus clientes, tus visitas, tus casas o cómo va el mes.</p>
+          <ol id="chat-lista" class="chat-lista" aria-live="polite"></ol>
+          <form id="chat-form" class="chat-form">
+            <label for="chat-texto" class="solo-lector">Tu mensaje</label>
+            <textarea id="chat-texto" rows="2" maxlength="2000" placeholder="Escribe tu pregunta…"></textarea>
+            <button id="chat-enviar" type="submit" class="primario grande">Enviar</button>
+          </form>
+          <p class="suave chica">Solo texto. Para fotos, PDF o que te lleve de la mano, usa el chat del panel.</p>
         </section>
       </section>
 

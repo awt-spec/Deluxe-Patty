@@ -8,6 +8,7 @@ import { apartarConPatty } from "../agenda/patty-apartar";
 import { etiquetaHorario, lineaAhora } from "../agenda/formato";
 import { fechaIso, fechaLocal } from "../agenda/tiempo";
 import { fichaPropiedades, RechazoModelo, type Adjunto } from "../asistente/cerebro";
+import { respuestaPattyDemo } from "../asistente/cerebro-demo";
 import { dentroDelTope, motivoSinPresupuesto } from "../asistente/limites";
 import { mensajeFallaIA, registrarFallaIA } from "../asistente/falla-ia";
 import { armarPlan, datosDelPlan } from "../asistente/plan";
@@ -270,6 +271,22 @@ export async function contextoPantalla(db: SupabaseClient, corredor: Corredor, r
   return lineas.filter(Boolean).join("\n");
 }
 
+/**
+ * De dónde habla el corredor. El panel usa los valores por defecto. El panel lateral de la extensión de Chrome pasa
+ * `pantalla: false` (no hay pantalla del panel ni guía en pantalla), `imagenes: false` (solo texto) y, en la demo,
+ * `simular: true`: contesta el código con los mismos datos, sin llamar a ninguna IA ni sumar gasto.
+ */
+export interface OpcionesPatty {
+  pantalla?: boolean;
+  imagenes?: boolean;
+  simular?: boolean;
+}
+
+/** Lo que va en <pantalla_actual> cuando el corredor escribe desde el panel lateral de la extensión. */
+export const PANTALLA_EXTENSION =
+  "Pantalla: panel lateral de la extensión de Chrome (solo texto). Aquí no hay guía en pantalla: no pidas pasos <<…>>, " +
+  "ni PDF ni PNG; si hace falta, enlaza la pantalla del panel con [Nombre](/panel/...).";
+
 export async function hablarConPatty(
   deps: Dependencias,
   db: SupabaseClient,
@@ -278,17 +295,26 @@ export async function hablarConPatty(
   mensaje: string,
   ruta = "/panel",
   adjuntos: Adjunto[] = [],
+  opciones: OpcionesPatty = {},
 ): Promise<{ ok: true; texto: string; cambio?: boolean } | { ok: false; motivo: string }> {
   const limpio = mensaje.trim().slice(0, 4000) || (adjuntos.length ? "Revisa lo que te adjunto y dime qué ves o qué me recomiendas." : "");
   if (!limpio) return { ok: false, motivo: "Escribe algo para Patty." };
+  const nombre = (corredor.nombre_asistente ?? "").trim() || "Patty";
   // "Hazme una imagen de…" o, con una foto adjunta, "amuebla esta sala": la hace OpenAI, sin el modelo de texto.
   const pedidoImagen = pideImagen(limpio, adjuntos);
+  if (pedidoImagen && opciones.imagenes === false) {
+    return { ok: true, texto: `Las imágenes las hago en el chat del panel: ábrelo en [${nombre}](/panel/patty) y pídemela ahí.` };
+  }
   if (pedidoImagen) return imagenParaPatty(deps, corredor, pedidoImagen, limpio);
   // "Apartar (o bloquear) mañana en la tarde": lo entiende y lo guarda el código (las fechas nunca las pone el modelo).
   // Si el código no lo entiende entero ("el martes tengo dentista de 2 a 4 y el viernes no trabajo"), lo entiende
   // Haiku y Patty responde con lo que entendió y un botón a Apartar tiempo, donde se confirma (apartarConPatty).
   if ((pideBloqueo(limpio) || pideApartarLibre(limpio)) && adjuntos.length === 0) {
     const pedido = codigoLoEntiende(limpio, new Date(), corredor.zona_horaria);
+    // En la demo simulada no se llama a Haiku: se le explica dónde hacerlo.
+    if (!pedido && opciones.simular) {
+      return { ok: true, texto: "En la demostración aparto el tiempo solo si me lo dices simple (por ejemplo, «apartar mañana en la tarde»). También puedes hacerlo en [Apartar tiempo](/panel/agenda/bloquear)." };
+    }
     if (!pedido) return apartarConPatty(deps, db, corredor, limpio);
     try {
       const r = await apartar(deps.repo, corredor.id, pedido);
@@ -299,11 +325,23 @@ export async function hablarConPatty(
     }
   }
   const presupuesto = await deps.repo.presupuestoIA(corredor.id);
+  // La demo simulada contesta el código con los datos (sin IA ni gasto): el tope no la frena.
+  if (opciones.simular) {
+    try {
+      return { ok: true, texto: respuestaPattyDemo(await contextoPatty(deps, db, corredor, new Date(), presupuesto), limpio) };
+    } catch (e) {
+      console.error(JSON.stringify({ evento: "error_patty_demo", corredorId: corredor.id, error: errorSeguro(e) }));
+      return { ok: false, motivo: "No pude leer tus datos ahora. Inténtalo de nuevo en un rato." };
+    }
+  }
   if (!dentroDelTope(presupuesto)) return { ok: false, motivo: motivoSinPresupuesto(presupuesto, corredor.nombre_asistente) };
   const registrarCosto = (c: { tokensEntrada: number; tokensSalida: number; costoUsd: number }) =>
     deps.repo.registrarUso(corredor.id, { llamadasClaude: 1, tokensEntrada: c.tokensEntrada, tokensSalida: c.tokensSalida, costoClaudeUsd: c.costoUsd });
   try {
-    const [negocio, pantalla] = await Promise.all([contextoPatty(deps, db, corredor, new Date(), presupuesto), contextoPantalla(db, corredor, ruta)]);
+    const [negocio, pantalla] = await Promise.all([
+      contextoPatty(deps, db, corredor, new Date(), presupuesto),
+      opciones.pantalla === false ? Promise.resolve(PANTALLA_EXTENSION) : contextoPantalla(db, corredor, ruta),
+    ]);
     const contexto = `<pantalla_actual>\n${pantalla}\n</pantalla_actual>\n\n${negocio}`;
     const r = await deps.cerebro.conversarConCorredor(corredor, contexto, historial.slice(-12), limpio, adjuntos);
     await registrarCosto(r.consumo);

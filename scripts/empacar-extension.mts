@@ -34,6 +34,7 @@ export const ARCHIVOS_EXTENSION = [
   "maquina.js",
   "mensajes.js",
   "panel.js",
+  "patty.js",
   "ritmo.js",
   "sidepanel.css",
   "sidepanel.html",

@@ -4,11 +4,27 @@
 //
 // Solo lee chrome.storage (lo escribe background.js) y le pide cosas al trabajador de fondo con los mismos mensajes
 // que validan mensajes.js y maquina.js. Dibuja con textContent y createElement, sin armar HTML con texto.
+//
+// Desde la 1.7.0, la pestaña de Patty: el chat con la asistente (solo texto; la conversación vive en
+// chrome.storage.session, que no llega a las páginas), sus herramientas y lo que está corriendo (la búsqueda y el llenado)
+// con sus botones, para controlarlo todo desde un lugar.
 import { APP } from "./config.js";
 import { esPaginaDeAnuncio } from "./comun.js";
 import { accionLeer, latidoViejo, nombreAsistente, textoUltima, vistaPanel } from "./vista-panel.js";
 import { esFormularioDePublicar, INICIO_E24, vistaPublicar } from "./llenado.js";
 import { esUrlDeE24 } from "./mensajes.js";
+import {
+  agregarTurno,
+  bloquesRespuesta,
+  enlaceSeguro,
+  historialParaEnviar,
+  limpiarConversacion,
+  MAX_MENSAJE_PATTY,
+  PREGUNTA_MES,
+  textoDuenos,
+  textoRevision,
+  vistaTrabajos,
+} from "./patty.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -138,7 +154,13 @@ function dibujar(v, extra = {}) {
   $("linea-barra").style.width = `${Math.round((c.progreso ?? 0) * 100)}%`;
 
   $("sin-conectar").hidden = v.conectada;
-  $("conectada").hidden = !v.conectada;
+  $("conectada").hidden = !v.conectada || pestana === "patty";
+  $("vista-patty").hidden = !v.conectada || pestana !== "patty";
+  $("pestanas").hidden = !v.conectada;
+  $("tab-trabajo").setAttribute("aria-selected", String(pestana !== "patty"));
+  $("tab-patty").setAttribute("aria-selected", String(pestana === "patty"));
+  $("tab-patty-texto").textContent = c.nombre;
+  $("chat-titulo").textContent = `Pregúntale a ${c.nombre}`;
   $("pie").hidden = !v.conectada;
   if (!v.conectada) return;
 
@@ -226,6 +248,7 @@ async function pintar() {
     }
   }
   dibujar(v, { anuncio, sola: g.buscarSola !== false, modo: g.modoSemanal, ultimaDias: g.ultimaDias });
+  if (v.conectada) pintarTrabajos(vistaTrabajos({ enCurso: v.enCurso, llenado: g.llenado }));
   if (v.conectada) await pintarPublicar(g);
 }
 
@@ -453,16 +476,231 @@ $("desconectar").addEventListener("click", async () => {
   pintar();
 });
 
+// --- Patty en la extensión (1.7.0): chat, herramientas y lo que está corriendo -----------------------------------
+
+/** "trabajo" (buscar y publicar) o "patty". Se recuerda en chrome.storage.session mientras Chrome está abierto. */
+let pestana = "trabajo";
+let conversacion = [];
+let esperando = false;
+
+async function cargarChat() {
+  try {
+    const g = await chrome.storage.session.get(["pattyChat", "pestana"]);
+    conversacion = limpiarConversacion(g.pattyChat);
+    pestana = g.pestana === "patty" ? "patty" : "trabajo";
+  } catch {
+    conversacion = [];
+  }
+}
+
+const guardarChat = () => chrome.storage.session.set({ pattyChat: conversacion }).catch(() => {});
+
+/** Abre una dirección aparte solo si sigue siendo segura (https o una pantalla del propio panel). */
+function abrirEnlace(url) {
+  const seguro = enlaceSeguro(url, APP);
+  if (seguro && seguro === url) chrome.tabs.create({ url: seguro });
+}
+
+function nodosPartes(partes) {
+  return partes.map((p) => {
+    if (p.tipo === "negrita") {
+      const b = document.createElement("strong");
+      b.textContent = p.texto;
+      return b;
+    }
+    if (p.tipo === "enlace") {
+      const a = document.createElement("a");
+      a.href = p.url;
+      a.textContent = p.texto;
+      a.rel = "noopener noreferrer";
+      a.target = "_blank";
+      a.className = "chat-enlace";
+      a.title = p.url;
+      a.addEventListener("click", (e) => {
+        e.preventDefault();
+        abrirEnlace(p.url);
+      });
+      return a;
+    }
+    return document.createTextNode(p.texto);
+  });
+}
+
+/** La respuesta de la asistente, en bloques (patty.js): nunca como HTML. */
+function nodosRespuesta(texto) {
+  return bloquesRespuesta(texto, APP).map((b) => {
+    const e = document.createElement(b.tipo === "titulo" ? "strong" : "p");
+    e.className = `chat-${b.tipo}`;
+    e.append(...nodosPartes(b.partes));
+    return e;
+  });
+}
+
+function burbuja(t) {
+  const li = document.createElement("li");
+  li.className = "burbuja";
+  li.dataset.autor = t.autor;
+  if (t.error) li.dataset.error = "si";
+  if (t.autor === "corredor" || t.error) {
+    const p = document.createElement("p");
+    p.textContent = t.texto;
+    li.append(p);
+  } else li.append(...nodosRespuesta(t.texto));
+  return li;
+}
+
+function pintarChat() {
+  const filas = conversacion.map(burbuja);
+  if (esperando) {
+    const li = document.createElement("li");
+    li.className = "burbuja pensando";
+    li.dataset.autor = "asistente";
+    li.textContent = `${$("tab-patty-texto").textContent || "Patty"} está pensando…`;
+    filas.push(li);
+  }
+  $("chat-lista").replaceChildren(...filas);
+  $("chat-vacio").hidden = filas.length > 0;
+  $("chat-enviar").disabled = esperando;
+  $("chat-nueva").disabled = esperando;
+  for (const b of document.querySelectorAll("[data-herramienta]")) {
+    b.disabled = esperando && ["revisar", "duenos", "mes"].includes(b.dataset.herramienta);
+  }
+  if (filas.length && pestana === "patty") $("chat-lista").lastElementChild?.scrollIntoView({ block: "nearest" });
+}
+
+/** Un turno del corredor y lo que contestó la asistente (o el código, en las herramientas). */
+async function turno(textoCorredor, pedir) {
+  if (esperando) return;
+  esperando = true;
+  conversacion = agregarTurno(conversacion, { autor: "corredor", texto: textoCorredor });
+  pintarChat();
+  await guardarChat();
+  let r = null;
+  try {
+    r = await pedir();
+  } catch {
+    r = null;
+  }
+  esperando = false;
+  conversacion = agregarTurno(
+    conversacion,
+    r?.ok && r.texto ? { autor: "asistente", texto: r.texto } : { autor: "asistente", texto: r?.mensaje || "No pude contestarte ahora. Vuelve a intentarlo.", error: true },
+  );
+  await guardarChat();
+  pintarChat();
+}
+
+function preguntar(texto) {
+  const t = String(texto ?? "").trim();
+  if (!t || t.length > MAX_MENSAJE_PATTY) return;
+  // El historial es lo de antes de este mensaje (el mensaje va aparte).
+  const historial = historialParaEnviar(conversacion);
+  return turno(t, () => chrome.runtime.sendMessage({ tipo: "patty_preguntar", mensaje: t, historial }));
+}
+
+function elegirPestana(p) {
+  pestana = p === "patty" ? "patty" : "trabajo";
+  chrome.storage.session.set({ pestana }).catch(() => {});
+  repintar();
+  if (pestana === "patty") pintarChat();
+}
+
+function pintarTrabajos(t) {
+  $("trabajos").hidden = !t.hay;
+  const b = t.busqueda;
+  $("trabajo-busqueda").hidden = !b;
+  if (b) {
+    $("tb-titulo").textContent = b.titulo;
+    $("tb-detalle").textContent = [b.detalle, b.tiempo].filter(Boolean).join(" · ");
+    $("tb-pausar").hidden = !b.botones.pausar;
+    $("tb-seguir").hidden = !b.botones.seguir;
+    $("tb-detener").hidden = !b.botones.detener;
+    $("tb-detener-texto").textContent = b.botones.detenerTexto;
+  }
+  $("trabajo-llenado").hidden = !t.llenado;
+  $("tl-texto").textContent = t.llenado?.texto ?? "";
+}
+
+$("tab-trabajo").addEventListener("click", () => elegirPestana("trabajo"));
+$("tab-patty").addEventListener("click", () => elegirPestana("patty"));
+// Flechas entre las pestañas (como un tablist).
+$("pestanas").addEventListener("keydown", (e) => {
+  if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+  const siguiente = pestana === "patty" ? "trabajo" : "patty";
+  elegirPestana(siguiente);
+  $(siguiente === "patty" ? "tab-patty" : "tab-trabajo").focus();
+});
+
+$("chat-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const t = $("chat-texto").value;
+  if (!t.trim() || esperando) return;
+  $("chat-texto").value = "";
+  preguntar(t);
+});
+$("chat-texto").addEventListener("keydown", (e) => {
+  // Enter manda; Mayúsculas + Enter, línea nueva.
+  if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+    e.preventDefault();
+    $("chat-form").requestSubmit();
+  }
+});
+$("chat-nueva").addEventListener("click", async () => {
+  if (esperando) return;
+  conversacion = [];
+  await guardarChat();
+  pintarChat();
+  $("chat-texto").focus();
+});
+
+const conTexto = (aTexto) => (r) => ({ ok: !!r?.ok, texto: aTexto(r), mensaje: r?.mensaje });
+
+for (const boton of document.querySelectorAll("[data-herramienta]")) {
+  boton.addEventListener("click", () => {
+    mostrar("herramientas-aviso", "");
+    const h = boton.dataset.herramienta;
+    if (h === "revisar") turno("Revisar mis casas", () => chrome.runtime.sendMessage({ tipo: "patty_revisar_casas" }).then(conTexto(textoRevision)));
+    else if (h === "duenos") turno("Dueños directos", () => chrome.runtime.sendMessage({ tipo: "patty_duenos" }).then(conTexto(textoDuenos)));
+    else if (h === "mes") preguntar(PREGUNTA_MES);
+    else if (h === "anuncio") {
+      // El mismo "Preparar un anuncio" de Publicar con Patty (1.6.0).
+      if (!$("en-curso").hidden) return mostrar("herramientas-aviso", "Cuando termine la búsqueda, lo preparas en «Publicar con Patty».");
+      elegirPestana("trabajo");
+      $("preparar").open = true;
+      $("preparar").scrollIntoView({ block: "start", behavior: "smooth" });
+    } else if (h === "portal") {
+      // Fotos, post, historia, ficha y video se hacen en el chat del panel (con la casa y sus fotos).
+      const url = enlaceSeguro("/panel/patty", APP);
+      if (url) chrome.tabs.create({ url });
+    }
+  });
+}
+
+$("tb-pausar").addEventListener("click", () => chrome.runtime.sendMessage({ tipo: "pausar" }).catch(() => {}));
+$("tb-seguir").addEventListener("click", () => chrome.runtime.sendMessage({ tipo: "seguir" }).catch(() => {}));
+$("tb-detener").addEventListener("click", () => chrome.runtime.sendMessage({ tipo: "detener" }).catch(() => {}));
+$("tl-detener").addEventListener("click", () => chrome.runtime.sendMessage({ tipo: "detener_llenado" }).catch(() => {}));
+
 // Se vuelve a dibujar cuando cambia lo guardado, al cambiar de pestaña o de página (para "Leer este anuncio") y cada
 // tanto (si el latido se queda viejo, se le pregunta al trabajador de fondo).
 const repintar = () => pintar().catch(() => {});
-chrome.storage.onChanged.addListener(repintar);
+chrome.storage.onChanged.addListener((_cambios, area) => {
+  // La conversación (y la pestaña) en otra ventana: se vuelve a leer, salvo mientras esta espera una respuesta.
+  if (area === "session") {
+    if (!esperando) cargarChat().then(() => (repintar(), pintarChat()));
+    return;
+  }
+  repintar();
+});
 chrome.tabs.onActivated.addListener(repintar);
 chrome.tabs.onUpdated.addListener((_id, info) => {
   if (info.url || info.status === "complete") repintar();
 });
 chrome.windows?.onFocusChanged?.addListener(repintar);
-repintar();
+cargarChat().then(() => {
+  repintar();
+  pintarChat();
+});
 setInterval(repintar, 15_000);
 // Mientras hay una búsqueda en curso, cada 2 s se mira el latido: un trabajador de fondo reiniciado se nota en segundos.
 setInterval(() => {

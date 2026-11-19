@@ -158,17 +158,17 @@ describe("asistente para actualizar: qué trae la versión nueva", () => {
   it("desde la 1.3.0 nombra el panel con el nombre de la asistente (lo más nuevo primero)", () => {
     const t = novedadesDesde("1.3.0", "Patty");
     expect(t).toHaveLength(2);
-    expect(t[0]).toMatch(/Patty llena el título/);
-    expect(t[1]).toMatch(/Patty busca sola cada semana/);
+    expect(t[0]).toMatch(/le escribes a Patty/);
+    expect(t[1]).toMatch(/Patty llena el título/);
     expect(t.join(" ")).not.toMatch(/popup/i);
   });
 
-  it("desde la 1.5.0, lo de la 1.6.0 y la 1.5.2; desde la 1.5.2, solo la 1.6.0; sin saber la instalada, lo más reciente; nombre vacío = Patty", () => {
-    expect(novedadesDesde("1.4.0", "Ana")).toEqual([expect.stringMatching(/Ana llena el título/), expect.stringMatching(/Ana busca sola cada semana/)]);
-    expect(novedadesDesde("1.5.0", "Ana")).toEqual([expect.stringMatching(/formulario de publicar/), expect.stringMatching(/próxima búsqueda/)]);
-    expect(novedadesDesde("1.5.1", "Ana")).toEqual([expect.stringMatching(/tú revisas y publicas/), expect.stringMatching(/Ana busca sola cada semana/)]);
-    expect(novedadesDesde("1.5.2", "Ana")).toEqual([expect.stringMatching(/Ana llena el título/)]);
-    expect(novedadesDesde("1.6.0", "Ana")).toEqual([]);
+  it("desde la 1.5.2, lo de la 1.7.0 y la 1.6.0; desde la 1.6.0, solo la 1.7.0; sin saber la instalada, lo más reciente; nombre vacío = Patty", () => {
+    expect(novedadesDesde("1.4.0", "Ana")).toEqual([expect.stringMatching(/le escribes a Ana/), expect.stringMatching(/Ana llena el título/)]);
+    expect(novedadesDesde("1.5.0", "Ana")).toEqual([expect.stringMatching(/pausas o detienes/), expect.stringMatching(/formulario de publicar/)]);
+    expect(novedadesDesde("1.5.2", "Ana")).toEqual([expect.stringMatching(/dueños directos/), expect.stringMatching(/Ana llena el título/)]);
+    expect(novedadesDesde("1.6.0", "Ana")).toEqual([expect.stringMatching(/le escribes a Ana/)]);
+    expect(novedadesDesde("1.7.0", "Ana")).toEqual([]);
     expect(novedadesDesde(null, " ")).toHaveLength(2);
     expect(novedadesDesde(null, " ").join(" ")).toContain("Patty");
   });

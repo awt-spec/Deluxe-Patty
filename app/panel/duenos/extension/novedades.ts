@@ -6,6 +6,11 @@ import { compararVersiones } from "@/lib/panel/extension-instalar";
 
 const NOVEDADES: { version: string; texto: (asistente: string) => string }[] = [
   {
+    version: "1.7.0",
+    texto: (a) =>
+      `En el panel de la extensión le escribes a ${a} como en tu panel, revisas tus casas y tus dueños directos, y pausas o detienes lo que está haciendo desde un solo lugar.`,
+  },
+  {
     version: "1.6.0",
     texto: (a) =>
       `En el formulario de publicar de Encuentra24, ${a} llena el título, la descripción, el precio, los datos y las fotos del anuncio que preparó; tú revisas y publicas.`,

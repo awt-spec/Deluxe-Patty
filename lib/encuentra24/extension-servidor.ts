@@ -3,11 +3,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { alertar, dependenciasPara, esperarAlertas } from "../asistente/dependencias";
 import { crearCerebroClaude } from "../asistente/cerebro";
 import { SIN_PRESUPUESTO } from "../asistente/limites";
-import { crearRepositorioSupabase } from "../datos/repositorio";
+import { COLUMNAS_CORREDOR, crearRepositorioSupabase } from "../datos/repositorio";
 import { leerConTope } from "../http/cuerpo";
 import { errorSeguro } from "../monitoreo/errores";
 import { createAdminClient } from "../supabase/admin";
 import type { DependenciasAnuncio } from "./anuncio";
+import type { Dependencias } from "../asistente/procesar";
 import type { Corredor } from "../datos/tipos";
 import { hayTurnoPorMinuto } from "../panel/turno-ia";
 import { crearAlmacenExtension } from "./datos";
@@ -39,6 +40,40 @@ export function dependenciasPreparar(corredor: Corredor): DependenciasPreparar {
   };
 }
 
+/** Pedidos por minuto al chat con Patty desde el panel lateral (por corredor). */
+export const TURNOS_PATTY_EXTENSION = 8;
+
+export interface DependenciasPattyExtension {
+  /** El cliente del backend: cada consulta de Patty filtra por corredor_id. */
+  db: SupabaseClient;
+  deps: Dependencias;
+  hayTurno: () => Promise<boolean>;
+}
+
+/** "Patty en la extensión" (1.7.0): la misma Patty del panel, con el freno propio de la extensión (8 por minuto). */
+export function dependenciasPatty(corredor: Corredor): DependenciasPattyExtension {
+  return {
+    db: createAdminClient(),
+    deps: dependenciasPara(corredor),
+    hayTurno: () => hayTurnoPorMinuto("patty_ext", corredor.id, TURNOS_PATTY_EXTENSION),
+  };
+}
+
+/** La base para las herramientas de Patty en la extensión (Revisar mis casas, Dueños directos), filtrada por corredor. */
+export function baseHerramientas(): SupabaseClient {
+  return createAdminClient();
+}
+
+/**
+ * La ficha entera del corredor del permiso (Patty necesita su nombre, zona, marca y topes). A diferencia de
+ * `almacen.corredor`, también trae la demo (inactiva): ahí Patty contesta simulada, sin IA ni gasto.
+ */
+export async function corredorCompleto(corredorId: string): Promise<Corredor | null> {
+  const { data, error } = await createAdminClient().from("corredores").select(COLUMNAS_CORREDOR).eq("id", corredorId).maybeSingle();
+  if (error) throw new Error(`corredorCompleto: ${error.code ?? "error"}`);
+  return (data as Corredor | null) ?? null;
+}
+
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 export function dependenciasExtension(): DependenciasExtension {
@@ -65,6 +100,7 @@ export const MENSAJES: Record<string, string> = {
   no_anuncio: "Esta página no parece un anuncio de Encuentra24. Abre el anuncio de una casa y vuelve a tocar el botón.",
   anuncio_no_encontrado:
     "Ese anuncio ya no está por publicar (se publicó, se borró o la casa se vendió). Vuelve a elegir uno de la lista.",
+  turno_patty: "Me escribiste muchas veces seguidas. Espera un minuto y vuelve a preguntarme.",
   casa_no_encontrada: "No encontré esa casa entre tus casas activas. Vuelve a elegirla.",
   datos: "La extensión mandó algo que no se entiende. Actualízala o avísale a soporte.",
   servidor: "Algo falló de nuestro lado. Vuelve a intentarlo en un rato.",
