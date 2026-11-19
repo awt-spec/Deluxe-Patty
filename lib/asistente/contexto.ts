@@ -182,6 +182,7 @@ export class Contexto {
     // borrador que ve el corredor es lo mismo que le llegaría al cliente).
     const texto = ordenarParaWhatsApp(textoModelo);
     const borrador = !this.corredor.respuesta_automatica;
+    this.respuestaEnviada = false;
     const id = await repo.guardarMensaje({
       corredor_id: this.corredor.id,
       conversacion_id: this.conversacion.id,
@@ -200,6 +201,7 @@ export class Contexto {
       const waId = await whatsapp.texto(this.phoneNumberId, this.telefonoCliente, texto);
       await repo.actualizarMensaje(this.corredor.id, id, { wa_message_id: waId, estado_entrega: "enviado" });
       await this.uso({ mensajesSalientes: 1 });
+      this.respuestaEnviada = true;
     } catch (error) {
       await repo.actualizarMensaje(this.corredor.id, id, { estado_entrega: "fallido" });
       const codigo = codigoWhatsApp(error);
@@ -226,6 +228,9 @@ export class Contexto {
   nombreCliente(): string {
     return this.nombre ? `${this.nombre} (${this.telefonoCliente})` : this.telefonoCliente;
   }
+
+  /** La última respuesta de `responderCliente` le llegó a WhatsApp (no quedó como borrador ni falló). */
+  respuestaEnviada = false;
 
   /** Nombre del cliente para los avisos; lo pone procesarMensaje. */
   nombre: string | null = null;

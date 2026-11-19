@@ -113,6 +113,8 @@ export interface Propiedad {
   amenidades: string[];
   url_e24: string | null;
   estado: string;
+  /** Fotos de la casa, cuando la consulta las trae (las activas, para mandarlas por WhatsApp). */
+  fotos?: Foto[];
 }
 
 export interface UsoDelta {

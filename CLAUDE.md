@@ -204,7 +204,12 @@ conversación no está escalada ni tomada por el corredor, Haiku clasifica y Son
 propiedades activas; si la intención es agendar, `lib/asistente/agenda.ts` calcula horarios libres
 (`lib/agenda/disponibilidad.ts`; por zona: traslado estimado entre visitas con `lib/agenda/zonas.ts`, salida desde
 `corredores.zona_base` —Patricia, Lindora— y primero los días con otra visita cerca), Sonnet elige la acción con ids cortos y el código arma las fechas y
-crea la cita. El modelo nunca escribe una fecha que llegue al cliente. Escalamientos, audios/imágenes, fallas de Claude y datos por confirmar se avisan al
+crea la cita. El modelo nunca escribe una fecha que llegue al cliente.
+**Fotos de una casa** (`lib/asistente/fotos-casa.ts`): la ficha que ve Sonnet dice "Fotos: N" o "Fotos: ninguna"; si el cliente
+las pide, el modelo pone el código de UNA casa en `enviar_fotos` y el código la valida (entre las activas o reservadas del
+corredor, con fotos) y, solo si el texto salió (nunca en sombra), manda hasta 6 fotos **originales** por enlace (leyenda armada
+por el código en la primera: título y código), cada una guardada como mensaje `imagen` y sumada al uso; una que falla corta el
+resto, y la misma casa no se repite al mismo chat en 24 h (`fotos_casa:<corredor>:<conv>:<casa>`). Escalamientos, audios/imágenes, fallas de Claude y datos por confirmar se avisan al
 corredor con la plantilla `WHATSAPP_PLANTILLA_AVISO`.
 **Formato:** lo que escribe el modelo pasa por `ordenarParaWhatsApp` (`lib/whatsapp/formato.ts`, pura e idempotente: markdown →
 *negrita*, • viñetas, tablas → "• dato: valor"; nunca toca cifras ni URLs) al responder al cliente, en el análisis del corredor y al
@@ -572,7 +577,7 @@ dueño o corredor. Un cambio de tono o de instrucciones se prueba con el set de 
 - `npm run eval:conversaciones` — set de conversaciones (`evals/conversaciones/`): corre cada caso por la
   asistente con Claude real (base y WhatsApp simulados) y califica con código intención, escalamiento,
   agenda, avisos, cifras inventadas y fechas del modelo. Necesita `ANTHROPIC_API_KEY` y cuesta llamadas.
-  Hoy son 31 casos sintéticos; se completan con conversaciones reales de Patricia.
+  Hoy son 32 casos sintéticos; se completan con conversaciones reales de Patricia.
 
 ## Forma de trabajo
 Una rama por entregable, plan antes de código, pruebas de la parte nueva, set de conversaciones,
