@@ -11,6 +11,8 @@ import { pideCargarCasa } from "@/lib/panel/casa-patty";
 import { pideSubirAlSitio } from "@/lib/panel/sitio-fotos";
 import { HERRAMIENTAS, pideHerramienta, type Herramienta } from "@/lib/panel/herramientas-patty";
 import { TarjetaHerramienta, type FinHerramienta } from "./patty-herramientas";
+import { armarCasaDesdeTexto, publicarCasaEnSitio } from "./patty-casa-sitio-acciones";
+import type { CasaTextoGuardada } from "@/lib/panel/almacen";
 import { almacenLocal, casaGuardada, leerAlmacen, turnosGuardados } from "@/lib/panel/almacen";
 import { MAX_ARCHIVOS_PATTY, MAX_BASE64_PATTY, MAX_BYTES_PATTY, TEXTO_MAX_PATTY } from "@/lib/panel/adjuntos-limites";
 import { clasificarFalla, mensajeDeFalla } from "@/lib/panel/fallas";
@@ -49,7 +51,13 @@ type Turno = {
  * (sus mensajes y la ficha que va armando Claude). `tarjeta`: la tarjeta "¿Está bien?" que se puede confirmar.
  * Se guarda en este navegador con el chat; los archivos de las fotos, solo en memoria (patty-casa.ts).
  */
-type CasaEnCurso = { ficha: FichaParcial | null; mensajes: { autor: "corredor" | "asistente"; texto: string }[]; tarjeta: string | null };
+type CasaEnCurso = {
+  ficha: FichaParcial | null;
+  mensajes: { autor: "corredor" | "asistente"; texto: string }[];
+  tarjeta: string | null;
+  /** Casa nueva con fotos + texto pegado (portal y sitio): paso, texto, modo y lo ya preguntado. */
+  conTexto?: CasaTextoGuardada | null;
+};
 
 /** Documento listo para ver: dirección local (blob o data) y nombre del archivo. */
 type Visor = { url: string; nombre: string; tipo: "pdf" | "png" };
@@ -256,6 +264,8 @@ export function ChatPatty({
   const [alSitio, setAlSitio] = useState<{ id: number; texto: string; archivos: File[] } | null>(null);
   // Fotos, post, historia, ficha o video de una casa: lo arma el código en una tarjeta del chat.
   const [herramienta, setHerramienta] = useState<{ id: number; tipo: Herramienta; texto: string } | null>(null);
+  // Fotos mandadas sin decir para qué: Patty pregunta qué hace con ellas.
+  const [fotosSueltas, setFotosSueltas] = useState<ArchivoListo[] | null>(null);
   const cajaTexto = useRef<HTMLTextAreaElement>(null);
   const [texto, setTexto] = useState("");
   const [archivos, setArchivos] = useState<ArchivoListo[]>([]);
@@ -493,6 +503,15 @@ export function ChatPatty({
       setAlSitio({ id: Date.now(), texto: limpio, archivos: originales });
       return;
     }
+    if (casaViva.current?.conTexto) {
+      seguirCasaTexto(limpio, adjuntos);
+      return;
+    }
+    // Solo fotos, sin decir para qué: se pregunta (casa nueva, subirlas a una casa del sitio o analizarlas).
+    if (!casaViva.current && !alSitio && !limpio && soloFotos && originales.length > 0) {
+      setFotosSueltas(adjuntos);
+      return;
+    }
     if (casaViva.current || (soloFotos && pideCargarCasa(limpio))) {
       seguirCasa(limpio, adjuntos);
       return;
@@ -503,6 +522,11 @@ export function ChatPatty({
       setHerramienta({ id: Date.now(), tipo: pedida, texto: limpio });
       return;
     }
+    preguntar(limpio, adjuntos, previos);
+  }
+
+  /** La pregunta va a Patty (Claude), con los archivos de este mensaje. */
+  function preguntar(limpio: string, adjuntos: ArchivoListo[], previos: Turno[]) {
     const dondeEsta = `${ruta}${busqueda.toString() ? `?${busqueda}` : ""}`;
     empezar(async () => {
       try {
@@ -576,8 +600,122 @@ export function ChatPatty({
     });
   }
 
+  /** La respuesta a «¿Qué hago con estas fotos?». */
+  function elegirFotos(que: "casa" | "sitio" | "analizar") {
+    const adj = fotosSueltas;
+    setFotosSueltas(null);
+    if (!adj) return;
+    const originales = adj.filter((a) => a.original).map((a) => a.original!);
+    if (que === "sitio") {
+      setAlSitio({ id: Date.now(), texto: "", archivos: originales });
+      return;
+    }
+    if (que === "analizar") {
+      preguntar("Analiza estas fotos", adj, vivos.current);
+      return;
+    }
+    const total = anotarFotos(clave, originales);
+    ponerCasa({
+      ficha: null,
+      mensajes: [],
+      tarjeta: null,
+      conTexto: { paso: "texto", texto: null, modo: null, textos: null, preguntadas: [], sitio: false, puedeGuardar: false, resumen: [] },
+    });
+    agregarTurno({
+      autor: "asistente",
+      texto: `Anoté ${total === 1 ? "la foto" : `las ${total} fotos`} para la casa nueva. Ahora **pégame el texto de la casa** (el anuncio o tus notas) o cuéntamela con tus palabras. Si falta algo importante, te pregunto.`,
+      hora: new Date().toISOString(),
+    });
+  }
+
+  /** Casa nueva con texto: el texto pegado, la elección de cómo dejarlo y las respuestas a lo que pregunta. */
+  function seguirCasaTexto(limpio: string, adjuntos: ArchivoListo[]) {
+    const c = casaViva.current;
+    const ct = c?.conTexto;
+    if (!c || !ct) return;
+    const fotos = adjuntos.filter((a) => a.tipo === "imagen" && !a.grupo && a.original).map((a) => a.original!);
+    if (fotos.length) {
+      const total = anotarFotos(clave, fotos);
+      if (!limpio) {
+        agregarTurno({ autor: "asistente", texto: `Ya tengo ${total} fotos para esta casa (hasta 12).`, hora: new Date().toISOString() });
+        return;
+      }
+    }
+    if (!limpio) return;
+    if (ct.paso === "texto") {
+      ponerCasa({ ...c, conTexto: { ...ct, paso: "modo", texto: limpio } });
+      agregarTurno({
+        autor: "asistente",
+        texto: "¿Cómo dejo el texto? Puedo **mejorarlo y ordenarlo** (y pasarlo al inglés para el sitio) o **dejarlo tal cual** lo escribiste. Elige abajo.",
+        hora: new Date().toISOString(),
+      });
+      return;
+    }
+    if (ct.paso === "modo") {
+      ponerCasa({ ...c, conTexto: { ...ct, texto: `${ct.texto ?? ""}\n\n${limpio}`.trim() } });
+      agregarTurno({ autor: "asistente", texto: "Lo sumé al texto. Ahora elige abajo: mejorarlo u ordenarlo, o dejarlo tal cual.", hora: new Date().toISOString() });
+      return;
+    }
+    armarTexto({ ...c, tarjeta: null, mensajes: [...c.mensajes, { autor: "corredor", texto: limpio }] });
+  }
+
+  function elegirModo(modo: "mejorar" | "tal_cual") {
+    const c = casaViva.current;
+    if (!c?.conTexto || pensando) return;
+    agregarTurno({ autor: "corredor", texto: modo === "mejorar" ? "Mejóralo y ordénalo" : "Déjalo tal cual", hora: new Date().toISOString() });
+    armarTexto({ ...c, conTexto: { ...c.conTexto, modo, paso: "preguntas" } });
+  }
+
+  /** Claude arma ficha y textos; el código dice qué falta preguntar (una cosa a la vez) o muestra cómo quedó. */
+  function armarTexto(c: CasaEnCurso) {
+    const ct = c.conTexto;
+    if (!ct?.texto) return;
+    ponerCasa(c);
+    setError(null);
+    empezar(async () => {
+      try {
+        const r = await armarCasaDesdeTexto({ texto: ct.texto, modo: ct.modo, mensajes: c.mensajes, ficha: c.ficha, preguntadas: ct.preguntadas });
+        if (!r.ok) {
+          setError(r.motivo);
+          return;
+        }
+        const id = r.lista ? `casa-${Date.now()}` : null;
+        ponerCasa({
+          ficha: r.ficha,
+          mensajes: [...c.mensajes, { autor: "asistente", texto: r.mensaje }],
+          tarjeta: id,
+          conTexto: {
+            ...ct,
+            paso: "preguntas",
+            textos: r.textos,
+            preguntadas: r.pregunta ? [...ct.preguntadas, r.pregunta] : ct.preguntadas,
+            sitio: r.sitio,
+            puedeGuardar: r.puedeGuardar,
+            resumen: r.resumen,
+          },
+        });
+        agregarTurno(
+          id
+            ? { autor: "asistente", texto: r.mensaje, hora: new Date().toISOString(), casa: r.resumen, id }
+            : { autor: "asistente", texto: r.mensaje, hora: new Date().toISOString() },
+        );
+      } catch (e) {
+        setError(mensajeDeFalla(clasificarFalla(e, { enLinea: navigator.onLine }), "conectar"));
+      }
+    });
+  }
+
+  /** Ya tiene lo esencial: se puede ver cómo quedó y guardar sin contestar lo que solo conviene. */
+  function verComoQuedo() {
+    const c = casaViva.current;
+    if (!c?.conTexto?.puedeGuardar || pensando) return;
+    const id = `casa-${Date.now()}`;
+    ponerCasa({ ...c, tarjeta: id });
+    agregarTurno({ autor: "asistente", texto: "Así quedó. ¿Está bien?", hora: new Date().toISOString(), casa: c.conTexto.resumen, id });
+  }
+
   /** "Sí, guardarla": la única forma de que la casa del chat se guarde (misma acción que Agregar casa). */
-  function confirmarCasa() {
+  function confirmarCasa(publicar = false) {
     const c = casaViva.current;
     if (!c?.ficha || !c.tarjeta || pensando || guardandoCasa.current) return;
     guardandoCasa.current = true;
@@ -595,11 +733,29 @@ export function ChatPatty({
         } catch {
           fotos = "No pude subir las fotos. Súbelas en la casa.";
         }
+        // Publicar en el sitio (si se pidió): la casa ya está guardada con sus fotos.
+        let enSitio = "";
+        let sitio: { fotos: string[]; url: string | null } | null = null;
+        const textos = c.conTexto?.textos;
+        if (publicar && textos) {
+          try {
+            const p = await publicarCasaEnSitio({ casaId: r.id, textos, envio: crypto.randomUUID() });
+            if (!p.ok) enSitio = `No la pude publicar en el sitio: ${p.motivo} Puedes intentarlo de nuevo desde la casa.`;
+            else if (p.demo) enSitio = "En la demo no se publica en el sitio de verdad.";
+            else {
+              enSitio = p.codigo ? `También quedó publicada en el sitio web con el código **${p.codigo}**.` : "La mandé al sitio web; en unos minutos aparece.";
+              if (p.fotos.length || p.urlCasa) sitio = { fotos: p.fotos, url: p.urlCasa };
+            }
+          } catch {
+            enSitio = "No pude publicarla en el sitio ahora. Inténtalo de nuevo en un rato.";
+          }
+        }
         ponerCasa(null);
         agregarTurno({
           autor: "asistente",
-          texto: `Listo, guardé **${r.titulo}** (${r.codigo}). [Ver la casa](/panel/propiedades/${r.id})\n\n${fotos ?? SIN_FOTOS_CASA}`,
+          texto: `Listo, guardé **${r.titulo}** en tu portal. [Ver la casa](/panel/propiedades/${r.id})\n\n${fotos ?? SIN_FOTOS_CASA}${enSitio ? `\n\n${enSitio}` : ""}`,
           hora: new Date().toISOString(),
+          ...(sitio ? { sitio } : {}),
         });
         router.refresh();
       } catch (e) {
@@ -863,9 +1019,24 @@ export function ChatPatty({
             {t.autor === "asistente" && t.casa && (
               <div className="patty-casa">
                 {t.casa.map((l, j) => (j === 0 ? <strong key={j}>{l}</strong> : <span key={j}>{l}</span>))}
-                {casa?.tarjeta === t.id && (
+                {casa && casa.tarjeta === t.id && casa.conTexto && (
                   <span className="patty-casa-botones">
-                    <button type="button" className="primario" onClick={confirmarCasa} disabled={pensando}>
+                    {casa?.conTexto?.sitio && (
+                      <button type="button" className="primario" onClick={() => confirmarCasa(true)} disabled={pensando}>
+                        Guardar y publicar en el sitio
+                      </button>
+                    )}
+                    <button type="button" className={casa?.conTexto?.sitio ? "" : "primario"} onClick={() => confirmarCasa(false)} disabled={pensando}>
+                      {casa?.conTexto?.sitio ? "Solo en el portal" : "Sí, guardarla"}
+                    </button>
+                    <button type="button" onClick={cambiarCasa} disabled={pensando}>
+                      Cambiar algo
+                    </button>
+                  </span>
+                )}
+                {casa && casa.tarjeta === t.id && !casa.conTexto && (
+                  <span className="patty-casa-botones">
+                    <button type="button" className="primario" onClick={() => confirmarCasa()} disabled={pensando}>
                       Sí, guardarla
                     </button>
                     <button type="button" onClick={cambiarCasa} disabled={pensando}>
@@ -899,6 +1070,23 @@ export function ChatPatty({
             </span>
           </div>
         ))}
+        {fotosSueltas && (
+          <div className="patty-fotos-que" role="group" aria-label="¿Qué hago con estas fotos?">
+            <strong>¿Qué hago con {fotosSueltas.length === 1 ? "esta foto" : `estas ${fotosSueltas.length} fotos`}?</strong>
+            <button type="button" className="primario" onClick={() => elegirFotos("casa")}>
+              Casa nueva (portal y sitio web)
+            </button>
+            <button type="button" onClick={() => elegirFotos("sitio")}>
+              Subirlas a una casa del sitio
+            </button>
+            <button type="button" onClick={() => elegirFotos("analizar")}>
+              Analizarlas
+            </button>
+            <button type="button" className="patty-fotos-que-no" onClick={() => setFotosSueltas(null)}>
+              Nada por ahora
+            </button>
+          </div>
+        )}
         {herramienta && <TarjetaHerramienta key={herramienta.id} herramienta={herramienta.tipo} texto={herramienta.texto} alTerminar={terminarHerramienta} />}
         {alSitio && <SubirAlSitio key={alSitio.id} texto={alSitio.texto} archivos={alSitio.archivos} nombre={nombre} alTerminar={terminarAlSitio} />}
         {pensando && (
@@ -926,7 +1114,28 @@ export function ChatPatty({
 
       {casa && (
         <div className="patty-casa-en-curso">
-          <span>Cargando una casa{casa.tarjeta ? "" : ": lo que escribas sigue con ella"}</span>
+          <span>
+            {casa.conTexto?.paso === "texto"
+              ? "Casa nueva: pega el texto de la casa"
+              : casa.conTexto?.paso === "modo"
+                ? "Casa nueva: ¿cómo dejo el texto?"
+                : `Cargando una casa${casa.tarjeta ? "" : ": lo que escribas sigue con ella"}`}
+          </span>
+          {casa.conTexto?.paso === "modo" && (
+            <>
+              <button type="button" className="primario" onClick={() => elegirModo("mejorar")} disabled={pensando}>
+                Mejorarlo y ordenarlo
+              </button>
+              <button type="button" onClick={() => elegirModo("tal_cual")} disabled={pensando}>
+                Dejarlo tal cual
+              </button>
+            </>
+          )}
+          {casa.conTexto?.paso === "preguntas" && casa.conTexto.puedeGuardar && !casa.tarjeta && (
+            <button type="button" onClick={verComoQuedo} disabled={pensando}>
+              Ver cómo quedó
+            </button>
+          )}
           <button type="button" onClick={dejarCasa} disabled={pensando}>
             Dejarla
           </button>

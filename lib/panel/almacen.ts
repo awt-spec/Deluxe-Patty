@@ -126,7 +126,40 @@ export function turnosGuardados(valor: unknown, max = 40): { turnos: TurnoGuarda
   return { turnos: turnos.slice(-max), limpiar: turnos.length !== valor.length };
 }
 
-export type CasaGuardada<F> = { ficha: F | null; mensajes: { autor: "corredor" | "asistente"; texto: string }[]; tarjeta: string | null };
+/** Casa nueva con el texto pegado (fotos + texto → portal y sitio): en qué paso va y lo ya preguntado. */
+export type CasaTextoGuardada = {
+  paso: "texto" | "modo" | "preguntas";
+  texto: string | null;
+  modo: "mejorar" | "tal_cual" | null;
+  textos: Record<string, unknown> | null;
+  preguntadas: string[];
+  sitio: boolean;
+  puedeGuardar: boolean;
+  resumen: string[];
+};
+
+export type CasaGuardada<F> = {
+  ficha: F | null;
+  mensajes: { autor: "corredor" | "asistente"; texto: string }[];
+  tarjeta: string | null;
+  conTexto?: CasaTextoGuardada | null;
+};
+
+function casaTextoValida(v: unknown): CasaTextoGuardada | null {
+  if (!esObjeto(v)) return null;
+  if (v.paso !== "texto" && v.paso !== "modo" && v.paso !== "preguntas") return null;
+  const lista = (x: unknown) => (Array.isArray(x) ? x.filter(esTexto).map((t) => t.slice(0, 400)).slice(0, 40) : []);
+  return {
+    paso: v.paso,
+    texto: esTexto(v.texto) ? v.texto.slice(0, 8000) : null,
+    modo: v.modo === "mejorar" || v.modo === "tal_cual" ? v.modo : null,
+    textos: esObjeto(v.textos) ? v.textos : null,
+    preguntadas: lista(v.preguntadas),
+    sitio: v.sitio === true,
+    puedeGuardar: v.puedeGuardar === true,
+    resumen: lista(v.resumen),
+  };
+}
 
 /** La casa que se estaba cargando desde el chat. La ficha la revisa el servidor al seguir; aquí, que sea un objeto. */
 export function casaGuardada<F>(valor: unknown): CasaGuardada<F> | null {
@@ -137,5 +170,10 @@ export function casaGuardada<F>(valor: unknown): CasaGuardada<F> | null {
     (m): m is { autor: "corredor" | "asistente"; texto: string } => esObjeto(m) && (m.autor === "corredor" || m.autor === "asistente") && esTexto(m.texto),
   );
   if (mensajes.length !== valor.mensajes.length) return null;
-  return { ficha: (valor.ficha ?? null) as F | null, mensajes, tarjeta: (valor.tarjeta ?? null) as string | null };
+  return {
+    ficha: (valor.ficha ?? null) as F | null,
+    mensajes,
+    tarjeta: (valor.tarjeta ?? null) as string | null,
+    ...(casaTextoValida(valor.conTexto) ? { conTexto: casaTextoValida(valor.conTexto) } : {}),
+  };
 }

@@ -329,6 +329,17 @@ acciones `patty-herramientas-acciones.ts`): Fotos de una casa (originales propia
 imagen de `redes/imagen` con descarga y "Cambiar foto o texto" en el estudio), Ficha PDF (`fichaDePropiedad`, 4 por minuto) y Video
 (lleva al estudio `?ver=video`). También con palabras (`pideHerramienta`: «hazme un post de la casa de Escazú»; las preguntas de
 cómo se hace van a Patty) y la casa sale de `casaNombrada` (código, título o zona; si hay duda, la elige el corredor). Sin IA.
+**Casa nueva con fotos y texto (portal y sitio)**: fotos sin decir para qué → tarjeta «¿Qué hago con estas fotos?» (Casa nueva,
+Subirlas a una casa del sitio, Analizarlas). Casa nueva (`CasaEnCurso.conTexto`, validado en `casaGuardada`): Patty pide el texto
+(pegado o contado), pregunta «Mejorarlo y ordenarlo» o «Dejarlo tal cual» y `armarCasaDesdeTexto` (`app/panel/patty-casa-sitio-acciones.ts`,
+`lib/propiedades/casa-texto.ts`, `cerebro.casaDesdeTexto`, `prompts/casa-texto.md`, texto como dato) arma ficha y textos es/en (tal
+cual: la descripción es el texto pegado, lo garantiza el código). Pregunta una cosa a la vez (`siguientePregunta`): lo esencial
+siempre, lo que conviene (cuartos, baños, metros; una vez, «después» lo salta) y las dudas de la IA (ambiguo o contradictorio, una
+vez); con lo esencial ya se puede "Ver cómo quedó". Tarjeta: "Guardar y publicar en el sitio" / "Solo en el portal" / "Cambiar
+algo". Publicar (`publicarCasaEnSitio`, `lib/sitio/casa.ts`): POST firmado a `recibir-casa` (misma firma y secreto que
+`recibir-fotos`, `urlFuncionCasa`) con la ficha leída de la casa guardada, los textos y hasta 12 fotos propias; la casa del portal
+toma el código DP-XXXXXX del sitio y sus fotos la `fuente` de allá con `al_sitio` (la importación no la duplica ni la pausa
+mientras la exportación no la lista). Demo simulada; 3 publicaciones y 8 turnos por minuto; doble toque con `reclamarEnvio`.
 Favicon: `app/icon.svg` y `app/apple-icon.tsx`.
 Patty sabe en qué pantalla está el corredor (`contextoPantalla`: en la ficha de un cliente, una visita o una casa
 lee sus datos y el chat), sugiere preguntas según la pantalla, trae una guía del panel en `prompts/patty.md` y

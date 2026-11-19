@@ -131,3 +131,17 @@ describe("borradores de formularios", () => {
     expect(validarTextoGuardado({ t: ahora, texto: 5 }, ahora)).toBeNull();
   });
 });
+
+describe("casa nueva con texto guardada en el navegador", async () => {
+  const { casaGuardada } = await import("../lib/panel/almacen");
+  it("conserva el paso, el modo y lo preguntado; descarta lo que no tiene forma", () => {
+    const c = casaGuardada({
+      ficha: null,
+      mensajes: [],
+      tarjeta: null,
+      conTexto: { paso: "preguntas", texto: "Casa linda", modo: "mejorar", textos: { titulo_es: "Casa" }, preguntadas: ["precio", 3], sitio: true, puedeGuardar: false, resumen: ["Casa"] },
+    });
+    expect(c?.conTexto).toMatchObject({ paso: "preguntas", modo: "mejorar", preguntadas: ["precio"], sitio: true });
+    expect(casaGuardada({ ficha: null, mensajes: [], tarjeta: null, conTexto: { paso: "otro" } })?.conTexto).toBeUndefined();
+  });
+});
