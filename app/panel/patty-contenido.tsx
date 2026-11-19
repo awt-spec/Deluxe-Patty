@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
-import { bloques, esRutaDelPanel, trozos, type Bloque } from "@/lib/panel/markdown";
+import { bloques, esEnlaceExterno, esRutaDelPanel, trozos, type Bloque } from "@/lib/panel/markdown";
 
 // Lo que contesta Patty, ordenado: títulos, párrafos, listas, tablas, citas, código y diagramas
 // (```mermaid, dibujados en el navegador). Nunca se interpreta HTML de la respuesta: solo estos bloques.
@@ -26,6 +26,11 @@ function Linea({ texto, alIr }: { texto: string; alIr: () => void }) {
               <Link key={i} href={t.url} className="patty-enlace" onClick={alIr}>
                 {t.texto}
               </Link>
+            ) : esEnlaceExterno(t.url) ? (
+              // Una página de internet (fuentes de una búsqueda): se abre en otra pestaña, sin pasarle nada.
+              <a key={i} href={t.url} target="_blank" rel="noopener noreferrer nofollow">
+                {t.texto}
+              </a>
             ) : (
               <span key={i}>{t.texto}</span>
             );

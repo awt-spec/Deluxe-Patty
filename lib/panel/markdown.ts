@@ -137,6 +137,17 @@ export function trozos(texto: string): Trozo[] {
 /** Rutas a las que un enlace de Patty puede llevar: solo pantallas del panel. */
 export const esRutaDelPanel = (url: string) => /^\/panel(\/[\w\-/?=&.]*)?$/.test(url);
 
+/** Enlace a una página de internet (las fuentes de una búsqueda): solo https y con dominio; se abre aparte. */
+export function esEnlaceExterno(url: string): boolean {
+  if (!/^https:\/\//.test(url)) return false;
+  try {
+    const u = new URL(url);
+    return u.protocol === "https:" && !u.username && !u.password && u.hostname.includes(".");
+  } catch {
+    return false;
+  }
+}
+
 /** Pedido de documento: Patty termina con <<pdf Título>> o <<png Título>> cuando el corredor pidió un PDF o una imagen. */
 const PEDIDO = /^<<\s*(pdf|png)\s+([^>]{1,120}?)\s*>>\s*$/gim;
 
