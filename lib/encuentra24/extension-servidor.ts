@@ -1,5 +1,6 @@
 import "server-only";
-import { alertar, esperarAlertas } from "../asistente/dependencias";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { alertar, dependenciasPara, esperarAlertas } from "../asistente/dependencias";
 import { crearCerebroClaude } from "../asistente/cerebro";
 import { SIN_PRESUPUESTO } from "../asistente/limites";
 import { crearRepositorioSupabase } from "../datos/repositorio";
@@ -7,7 +8,10 @@ import { leerConTope } from "../http/cuerpo";
 import { errorSeguro } from "../monitoreo/errores";
 import { createAdminClient } from "../supabase/admin";
 import type { DependenciasAnuncio } from "./anuncio";
+import type { Corredor } from "../datos/tipos";
+import { hayTurnoPorMinuto } from "../panel/turno-ia";
 import { crearAlmacenExtension } from "./datos";
+import { TURNOS_PREPARAR_MINUTO, type DependenciasPreparar } from "./llenar";
 import { terminarBusqueda, type DependenciasExtension } from "./extension";
 
 // Piezas comunes de las rutas /api/extension/*: dependencias, respuestas y manejo de errores. Los
@@ -19,6 +23,20 @@ let deps: DependenciasExtension | null = null;
 export function dependenciasAnuncio(): DependenciasAnuncio {
   const { repo } = dependenciasExtension();
   return { db: createAdminClient(), repo, cerebro: crearCerebroClaude() };
+}
+
+/** "Llenar con Patty": la base directa (anuncios por publicar, casas y fotos), siempre filtrada por corredor. */
+export function baseLlenar(): SupabaseClient {
+  return createAdminClient();
+}
+
+/** "Preparar un anuncio" desde el panel lateral: la misma IA, topes y freno que el panel (4 por minuto). */
+export function dependenciasPreparar(corredor: Corredor): DependenciasPreparar {
+  return {
+    db: createAdminClient(),
+    deps: dependenciasPara(corredor),
+    hayTurno: () => hayTurnoPorMinuto("extension_anuncio", corredor.id, TURNOS_PREPARAR_MINUTO),
+  };
 }
 
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -45,6 +63,9 @@ export const MENSAJES: Record<string, string> = {
   sin_resultados:
     "Encuentra24 no mostró anuncios: pudo pedir la verificación o cambiar su página. Vuelve a intentarlo; si sigue pasando, avísale a soporte.",
   no_anuncio: "Esta página no parece un anuncio de Encuentra24. Abre el anuncio de una casa y vuelve a tocar el botón.",
+  anuncio_no_encontrado:
+    "Ese anuncio ya no está por publicar (se publicó, se borró o la casa se vendió). Vuelve a elegir uno de la lista.",
+  casa_no_encontrada: "No encontré esa casa entre tus casas activas. Vuelve a elegirla.",
   datos: "La extensión mandó algo que no se entiende. Actualízala o avísale a soporte.",
   servidor: "Algo falló de nuestro lado. Vuelve a intentarlo en un rato.",
 };

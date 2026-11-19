@@ -6,7 +6,9 @@
 // que validan mensajes.js y maquina.js. Dibuja con textContent y createElement, sin armar HTML con texto.
 import { APP } from "./config.js";
 import { esPaginaDeAnuncio } from "./comun.js";
-import { accionLeer, latidoViejo, textoUltima, vistaPanel } from "./vista-panel.js";
+import { accionLeer, latidoViejo, nombreAsistente, textoUltima, vistaPanel } from "./vista-panel.js";
+import { esFormularioDePublicar, INICIO_E24, vistaPublicar } from "./llenado.js";
+import { esUrlDeE24 } from "./mensajes.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -23,6 +25,7 @@ const TRAZOS = {
   revisar: ["M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z", "M21 21l-5-5"],
   listo: ["M5 12.5l4.5 4.5L19 7.5"],
   detenida: ["M6 6h12v12H6z"],
+  llenar: ["M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17v3z", "M13.5 7.5l3 3"],
   error: ["M12 8v5", "M12 16.5v.5", "M10.3 3.9L2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"],
 };
 const SVG = "http://www.w3.org/2000/svg";
@@ -202,7 +205,7 @@ function preguntarEstado() {
 }
 
 async function pintar() {
-  const g = await chrome.storage.local.get(["token", "corredor", "asistente", "busqueda", "bitacora", "lectura", "buscarSola", "modoSemanal", "ultimaDias", "tokens"]);
+  const g = await chrome.storage.local.get(["token", "corredor", "asistente", "busqueda", "bitacora", "lectura", "buscarSola", "modoSemanal", "ultimaDias", "tokens", "llenado"]);
   const v = vistaPanel(g);
   // Latido viejo: se le pregunta al trabajador de fondo (lo despierta). Si se había reiniciado, marca la búsqueda como
   // interrumpida y el cambio en chrome.storage vuelve a dibujar el panel.
@@ -223,7 +226,178 @@ async function pintar() {
     }
   }
   dibujar(v, { anuncio, sola: g.buscarSola !== false, modo: g.modoSemanal, ultimaDias: g.ultimaDias });
+  if (v.conectada) await pintarPublicar(g);
 }
+
+// --- Publicar con Patty (1.6.0): llenar el formulario de Encuentra24 y preparar un anuncio -------------------------
+
+/** Lo que se trajo del panel (null: todavía no). Se dibuja solo cuando cambia, para no perder la selección. */
+let listos = null;
+let casas = null;
+let elegido = null;
+let casaElegida = null;
+/** Si la pestaña dijo tener un formulario (para direcciones que no lo dicen): { url, valor }. */
+let formularioVisto = { url: "", valor: null };
+
+async function pestanaActiva() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    return tab ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Una opción para elegir (anuncio o casa): radio, portada (o un cuadro gris), título y detalle. */
+function opcionElegir(grupo, valor, titulo, detalle, portada, marcada, alElegir) {
+  const label = document.createElement("label");
+  label.className = "opcion-elegir";
+  const input = document.createElement("input");
+  input.type = "radio";
+  input.name = grupo;
+  input.value = valor;
+  input.checked = marcada;
+  input.addEventListener("change", () => alElegir(valor));
+  let foto;
+  if (portada) {
+    foto = document.createElement("img");
+    foto.src = portada;
+    foto.alt = "";
+    foto.loading = "lazy";
+    foto.referrerPolicy = "no-referrer";
+  } else {
+    foto = document.createElement("span");
+    foto.className = "sin-foto";
+    foto.setAttribute("aria-hidden", "true");
+  }
+  const textos = document.createElement("span");
+  textos.className = "opcion-textos";
+  const t = document.createElement("strong");
+  t.textContent = titulo;
+  const d = document.createElement("span");
+  d.textContent = detalle;
+  textos.append(t, d);
+  label.append(input, foto, textos);
+  return label;
+}
+
+function dibujarListos() {
+  const lista = listos ?? [];
+  if (!lista.some((a) => a.id === elegido)) elegido = lista[0]?.id ?? null;
+  const detalle = (a) => [a.codigo, a.referencia ? `ref. ${a.referencia}` : ""].filter(Boolean).join(" · ");
+  $("lista-anuncios").replaceChildren(
+    ...lista.map((a) =>
+      opcionElegir("anuncio", a.id, a.titulo, detalle(a), a.portada, a.id === elegido, (id) => {
+        elegido = id;
+        $("llenar").disabled = false;
+      }),
+    ),
+  );
+  $("sin-anuncios").hidden = !(listos && lista.length === 0);
+  $("llenar").disabled = !elegido;
+}
+
+function dibujarCasas() {
+  const lista = casas ?? [];
+  if (!lista.some((c) => c.id === casaElegida)) casaElegida = null;
+  const detalle = (c) => [c.codigo, c.conBorrador ? "ya tiene un anuncio por publicar" : ""].filter(Boolean).join(" · ");
+  $("lista-casas").replaceChildren(
+    ...lista.map((c) =>
+      opcionElegir("casa", c.id, c.titulo, detalle(c), c.portada, c.id === casaElegida, (id) => {
+        casaElegida = id;
+        $("preparar-boton").disabled = false;
+      }),
+    ),
+  );
+  $("sin-casas").hidden = !(casas && lista.length === 0);
+  $("preparar-boton").disabled = !casaElegida;
+}
+
+let cargandoListos = false;
+async function cargarListos() {
+  if (cargandoListos) return;
+  cargandoListos = true;
+  const r = await chrome.runtime.sendMessage({ tipo: "anuncios_listos" }).catch(() => null);
+  cargandoListos = false;
+  listos = Array.isArray(r?.anuncios) ? r.anuncios : [];
+  dibujarListos();
+}
+
+async function cargarCasas() {
+  const r = await chrome.runtime.sendMessage({ tipo: "casas_para_anuncio" }).catch(() => null);
+  casas = Array.isArray(r?.casas) ? r.casas : [];
+  dibujarCasas();
+}
+
+async function pintarPublicar(g) {
+  const tab = await pestanaActiva();
+  const url = tab?.url ?? "";
+  let formulario = null;
+  // Una dirección que no dice "publicar": se le pregunta una vez a la página si tiene un formulario.
+  if (tab && esUrlDeE24(url) && !esFormularioDePublicar(url)) {
+    if (formularioVisto.url !== url) {
+      formularioVisto = { url, valor: null };
+      chrome.runtime
+        .sendMessage({ tipo: "ver_formulario", tabId: tab.id })
+        .then((r) => {
+          if (formularioVisto.url === url) {
+            formularioVisto.valor = r?.formulario === true;
+            repintar();
+          }
+        })
+        .catch(() => {});
+    }
+    formulario = formularioVisto.valor;
+  }
+  const v = vistaPublicar({ url, formulario, llenado: g.llenado, asistente: nombreAsistente(g.asistente) });
+  $("publicar-titulo").textContent = v.titulo;
+  $("publicar-ayuda").textContent = v.ayuda;
+  $("publicar-fuera").hidden = v.enFormulario || v.llenando;
+  $("publicar-form").hidden = !v.enFormulario || v.llenando;
+  $("llenando").hidden = !v.llenando;
+  $("llenando-texto").textContent = v.avance;
+  mostrar("informe", v.informe, v.error);
+  if (v.enFormulario && listos === null) cargarListos();
+}
+
+$("abrir-e24").addEventListener("click", () => {
+  if (esUrlDeE24(INICIO_E24)) chrome.tabs.create({ url: INICIO_E24 });
+});
+
+$("llenar").addEventListener("click", async () => {
+  const tab = await pestanaActiva();
+  if (!tab || !elegido) return;
+  $("llenar").disabled = true;
+  const r = await chrome.runtime.sendMessage({ tipo: "llenar_formulario", tabId: tab.id, anuncio: elegido }).catch(() => null);
+  if (r && r.ok === false) mostrar("informe", r.mensaje ?? "", true);
+  $("llenar").disabled = false;
+});
+
+$("detener-llenado").addEventListener("click", async () => {
+  $("detener-llenado").disabled = true;
+  await chrome.runtime.sendMessage({ tipo: "detener_llenado" }).catch(() => {});
+  $("detener-llenado").disabled = false;
+});
+
+$("preparar").addEventListener("toggle", () => {
+  if ($("preparar").open && casas === null) cargarCasas();
+});
+
+$("preparar-boton").addEventListener("click", async () => {
+  if (!casaElegida) return;
+  $("preparar-boton").disabled = true;
+  mostrar("preparar-mensaje", "Preparando el anuncio… tarda unos segundos.");
+  const r = await chrome.runtime.sendMessage({ tipo: "preparar_anuncio", casaId: casaElegida }).catch(() => null);
+  mostrar("preparar-mensaje", r?.mensaje ?? "No pude preparar el anuncio. Vuelve a intentarlo.", !r?.ok);
+  $("preparar-boton").disabled = false;
+  if (r?.ok) {
+    if (r.anuncio?.id) elegido = r.anuncio.id;
+    listos = null;
+    casas = null;
+    await cargarListos();
+    await cargarCasas();
+  }
+});
 
 $("form-codigo").addEventListener("submit", async (e) => {
   e.preventDefault();

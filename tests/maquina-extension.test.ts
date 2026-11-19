@@ -495,8 +495,8 @@ describe("seguridad de la extensión", () => {
     expect(normalizar("https://x.example/ruta")).toBeNull();
   });
 
-  it("1.5.2 con panel lateral y permisos mínimos", () => {
-    expect(manifiesto.version).toBe("1.5.2");
+  it("1.6.0 con panel lateral y permisos mínimos", () => {
+    expect(manifiesto.version).toBe("1.6.0");
     expect(manifiesto.side_panel.default_path).toBe("sidepanel.html");
     expect(manifiesto.action.default_popup).toBeUndefined();
     expect(manifiesto.permissions.sort()).toEqual(["alarms", "scripting", "sidePanel", "storage"]);

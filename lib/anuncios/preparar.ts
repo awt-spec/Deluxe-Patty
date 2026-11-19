@@ -1,7 +1,7 @@
 import type { Dependencias } from "../asistente/contexto";
 import type { AnuncioPreparado } from "../asistente/cerebro";
 import type { Corredor } from "../datos/tipos";
-import { enlaceWhatsApp } from "./atribucion";
+import { descripcionConEnlace, enlaceWhatsApp } from "./atribucion";
 
 export interface AnuncioListo {
   mensajes: string[];
@@ -31,8 +31,8 @@ export async function prepararAnuncio(deps: Dependencias, corredor: Corredor, co
   });
   const enlace = corredor.whatsapp_numero ? enlaceWhatsApp(corredor.whatsapp_numero, referencia) : null;
 
-  const es = `${a.tituloEs}\n\n${a.descripcionEs}${enlace ? `\n\nEscríbeme por WhatsApp: ${enlace}` : ""}`;
-  const en = `${a.tituloEn}\n\n${a.descripcionEn}${enlace ? `\n\nMessage me on WhatsApp: ${enlace}` : ""}`;
+  const es = `${a.tituloEs}\n\n${descripcionConEnlace(a.descripcionEs, enlace, "es")}`;
+  const en = `${a.tituloEn}\n\n${descripcionConEnlace(a.descripcionEn, enlace, "en")}`;
 
   const notas = [
     `*Anuncio de ${propiedad.titulo} listo* (ref. ${referencia})`,

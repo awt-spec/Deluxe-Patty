@@ -10,6 +10,7 @@
 
 export const ORIGEN_E24 = "https://www.encuentra24.com";
 const CODIGO = /^[A-Z0-9]{4}-?[A-Z0-9]{4}$/;
+export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 export const ORDENES_PANEL = ["estado", "pausar", "seguir", "detener", "buscar"];
 
 const origenDe = (url) => {
@@ -58,6 +59,16 @@ export function leerPedido(de, m) {
         return { tipo: "buscar_sola", encendida: m.encendida === true };
       case "modo_semanal":
         return m.modo === "vista" || m.modo === "fondo" ? { tipo: "modo_semanal", modo: m.modo } : null;
+      // Llenar con Patty y Preparar un anuncio (desde la 1.6.0).
+      case "llenar_formulario":
+        return Number.isInteger(m.tabId) && typeof m.anuncio === "string" && UUID.test(m.anuncio) ? { tipo: "llenar_formulario", tabId: m.tabId, anuncio: m.anuncio } : null;
+      case "ver_formulario":
+        return Number.isInteger(m.tabId) ? { tipo: "ver_formulario", tabId: m.tabId } : null;
+      case "preparar_anuncio":
+        return typeof m.casaId === "string" && UUID.test(m.casaId) ? { tipo: "preparar_anuncio", casaId: m.casaId } : null;
+      case "anuncios_listos":
+      case "casas_para_anuncio":
+      case "detener_llenado":
       case "desconectar":
       case "buscar":
       case "ver_ultima":
