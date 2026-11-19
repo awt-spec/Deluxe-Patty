@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { dondeInstalar, estadoExtension, type DelServidor, type Entorno } from "@/lib/panel/extension-instalar";
 import {
   accionHero,
@@ -68,6 +69,20 @@ function Hero({ entorno, ext, ...p }: Props & { entorno: Entorno | null; ext?: E
   const tieneDatos = !p.demo && (conectada || estado.tipo === "vieja" || estado.tipo === "nueva_version" || p.ultima.en !== null);
 
   const aviso = ext?.conexion.fase === "error" ? { texto: ext.conexion.mensaje, error: true } : busqueda.resultado;
+
+  // "Buscar dueños ahora" desde el chat de Patty llega como ?buscar=1: en cuanto la extensión está lista, arranca
+  // una sola vez (igual que tocar el botón) y el parámetro se quita para que "Atrás" o recargar no la repitan.
+  const pedidaDesdePatty = useRef(false);
+  useEffect(() => {
+    if (pedidaDesdePatty.current || typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("buscar") !== "1") return;
+    if (accion.tipo !== "buscar" || busqueda.ocupado) return;
+    pedidaDesdePatty.current = true;
+    url.searchParams.delete("buscar");
+    window.history.replaceState(null, "", url.toString());
+    void busqueda.ordenar("buscar");
+  }, [accion.tipo, busqueda]);
 
   return (
     <VistaHero

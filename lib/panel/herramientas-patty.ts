@@ -1,14 +1,20 @@
 // Herramientas del chat de Patty que resuelve el código, sin IA: fotos de una casa, post e historia para redes,
 // ficha PDF y video. Se piden con un botón o con palabras ("hazme un post de la casa de Escazú"). Reglas puras.
 
-export type Herramienta = "fotos" | "post" | "historia" | "ficha" | "video";
+export type Herramienta = "fotos" | "post" | "historia" | "ficha" | "video" | "mejorar" | "revisar" | "duenos";
+
+/** Las que necesitan elegir una casa primero. */
+export const CON_CASA: Herramienta[] = ["fotos", "post", "historia", "ficha", "video", "mejorar"];
 
 export const HERRAMIENTAS: { id: Herramienta; nombre: string; ayuda: string }[] = [
+  { id: "revisar", nombre: "Revisar mis casas", ayuda: "Qué le falta a cada casa" },
+  { id: "mejorar", nombre: "Mejorar fotos con IA", ayuda: "Más luz y color, sin cambiar la casa" },
   { id: "fotos", nombre: "Fotos de una casa", ayuda: "Para descargarlas o reenviarlas" },
   { id: "post", nombre: "Post de Instagram", ayuda: "Cuadrado, con precio y tu marca" },
   { id: "historia", nombre: "Historia", ayuda: "Vertical, para historias y estados" },
-  { id: "ficha", nombre: "Ficha PDF", ayuda: "El folleto de la casa" },
   { id: "video", nombre: "Video", ayuda: "Con las fotos de la casa" },
+  { id: "ficha", nombre: "Ficha PDF", ayuda: "El folleto de la casa" },
+  { id: "duenos", nombre: "Dueños directos", ayuda: "Los que encontré y buscar más" },
 ];
 
 export const NOMBRE_HERRAMIENTA: Record<Herramienta, string> = Object.fromEntries(HERRAMIENTAS.map((h) => [h.id, h.nombre])) as Record<
@@ -33,6 +39,9 @@ export function pideHerramienta(texto: string): Herramienta | null {
   if (!t || t.length > 300) return null;
   if (/^\s*¿?\s*(como|donde|que es|para que|se puede|puedo)\b/.test(t)) return null;
   if (/\b(sub[a-z]*|carg[a-z]*|agreg[a-z]*|public[a-z]*)\b.*\b(sitio|pagina|web)\b/.test(t)) return null;
+  if (/\b(revis[a-z]*|chequea[a-z]*|audit[a-z]*)\b.*\b(mis )?(casas|propiedades)\b/.test(t)) return "revisar";
+  if (/\b(busc[a-z]*|encontr[a-z]*|consigu[a-z]*)\b.*\bduenos?\b/.test(t) || /\bduenos? directos?\b/.test(t)) return "duenos";
+  if (/\b(mejor[a-z]*|retoc[a-z]*|arregl[a-z]*)\b.*\b(fotos?|imagenes)\b.*\b(casa|propiedad|apartamento|lote|de la|del|[a-z]{1,3}-?\d)/.test(t)) return "mejorar";
   if (!PIDE.test(t)) return null;
   if (/\b(historia|story|stories|estado)\b/.test(t)) return "historia";
   if (/\b(post|posteo|publicacion|instagram|insta|facebook|redes)\b/.test(t)) return "post";
@@ -78,3 +87,48 @@ export function filtrarCasas(casas: CasaHerramienta[], busqueda: string): CasaHe
 export const rutaImagenRedes = (casaId: string, formato: "cuadrado" | "historia", descargar = false) =>
   `/panel/propiedades/${casaId}/redes/imagen?formato=${formato}${descargar ? "&descargar=1" : ""}`;
 export const rutaEstudio = (casaId: string, ver: "imagen" | "video" | "texto") => `/panel/propiedades/${casaId}/redes?ver=${ver}`;
+
+// --- Revisar mis casas: qué le falta a cada una (lo decide el código) ----------------------------------------
+
+export type CasaParaRevisar = {
+  id: string;
+  codigo: string;
+  titulo: string;
+  estado: string;
+  precio: number | null;
+  zona: string | null;
+  descripcion: string | null;
+  fotos: number;
+  mejoradas: number;
+  habitaciones: number | null;
+  tipo: string | null;
+};
+
+export const MIN_FOTOS_BUENAS = 6;
+
+/** Lo que le falta a una casa activa, de lo más importante a lo menos. Vacío si está completa. */
+export function problemasDeCasa(c: CasaParaRevisar, conSitio: boolean): string[] {
+  const p: string[] = [];
+  if (c.fotos === 0) p.push("Sin fotos");
+  else if (c.fotos < MIN_FOTOS_BUENAS) p.push(`Solo ${c.fotos} ${c.fotos === 1 ? "foto" : "fotos"} (mejor ${MIN_FOTOS_BUENAS} o más)`);
+  if (!c.precio) p.push("Sin precio");
+  if (!c.zona) p.push("Sin zona");
+  if (!c.descripcion || c.descripcion.trim().length < 80) p.push("Descripción muy corta");
+  if ((c.tipo === "casa" || c.tipo === "apartamento") && c.habitaciones === null) p.push("Faltan los cuartos");
+  if (c.fotos > 0 && c.mejoradas === 0) p.push("Fotos sin mejorar con IA");
+  if (conSitio && !/^DP-/i.test(c.codigo)) p.push("No está en el sitio web");
+  return p;
+}
+
+/** Las casas activas con algo pendiente primero (las que más les falta arriba); las completas al final. */
+export function revisarCasas(casas: CasaParaRevisar[], conSitio: boolean) {
+  const activas = casas.filter((c) => c.estado === "activa" || c.estado === "reservada");
+  const conProblemas = activas
+    .map((c) => ({ casa: c, problemas: problemasDeCasa(c, conSitio) }))
+    .sort((a, b) => b.problemas.length - a.problemas.length);
+  return {
+    pendientes: conProblemas.filter((x) => x.problemas.length > 0),
+    completas: conProblemas.filter((x) => x.problemas.length === 0).map((x) => x.casa),
+    pausadas: casas.filter((c) => c.estado === "inactiva").length,
+  };
+}

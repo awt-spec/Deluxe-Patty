@@ -323,7 +323,12 @@ y aparece la tarjeta del PDF. El PDF lo arma el servidor sin IA (`pdfDePatty`, `
 descarga, y no se guarda. También en **PNG**: "Hacer imagen" (o `<<png Título>>` cuando la pide) arma en el navegador una
 lámina con la marca del corredor (`laminaPng`, `html-to-image`, `marcaParaLamina`), y cada diagrama se baja en PNG. Un pedido
 de imagen con sus datos (resumen, tabla, diagrama, infografía, PNG) no va a la IA de imágenes (`pideImagen`).
-**Botones que hace el código** (barra `ph-barra` en la bienvenida y sobre la caja): "Subir fotos al sitio" (escribe el pedido y
+**Herramientas** (menú `ph-menu` por grupos —Tus casas, Redes sociales, Tu negocio— abierto en la bienvenida y detrás del botón
+"Herramientas" en la conversación): además de las de abajo, **Revisar mis casas** (`revisarCasas`/`problemasDeCasa`: sin fotos o
+pocas, sin precio, zona o descripción, sin cuartos, fotos sin mejorar, fuera del sitio; `TarjetaRevisar` en `patty-paneles.tsx`),
+**Mejorar fotos con IA** (foto por foto con `mejorarFotoRedes`: la original no se toca) y **Dueños directos** (`duenosPatty`: los
+nuevos sin escribirles, enlaces solo de Encuentra24, y "Buscar dueños ahora" → `/panel/duenos?buscar=1`, que arranca la búsqueda de
+la extensión una vez y quita el parámetro). Botones que hace el código: "Subir fotos al sitio" (escribe el pedido y
 abre la galería) y las **herramientas de una casa** (`lib/panel/herramientas-patty.ts`, tarjeta `app/panel/patty-herramientas.tsx`,
 acciones `patty-herramientas-acciones.ts`): Fotos de una casa (originales propias, compartir o descargar), Post e Historia (la
 imagen de `redes/imagen` con descarga y "Cambiar foto o texto" en el estudio), Ficha PDF (`fichaDePropiedad`, 4 por minuto) y Video

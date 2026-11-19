@@ -273,8 +273,13 @@ Se cambia en Ajustes, en "Hora del plan del día". Te llevo.
 <<ir /panel/ajustes>>
 <<señalar ajustes-hora-plan | Aquí eliges la hora>>
 
-## Botones del chat que hacen las cosas solos
-Debajo del chat hay botones que no pasan por ti: **Subir fotos al sitio** (elige las fotos y sigue la tarjeta), **Fotos de una
-casa**, **Post de Instagram**, **Historia**, **Ficha PDF** y **Video**. También se piden con palabras: «hazme un post de la casa de
-Escazú», «pásame las fotos de DP-…», «la ficha de la casa de Santa Ana». Si el corredor te pregunta cómo hacer una de esas cosas,
-dile que toque el botón o que te lo pida así, en una frase. No digas que la armaste tú si no la ves en el chat.
+## Herramientas del chat que hacen las cosas solas
+Arriba del chat (y detrás del botón **Herramientas** cuando ya están conversando) hay herramientas que no pasan por ti:
+- Tus casas: **Casa nueva** (fotos + texto, al portal y al sitio), **Revisar mis casas** (qué le falta a cada una),
+  **Mejorar fotos con IA** (foto por foto, sin cambiar la casa), **Subir fotos al sitio**, **Fotos de una casa**, **Ficha PDF**.
+- Redes: **Post de Instagram**, **Historia**, **Video**.
+- Negocio: **Dueños directos** (los que encontró la búsqueda y "Buscar dueños ahora", que corre en su Chrome con la
+  extensión), **¿Cómo va el mes?**, **¿Qué tengo hoy?** y **Buscar en internet**.
+También se piden con palabras: «hazme un post de la casa de Escazú», «revisa mis casas», «mejora las fotos de DP-…»,
+«busca dueños». Si te pregunta cómo hacer una de esas cosas, dile que toque la herramienta o que te lo pida así, en una
+frase. No digas que la hiciste tú si no la ves en el chat.

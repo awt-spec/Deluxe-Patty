@@ -4,7 +4,8 @@ import { dependenciasPara } from "@/lib/asistente/dependencias";
 import type { Corredor, Foto } from "@/lib/datos/tipos";
 import { fichaDePropiedad } from "@/lib/fichas/comando";
 import { fotosPropias } from "@/lib/fotos/origen";
-import type { CasaHerramienta } from "@/lib/panel/herramientas-patty";
+import { revisarCasas, type CasaHerramienta, type CasaParaRevisar } from "@/lib/panel/herramientas-patty";
+import { configFotosSitio } from "@/lib/sitio/fotos";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { hayTurnoPorMinuto } from "@/lib/panel/turno-ia";
 
@@ -74,4 +75,66 @@ export async function fichaDeCasaPatty(id: unknown): Promise<{ ok: true; url: st
   } catch {
     return { ok: false, motivo: "No pude armar la ficha ahora. Inténtalo de nuevo en un rato." };
   }
+}
+
+/** "Revisar mis casas": qué le falta a cada casa activa (lo decide el código, sin IA). */
+export async function revisarCasasPatty(): Promise<
+  { ok: true; pendientes: { casa: CasaParaRevisar; problemas: string[] }[]; completas: number; pausadas: number } | Fallo
+> {
+  const s = await sesionConCorredor();
+  const corredor = s.corredor as Corredor;
+  const { data, error } = await s.supabase
+    .from("propiedades")
+    .select("id, codigo, titulo, estado, precio, zona, descripcion, fotos, habitaciones, tipo")
+    .eq("corredor_id", corredor.id)
+    .in("estado", ["activa", "reservada", "inactiva"])
+    .limit(500);
+  if (error) return { ok: false, motivo: "No pude leer tus casas. Inténtalo de nuevo." };
+  const { data: c } = await s.supabase.from("corredores").select("slug").eq("id", corredor.id).maybeSingle();
+  const conSitio = !!configFotosSitio((c as { slug?: string } | null)?.slug);
+  const casas: CasaParaRevisar[] = ((data ?? []) as (Fila & { precio: number | null; descripcion: string | null; habitaciones: number | null; tipo: string | null })[]).map((f) => {
+    const propias = corredor.activo === false ? (f.fotos ?? []) : fotosPropias(f.fotos ?? [], corredor.id);
+    return {
+      id: f.id,
+      codigo: f.codigo,
+      titulo: f.titulo,
+      estado: f.estado,
+      precio: f.precio,
+      zona: f.zona,
+      descripcion: f.descripcion,
+      fotos: propias.length,
+      mejoradas: propias.filter((x) => x.mejorada_url).length,
+      habitaciones: f.habitaciones,
+      tipo: f.tipo,
+    };
+  });
+  const r = revisarCasas(casas, conSitio);
+  return { ok: true, pendientes: r.pendientes.slice(0, 30), completas: r.completas.length, pausadas: r.pausadas };
+}
+
+export type DuenoReciente = { id: string; titulo: string | null; zona: string | null; precio: number | null; moneda: string | null; url: string | null; foto: string | null; cuando: string };
+
+/** "Dueños directos": los últimos que encontró la búsqueda y cuántos esperan que les escribas. */
+export async function duenosPatty(): Promise<{ ok: true; recientes: DuenoReciente[]; sinEscribir: number; ultimaSemana: number } | Fallo> {
+  const s = await sesionConCorredor();
+  const { data, error } = await s.supabase
+    .from("leads_duenos")
+    .select("id, titulo, zona, precio, moneda, url, foto_url, estado_contacto, created_at")
+    .eq("corredor_id", s.corredor.id)
+    .eq("es_dueno", true)
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (error) return { ok: false, motivo: "No pude leer los dueños. Inténtalo de nuevo." };
+  const filas = (data ?? []) as { id: string; titulo: string | null; zona: string | null; precio: number | null; moneda: string | null; url: string | null; foto_url: string | null; estado_contacto: string | null; created_at: string }[];
+  const hace7 = Date.now() - 7 * 24 * 3600_000;
+  const esE24 = (u: string | null) => !!u && /^https:\/\/([a-z0-9-]+\.)*encuentra24\.com\//i.test(u);
+  return {
+    ok: true,
+    recientes: filas
+      .filter((f) => (f.estado_contacto ?? "nuevo") === "nuevo")
+      .slice(0, 5)
+      .map((f) => ({ id: f.id, titulo: f.titulo, zona: f.zona, precio: f.precio, moneda: f.moneda, url: esE24(f.url) ? f.url : null, foto: esE24(f.foto_url) ? f.foto_url : null, cuando: f.created_at })),
+    sinEscribir: filas.filter((f) => (f.estado_contacto ?? "nuevo") === "nuevo").length,
+    ultimaSemana: filas.filter((f) => Date.parse(f.created_at) >= hace7).length,
+  };
 }
