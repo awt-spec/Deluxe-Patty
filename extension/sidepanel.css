@@ -1373,6 +1373,10 @@ button.herramienta.ancha {
   flex-direction: column;
   gap: 8px;
 }
+/* En la columna del chat el botón no crece a lo alto (button.grande lleva flex 1 1 120px para las filas). */
+.chat-form button.grande {
+  flex: none;
+}
 .chat-form textarea {
   font: inherit;
   width: 100%;
