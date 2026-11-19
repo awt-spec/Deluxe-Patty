@@ -49,6 +49,31 @@ export function configFotosSitio(slug: string | null | undefined, env: Record<st
   return { url, secreto };
 }
 
+export type DiagnosticoFotosSitio = "conectado" | "falta_url" | "falta_secreto" | "secreto_corto" | "url_no_https" | "json_invalido";
+
+/** Por qué (no) está conectado el sitio de un corredor, sin mostrar nunca la clave: para /admin. */
+export function diagnosticoFotosSitio(slug: string, env: Record<string, string | undefined> = process.env): DiagnosticoFotosSitio {
+  for (const v of [env.SITIO_FOTOS_URL, env.SITIO_FOTOS_SECRETO]) {
+    const t = (v ?? "").trim();
+    if (t.startsWith("{") && Object.keys(porSlug(t)).length === 0) return "json_invalido";
+  }
+  const url = porSlug(env.SITIO_FOTOS_URL)[slug];
+  const secreto = porSlug(env.SITIO_FOTOS_SECRETO)[slug];
+  if (!url) return "falta_url";
+  if (!secreto) return "falta_secreto";
+  if (secreto.length < 16) return "secreto_corto";
+  return configFotosSitio(slug, env) ? "conectado" : "url_no_https";
+}
+
+export const EXPLICA_DIAGNOSTICO: Record<DiagnosticoFotosSitio, string> = {
+  conectado: "Conectado.",
+  falta_url: "Falta SITIO_FOTOS_URL en este despliegue (o no está marcada para Production).",
+  falta_secreto: "Falta SITIO_FOTOS_SECRETO en este despliegue (o no está marcada para Production).",
+  secreto_corto: "SITIO_FOTOS_SECRETO tiene menos de 16 caracteres: pon una clave larga (la misma en Lovable) y redespliega.",
+  url_no_https: "SITIO_FOTOS_URL no es una dirección https válida (¿espacios o comillas?).",
+  json_invalido: "Una de las dos variables empieza con { pero no es un JSON válido.",
+};
+
 export function firmarCuerpo(secreto: string, cuerpo: string): string {
   return createHmac("sha256", secreto).update(cuerpo, "utf8").digest("hex");
 }

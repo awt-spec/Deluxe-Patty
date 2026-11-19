@@ -1,4 +1,5 @@
 import "server-only";
+import { diagnosticoFotosSitio } from "@/lib/sitio/fotos";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 // Datos que comparten las pantallas de /admin: corredores con su uso de IA, mensajes y conexión. Lee con el
@@ -126,5 +127,7 @@ export function llavesWhatsApp() {
     soporte: !!process.env.SOPORTE_WHATSAPP && !!process.env.SOPORTE_PHONE_NUMBER_ID,
     /** Hace falta para transcribir notas de voz y para las imágenes con IA. */
     openai: !!process.env.OPENAI_API_KEY,
+    /** Subir fotos al sitio de Deluxe desde Patty (solo el diagnóstico, nunca el valor). */
+    sitioFotos: diagnosticoFotosSitio("deluxe-properties"),
   };
 }
