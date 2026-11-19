@@ -15,11 +15,14 @@ import { fotosParaMandar } from "./fotos-casa";
 import { FORMATOS_CONTENIDO, OBJETIVOS, UBICACIONES, type EstrategiaCruda, type PautaCruda, type PostCrudo } from "../redes/estratega";
 import { crearClienteClaude } from "./cliente-claude";
 import { consumo, sumar as sumarConsumo, type Consumo } from "./costo";
+import { lineasFuentes, textoYFuentes } from "./fuentes-web";
 import { instruccion } from "./instrucciones";
 import { quitarEtiquetas } from "./etiquetas";
 
 export const MODELO_CLASIFICAR = "claude-haiku-5-5";
 export const MODELO_REDACTAR = "claude-sonnet-5-5";
+/** Búsquedas en internet que Patty puede hacer por pregunta (cada una se cobra aparte). */
+export const MAX_BUSQUEDAS_PATTY = 3;
 
 export interface Clasificacion {
   intencion: Intencion;
@@ -824,7 +827,15 @@ export function crearCerebroClaude(client: Anthropic = crearClienteClaude()): Ce
         `Te llamas ${nombre}. El corredor es ${corredor.nombre_contacto}, de ${corredor.nombre}.`,
         `<datos_del_negocio>\n${contexto}\n</datos_del_negocio>`,
       ].join("\n\n");
+      // Internet: buscar (precios de mercado, noticias, leyes, una zona, la competencia) y leer páginas. Cada búsqueda
+      // se cobra aparte (consumo() la suma) y hay pocas por pregunta; la ubicación aproximada es Costa Rica.
       const tools: Anthropic.Beta.BetaToolUnion[] = [
+        {
+          type: "web_search_20260209",
+          name: "web_search",
+          max_uses: MAX_BUSQUEDAS_PATTY,
+          user_location: { type: "approximate", country: "CR", timezone: corredor.zona_horaria || "America/Costa_Rica" },
+        },
         { type: "web_fetch_20260209", name: "web_fetch", max_uses: 2, max_content_tokens: 15_000 },
       ];
       const messages: Anthropic.Beta.BetaMessageParam[] = [
@@ -840,7 +851,7 @@ export function crearCerebroClaude(client: Anthropic = crearClienteClaude()): Ce
       // Los turnos tienen que alternar y empezar por el corredor.
       while (messages.length && messages[0].role !== "user") messages.shift();
       let total: Consumo = { tokensEntrada: 0, tokensSalida: 0, costoUsd: 0 };
-      const textos: string[] = [];
+      const bloques: Anthropic.Beta.BetaContentBlock[] = [];
       for (let vuelta = 0; vuelta < 4; vuelta++) {
         const res = await client.beta.messages.create({
           model: MODELO_REDACTAR,
@@ -854,13 +865,14 @@ export function crearCerebroClaude(client: Anthropic = crearClienteClaude()): Ce
         });
         total = sumarConsumo(total, consumo(res.model, res.usage));
         if (res.stop_reason === "refusal") throw new RechazoModelo(total);
-        for (const b of res.content) if (b.type === "text") textos.push(b.text);
+        bloques.push(...res.content);
         if (res.stop_reason !== "pause_turn") break;
         messages.push({ role: "assistant", content: res.content });
       }
-      const texto = textos.join("").trim();
+      // Al corredor solo le llega el texto; las fuentes de internet las pone el código (hasta 3).
+      const { texto, fuentes } = textoYFuentes(bloques);
       if (!texto) throw new Error("Conversación sin respuesta");
-      return { texto, avisarCorredor: null, consumo: total };
+      return { texto: fuentes.length ? `${texto}\n\n${lineasFuentes(fuentes)}` : texto, avisarCorredor: null, consumo: total };
     },
 
     async analizar(corredor, propiedades, historial, mensaje, adjuntos = []) {

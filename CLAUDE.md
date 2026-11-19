@@ -305,8 +305,14 @@ hoy" (visitas con hora de salida, recordatorios y clientes que no contestan), ab
 (`/panel/patty`, desde Más), con el mismo chat al estilo WhatsApp (`ChatPatty` en `app/panel/patty.tsx`): se
 pueden adjuntar hasta 4 fotos (achicadas en el navegador) o PDF, que van a Claude como imagen o documento solo en
 ese mensaje (no se guardan; en el navegador queda la miniatura); `lib/panel/patty.ts` arma el contexto
-(plan de hoy, visitas de 7 días, clientes, dudas y casas) y `cerebro.conversarConCorredor` (`prompts/patty.md`)
-contesta sin escribir en la base ni mandar nada, salvo dos cosas que resuelve el código: "bloquear …" y **cargar una
+(plan de hoy, visitas de 7 días, clientes, dudas y casas, y arriba la sección **Negocio** que arma el código sin IA,
+`lib/panel/negocio-patty.ts`: ganado del mes y del anterior por moneda —nunca se suman—, clientes por etapa, ofertas en
+negociación, visitas, casas por estado, dueños nuevos de 7 días, mensajes del mes y Energía; lo que está en cero no se
+escribe) y `cerebro.conversarConCorredor` (`prompts/patty.md`) contesta con `web_fetch` y **búsqueda en internet**
+(`web_search_20260209`, hasta 3 por pregunta, ubicación Costa Rica; cada búsqueda suma USD 0,01 en `consumo()`): al
+corredor solo le llega el texto y el código agrega "Fuentes:" (hasta 3, de las citas o resultados, `lib/asistente/fuentes-web.ts`;
+en el chat se abren aparte, `esEnlaceExterno`); lo de internet nunca se presenta como dato de sus casas. Contesta sin
+escribir en la base ni mandar nada, salvo dos cosas que resuelve el código: "bloquear …" y **cargar una
 casa** («agrega esta casa: …», `pideCargarCasa` en `lib/panel/casa-patty.ts`): el chat sigue la misma conversación de
 Agregar casa (`conversarCasa`, mismo tope y demo), pregunta lo esencial que falte, muestra la tarjeta "Así quedó. ¿Está
 bien?" con "Sí, guardarla" / "Cambiar algo" y **solo guarda al confirmar** (`guardarCasaConversada`); las fotos adjuntas

@@ -14,7 +14,9 @@ import { armarPlan, datosDelPlan } from "../asistente/plan";
 import type { Dependencias } from "../asistente/procesar";
 import { monedaDe, montoExacto } from "../crm/dinero";
 import { NOMBRE_ETAPA, resumenBusca, type Busca, type Etapa } from "../crm/perfil";
-import type { Corredor } from "../datos/tipos";
+import type { Corredor, PresupuestoIA } from "../datos/tipos";
+import { energiaDePresupuesto } from "../ia/energia";
+import { inicioDeMes, resumirNegocio, seccionNegocio, type EntradaNegocio, type FilaClienteNegocio } from "./negocio-patty";
 import { errorSeguro } from "../monitoreo/errores";
 import { NOMBRE_CEREBRO } from "@/app/panel/cerebro/nombre";
 import { PREFIJO_UBICACION } from "../sitio/ubicacion";
@@ -31,11 +33,19 @@ export interface TurnoPatty {
 const uno = <T,>(v: T | T[] | null): T | null => (Array.isArray(v) ? (v[0] ?? null) : v);
 
 /** Lo que Patty sabe del negocio en este momento, en texto. */
-export async function contextoPatty(deps: Dependencias, db: SupabaseClient, corredor: Corredor, ahora = new Date()): Promise<string> {
+export async function contextoPatty(
+  deps: Dependencias,
+  db: SupabaseClient,
+  corredor: Corredor,
+  ahora = new Date(),
+  /** El presupuesto de IA ya leído (para la Energía de la sección Negocio). */
+  presupuesto?: PresupuestoIA,
+): Promise<string> {
   const zona = corredor.zona_horaria;
   const hoy = fechaIso(fechaLocal(ahora, zona));
   const en7 = new Date(ahora.getTime() + 7 * 24 * 60 * 60_000);
-  const [plan, propiedades, { data: clientes }, { data: citas }, { data: dudas }] = await Promise.all([
+  const hace7 = new Date(ahora.getTime() - 7 * 24 * 60 * 60_000);
+  const [plan, propiedades, { data: clientes }, { data: citas }, { data: dudas }, negocio] = await Promise.all([
     datosDelPlan(deps, corredor, ahora),
     deps.repo.propiedadesActivas(corredor.id),
     db
@@ -55,6 +65,7 @@ export async function contextoPatty(deps: Dependencias, db: SupabaseClient, corr
       .order("inicio")
       .limit(40),
     db.from("conocimiento").select("tema").eq("corredor_id", corredor.id).eq("estado", "pendiente").limit(20),
+    entradaNegocio(db, corredor, ahora, hace7),
   ]);
   // Lo último que pasó con cada cliente (para no sugerir llamar a quien ya llamó hoy).
   const { data: actividades } = await db
@@ -113,11 +124,21 @@ export async function contextoPatty(deps: Dependencias, db: SupabaseClient, corr
     return `- ${etiquetaHorario(new Date(c.inicio), zona)}: ${cl?.nombre ?? cl?.telefono ?? "cliente"}${casa ? `, ${casa.titulo}${casa.zona ? ` (${casa.zona})` : ""}` : ""}${c.estado === "confirmada" ? ", confirmada" : ", por confirmar"}`;
   });
 
+  // Cifras del negocio armadas por el código: lo ganado, el embudo, las ofertas, las visitas y las casas.
+  const seccion = seccionNegocio(
+    resumirNegocio(
+      { ...negocio, visitasProximas: lineasCitas.length, energia: presupuesto ? energiaDePresupuesto(presupuesto) : null },
+      ahora,
+      zona,
+    ),
+  );
+
   const temasDudas = ((dudas ?? []) as { tema: string }[]).map((d) => d.tema);
   const porUbicar = temasDudas.filter((t) => t.startsWith(PREFIJO_UBICACION)).slice(0, 10);
   return [
     lineaAhora(ahora, zona),
     corredor.zona_base ? `${corredor.nombre_contacto} sale cada día desde ${corredor.zona_base}.` : null,
+    seccion,
     `Plan de hoy:\n${armarPlan(corredor, plan, ahora)}`,
     `Visitas de los próximos 7 días:\n${lineasCitas.join("\n") || "- ninguna"}`,
     `Clientes (los más recientes primero):\n${lineasClientes.join("\n") || "- todavía no hay"}`,
@@ -131,6 +152,43 @@ export async function contextoPatty(deps: Dependencias, db: SupabaseClient, corr
   ]
     .filter(Boolean)
     .join("\n\n");
+}
+
+/** Las filas que necesita la sección Negocio, todas filtradas por el corredor. */
+async function entradaNegocio(
+  db: SupabaseClient,
+  corredor: Corredor,
+  ahora: Date,
+  hace7: Date,
+): Promise<Omit<EntradaNegocio, "visitasProximas" | "energia">> {
+  const [{ data: clientes }, { data: casas }, { data: hechas }, { data: duenos }, { data: uso }] = await Promise.all([
+    db
+      .from("contactos")
+      .select("etapa, oferta_monto, oferta_moneda, cierre_at, cierre_comision, cierre_moneda")
+      .eq("corredor_id", corredor.id)
+      .eq("es_corredor", false)
+      .order("created_at", { ascending: false })
+      .limit(2000),
+    db.from("propiedades").select("estado").eq("corredor_id", corredor.id).limit(2000),
+    db
+      .from("citas")
+      .select("id")
+      .eq("corredor_id", corredor.id)
+      .eq("estado", "realizada")
+      .gte("inicio", hace7.toISOString())
+      .lt("inicio", ahora.toISOString())
+      .limit(200),
+    db.from("leads_duenos").select("id").eq("corredor_id", corredor.id).eq("es_dueno", true).gte("created_at", hace7.toISOString()).limit(500),
+    db.from("uso_mensual").select("mensajes_entrantes").eq("corredor_id", corredor.id).eq("mes", inicioDeMes(ahora, corredor.zona_horaria)).maybeSingle(),
+  ]);
+  const mensajes = Number((uso as { mensajes_entrantes?: number } | null)?.mensajes_entrantes);
+  return {
+    clientes: (clientes ?? []) as FilaClienteNegocio[],
+    casas: (casas ?? []) as { estado: string }[],
+    visitasHechas: (hechas ?? []).length,
+    duenosNuevos: (duenos ?? []).length,
+    mensajesMes: Number.isFinite(mensajes) ? mensajes : null,
+  };
 }
 
 const PANTALLAS: [RegExp, string][] = [
@@ -245,7 +303,7 @@ export async function hablarConPatty(
   const registrarCosto = (c: { tokensEntrada: number; tokensSalida: number; costoUsd: number }) =>
     deps.repo.registrarUso(corredor.id, { llamadasClaude: 1, tokensEntrada: c.tokensEntrada, tokensSalida: c.tokensSalida, costoClaudeUsd: c.costoUsd });
   try {
-    const [negocio, pantalla] = await Promise.all([contextoPatty(deps, db, corredor), contextoPantalla(db, corredor, ruta)]);
+    const [negocio, pantalla] = await Promise.all([contextoPatty(deps, db, corredor, new Date(), presupuesto), contextoPantalla(db, corredor, ruta)]);
     const contexto = `<pantalla_actual>\n${pantalla}\n</pantalla_actual>\n\n${negocio}`;
     const r = await deps.cerebro.conversarConCorredor(corredor, contexto, historial.slice(-12), limpio, adjuntos);
     await registrarCosto(r.consumo);
