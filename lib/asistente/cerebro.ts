@@ -11,6 +11,7 @@ import type { OperacionApartarCruda } from "../agenda/apartar-ia";
 import { OPS_IMAGEN, OPS_VIDEO, type OperacionCruda, type TurnoChat } from "../redes/chat";
 import { MODOS_TEXTO, type ModoTexto } from "../redes/texto-ia";
 import { ESPACIOS, type AnalisisCrudo } from "../redes/analisis-fotos";
+import { fotosParaMandar } from "./fotos-casa";
 import { FORMATOS_CONTENIDO, OBJETIVOS, UBICACIONES, type EstrategiaCruda, type PautaCruda, type PostCrudo } from "../redes/estratega";
 import { crearClienteClaude } from "./cliente-claude";
 import { consumo, sumar as sumarConsumo, type Consumo } from "./costo";
@@ -31,6 +32,11 @@ export interface Clasificacion {
 export interface Respuesta {
   texto: string;
   avisarCorredor: string | null;
+  /**
+   * Código de UNA casa de las que se le pasaron cuyas fotos reales se le mandan al cliente después del texto (solo al
+   * responder a un cliente). El código lo valida contra las casas del corredor antes de mandar nada.
+   */
+  enviarFotos?: string | null;
   consumo: Consumo;
 }
 
@@ -251,6 +257,7 @@ const EsquemaRespuesta = z.object({
   respuesta: z.string(),
   avisar_corredor: z.boolean(),
   motivo_aviso: z.string().nullable(),
+  enviar_fotos: z.string().nullable(),
 });
 
 const EsquemaAnuncio = z.object({
@@ -450,6 +457,8 @@ export function fichaPropiedades(propiedades: Propiedad[]): string {
         linea("Descripción", p.descripcion),
         linea("Estado", p.estado === "reservada" ? "reservada (no disponible por ahora)" : null),
         linea("Enlace", p.url_e24),
+        // Solo si se leyeron las fotos: cuántas reales hay para mandarle al cliente (nunca las hechas con IA).
+        p.fotos === undefined ? null : `  Fotos: ${fotosParaMandar(p.fotos).length || "ninguna"}`,
       ]
         .filter(Boolean)
         .join("\n");
@@ -550,10 +559,11 @@ export function crearCerebroClaude(client: Anthropic = crearClienteClaude()): Ce
       const c = consumo(res.model, res.usage);
       if (res.stop_reason === "refusal") throw new RechazoModelo(c);
       if (!res.parsed_output) throw new Error(`Respuesta sin salida (stop_reason ${res.stop_reason})`);
-      const { respuesta, avisar_corredor, motivo_aviso } = res.parsed_output;
+      const { respuesta, avisar_corredor, motivo_aviso, enviar_fotos } = res.parsed_output;
       return {
         texto: respuesta.trim(),
         avisarCorredor: avisar_corredor ? motivo_aviso?.trim() || "Revisar conversación" : null,
+        enviarFotos: enviar_fotos?.trim() || null,
         consumo: c,
       };
     },

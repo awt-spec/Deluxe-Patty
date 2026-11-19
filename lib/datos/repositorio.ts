@@ -348,7 +348,7 @@ export function crearRepositorioSupabase(db: SupabaseClient): Repositorio {
       const { data, error } = await db
         .from("propiedades")
         .select(
-          "id, codigo, titulo, tipo, operacion, precio, moneda, provincia, canton, distrito, zona, habitaciones, banos, m2_construccion, m2_terreno, descripcion, amenidades, url_e24, estado",
+          "id, codigo, titulo, tipo, operacion, precio, moneda, provincia, canton, distrito, zona, habitaciones, banos, m2_construccion, m2_terreno, descripcion, amenidades, url_e24, estado, fotos",
         )
         .eq("corredor_id", corredorId)
         .in("estado", ["activa", "reservada"])

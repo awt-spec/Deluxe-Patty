@@ -14,6 +14,7 @@ import { SIN_CONSUMO, sumar, type Consumo } from "./costo";
 import { errorSeguro } from "../monitoreo/errores";
 import { MAX_MENSAJES_CLIENTE_HORA, frenoCliente, type Freno } from "./limites";
 import { NOMBRE_CLASE, leerMedio } from "./medios";
+import { mandarFotosDeCasa } from "./fotos-casa";
 
 export type { Dependencias } from "./contexto";
 
@@ -336,6 +337,12 @@ export async function procesarMensaje(deps: Dependencias, entrante: MensajeEntra
     [llamadas, consumo] = [0, SIN_CONSUMO];
 
     const borrador = await ctx.responderCliente(respuesta.texto, intencion);
+    // Fotos de la casa que pidió: solo si el texto salió (en piloto en sombra queda solo el borrador del texto).
+    if (respuesta.enviarFotos && ctx.respuestaEnviada) {
+      await mandarFotosDeCasa(ctx, propiedades, respuesta.enviarFotos).catch((e: unknown) =>
+        log("envio_fotos_fallo", { corredorId: corredor.id, conversacionId: conversacion.id, error: errorSeguro(e) }),
+      );
+    }
     if (respuesta.avisarCorredor) {
       // Lo que la asistente no supo queda como duda en su cerebro: el corredor la contesta una vez.
       await repo.registrarDuda(corredor.id, respuesta.avisarCorredor, conversacion.id).catch((e: unknown) =>

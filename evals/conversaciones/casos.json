@@ -8,6 +8,16 @@
       "esperado": { "intencion": "consulta_propiedad", "resultado": "respondido", "aviso": false, "debe": ["(?i)escaz"] }
     },
     {
+      "id": "fotos-sin-fotos",
+      "tags": ["consulta", "fotos"],
+      "turnos": ["Hola, ¿me puede mandar fotos de la casa de Escazú?"],
+      "esperado": {
+        "intencion": "consulta_propiedad",
+        "resultado": "respondido",
+        "no_debe": ["(?i)(le|te) (mando|env[ií]o|comparto) (unas |las |algunas )?fotos", "(?i)aqu[ií] (tiene|tienes|van) (las )?fotos"]
+      }
+    },
+    {
       "id": "consulta-precio",
       "tags": ["consulta", "datos"],
       "turnos": ["Buenas, ¿cuál es el precio del apartamento en Santa Ana?"],
