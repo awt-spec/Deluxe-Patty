@@ -12,6 +12,22 @@ export const ORIGEN_E24 = "https://www.encuentra24.com";
 const CODIGO = /^[A-Z0-9]{4}-?[A-Z0-9]{4}$/;
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 export const ORDENES_PANEL = ["estado", "pausar", "seguir", "detener", "buscar"];
+// Patty en la extensión (desde la 1.7.0): lo que el panel lateral le puede mandar al chat.
+export const MAX_MENSAJE_PATTY = 2000;
+export const MAX_TURNOS_HISTORIAL = 12;
+export const MAX_TEXTO_TURNO = 4000;
+
+/** El historial del chat, si cada turno es del corredor o de la asistente y cabe; si no, null (no se manda nada). */
+function historialPatty(h) {
+  if (h === undefined) return [];
+  if (!Array.isArray(h) || h.length > MAX_TURNOS_HISTORIAL) return null;
+  const lista = [];
+  for (const t of h) {
+    if (!t || typeof t !== "object" || (t.autor !== "corredor" && t.autor !== "asistente") || typeof t.texto !== "string" || t.texto.length > MAX_TEXTO_TURNO) return null;
+    lista.push({ autor: t.autor, texto: t.texto });
+  }
+  return lista;
+}
 
 const origenDe = (url) => {
   try {
@@ -66,6 +82,14 @@ export function leerPedido(de, m) {
         return Number.isInteger(m.tabId) ? { tipo: "ver_formulario", tabId: m.tabId } : null;
       case "preparar_anuncio":
         return typeof m.casaId === "string" && UUID.test(m.casaId) ? { tipo: "preparar_anuncio", casaId: m.casaId } : null;
+      // Patty en la extensión (desde la 1.7.0): solo texto, hasta 2.000 caracteres y 12 turnos de historial.
+      case "patty_preguntar": {
+        const historial = historialPatty(m.historial);
+        const ok = typeof m.mensaje === "string" && m.mensaje.trim() && m.mensaje.length <= MAX_MENSAJE_PATTY && historial;
+        return ok ? { tipo: "patty_preguntar", mensaje: m.mensaje.trim(), historial } : null;
+      }
+      case "patty_revisar_casas":
+      case "patty_duenos":
       case "anuncios_listos":
       case "casas_para_anuncio":
       case "detener_llenado":

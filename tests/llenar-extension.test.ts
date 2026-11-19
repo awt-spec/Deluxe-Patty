@@ -267,10 +267,10 @@ describe("lo que el llenado nunca hace", () => {
     expect(fondo).toMatch(/bajarFoto\(fotos\[i\], i, control\.signal\)/);
   });
 
-  it("paquete 1.6.0: los archivos nuevos van en el zip y no hay permisos nuevos", () => {
+  it("paquete 1.6.0 (y siguientes): los archivos nuevos van en el zip y no hay permisos nuevos", () => {
     for (const n of ["campos.js", "llenar.js", "llenado.js"]) expect(ARCHIVOS_EXTENSION).toContain(n);
     expect(revisarCarpeta(readdirSync("extension"))).toEqual({ sobran: [], faltan: [] });
-    expect(manifiesto.version).toBe("1.6.0");
+    expect(manifiesto.version).toMatch(/^1\.(6|7)\.\d+$/);
     expect(manifiesto.permissions.sort()).toEqual(["alarms", "scripting", "sidePanel", "storage"]);
     expect(manifiesto.host_permissions).toEqual(["https://www.encuentra24.com/*", "__APP__/*"]);
     expect(manifiesto.description.length).toBeLessThanOrEqual(132);

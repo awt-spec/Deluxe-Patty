@@ -5,6 +5,7 @@ import { agregarPaso, contarEnPagina, leerBitacora, pasoDeEvento, textoPaso } fr
 import { deQuien, esUrlDeE24, estadoPublico, leerPedido } from "./mensajes.js";
 import { limpiarTokens, nombreAsistente } from "./vista-panel.js";
 import { esFotoParaLlenar, limpiarCasas, limpiarDatosLlenar, limpiarListos, MAX_FOTO_BYTES, textoInforme } from "./llenado.js";
+import { limpiarDuenos, limpiarRevision, quitarMarcas } from "./patty.js";
 import {
   azar,
   estimarRestanteMs,
@@ -40,6 +41,8 @@ import {
 //    paso de la búsqueda (bitacora.js, guardado en chrome.storage) y tiene los mismos Pausar, Seguir y Detener.
 //  - "Llenar con Patty" (desde la 1.6.0): llena el formulario de publicar de Encuentra24 con un anuncio preparado y
 //    adjunta sus fotos; la persona revisa y publica. "Preparar un anuncio" pide uno nuevo al panel.
+//  - "Patty en la extensión" (desde la 1.7.0): el chat con la asistente (solo texto) y sus herramientas sin IA (Revisar
+//    mis casas, Dueños directos). Las pide el panel lateral; aquí se llama al panel con el permiso, que nunca sale.
 
 const ESPERA_RESULTADO_MS = 6 * 60_000;
 const ESPERA_VERIFICACION_MS = 15 * 60_000;
@@ -904,6 +907,33 @@ async function prepararAnuncio(casaId) {
   return { ok: r?.ok === true, mensaje, anuncio: anuncio ?? null };
 }
 
+// --- Patty en la extensión (1.7.0): chat y herramientas ---------------------------------------------------------
+
+const SIN_CONECTAR = "Primero conecta la extensión con tu panel.";
+
+/** Le pregunta a Patty (la misma del panel). La respuesta vuelve como texto; el panel lateral la dibuja sin HTML. */
+async function preguntarAPatty(mensaje, historial) {
+  const { token } = await chrome.storage.local.get("token");
+  if (!token) return { ok: false, mensaje: SIN_CONECTAR };
+  const r = await api("/api/extension/patty", { mensaje, historial }, token);
+  // La energía cambió (o se acabó): se vuelve a leer para la batería.
+  verTokens().catch(() => {});
+  if (r?.ok === true && typeof r.texto === "string" && r.texto.trim()) return { ok: true, texto: quitarMarcas(r.texto), demo: r.demo === true };
+  return { ok: false, mensaje: typeof r?.mensaje === "string" && r.mensaje ? r.mensaje.slice(0, 600) : "No pude contestarte ahora. Vuelve a intentarlo en un rato." };
+}
+
+async function revisarCasasPatty() {
+  const { token } = await chrome.storage.local.get("token");
+  if (!token) return { ok: false, mensaje: SIN_CONECTAR };
+  return limpiarRevision(await api("/api/extension/revisar-casas", null, token, "GET"));
+}
+
+async function duenosPatty() {
+  const { token } = await chrome.storage.local.get("token");
+  if (!token) return { ok: false, mensaje: SIN_CONECTAR };
+  return limpiarDuenos(await api("/api/extension/duenos-recientes", null, token, "GET"));
+}
+
 // --- Mensajes: cada remitente con su lista de pedidos (mensajes.js) -----------------------------------------
 
 /** Pausar, seguir, detener o empezar, venga de donde venga (popup, panel o la barra). */
@@ -994,6 +1024,12 @@ chrome.runtime.onMessage.addListener((mensaje, remitente, responder) => {
       );
     case "modo_semanal":
       return conRespuesta(chrome.storage.local.set({ modoSemanal: m.modo }).then(() => ({ ok: true })));
+    case "patty_preguntar":
+      return conRespuesta(preguntarAPatty(m.mensaje, m.historial));
+    case "patty_revisar_casas":
+      return conRespuesta(revisarCasasPatty());
+    case "patty_duenos":
+      return conRespuesta(duenosPatty());
     case "anuncios_listos":
       return conRespuesta(anunciosListos());
     case "casas_para_anuncio":

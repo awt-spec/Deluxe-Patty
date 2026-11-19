@@ -125,6 +125,19 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   qué falta llenar a mano y que publique la persona y luego "Leer este anuncio". Avance "Llenando… 3 de 8 fotos" con Detener
   (`AbortController`). "Preparar un anuncio" (`GET casas-para-anuncio`, `POST preparar-anuncio`): `prepararAnuncio` con Energía,
   4 por minuto y demo sin gasto. Sin permisos nuevos (el Storage público responde con CORS abierto).
+  La 1.7.0 trae **Patty en la extensión**: pestañas "Buscar y publicar" / "<asistente>" en el panel lateral. Chat de solo texto
+  por `POST /api/extension/patty` (`{historial ≤12, mensaje ≤2000}`, `leerPedidoPatty`): la misma Patty del panel por
+  `preguntarComoCorredor` (`lib/panel/patty-preguntar.ts`, también la usa `preguntarAPatty`; contexto con el cliente del backend y
+  `corredor_id` en cada consulta, `hablarConPatty` con `pantalla: false` —`PANTALLA_EXTENSION`—, `imagenes: false` y en la demo
+  `simular`: contesta el código sin IA ni gasto), Energía, uso, `falla-ia`, 8 por minuto (`patty_ext`, 429) y
+  `textoParaExtension` (sin `<<…>>`, imágenes ni diagramas). El panel lateral la dibuja sin HTML (`extension/patty.js`:
+  `bloquesRespuesta`, negrita/viñetas/títulos/tablas; enlaces solo https o `/panel/…` del panel, `enlaceSeguro`, abiertos con
+  `chrome.tabs.create`); la conversación vive en `chrome.storage.session` (20 turnos, "Nueva"). Herramientas: Revisar mis casas
+  (`GET revisar-casas`) y Dueños directos (`GET duenos-recientes`, solo enlaces de E24) con `lib/panel/herramientas-datos.ts`
+  (las mismas de las acciones del panel), "¿Cómo va el mes?", Preparar un anuncio (lleva al de la 1.6.0) y fotos/post/historia/
+  ficha/video (abre `/panel/patty`). Arriba, "En curso": la búsqueda con Pausar/Seguir/Detener y el llenado con Detener
+  (`vistaTrabajos`, mismos mensajes). Pedidos nuevos solo desde las páginas de la extensión (`patty_*` en `mensajes.js`); sin
+  permisos nuevos.
   **En el panel**, Dueños directos (`app/panel/duenos/`, forma en `vistas.tsx`, estilos `duenos.css`) abre con la tarjeta de la
   extensión (`estado-extension.tsx`; reglas puras en `lib/panel/extension-hero.ts`): palabra de estado, instalada / al día /
   conectada / semanal, última búsqueda con los dueños que trajo, la próxima, Energía de Patty y UNA acción (`accionHero`:

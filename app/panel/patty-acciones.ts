@@ -8,7 +8,8 @@ import { ErrorDocumento, LIMITE_DOCUMENTO, mensajeDeDocumento, textoDeDocumento 
 import { crearTranscriptor } from "@/lib/medios/transcribir";
 import { errorSeguro } from "@/lib/monitoreo/errores";
 import { diaLargo } from "@/lib/agenda/formato";
-import { hablarConPatty, type TurnoPatty } from "@/lib/panel/patty";
+import type { TurnoPatty } from "@/lib/panel/patty";
+import { preguntarComoCorredor } from "@/lib/panel/patty-preguntar";
 import { generarPdfPatty } from "@/lib/panel/pdf-patty";
 import { sesionConCorredor } from "@/lib/panel/sesion";
 import { TEXTO_MAX_PATTY } from "@/lib/panel/adjuntos-limites";
@@ -80,21 +81,13 @@ export async function leerDocumento(f: FormData) {
 
 export async function preguntarAPatty(historial: TurnoPatty[], mensaje: string, ruta?: string, adjuntos?: unknown) {
   const { corredor } = await sesionConCorredor();
-  const limpio = (Array.isArray(historial) ? historial : [])
-    .filter((t) => (t?.autor === "corredor" || t?.autor === "asistente") && typeof t.texto === "string")
-    .slice(-12)
-    .map((t) => ({ autor: t.autor, texto: t.texto.slice(0, 4000) }));
   const archivos = adjuntosValidos(adjuntos);
   if (archivos === null) return { ok: false as const, motivo: `Los archivos pesan demasiado. Manda menos o más livianos (hasta ${TEXTO_MAX_PATTY} entre todos).` };
-  return hablarConPatty(
-    dependenciasPara(corredor),
-    createAdminClient(),
-    corredor,
-    limpio,
-    String(mensaje ?? ""),
-    typeof ruta === "string" && ruta.startsWith("/panel") ? ruta.slice(0, 200) : "/panel",
-    archivos,
-  );
+  // El mismo corazón que usa la extensión (lib/panel/patty-preguntar.ts); el backend filtra cada consulta por el corredor.
+  return preguntarComoCorredor(dependenciasPara(corredor), createAdminClient(), corredor, historial, String(mensaje ?? ""), {
+    ruta: typeof ruta === "string" && ruta.startsWith("/panel") ? ruta : "/panel",
+    adjuntos: archivos,
+  });
 }
 
 const PNG = /^data:image\/png;base64,[A-Za-z0-9+/=]+$/;
