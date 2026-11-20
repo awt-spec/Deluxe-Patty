@@ -333,7 +333,7 @@ ese mensaje (no se guardan; en el navegador queda la miniatura); `lib/panel/patt
 `lib/panel/negocio-patty.ts`: ganado del mes y del anterior por moneda —nunca se suman—, clientes por etapa, ofertas en
 negociación, visitas, casas por estado, dueños nuevos de 7 días, mensajes del mes y Energía; lo que está en cero no se
 escribe) y `cerebro.conversarConCorredor` (`prompts/patty.md`) contesta con `web_fetch` y **búsqueda en internet**
-(`web_search_20260209`, hasta 3 por pregunta, ubicación Costa Rica; cada búsqueda suma USD 0,01 en `consumo()`): al
+(`web_search_20260209`, hasta 3 por pregunta, ubicación solo por zona horaria —un país que la búsqueda no localiza da 400—; se prende con `PATTY_BUSCAR_WEB=1` y si la API la rechaza (400) la pregunta se repite sin buscar, `busqueda_web_rechazada`; cada búsqueda suma USD 0,01 en `consumo()`): al
 corredor solo le llega el texto y el código agrega "Fuentes:" (hasta 3, de las citas o resultados, `lib/asistente/fuentes-web.ts`;
 en el chat se abren aparte, `esEnlaceExterno`); lo de internet nunca se presenta como dato de sus casas. Contesta sin
 escribir en la base ni mandar nada, salvo dos cosas que resuelve el código: "bloquear …" y **cargar una
