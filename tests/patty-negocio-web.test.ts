@@ -1,5 +1,5 @@
-import { describe, expect, it, onTestFinished } from "vitest";
-import type Anthropic from "@anthropic-ai/sdk";
+import { describe, expect, it, onTestFinished, vi } from "vitest";
+import Anthropic from "@anthropic-ai/sdk";
 import { COSTO_BUSQUEDA_WEB_USD, consumo } from "../lib/asistente/costo";
 import { lineasFuentes, textoYFuentes } from "../lib/asistente/fuentes-web";
 import { crearCerebroClaude, MAX_BUSQUEDAS_PATTY } from "../lib/asistente/cerebro";
@@ -183,13 +183,66 @@ describe("búsqueda en internet de Patty", () => {
     } as unknown as Anthropic;
     const corredor = { nombre_asistente: "Patty", nombre_contacto: "Pati", nombre: "Deluxe", zona_horaria: CR } as never;
     const r = await crearCerebroClaude(client).conversarConCorredor(corredor, "Negocio: …", [], "¿Cuánto vale el metro en Escazú?");
-    const herramientas = pedidos[0].tools as { type: string; max_uses?: number; user_location?: { country?: string } }[];
+    const herramientas = pedidos[0].tools as { type: string; max_uses?: number; user_location?: { country?: string; timezone?: string } }[];
     const busqueda = herramientas.find((t) => t.type === "web_search_20260209");
     expect(busqueda?.max_uses).toBe(MAX_BUSQUEDAS_PATTY);
-    expect(busqueda?.user_location?.country).toBe("CR");
+    // Sin país: la API rechaza con 400 los países que la búsqueda no localiza. La zona horaria alcanza.
+    expect(busqueda?.user_location?.country).toBeUndefined();
+    expect(busqueda?.user_location?.timezone).toBe(CR);
     expect(herramientas.some((t) => t.type === "web_fetch_20260209")).toBe(true);
     expect(r.texto.startsWith("Según lo que encontré en internet, el metro ronda $1.800 en anuncios.\n\nFuentes:\n- [El Financiero]")).toBe(true);
     const tokens = (1000 * 2 + 100 * 10) / 1_000_000;
     expect(r.consumo.costoUsd).toBeCloseTo(tokens + COSTO_BUSQUEDA_WEB_USD, 10);
+  });
+
+  it("si la API rechaza la búsqueda (400), Patty repite la pregunta sin buscar y contesta igual", async () => {
+    process.env.PATTY_BUSCAR_WEB = "1";
+    onTestFinished(() => {
+      delete process.env.PATTY_BUSCAR_WEB;
+    });
+    const pedidos: Anthropic.Beta.MessageCreateParams[] = [];
+    const client = {
+      beta: {
+        messages: {
+          create: async (p: Anthropic.Beta.MessageCreateParams) => {
+            pedidos.push(p);
+            if ((p.tools ?? []).some((t) => t.type === "web_search_20260209")) {
+              throw new Anthropic.BadRequestError(400, { type: "error" }, "web search no disponible", new Headers());
+            }
+            return {
+              model: "claude-sonnet-5-5",
+              stop_reason: "end_turn",
+              content: [{ type: "text", text: "Hoy tienes dos visitas." }],
+              usage: { input_tokens: 100, output_tokens: 10 },
+            };
+          },
+        },
+      },
+    } as unknown as Anthropic;
+    const aviso = vi.spyOn(console, "warn").mockImplementation(() => {});
+    onTestFinished(() => aviso.mockRestore());
+    const corredor = { nombre_asistente: "Patty", nombre_contacto: "Pati", nombre: "Deluxe", zona_horaria: CR } as never;
+    const r = await crearCerebroClaude(client).conversarConCorredor(corredor, "Negocio: …", [], "¿Qué tengo hoy?");
+    expect(r.texto).toBe("Hoy tienes dos visitas.");
+    expect(pedidos).toHaveLength(2);
+    expect((pedidos[1].tools ?? []).map((t) => t.type)).toEqual(["web_fetch_20260209"]);
+    expect(aviso).toHaveBeenCalledWith(expect.stringContaining("busqueda_web_rechazada"));
+  });
+
+  it("sin PATTY_BUSCAR_WEB, un 400 no se reintenta (no es culpa de la búsqueda)", async () => {
+    let llamadas = 0;
+    const client = {
+      beta: {
+        messages: {
+          create: async () => {
+            llamadas++;
+            throw new Anthropic.BadRequestError(400, { type: "error" }, "malo", new Headers());
+          },
+        },
+      },
+    } as unknown as Anthropic;
+    const corredor = { nombre_asistente: "Patty", nombre_contacto: "Pati", nombre: "Deluxe", zona_horaria: CR } as never;
+    await expect(crearCerebroClaude(client).conversarConCorredor(corredor, "Negocio: …", [], "hola")).rejects.toBeInstanceOf(Anthropic.BadRequestError);
+    expect(llamadas).toBe(1);
   });
 });

@@ -828,21 +828,18 @@ export function crearCerebroClaude(client: Anthropic = crearClienteClaude()): Ce
         `<datos_del_negocio>\n${contexto}\n</datos_del_negocio>`,
       ].join("\n\n");
       // Internet: buscar (precios de mercado, noticias, leyes, una zona, la competencia) y leer páginas. Cada búsqueda
-      // se cobra aparte (consumo() la suma) y hay pocas por pregunta; la ubicación aproximada es Costa Rica.
-      // La búsqueda se prende con PATTY_BUSCAR_WEB=1 (apagada por defecto hasta confirmarla en producción).
-      const tools: Anthropic.Beta.BetaToolUnion[] = [
-        ...(process.env.PATTY_BUSCAR_WEB === "1"
-          ? [
-              {
-                type: "web_search_20260209" as const,
-                name: "web_search" as const,
-                max_uses: MAX_BUSQUEDAS_PATTY,
-                user_location: { type: "approximate" as const, country: "CR", timezone: corredor.zona_horaria || "America/Costa_Rica" },
-              },
-            ]
-          : []),
-        { type: "web_fetch_20260209", name: "web_fetch", max_uses: 2, max_content_tokens: 15_000 },
-      ];
+      // se cobra aparte (consumo() la suma) y hay pocas por pregunta. La ubicación va solo por zona horaria: la API
+      // rechaza con 400 los códigos de país que la búsqueda no localiza, y Costa Rica puede ser uno de ellos.
+      // La búsqueda se prende con PATTY_BUSCAR_WEB=1; si la API la rechaza (400), la pregunta se repite sin ella para que
+      // Patty conteste igual.
+      const leer: Anthropic.Beta.BetaToolUnion = { type: "web_fetch_20260209", name: "web_fetch", max_uses: 2, max_content_tokens: 15_000 };
+      const buscar: Anthropic.Beta.BetaToolUnion = {
+        type: "web_search_20260209",
+        name: "web_search",
+        max_uses: MAX_BUSQUEDAS_PATTY,
+        user_location: { type: "approximate", timezone: corredor.zona_horaria || "America/Costa_Rica" },
+      };
+      let tools: Anthropic.Beta.BetaToolUnion[] = process.env.PATTY_BUSCAR_WEB === "1" ? [buscar, leer] : [leer];
       const messages: Anthropic.Beta.BetaMessageParam[] = [
         ...historial.slice(-12).map((m) => ({ role: m.autor === "corredor" ? ("user" as const) : ("assistant" as const), content: m.texto })),
         {
@@ -858,16 +855,26 @@ export function crearCerebroClaude(client: Anthropic = crearClienteClaude()): Ce
       let total: Consumo = { tokensEntrada: 0, tokensSalida: 0, costoUsd: 0 };
       const bloques: Anthropic.Beta.BetaContentBlock[] = [];
       for (let vuelta = 0; vuelta < 4; vuelta++) {
-        const res = await client.beta.messages.create({
-          model: MODELO_REDACTAR,
-          max_tokens: 4000,
-          betas: ["server-side-fallback-2026-07-01"],
-          fallbacks: "default",
-          output_config: { effort: "low" },
-          system: [{ type: "text", text: system }],
-          tools,
-          messages,
-        });
+        const pedir = () =>
+          client.beta.messages.create({
+            model: MODELO_REDACTAR,
+            max_tokens: 4000,
+            betas: ["server-side-fallback-2026-07-01"],
+            fallbacks: "default",
+            output_config: { effort: "low" },
+            system: [{ type: "text", text: system }],
+            tools,
+            messages,
+          });
+        let res: Anthropic.Beta.BetaMessage;
+        try {
+          res = await pedir();
+        } catch (error) {
+          if (vuelta > 0 || !(error instanceof Anthropic.BadRequestError) || !tools.includes(buscar)) throw error;
+          console.warn(JSON.stringify({ evento: "busqueda_web_rechazada", estado: error.status }));
+          tools = [leer];
+          res = await pedir();
+        }
         total = sumarConsumo(total, consumo(res.model, res.usage));
         if (res.stop_reason === "refusal") throw new RechazoModelo(total);
         bloques.push(...res.content);

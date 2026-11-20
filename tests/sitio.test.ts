@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, onTestFinished, vi } from "vitest";
 import { agruparPorDia, enlaceWhatsApp, leerPedido, normalizarTelefono, pedirVisita } from "@/lib/sitio/publico";
 import { ID, supabaseFalso } from "./acciones/entorno";
 
@@ -63,6 +63,11 @@ describe("Sitio web: pedido de visita", () => {
   });
 
   it("con la hora libre crea el cliente y la visita, y anota que vino del sitio (todo del mismo corredor)", async () => {
+    // Reloj fijo: la visita pedida es el viernes 20 de noviembre de 2026 y tiene que seguir en el futuro.
+    vi.useFakeTimers({ now: new Date("2026-11-16T12:00:00Z"), toFake: ["Date"] });
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
     const db = supabaseFalso();
     const contacto = vi.fn(async () => ({ id: ID.cliente }));
     const deps = {
