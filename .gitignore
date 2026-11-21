@@ -15,3 +15,7 @@ capturas/
 
 # Resultados del diagnóstico de salud del código (se generan en cada corrida)
 .salud/
+
+# Claude Code: lo local no va al repositorio
+.claude/settings.local.json
+.claude/worktrees/
