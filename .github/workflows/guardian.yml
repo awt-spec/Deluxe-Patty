@@ -1,0 +1,33 @@
+name: guardian
+
+# Liviano: el build, los tipos, el lint y las pruebas ya los corre ci.yml. Aquí: atajos de IA en las líneas
+# nuevas del PR, dependencias vulnerables y secretos en los commits del PR.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  guardian:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Atajos de IA en el diff
+        if: github.event_name == 'pull_request'
+        run: node scripts/guardian/diff.mjs --base origin/${{ github.base_ref }}
+      - name: Dependencias vulnerables
+        run: npm audit --audit-level=high --omit=dev
+      - name: Secretos en lo que agrega el PR
+        if: github.event_name == 'pull_request'
+        run: |
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz | tar xz gitleaks
+          # Solo el cambio neto del PR (la rama de trabajo arrastra commits viejos ya unidos a main).
+          git diff origin/${{ github.base_ref }}...HEAD | ./gitleaks stdin --no-banner --redact -v
