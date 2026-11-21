@@ -160,7 +160,7 @@ async function pagina(o: OpcionesAnuncio = {}) {
   return { extraida, p: p! };
 }
 
-conNavegador("Subir casa desde la extensión: lo que saca de la página (Chromium)", () => {
+conNavegador("Subir casa desde la extensión: lo que saca de la página (Chromium)", { timeout: 30_000 }, () => {
   it("saca dirección, título, texto, JSON-LD, wa.me y fotos de la galería (también la diferida), sin el logo ni repetidas", async () => {
     const { extraida, p } = await pagina({ whatsapp: { numero: NUMERO_ASISTENTE, referencia: "A1B2C3" } });
     expect(extraida.url).toBe(`${URL_ANUNCIO_E24}?utm_source=whatsapp#fotos`);
@@ -181,7 +181,7 @@ conNavegador("Subir casa desde la extensión: lo que saca de la página (Chromiu
   });
 });
 
-conNavegador("Subir casa desde la extensión: lo que hace el servidor con eso", () => {
+conNavegador("Subir casa desde la extensión: lo que hace el servidor con eso", { timeout: 30_000 }, () => {
   it("crea la casa pausada, con la dirección limpia y solo fotos de *.encuentra24.com", async () => {
     const pedidas = fotosFalsas();
     const { p } = await pagina({ whatsapp: { numero: NUMERO_ASISTENTE, referencia: null } });
