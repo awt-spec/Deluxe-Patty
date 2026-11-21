@@ -31,7 +31,3 @@ jobs:
           curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz | tar xz gitleaks
           # Solo el cambio neto del PR (la rama de trabajo arrastra commits viejos ya unidos a main).
           git diff origin/${{ github.base_ref }}...HEAD | ./gitleaks stdin --no-banner --redact -v
-      - name: "Diagnóstico temporal: secretos en el historial de la rama"
-        if: github.event_name == 'pull_request'
-        continue-on-error: true
-        run: ./gitleaks git . --no-banner --redact -v --log-opts="origin/${{ github.base_ref }}..HEAD"
