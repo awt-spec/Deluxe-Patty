@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Buscador de dueños",
   "description": "Busca dueños en Encuentra24 a ritmo de persona, llena el formulario de publicar (tú publicas) y te deja hablar con tu asistente.",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "minimum_chrome_version": "116",
   "action": {
     "default_title": "Buscador de dueños"

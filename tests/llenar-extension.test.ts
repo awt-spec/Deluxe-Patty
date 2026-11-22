@@ -165,6 +165,10 @@ describe("llenado.js: el panel lateral", () => {
     expect(ll.esFormularioDePublicar("https://www.encuentra24.com/costa-rica-es/bienes-raices-venta-de-propiedades-casas")).toBe(false);
     expect(ll.esFormularioDePublicar("https://www.encuentra24.com/costa-rica-es/casas/casa-en-escazu/31234567")).toBe(false);
     expect(ll.esFormularioDePublicar("https://otro.example/publicar")).toBe(false);
+    // La dirección real del asistente de publicar (4 pasos: categoría, fotos, datos, publicar).
+    expect(ll.esFormularioDePublicar("https://www.encuentra24.com/costa-rica-es/publishAd")).toBe(true);
+    expect(ll.esFormularioDePublicar("https://www.encuentra24.com/costa-rica-es/publishAd?step=2")).toBe(true);
+    expect(ll.esFormularioDePublicar("https://www.encuentra24.com/costa-rica-es/publisher-tips")).toBe(false);
     expect(ll.INICIO_E24.startsWith("https://www.encuentra24.com/")).toBe(true);
   });
 
@@ -199,9 +203,19 @@ describe("llenado.js: el panel lateral", () => {
       "Ana",
     );
     expect(t).toBe(
-      "Llené: título, descripción y precio. Llénalos tú: provincia. 8 fotos adjuntas. Revisa todo y toca Publicar en Encuentra24. Ya publicado, abre tu anuncio y toca «Leer este anuncio»: Ana lo enlaza a tu panel.",
+      "Llené: título, descripción y precio. Llénalos tú: provincia. 8 fotos adjuntas. Revisa todo. Si el formulario sigue en otro paso, toca Continuar y vuelve a tocar «Llenar el formulario»; al final, publica tú en Encuentra24. Ya publicado, abre tu anuncio y toca «Leer este anuncio»: Ana lo enlaza a tu panel.",
     );
-    expect(ll.textoInforme({ llenados: [], fotos: { total: 3, sinCampo: true } })).toMatch(/No encontré campos.*No encontré dónde subir las fotos: súbelas tú \(3/);
+    expect(ll.textoInforme({ llenados: [], fotos: { total: 3, sinCampo: true } })).toMatch(/No encontré campos.*no hay dónde subir las fotos.*súbelas tú \(3/);
+    // Paso de fotos de Encuentra24: solo fotos, sin "Llénalos tú" (esos campos vienen en el paso siguiente).
+    const fotos = ll.textoInforme({ llenados: [], faltan: ["titulo", "descripcion", "precio"], fotos: { total: 8, adjuntadas: 8, fallidas: 1 } }, "Ana");
+    expect(fotos).toBe(
+      "En este paso van las fotos: 8 fotos adjuntas. 1 foto no se pudo bajar. Revisa que se vean, toca Continuar en Encuentra24 y, en el paso siguiente, vuelve a tocar «Llenar el formulario».",
+    );
+    expect(fotos).not.toMatch(/Llénalos tú|Publicar/);
+    // Paso de texto después del de fotos: lo llena y dice que las fotos van en su paso.
+    expect(ll.textoInforme({ llenados: ["titulo", "descripcion"], fotos: { total: 8, sinCampo: true } })).toMatch(
+      /^Llené: título y descripción\. En esta página no hay dónde subir las fotos: si el formulario tiene un paso de fotos/,
+    );
     expect(ll.textoInforme({ llenados: ["titulo"], detenido: true, fotos: { total: 5, adjuntadas: 0 } })).toMatch(/^Lo detuviste.*No adjunté fotos/);
     expect(ll.textoInforme({ llenados: ["titulo"], conEnlace: false })).toMatch(/no lleva tu enlace de WhatsApp/);
   });
