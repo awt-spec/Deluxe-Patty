@@ -155,6 +155,8 @@ describe("tarjeta de la extensión: lo que sigue", () => {
     expect(marcas({ tipo: "sin_conectar" }, true)).toEqual(["ok", "ok", "falta", "no_se"]);
     expect(marcas({ tipo: "no_instalada" }, null)).toEqual(["falta", "falta", "falta", "no_se"]);
     expect(pasosHero({ estado: { tipo: "vieja" }, version: "1.5.2", semanal: null, vista: false })[1].texto).toBe("Falta la 1.5.2");
+    // Mientras busca la extensión no dice "Al día" (antes salía un instante y después cambiaba a "Falta").
+    expect(pasosHero({ estado: { tipo: "buscando" }, version: "1.7.1", semanal: null, vista: false })[1]).toMatchObject({ texto: "Revisando la versión", marca: "no_se" });
   });
 
   it("el encabezado dice el estado en una palabra", () => {

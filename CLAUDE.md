@@ -138,6 +138,11 @@ es el primer corredor, en el plan USD $299. Sumar otro corredor debe ser cargar 
   ficha/video (abre `/panel/patty`). Arriba, "En curso": la búsqueda con Pausar/Seguir/Detener y el llenado con Detener
   (`vistaTrabajos`, mismos mensajes). Pedidos nuevos solo desde las páginas de la extensión (`patty_*` en `mensajes.js`); sin
   permisos nuevos.
+  La 1.7.1 sigue el formulario real de Encuentra24, que publica en **4 pasos** en `/publishAd` (categoría, fotos —sin una
+  foto no deja seguir—, datos, publicar): `esFormularioDePublicar` reconoce `publish`/`publishAd`, `pareceFormulario` también
+  ve un paso con campo de fotos, en un paso sin campo de fotos no se baja ninguna (`hayCampoDeFotos`) y el informe es por paso
+  (en el de fotos: cuántas adjuntó y "toca Continuar y vuelve a tocar «Llenar el formulario»"; sin la lista de "Llénalos tú").
+  Mientras el panel busca la extensión, la tarjeta dice "Revisando la versión" (no "Al día").
   **En el panel**, Dueños directos (`app/panel/duenos/`, forma en `vistas.tsx`, estilos `duenos.css`) abre con la tarjeta de la
   extensión (`estado-extension.tsx`; reglas puras en `lib/panel/extension-hero.ts`): palabra de estado, instalada / al día /
   conectada / semanal, última búsqueda con los dueños que trajo, la próxima, Energía de Patty y UNA acción (`accionHero`:

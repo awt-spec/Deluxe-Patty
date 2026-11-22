@@ -29,7 +29,7 @@ export const NOMBRES_CAMPOS = {
   zona: "zona",
 };
 
-const PUBLICAR = /(^|[/_\-?=&.])(publicar|publica|anunciar|insertar|insertar-anuncio|post|postad|post-ad|nuevo-anuncio|crear-anuncio|place-ad|placead)([/_\-?=&.]|$)/i;
+const PUBLICAR = /(^|[/_\-?=&.])(publicar|publica|publicar-anuncio|publish|publishad|publish-ad|anunciar|insertar|insertar-anuncio|post|postad|post-ad|nuevo-anuncio|crear-anuncio|place-ad|placead)([/_\-?=&.]|$)/i;
 
 /**
  * ¿La pestaña parece el formulario de publicar de Encuentra24? Por la dirección (barato); si no lo dice, el panel
@@ -131,21 +131,30 @@ export function textoInforme(inf, asistente = "Patty") {
   const faltan = claves(i.faltan);
   const yaTenian = claves(i.yaTenian);
   const lineas = [];
+  const f = i.fotos ?? {};
   if (i.detenido) lineas.push("Lo detuviste: dejé lo que alcancé a poner.");
+  // Encuentra24 publica en varios pasos: en el de fotos no hay campos de texto. Ahí solo se cuentan las fotos y se dice
+  // cómo seguir, sin la lista de "Llénalos tú" (esos campos vienen en el paso siguiente).
+  if (!llenados.length && !yaTenian.length && f.adjuntadas > 0) {
+    lineas.push(`En este paso van las fotos: ${f.adjuntadas} ${f.adjuntadas === 1 ? "foto adjunta" : "fotos adjuntas"}${f.unaSola ? " (el formulario recibe una a la vez: sube las demás tú)" : ""}.`);
+    if (f.fallidas > 0) lineas.push(`${f.fallidas} ${f.fallidas === 1 ? "foto no se pudo bajar" : "fotos no se pudieron bajar"}.`);
+    lineas.push("Revisa que se vean, toca Continuar en Encuentra24 y, en el paso siguiente, vuelve a tocar «Llenar el formulario».");
+    return lineas.join(" ");
+  }
   lineas.push(llenados.length ? `Llené: ${lista(llenados)}.` : "No encontré campos que pudiera llenar en esta página.");
   if (i.amenidades > 0) lineas.push(`Marqué ${i.amenidades} ${i.amenidades === 1 ? "amenidad" : "amenidades"}.`);
   if (faltan.length) lineas.push(`Llénalos tú: ${lista(faltan)}.`);
   if (yaTenian.length) lineas.push(`Ya tenían algo y no los toqué: ${lista(yaTenian)}.`);
-  const f = i.fotos ?? {};
   if (f.total > 0) {
-    if (f.sinCampo) lineas.push(`No encontré dónde subir las fotos: súbelas tú (${f.total} en el orden de tu panel).`);
+    if (f.sinCampo)
+      lineas.push(`En esta página no hay dónde subir las fotos: si el formulario tiene un paso de fotos, toca «Llenar el formulario» ahí; si no, súbelas tú (${f.total} en el orden de tu panel).`);
     else if (f.adjuntadas > 0) {
       lineas.push(`${f.adjuntadas} ${f.adjuntadas === 1 ? "foto adjunta" : "fotos adjuntas"}${f.unaSola ? " (el formulario recibe una a la vez: sube las demás tú)" : ""}.`);
     } else if (i.detenido) lineas.push("No adjunté fotos.");
     if (f.fallidas > 0) lineas.push(`${f.fallidas} ${f.fallidas === 1 ? "foto no se pudo bajar" : "fotos no se pudieron bajar"}.`);
   }
   if (i.conEnlace === false) lineas.push("La descripción no lleva tu enlace de WhatsApp: falta el número de la asistente.");
-  lineas.push("Revisa todo y toca Publicar en Encuentra24.");
+  lineas.push("Revisa todo. Si el formulario sigue en otro paso, toca Continuar y vuelve a tocar «Llenar el formulario»; al final, publica tú en Encuentra24.");
   lineas.push(`Ya publicado, abre tu anuncio y toca «Leer este anuncio»: ${asistente} lo enlaza a tu panel.`);
   return lineas.join(" ");
 }

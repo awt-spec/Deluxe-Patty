@@ -829,10 +829,13 @@ async function llenarFormulario(tabId, anuncioId) {
     Object.assign(informe, { llenados: hecho.llenados ?? [], faltan: hecho.faltan ?? [], yaTenian: hecho.yaTenian ?? [], amenidades: hecho.amenidades ?? 0 });
     informe.fotos.total = fotos.length;
 
-    // Las fotos, una por una (se pueden detener entre una y otra).
+    // Las fotos, una por una (se pueden detener entre una y otra). En un paso sin campo de fotos (Encuentra24 las pide
+    // en otro paso) no se baja nada.
     await enPestana(tabId, () => self.LlenarPatty.olvidarFotos());
+    const hayCampo = fotos.length > 0 && (await enPestana(tabId, () => self.LlenarPatty.hayCampoDeFotos())) === true;
+    if (fotos.length > 0 && !hayCampo) informe.fotos.sinCampo = true;
     let bajadas = 0;
-    for (let i = 0; i < fotos.length; i++) {
+    for (let i = 0; hayCampo && i < fotos.length; i++) {
       if (control.signal.aborted) break;
       await estado({ fase: "llenando", paso: "fotos", hechas: i, total: fotos.length });
       let foto = null;
@@ -866,11 +869,15 @@ async function llenarFormulario(tabId, anuncioId) {
   }
 }
 
-/** ¿La página tiene un formulario con un campo de texto y uno largo (título y descripción)? Corre en la pestaña. */
+/**
+ * ¿La página es un paso del formulario de publicar? Con un campo de texto y uno largo (título y descripción) o con un
+ * campo para subir fotos (Encuentra24 las pide en su propio paso). Corre en la pestaña.
+ */
 function pareceFormulario() {
   const largo = document.querySelector('textarea, [contenteditable="true"], [contenteditable=""]');
   const corto = document.querySelector('input[type="text"], input:not([type])');
-  return !!largo && !!corto;
+  const fotos = [...document.querySelectorAll('input[type="file"]')].some((i) => !i.disabled && (!i.accept || /image|jpe?g|png|webp/i.test(i.accept)));
+  return (!!largo && !!corto) || fotos;
 }
 
 async function verFormulario(tabId) {

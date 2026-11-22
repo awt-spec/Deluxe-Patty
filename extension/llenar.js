@@ -254,5 +254,5 @@
     return { adjuntadas: campo.files?.length ?? 0, sinCampo: false, unaSola: !campo.multiple && listas.length > 1 };
   }
 
-  self.LlenarPatty = Object.freeze({ llenar, agregarFoto, adjuntarFotos, olvidarFotos, esDesafio });
+  self.LlenarPatty = Object.freeze({ llenar, agregarFoto, adjuntarFotos, olvidarFotos, esDesafio, hayCampoDeFotos: () => !!campoDeFotos() });
 })();

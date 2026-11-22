@@ -76,7 +76,11 @@ export function pasosHero(e: { estado: EstadoExtension; version: string; semanal
   const semanal: Marca = conectada !== "ok" ? "no_se" : e.semanal === true ? "ok" : e.semanal === false ? "falta" : "no_se";
   return [
     { clave: "instalada", texto: "Instalada en Chrome", marca: instalada },
-    { clave: "al_dia", texto: alDia === "falta" && instalada !== "falta" ? `Falta la ${e.version}` : `Al día · ${e.version}`, marca: alDia },
+    {
+      clave: "al_dia",
+      texto: t === "buscando" ? "Revisando la versión" : alDia === "falta" && instalada !== "falta" ? `Falta la ${e.version}` : `Al día · ${e.version}`,
+      marca: alDia,
+    },
     { clave: "conectada", texto: "Conectada a tu panel", marca: conectada },
     { clave: "semanal", texto: e.semanal === false ? "Búsqueda semanal apagada" : "Busca sola cada semana", marca: semanal },
   ];

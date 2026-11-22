@@ -421,7 +421,7 @@ describe("paquete 1.7.0", () => {
   it("patty.js va en el zip, sin permisos nuevos", () => {
     expect(ARCHIVOS_EXTENSION).toContain("patty.js");
     expect(revisarCarpeta(readdirSync("extension"))).toEqual({ sobran: [], faltan: [] });
-    expect(manifiesto.version).toBe("1.7.0");
+    expect(manifiesto.version).toBe("1.7.1");
     expect(manifiesto.permissions.sort()).toEqual(["alarms", "scripting", "sidePanel", "storage"]);
     expect(manifiesto.host_permissions).toEqual(["https://www.encuentra24.com/*", "__APP__/*"]);
     expect(manifiesto.description.length).toBeLessThanOrEqual(132);
